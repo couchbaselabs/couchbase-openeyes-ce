@@ -35,6 +35,7 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationnote_Surgeon extends Element_OpNote
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseElementBridge;
 
     public $service;
     public $surgeonlist;
@@ -91,6 +92,61 @@ class Element_OphTrOperationnote_Surgeon extends Element_OpNote
             'usermodified' => array(self::BELONGS_TO, 'User', 'last_modified_user_id'),
             'supervising_surgeon' => array(self::BELONGS_TO, 'User', 'supervising_surgeon_id'),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed surgeon details
+        if ($this->surgeon_id && $this->surgeon) {
+            $data['surgeon'] = [
+                'id' => (int)$this->surgeon->id,
+                'title' => $this->surgeon->title,
+                'first_name' => $this->surgeon->first_name,
+                'last_name' => $this->surgeon->last_name,
+                'full_name' => $this->surgeon->getFullName(),
+            ];
+        }
+        
+        // Embed assistant details if present
+        if ($this->assistant_id && $this->assistant) {
+            $data['assistant'] = [
+                'id' => (int)$this->assistant->id,
+                'title' => $this->assistant->title,
+                'first_name' => $this->assistant->first_name,
+                'last_name' => $this->assistant->last_name,
+                'full_name' => $this->assistant->getFullName(),
+            ];
+        }
+        
+        // Embed supervising surgeon details if present
+        if ($this->supervising_surgeon_id && $this->supervising_surgeon) {
+            $data['supervising_surgeon'] = [
+                'id' => (int)$this->supervising_surgeon->id,
+                'title' => $this->supervising_surgeon->title,
+                'first_name' => $this->supervising_surgeon->first_name,
+                'last_name' => $this->supervising_surgeon->last_name,
+                'full_name' => $this->supervising_surgeon->getFullName(),
+            ];
+        }
+        
+        return $data;
     }
 
     /**

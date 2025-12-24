@@ -24,6 +24,8 @@
  */
 class Element_OnDemandEye extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @var Eye
      */

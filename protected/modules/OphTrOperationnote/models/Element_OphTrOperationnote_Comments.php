@@ -34,6 +34,8 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationnote_Comments extends Element_OpNote
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseElementBridge;
 
     public $service;
 
@@ -87,6 +89,27 @@ class Element_OphTrOperationnote_Comments extends Element_OpNote
                 $this->addError($attribute, $message, $params);
             }
         }
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // No complex relations to embed - comments and postop_instructions are simple text fields
+        return [];
     }
 
     /**

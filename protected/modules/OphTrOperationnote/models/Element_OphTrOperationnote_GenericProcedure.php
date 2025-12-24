@@ -33,6 +33,8 @@
  */
 class Element_OphTrOperationnote_GenericProcedure extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $service;
 
     /**
@@ -67,6 +69,39 @@ class Element_OphTrOperationnote_GenericProcedure extends Element_OnDemand
             // Please remove those attributes that should not be searched.
             array('id, event_id, element_index, proc_id, comments', 'safe', 'on' => 'search'),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed procedure details
+        if ($this->proc_id && $this->procedure) {
+            $data['procedure'] = [
+                'id' => (int)$this->procedure->id,
+                'term' => $this->procedure->term,
+                'short_format' => $this->procedure->short_format,
+                'snomed_code' => $this->procedure->snomed_code,
+                'snomed_term' => $this->procedure->snomed_term,
+            ];
+        }
+        
+        return $data;
     }
 
     /**

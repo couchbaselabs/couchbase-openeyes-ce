@@ -14,6 +14,8 @@
  */
 class Element_OphTrOperationnote_Mmc extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'et_ophtroperationnote_mmc';

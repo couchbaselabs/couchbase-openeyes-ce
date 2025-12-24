@@ -17,6 +17,8 @@
  */
 class Element_OnDemand extends Element_OpNote
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $requires_eye = false;
 
     public function getContainer_form_view()

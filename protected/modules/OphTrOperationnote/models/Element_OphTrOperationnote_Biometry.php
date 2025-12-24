@@ -18,6 +18,8 @@
 
 class Element_OphTrOperationnote_Biometry extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     // these are legacy and should be removed one switch to using the constants on the Eye model
     const LEFT = Eye::LEFT;
     const RIGHT = Eye::RIGHT;

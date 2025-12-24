@@ -51,6 +51,8 @@
  */
 class Element_OphTrOperationnote_Cataract extends Element_OnDemandEye
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $predicted_refraction = null;
     public $requires_eye = true;
 
@@ -216,6 +218,84 @@ class Element_OphTrOperationnote_Cataract extends Element_OnDemandEye
         }
 
         return $model_name::model()->findByPk($this->iol_type_id);
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed IOL type details
+        if ($this->iol_type_id) {
+            $iol_type = $this->getIol_type();
+            if ($iol_type) {
+                $data['iol_type'] = [
+                    'id' => (int)$iol_type->id,
+                    'name' => $iol_type->name,
+                    'display_name' => isset($iol_type->display_name) ? $iol_type->display_name : $iol_type->name,
+                ];
+            }
+        }
+        
+        // Embed incision site details
+        if ($this->incision_site_id && $this->incision_site) {
+            $data['incision_site'] = [
+                'id' => (int)$this->incision_site->id,
+                'name' => $this->incision_site->name,
+            ];
+        }
+        
+        // Embed incision type details
+        if ($this->incision_type_id && $this->incision_type) {
+            $data['incision_type'] = [
+                'id' => (int)$this->incision_type->id,
+                'name' => $this->incision_type->name,
+            ];
+        }
+        
+        // Embed IOL position details
+        if ($this->iol_position_id && $this->iol_position) {
+            $data['iol_position'] = [
+                'id' => (int)$this->iol_position->id,
+                'name' => $this->iol_position->name,
+            ];
+        }
+        
+        // Embed complications
+        if (!empty($this->complications)) {
+            $data['complications'] = array_map(function($comp) {
+                return [
+                    'id' => (int)$comp->id,
+                    'name' => $comp->name,
+                ];
+            }, $this->complications);
+        }
+        
+        // Embed operative devices
+        if (!empty($this->operative_devices)) {
+            $data['operative_devices'] = array_map(function($device) {
+                return [
+                    'id' => (int)$device->id,
+                    'name' => $device->name,
+                ];
+            }, $this->operative_devices);
+        }
+        
+        return $data;
     }
 
     /**

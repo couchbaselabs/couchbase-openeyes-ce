@@ -45,6 +45,8 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationnote_Anaesthetic extends Element_OpNote
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseElementBridge;
 
     public $service;
     public $surgeonlist;
@@ -134,6 +136,77 @@ class Element_OphTrOperationnote_Anaesthetic extends Element_OpNote
             'anaesthetic_complications' => array(self::HAS_MANY, 'OphTrOperationnote_AnaestheticComplications', 'anaesthetic_complication_id',
                 'through' => 'anaesthetic_complication_assignments', ),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed anaesthetic types
+        if (!empty($this->anaesthetic_type)) {
+            $data['anaesthetic_types'] = array_map(function($type) {
+                return [
+                    'id' => (int)$type->id,
+                    'name' => $type->name,
+                    'code' => $type->code,
+                ];
+            }, $this->anaesthetic_type);
+        }
+        
+        // Embed anaesthetic delivery methods
+        if (!empty($this->anaesthetic_delivery)) {
+            $data['anaesthetic_delivery_methods'] = array_map(function($delivery) {
+                return [
+                    'id' => (int)$delivery->id,
+                    'name' => $delivery->name,
+                ];
+            }, $this->anaesthetic_delivery);
+        }
+        
+        // Embed anaesthetist details
+        if ($this->anaesthetist_id && $this->anaesthetist) {
+            $data['anaesthetist'] = [
+                'id' => (int)$this->anaesthetist->id,
+                'name' => $this->anaesthetist->name,
+            ];
+        }
+        
+        // Embed anaesthetic agents
+        if (!empty($this->anaesthetic_agents)) {
+            $data['anaesthetic_agents'] = array_map(function($agent) {
+                return [
+                    'id' => (int)$agent->id,
+                    'name' => $agent->name,
+                ];
+            }, $this->anaesthetic_agents);
+        }
+        
+        // Embed anaesthetic complications
+        if (!empty($this->anaesthetic_complications)) {
+            $data['anaesthetic_complications'] = array_map(function($complication) {
+                return [
+                    'id' => (int)$complication->id,
+                    'name' => $complication->name,
+                ];
+            }, $this->anaesthetic_complications);
+        }
+        
+        return $data;
     }
 
     /**

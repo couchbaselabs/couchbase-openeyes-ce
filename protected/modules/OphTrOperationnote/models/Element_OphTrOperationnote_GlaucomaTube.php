@@ -43,6 +43,8 @@
  */
 class Element_OphTrOperationnote_GlaucomaTube extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

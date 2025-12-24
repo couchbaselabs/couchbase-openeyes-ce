@@ -35,6 +35,8 @@ interpulse_duration_id
  */
 class Element_OphTrOperationnote_CXL extends Element_OpNote
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     public $requires_eye = false;

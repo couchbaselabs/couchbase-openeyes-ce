@@ -16,6 +16,8 @@
  */
 class Element_OpNote extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function getContainer_view_view()
     {
         return false;
