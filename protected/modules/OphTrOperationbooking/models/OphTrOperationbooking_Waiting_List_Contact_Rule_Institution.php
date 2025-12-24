@@ -23,6 +23,8 @@
 
 class OphTrOperationbooking_Waiting_List_Contact_Rule_Institution extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($class_name = __CLASS__)
     {
         return parent::model($class_name);

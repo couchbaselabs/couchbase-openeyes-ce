@@ -18,6 +18,8 @@
 
 class OphTrOperationbooking_Whiteboard_Settings extends BaseSetting
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
 
     /**
      * additional setting tables

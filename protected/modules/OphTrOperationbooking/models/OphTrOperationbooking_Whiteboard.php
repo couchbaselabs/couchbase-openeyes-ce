@@ -19,6 +19,8 @@ use OEModule\OphCiExamination\models\OphCiExaminationRisk;
  */
 class OphTrOperationbooking_Whiteboard extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      * @param $className string
