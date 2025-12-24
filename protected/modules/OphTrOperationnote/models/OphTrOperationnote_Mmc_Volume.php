@@ -14,5 +14,7 @@
  */
 class OphTrOperationnote_Mmc_Volume extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const SELECTION_LABEL_FIELD = 'value';
 }
