@@ -13,6 +13,8 @@
  */
 class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     var $letterRange;
     var $numberRange;
     /**

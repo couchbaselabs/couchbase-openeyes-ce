@@ -41,6 +41,8 @@
  */
 class Element_OphInDnaextraction_DnaTests extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *
