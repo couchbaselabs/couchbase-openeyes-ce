@@ -1,7 +1,10 @@
 <?php
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 class PatientMeasurement extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
     public function tableName()
     {
         return 'patient_measurement';

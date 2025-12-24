@@ -1,5 +1,7 @@
 <?php
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "patient_statistic_type".
  *
@@ -20,6 +22,8 @@
  */
 class PatientStatisticType extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

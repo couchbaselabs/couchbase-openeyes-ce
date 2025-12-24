@@ -16,6 +16,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "ophtrlaser_type".
  *
@@ -26,6 +28,7 @@
  */
 class OphTrLaser_Type extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      *
@@ -102,5 +105,15 @@ class OphTrLaser_Type extends BaseActiveRecordVersioned
         return new CActiveDataProvider(get_class($this), array(
                 'criteria' => $criteria,
             ));
+    }
+
+    public function couchbaseScope()
+    {
+        return 'laser';
+    }
+
+    public function couchbaseCollection()
+    {
+        return 'ophtrlaser_type';
     }
 }

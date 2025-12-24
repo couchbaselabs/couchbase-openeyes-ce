@@ -16,6 +16,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "et_ophtrlaser_comments".
  *
@@ -34,6 +36,7 @@
  */
 class Element_OphTrLaser_Comments extends BaseEventTypeElement
 {
+    use CouchbaseModelBridge;
     public $service;
 
     /**
@@ -118,5 +121,15 @@ class Element_OphTrLaser_Comments extends BaseEventTypeElement
         return new CActiveDataProvider(get_class($this), array(
                 'criteria' => $criteria,
             ));
+    }
+
+    public function couchbaseScope()
+    {
+        return 'laser';
+    }
+
+    public function couchbaseCollection()
+    {
+        return 'element_ophtrlaser_comments';
     }
 }

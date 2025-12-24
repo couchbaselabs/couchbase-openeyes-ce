@@ -35,6 +35,8 @@
  */
 class Element_OphTrLaser_Treatment extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $service;
     const RIGHT_EYE_ID = 2;
     const LEFT_EYE_ID = 1;
@@ -107,6 +109,60 @@ class Element_OphTrLaser_Treatment extends SplitEventTypeElement
             'right_procedures' => array(self::HAS_MANY, 'Procedure', 'procedure_id', 'order' => 'display_order ASC', 'through' => 'procedure_assignments', 'on' => 'procedure_assignments.eye_id = '.self::RIGHT_EYE_ID),
             'left_procedures' => array(self::HAS_MANY, 'Procedure', 'procedure_id', 'order' => 'display_order ASC', 'through' => 'procedure_assignments', 'on' => 'procedure_assignments.eye_id = '.self::LEFT_EYE_ID),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed eye
+        if ($this->eye) {
+            $data['eye'] = [
+                'id' => (int)$this->eye->id,
+                'name' => $this->eye->name,
+            ];
+        }
+        
+        // Embed right eye procedures
+        if (!empty($this->right_procedures)) {
+            $data['right_procedures'] = array_map(function($proc) {
+                return [
+                    'id' => (int)$proc->id,
+                    'term' => $proc->term,
+                    'short_format' => $proc->short_format,
+                    'snomed_code' => $proc->snomed_code,
+                ];
+            }, $this->right_procedures);
+        }
+        
+        // Embed left eye procedures
+        if (!empty($this->left_procedures)) {
+            $data['left_procedures'] = array_map(function($proc) {
+                return [
+                    'id' => (int)$proc->id,
+                    'term' => $proc->term,
+                    'short_format' => $proc->short_format,
+                    'snomed_code' => $proc->snomed_code,
+                ];
+            }, $this->left_procedures);
+        }
+        
+        return $data;
     }
 
     /**

@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "patient_identifier_type_display_order".
@@ -46,6 +47,7 @@ use OE\factories\models\traits\HasFactory;
 class PatientIdentifierTypeDisplayOrder extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

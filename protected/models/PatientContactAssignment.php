@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "patient_contact_assignment".
@@ -35,6 +36,7 @@ use OE\factories\models\traits\HasFactory;
 class PatientContactAssignment extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.

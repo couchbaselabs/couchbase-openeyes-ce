@@ -22,6 +22,7 @@ use OEModule\OphCiExamination\models\SocialHistory;
 use OEModule\OphCiExamination\models\OphCiExaminationAllergy;
 use OEModule\OphCiExamination\models\Element_OphCiExamination_CommunicationPreferences;
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "patient".
@@ -78,6 +79,7 @@ use OE\factories\models\traits\HasFactory;
 class Patient extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     const CHILD_AGE_LIMIT = 16;
 
@@ -2075,13 +2077,19 @@ class Patient extends BaseActiveRecordVersioned
     {
         $disorders = array();
         foreach ($snomeds as $id) {
-            $disorders[] = Disorder::model()->findByPk($id);
+            $disorder = Disorder::model()->findByPk($id);
+            if ($disorder) {
+                $disorders[] = $disorder;
+            }
         }
 
         $patient_disorder_ids = $this->getAllDisorderIds();
         $res = array();
         foreach ($patient_disorder_ids as $p_did) {
             foreach ($disorders as $d) {
+                if (!$d) {
+                    continue;
+                }
                 if (($d->id == $p_did) || $d->ancestorOfIds(array($p_did))) {
                     $res[] = Disorder::model()->findByPk($p_did);
                     break;
@@ -2520,4 +2528,144 @@ class Patient extends BaseActiveRecordVersioned
     //            function($item) { return $item['description'];},
     //            $summary);
     //    }
+
+    // =========================================================================
+    // COUCHBASE INTEGRATION METHODS
+    // =========================================================================
+    
+    /**
+     * Get the Couchbase scope for patients
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+    
+    /**
+     * Define relations to embed in Couchbase document
+     * @return array
+     */
+    public function getEmbeddedRelations()
+    {
+        return [
+            'contact' => ['embed' => true],
+        ];
+    }
+    
+    /**
+     * Convert patient to Couchbase document with embedded data
+     * @return array
+     */
+    public function toCouchbaseDocument()
+    {
+        // Get base document from trait
+        $doc = [];
+        $schema = $this->getMetaData()->columns;
+        
+        // Transform each attribute
+        foreach ($this->attributes as $attr => $value) {
+            if (isset($schema[$attr])) {
+                $doc[$attr] = \OE\Couchbase\Transformers\TypeTransformer::toJson(
+                    $value,
+                    $schema[$attr]->dbType,
+                    $attr
+                );
+            } else {
+                $doc[$attr] = $value;
+            }
+        }
+        
+        // Add document metadata
+        $doc['_type'] = 'patient';
+        $doc['_mysql_id'] = $this->id;
+        $doc['_modified'] = date('c');
+        $doc['_created'] = $this->isNewRecord ? date('c') : ($doc['_created'] ?? date('c'));
+        $doc['_version'] = isset($doc['_version']) ? $doc['_version'] + 1 : 1;
+        
+        // Embed contact information
+        if ($this->contact) {
+            $doc['contact'] = [
+                'title' => $this->contact->title,
+                'first_name' => $this->contact->first_name,
+                'last_name' => $this->contact->last_name,
+                'maiden_name' => $this->contact->maiden_name,
+                'nick_name' => $this->contact->nick_name,
+                'primary_phone' => $this->contact->primary_phone,
+                'email' => $this->contact->email,
+                'qualifications' => $this->contact->qualifications,
+            ];
+        }
+        
+        // Embed addresses via contact
+        $doc['addresses'] = [];
+        if ($this->contact) {
+            $addresses = Address::model()->findAllByAttributes(
+                ['contact_id' => $this->contact->id],
+                ['order' => 'date_start DESC']
+            );
+            foreach ($addresses as $i => $addr) {
+                $doc['addresses'][] = [
+                    'address_type_id' => $addr->address_type_id,
+                    'address_type' => $addr->type ? $addr->type->name : null,
+                    'address1' => $addr->address1,
+                    'address2' => $addr->address2,
+                    'city' => $addr->city,
+                    'postcode' => $addr->postcode,
+                    'county' => $addr->county,
+                    'country_id' => $addr->country_id,
+                    'country' => $addr->country ? $addr->country->name : null,
+                    'date_start' => $addr->date_start,
+                    'date_end' => $addr->date_end,
+                    'is_primary' => ($i === 0),
+                ];
+            }
+        }
+        
+        // Embed patient identifiers
+        $doc['identifiers'] = [];
+        if ($this->identifiers) {
+            foreach ($this->identifiers as $identifier) {
+                if (!$identifier->deleted) {
+                    $data = [
+                        'type' => $identifier->patientIdentifierType ? $identifier->patientIdentifierType->short_title : null,
+                        'type_id' => $identifier->patient_identifier_type_id,
+                        'value' => $identifier->value,
+                    ];
+                    // Only include institution_id if it exists
+                    if (property_exists($identifier, 'institution_id') && $identifier->institution_id !== null) {
+                        $data['institution_id'] = $identifier->institution_id;
+                    }
+                    $doc['identifiers'][] = $data;
+                }
+            }
+        }
+        
+        // Add computed fields
+        $doc['is_deceased'] = !empty($this->date_of_death);
+        $doc['full_name'] = trim($this->first_name . ' ' . $this->last_name);
+        
+        // Remove contact_id since we're embedding
+        unset($doc['contact_id']);
+        
+        return $doc;
+    }
+    
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+    
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

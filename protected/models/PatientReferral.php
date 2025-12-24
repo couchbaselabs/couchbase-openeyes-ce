@@ -1,5 +1,7 @@
 <?php
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "patient_referral".
  *
@@ -21,6 +23,8 @@
  */
 class PatientReferral extends BaseActiveRecord
 {
+    use CouchbaseModelBridge;
+
     public $uploadedFile;
 
     /**

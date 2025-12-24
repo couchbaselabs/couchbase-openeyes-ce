@@ -16,6 +16,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "ophtrlaser_site_laser".
  *
@@ -34,6 +36,7 @@
  */
 class OphTrLaser_Site_Laser extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      *
@@ -127,5 +130,23 @@ class OphTrLaser_Site_Laser extends BaseActiveRecordVersioned
         return array(
             'LookupTable' => 'LookupTable',
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'laser';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'ophtrlaser_site_laser';
     }
 }

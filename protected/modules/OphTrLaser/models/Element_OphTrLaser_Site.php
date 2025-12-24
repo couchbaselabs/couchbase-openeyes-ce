@@ -39,6 +39,8 @@
  */
 class Element_OphTrLaser_Site extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $service;
     public $operatorlist;
 
@@ -94,6 +96,55 @@ class Element_OphTrLaser_Site extends BaseEventTypeElement
             'laser' => array(self::BELONGS_TO, 'OphTrLaser_Site_Laser', 'laser_id'),
             'surgeon' => array(self::BELONGS_TO, 'User', 'operator_id'),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed site details
+        if ($this->site_id && $this->site) {
+            $data['site'] = [
+                'id' => (int)$this->site->id,
+                'name' => $this->site->name,
+            ];
+        }
+        
+        // Embed laser details
+        if ($this->laser_id && $this->laser) {
+            $data['laser'] = [
+                'id' => (int)$this->laser->id,
+                'name' => $this->laser->name,
+            ];
+        }
+        
+        // Embed operator/surgeon details
+        if ($this->operator_id && $this->surgeon) {
+            $data['operator'] = [
+                'id' => (int)$this->surgeon->id,
+                'title' => $this->surgeon->title,
+                'first_name' => $this->surgeon->first_name,
+                'last_name' => $this->surgeon->last_name,
+                'full_name' => $this->surgeon->getFullName(),
+            ];
+        }
+        
+        return $data;
     }
 
     /**

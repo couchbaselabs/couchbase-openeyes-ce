@@ -16,6 +16,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "et_ophtrlaser_fundus".
  *
@@ -35,6 +37,7 @@
  */
 class Element_OphTrLaser_Fundus extends SplitEventTypeElement
 {
+    use CouchbaseModelBridge;
     public $service;
 
     /**
@@ -177,5 +180,15 @@ class Element_OphTrLaser_Fundus extends SplitEventTypeElement
     protected function beforeValidate()
     {
         return parent::beforeValidate();
+    }
+
+    public function couchbaseScope()
+    {
+        return 'laser';
+    }
+
+    public function couchbaseCollection()
+    {
+        return 'element_ophtrlaser_fundus';
     }
 }

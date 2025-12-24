@@ -15,6 +15,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "patient_identifier_type".
@@ -47,6 +48,7 @@ use OE\factories\models\traits\HasFactory;
 class PatientIdentifierType extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     const GLOBAL_USAGE_TYPE = "GLOBAL";
     const LOCAL_USAGE_TYPE = "LOCAL";

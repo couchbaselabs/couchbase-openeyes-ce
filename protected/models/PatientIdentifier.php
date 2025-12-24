@@ -16,6 +16,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "patient_identifier".
@@ -38,6 +39,7 @@ use OE\factories\models\traits\HasFactory;
 class PatientIdentifier extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     public $status_is_mandatory = false;
 

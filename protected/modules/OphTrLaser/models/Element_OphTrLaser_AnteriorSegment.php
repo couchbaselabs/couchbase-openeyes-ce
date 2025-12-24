@@ -35,6 +35,8 @@
  */
 class Element_OphTrLaser_AnteriorSegment extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $service;
 
     /**
@@ -69,6 +71,27 @@ class Element_OphTrLaser_AnteriorSegment extends SplitEventTypeElement
             // Please remove those attributes that should not be searched.
             array('id, event_id, left_eyedraw, right_eyedraw, eye_id, ', 'safe', 'on' => 'search'),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // No complex relations - eyedraw fields are stored directly
+        return [];
     }
 
     /**

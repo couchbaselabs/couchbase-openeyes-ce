@@ -1,5 +1,7 @@
 <?php
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "patient_merge_request".
  *
@@ -32,6 +34,8 @@
  */
 class PatientMergeRequest extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
+
     const STATUS_NOT_PROCESSED = 0;
     const STATUS_CONFLICT = 10;
     const STATUS_MERGED = 20;
