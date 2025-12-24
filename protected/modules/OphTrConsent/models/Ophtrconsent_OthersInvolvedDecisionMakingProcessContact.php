@@ -42,6 +42,8 @@
 
 class Ophtrconsent_OthersInvolvedDecisionMakingProcessContact extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

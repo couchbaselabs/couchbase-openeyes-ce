@@ -20,6 +20,8 @@
  */
 class OphTrConsent_Type_Assessment extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
