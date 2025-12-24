@@ -58,6 +58,7 @@ use Yii;
 class MedicationManagement extends BaseMedicationElement
 {
     use AutoSignTrait;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     private $signature_class = \OphCiExamination_Signature::class;
     private $pin_required_setting_name = 'require_pin_for_prescription';
     private $auto_sign_role = 'Consultant';

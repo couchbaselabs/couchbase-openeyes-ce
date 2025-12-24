@@ -39,6 +39,7 @@ namespace OEModule\OphCiExamination\models;
 class NinePositions_AlignmentForGaze extends \BaseElement
 {
     use traits\HasRelationOptions;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const BI = 'BI';
     public const BO = 'BO';

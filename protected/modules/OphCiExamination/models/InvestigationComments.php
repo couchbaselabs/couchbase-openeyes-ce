@@ -27,6 +27,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class InvestigationComments extends \BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const SELECTION_LABEL_FIELD = 'comments';
 
     public function tableName()

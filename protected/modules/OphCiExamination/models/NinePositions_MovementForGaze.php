@@ -32,6 +32,7 @@ use OEModule\OphCiExamination\models\interfaces\SidedData;
 class NinePositions_MovementForGaze extends \BaseElement
 {
     use traits\HasRelationOptions;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const RIGHT_UP = 'right-up';
     public const RIGHT_MID = 'right-mid';

@@ -4,6 +4,8 @@ namespace OEModule\OphCiExamination\models;
 
 class InvoiceStatus extends \BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
 
     public static function model($className = __CLASS__)
     {

@@ -27,6 +27,7 @@ use OEModule\OphCiExamination\widgets\NinePositions as NinePositionsWidget;
 class NinePositions extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasChildrenWithEventScopeValidation;
     use \LoadFromExistingWithRelation;
 
