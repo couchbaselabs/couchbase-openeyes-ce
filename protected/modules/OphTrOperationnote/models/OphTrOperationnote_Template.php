@@ -23,6 +23,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationnote_Template extends BaseEventTemplate
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

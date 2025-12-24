@@ -31,6 +31,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationnote_PostopSiteSubspecialtyDrug extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     const SELECTION_LABEL_FIELD = 'site_id';
 

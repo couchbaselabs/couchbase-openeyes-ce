@@ -35,6 +35,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationnote_PostopInstruction extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Label field for display in generic admin.
