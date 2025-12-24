@@ -28,8 +28,9 @@ use OE\factories\models\traits\HasFactory;
  */
 class UserSite extends BaseActiveRecordVersioned
 {
-
     use hasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

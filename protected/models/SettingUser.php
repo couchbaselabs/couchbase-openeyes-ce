@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "setting_user".
@@ -31,6 +32,7 @@ use OE\factories\models\traits\HasFactory;
 class SettingUser extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.
@@ -110,4 +112,40 @@ class SettingUser extends BaseActiveRecordVersioned
             'criteria' => $criteria,
         ));
     }
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'setting_user';
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
 }

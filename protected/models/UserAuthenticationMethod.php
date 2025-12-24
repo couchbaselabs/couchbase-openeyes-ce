@@ -26,6 +26,8 @@
  */
 class UserAuthenticationMethod extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
@@ -91,4 +93,40 @@ class UserAuthenticationMethod extends BaseActiveRecordVersioned
     {
         return parent::model($className);
     }
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'user_authentication_method';
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
 }

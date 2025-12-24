@@ -17,6 +17,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "setting_installation".
  *
@@ -29,6 +31,7 @@
  */
 class SettingInstallation extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      *
@@ -110,5 +113,60 @@ class SettingInstallation extends BaseActiveRecordVersioned
     public function save($runValidation = true, $attributes = NULL, $allow_overriding = false) {
         Yii::app()->settingCache->flush();
         return parent::save($runValidation, $attributes, $allow_overriding);
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'setting_installation';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        if ($this->element_type) {
+            $data['element_type'] = [
+                'id' => (int)$this->element_type->id,
+                'name' => $this->element_type->name,
+                'class_name' => $this->element_type->class_name,
+            ];
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

@@ -19,6 +19,7 @@
 
 use OE\concerns\ModelCanBeFaked;
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "setting_metadata".
@@ -39,6 +40,7 @@ class SettingMetadata extends BaseActiveRecordVersioned
 {
     use ModelCanBeFaked;
     use HasFactory;
+    use CouchbaseModelBridge;
 
     public static array $CONTEXT_CLASSES = [
         'SettingUser' => 'user_id',
@@ -724,5 +726,78 @@ class SettingMetadata extends BaseActiveRecordVersioned
             : self::model()->find('element_type_id is null and `key`=?', [$key]);
         }
         return static::$metadataCacheStore[$cacheKey];
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'setting_metadata';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed group info
+        if ($this->group) {
+            $data['group'] = [
+                'id' => (int)$this->group->id,
+                'name' => $this->group->name,
+                'display_order' => (int)$this->group->display_order,
+            ];
+        }
+        
+        // Embed field type
+        if ($this->fieldType) {
+            $data['field_type'] = [
+                'id' => (int)$this->fieldType->id,
+                'name' => $this->fieldType->name,
+            ];
+        }
+        
+        // Embed element type if present
+        if ($this->element_type_id && $this->element_type) {
+            $data['element_type'] = [
+                'id' => (int)$this->element_type->id,
+                'name' => $this->element_type->name,
+                'class_name' => $this->element_type->class_name,
+            ];
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

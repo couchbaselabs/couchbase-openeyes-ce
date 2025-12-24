@@ -16,6 +16,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "audit".
  *
@@ -48,6 +50,8 @@
  */
 class Audit extends BaseActiveRecord
 {
+    use CouchbaseModelBridge;
+
     public $count;
 
     /**
@@ -300,5 +304,119 @@ class Audit extends BaseActiveRecord
         $log_message && OELog::log($log_message, @$user_id);
 
         return $audit;
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'audit';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * Embeds frequently accessed related data for performance
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed user info for quick display
+        if ($this->user) {
+            $data['user'] = [
+                'id' => (int)$this->user->id,
+                'username' => $this->user->username,
+                'first_name' => $this->user->first_name,
+                'last_name' => $this->user->last_name,
+            ];
+        }
+        
+        // Embed patient info if available
+        if ($this->patient) {
+            $data['patient'] = [
+                'id' => (int)$this->patient->id,
+                'hos_num' => $this->patient->hos_num,
+            ];
+        }
+        
+        // Embed site info
+        if ($this->site) {
+            $data['site'] = [
+                'id' => (int)$this->site->id,
+                'name' => $this->site->name,
+            ];
+        }
+        
+        // Embed institution info
+        if ($this->institution) {
+            $data['institution'] = [
+                'id' => (int)$this->institution->id,
+                'name' => $this->institution->name,
+            ];
+        }
+        
+        // Embed firm info
+        if ($this->firm) {
+            $data['firm'] = [
+                'id' => (int)$this->firm->id,
+                'name' => $this->firm->name,
+            ];
+        }
+        
+        // Embed event type if available
+        if ($this->event_type_id && $this->event_type) {
+            $data['event_type'] = [
+                'id' => (int)$this->event_type->id,
+                'name' => $this->event_type->name,
+            ];
+        }
+        
+        // Embed action
+        if ($this->action) {
+            $data['action'] = [
+                'id' => (int)$this->action->id,
+                'name' => $this->action->name,
+            ];
+        }
+        
+        // Embed target type
+        if ($this->target_type) {
+            $data['target_type'] = [
+                'id' => (int)$this->target_type->id,
+                'name' => $this->target_type->name,
+            ];
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

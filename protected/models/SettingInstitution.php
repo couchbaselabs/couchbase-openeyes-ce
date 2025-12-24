@@ -29,6 +29,8 @@
  */
 class SettingInstitution extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *
@@ -112,4 +114,40 @@ class SettingInstitution extends BaseActiveRecordVersioned
         Yii::app()->settingCache->flush();
         return parent::save($runValidation, $attributes, $allow_overriding);
     }
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'setting_institution';
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
 }

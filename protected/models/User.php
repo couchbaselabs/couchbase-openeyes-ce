@@ -18,6 +18,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 use OEModule\OESysEvent\events\UserSavedSystemEvent;
 use OEModule\OphCoMessaging\models\Mailbox;
 use OEModule\OphCoMessaging\models\MailboxUser;
@@ -44,6 +45,7 @@ use OEModule\OphCoMessaging\models\MailboxUser;
 class User extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     private const PIN_REGEN_LIMIT = 5;
     /**
@@ -482,6 +484,7 @@ class User extends BaseActiveRecordVersioned
     public function afterSave()
     {
         UserSavedSystemEvent::dispatch($this);
+        $this->saveToCouchbase();
 
         return parent::afterSave();
     }
@@ -1227,4 +1230,80 @@ class User extends BaseActiveRecordVersioned
 
         return $msg;
     }
+
+    // =========================================================================
+    // COUCHBASE INTEGRATION METHODS
+    // =========================================================================
+    
+    /**
+     * Get the Couchbase scope
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+    
+    /**
+     * Convert user to Couchbase document
+     * IMPORTANT: Excludes sensitive data (password, salt)
+     * @return array
+     */
+    public function toCouchbaseDocument()
+    {
+        $doc = [];
+        $schema = $this->getMetaData()->columns;
+        
+        // Sensitive fields to exclude
+        $excludeFields = ['password', 'salt', 'password_salt', 'password_hash'];
+        
+        foreach ($this->attributes as $attr => $value) {
+            // Skip sensitive fields
+            if (in_array($attr, $excludeFields)) {
+                continue;
+            }
+            
+            if (isset($schema[$attr])) {
+                $doc[$attr] = \OE\Couchbase\Transformers\TypeTransformer::toJson(
+                    $value,
+                    $schema[$attr]->dbType,
+                    $attr
+                );
+            } else {
+                $doc[$attr] = $value;
+            }
+        }
+        
+        // Document metadata
+        $doc['_type'] = 'user';
+        $doc['_mysql_id'] = $this->id;
+        $doc['_modified'] = date('c');
+        $doc['_created'] = $this->isNewRecord ? date('c') : ($doc['_created'] ?? date('c'));
+        $doc['_version'] = isset($doc['_version']) ? $doc['_version'] + 1 : 1;
+        
+        // Embed contact info
+        if ($this->contact) {
+            $doc['contact'] = [
+                'title' => $this->contact->title,
+                'first_name' => $this->contact->first_name,
+                'last_name' => $this->contact->last_name,
+                'email' => $this->contact->email,
+                'primary_phone' => $this->contact->primary_phone,
+                'qualifications' => $this->contact->qualifications,
+            ];
+        }
+        
+        // Add full name for convenience
+        $doc['full_name'] = trim($this->first_name . ' ' . $this->last_name);
+        
+        // Add roles (from auth assignments)
+        $doc['roles'] = [];
+        $authAssignments = AuthAssignment::model()->findAllByAttributes(['userid' => $this->id]);
+        foreach ($authAssignments as $auth) {
+            $doc['roles'][] = $auth->itemname;
+        }
+        
+        return $doc;
+    }
+    
 }

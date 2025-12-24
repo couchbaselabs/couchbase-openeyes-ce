@@ -33,6 +33,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class UserOutOfOffice extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**
