@@ -35,6 +35,8 @@ use OEModule\OphCiExamination\models\OphCiExamination_Dilation_Drugs;
  */
 class OphTrOperationchecklists_Dilation extends CActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
