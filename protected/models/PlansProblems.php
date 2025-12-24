@@ -36,6 +36,7 @@
  */
 class PlansProblems extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $widgetClass = 'OEModule\widgets\PlansProblems';
 

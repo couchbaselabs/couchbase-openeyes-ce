@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "specialty".
@@ -30,6 +31,25 @@ use OE\factories\models\traits\HasFactory;
 class Specialty extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
 
     /**
      * Returns the static model of the specified AR class.

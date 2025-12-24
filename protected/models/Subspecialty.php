@@ -1,5 +1,7 @@
 <?php
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * OpenEyes.
  *
@@ -34,8 +36,47 @@ use OE\factories\models\traits\HasFactory;
 class Subspecialty extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     const SELECTION_ORDER = 'name';
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed specialty
+        if ($this->specialty) {
+            $data['specialty'] = [
+                'id' => (int)$this->specialty->id,
+                'name' => $this->specialty->name,
+                'code' => $this->specialty->code,
+            ];
+        }
+        
+        return $data;
+    }
 
     /**
      * @return string the associated database table name

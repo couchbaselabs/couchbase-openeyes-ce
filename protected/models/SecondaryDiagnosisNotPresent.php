@@ -35,6 +35,8 @@
  */
 class SecondaryDiagnosisNotPresent extends SecondaryDiagnosis
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($className = __CLASS__)
     {
         return parent::model(static::class);

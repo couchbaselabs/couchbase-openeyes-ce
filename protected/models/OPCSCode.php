@@ -27,6 +27,7 @@
  */
 class OPCSCode extends BaseActiveRecordVersioned
 {
+    use OE\Models\Traits\CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      *
@@ -66,5 +67,50 @@ class OPCSCode extends BaseActiveRecordVersioned
         return array(
             'procedures' => array(self::MANY_MANY, 'Procedure', 'proc_opcs_assignment(opcs_code_id, proc_id)'),
         );
+    }
+
+    /**
+     * Couchbase scope
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Couchbase collection
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'opcs_code';
+    }
+
+    /**
+     * Convert to Couchbase document
+     * @return array
+     */
+    public function toCouchbaseDocument()
+    {
+        return \OE\Models\Couchbase\OPCSCodeDocument::createFromModel($this);
+    }
+
+    /**
+     * After save - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

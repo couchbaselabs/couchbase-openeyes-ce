@@ -12,6 +12,8 @@
  */
 class EventImageStatus extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public const STATUS_NOT_CREATED = "NOT_CREATED";
     public const STATUS_CREATED = "CREATED";
     public const STATUS_FAILED = "FAILED";

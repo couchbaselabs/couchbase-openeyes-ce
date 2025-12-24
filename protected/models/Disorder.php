@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "disorder".
@@ -38,6 +39,7 @@ use OE\factories\models\traits\HasFactory;
 class Disorder extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     const SITE_LEFT = 0;
     const SITE_RIGHT = 1;
@@ -230,5 +232,73 @@ class Disorder extends BaseActiveRecordVersioned
         $criteria->params[':patient_id'] = $patient_id;
 
         return Disorder::model()->findAll($criteria);
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'disorder';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed specialty
+        if ($this->specialty_id && $this->specialty) {
+            $data['specialty'] = [
+                'id' => (int)$this->specialty->id,
+                'name' => $this->specialty->name,
+                'code' => $this->specialty->code ?? null,
+            ];
+        }
+        
+        // Embed common ophthalmic disorders flag
+        $data['is_common_ophthalmic'] = CommonOphthalmicDisorder::model()->exists(
+            'disorder_id = ?', 
+            [$this->id]
+        );
+        
+        // Embed systemic flag
+        $data['is_systemic'] = CommonSystemicDisorder::model()->exists(
+            'disorder_id = ?',
+            [$this->id]
+        );
+        
+        return $data;
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

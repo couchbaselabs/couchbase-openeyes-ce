@@ -16,6 +16,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "institution_authentication".
@@ -44,6 +45,7 @@ use OE\factories\models\traits\HasFactory;
 class InstitutionAuthentication extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     const NO_MATCH = 0;
     const EXACT_MATCH = 1;
@@ -189,5 +191,70 @@ class InstitutionAuthentication extends BaseActiveRecordVersioned
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'institution_authentication';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed institution info
+        if ($this->institution) {
+            $data['institution'] = [
+                'id' => (int)$this->institution->id,
+                'name' => $this->institution->name,
+                'short_name' => $this->institution->short_name,
+            ];
+        }
+        
+        // Embed site info if present
+        if ($this->site) {
+            $data['site'] = [
+                'id' => (int)$this->site->id,
+                'name' => $this->site->name,
+                'short_name' => $this->site->short_name,
+            ];
+        }
+        
+        return $data;
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

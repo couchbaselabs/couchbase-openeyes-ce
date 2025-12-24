@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "eye".
@@ -30,10 +31,29 @@ use OE\factories\models\traits\HasFactory;
 class Eye extends BaseActiveRecord
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     const LEFT = 1;
     const RIGHT = 2;
     const BOTH = 3;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
 
     public static function getIdFromName($side)
     {

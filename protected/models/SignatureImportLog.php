@@ -14,6 +14,7 @@
  */
 class SignatureImportLog extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     const STATUS_FAILED = 3;
     const STATUS_SUCCESS = 4;

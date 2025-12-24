@@ -40,6 +40,7 @@ use OE\factories\models\traits\HasFactory;
 class SecondaryToCommonOphthalmicDisorder extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use OwnedByReferenceData;
 
     protected function getSupportedLevelMask(): int

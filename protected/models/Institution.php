@@ -1,6 +1,7 @@
 <?php
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * OpenEyes.
@@ -39,6 +40,57 @@ use OE\factories\models\traits\HasFactory;
 class Institution extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed contact/address
+        if ($this->contact) {
+            $data['contact'] = [
+                'id' => (int)$this->contact->id,
+                'primary_phone' => $this->contact->primary_phone,
+                'address' => $this->contact->address ? [
+                    'address1' => $this->contact->address->address1,
+                    'address2' => $this->contact->address->address2,
+                    'city' => $this->contact->address->city,
+                    'postcode' => $this->contact->address->postcode,
+                ] : null,
+            ];
+        }
+        
+        // Count sites (note: sites relation may not be loaded in migration context)
+        if (isset($this->sites) && is_array($this->sites)) {
+            $data['site_count'] = count($this->sites);
+        } else {
+            $data['site_count'] = 0;
+        }
+        
+        return $data;
+    }
 
     /**
      * Returns the static model of the specified AR class.

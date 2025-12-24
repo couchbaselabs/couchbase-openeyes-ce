@@ -231,8 +231,13 @@ class BaseEventTypeElement extends BaseElement
      */
     public function getModuleApi()
     {
-        $event_type = $this->getElementType()->event_type;
-        return $this->getApp()->moduleAPI->get($event_type->class_name);
+        $elementType = $this->getElementType();
+        $eventType = $elementType ? $elementType->event_type : null;
+        if (!$eventType || !$eventType->class_name) {
+            return null;
+        }
+
+        return $this->getApp()->moduleAPI->get($eventType->class_name);
     }
 
     /**

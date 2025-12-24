@@ -15,6 +15,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "allergy".
  *
@@ -30,6 +32,25 @@
  */
 class Allergy extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
     /**
      * Returns the static model of the specified AR class.
      *
@@ -129,5 +150,32 @@ class Allergy extends BaseActiveRecordVersioned
     public function __toString()
     {
         return $this->name;
+    }
+
+    /**
+     * Convert to Couchbase document
+     * @return array
+     */
+    public function toCouchbaseDocument()
+    {
+        return \OE\Models\Couchbase\AllergyDocument::createFromModel($this);
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

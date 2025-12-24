@@ -16,6 +16,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "ethnic_group".
  *
@@ -28,6 +30,8 @@
  */
 class EthnicGroup extends BaseActiveRecordVersionedSoftDelete
 {
+    use CouchbaseModelBridge;
+
     const CVI_GROUPS = [
         'White' => ['A', 'B', 'C'],
         'Mixed/Multiple ethnic groups' => ['D', 'E', 'F', 'G'],
@@ -36,6 +40,24 @@ class EthnicGroup extends BaseActiveRecordVersionedSoftDelete
         'Chinese/Chinese British' => ['R', 'ZH'],
         'Other ethnic group' => ['Z']
     ];
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
 
     /**
      * Returns the static model of the specified AR class.
