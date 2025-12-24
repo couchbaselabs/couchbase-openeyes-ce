@@ -31,6 +31,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_Topographer_device extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

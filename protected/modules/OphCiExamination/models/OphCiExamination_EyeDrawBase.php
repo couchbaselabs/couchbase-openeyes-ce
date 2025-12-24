@@ -29,6 +29,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_EyeDrawBase extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /** This is the array of doodle names that will be used to detect
      * if the mage string has been set or not. The names are modelled
      * directly on the OEEyeDrawWidget DoodleInfo class titles.
