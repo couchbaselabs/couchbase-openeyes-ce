@@ -14,6 +14,8 @@
  */
 class OphCoTherapyapplication_Email_Recipient_Type extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
