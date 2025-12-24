@@ -49,6 +49,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_LaserManagement extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

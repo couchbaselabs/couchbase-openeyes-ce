@@ -25,6 +25,7 @@ use OEModule\OphCiExamination\widgets\Observations as ObservationsWidget;
 class Element_OphCiExamination_Observations extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $widgetClass = ObservationsWidget::class;
     protected $auto_update_relations = true;

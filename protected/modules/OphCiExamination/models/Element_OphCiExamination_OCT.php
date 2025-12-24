@@ -48,6 +48,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_OCT extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     protected $relation_defaults = array(
             'left_fluidtypes' => array(

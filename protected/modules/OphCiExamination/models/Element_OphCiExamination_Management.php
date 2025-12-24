@@ -33,6 +33,7 @@ class Element_OphCiExamination_Management extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     
     const ELEMENT_CHILDREN = [
         'Element_OphCiExamination_CataractSurgicalManagement',

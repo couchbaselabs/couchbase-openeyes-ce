@@ -22,6 +22,7 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Pain extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $auto_update_relations = true;
 

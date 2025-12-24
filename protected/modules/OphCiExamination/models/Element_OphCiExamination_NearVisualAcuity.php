@@ -24,6 +24,7 @@ class Element_OphCiExamination_NearVisualAcuity extends Element_OphCiExamination
 {
     use traits\CustomOrdering;
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $relation_defaults = [
         'left_readings' => [

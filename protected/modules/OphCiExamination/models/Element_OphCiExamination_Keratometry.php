@@ -60,6 +60,7 @@ class Element_OphCiExamination_Keratometry extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $service;
 

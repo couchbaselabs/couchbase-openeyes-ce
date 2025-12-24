@@ -21,6 +21,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_NextSteps extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

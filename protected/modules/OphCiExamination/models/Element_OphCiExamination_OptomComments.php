@@ -5,6 +5,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_OptomComments extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
