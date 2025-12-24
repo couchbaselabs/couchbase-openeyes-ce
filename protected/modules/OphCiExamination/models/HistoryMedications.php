@@ -38,6 +38,7 @@ use Yii;
 class HistoryMedications extends BaseMedicationElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     protected $default_view_order = 25;
     protected $auto_validate_relations = true;
 

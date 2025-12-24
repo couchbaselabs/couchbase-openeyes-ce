@@ -30,6 +30,7 @@ namespace OEModule\OphCiExamination\models;
 class HistoryMacro extends \BaseActiveRecordVersioned
 {
     use \MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Gets all supported levels.

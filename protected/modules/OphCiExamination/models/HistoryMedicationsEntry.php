@@ -43,6 +43,8 @@ use OEModule\OphCiExamination\widgets\BaseMedicationWidget;
  */
 class HistoryMedicationsEntry extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @var bool Tracking variable used when creating/editing entries
      */

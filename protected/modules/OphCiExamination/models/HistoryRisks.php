@@ -29,6 +29,7 @@ use OEModule\OphCiExamination\widgets\HistoryRisks as HistoryRisksWidget;
 class HistoryRisks extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
     protected $default_view_order = 55;
 

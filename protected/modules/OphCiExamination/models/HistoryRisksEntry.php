@@ -40,6 +40,7 @@ use OE\factories\models\traits\HasFactory;
 class HistoryRisksEntry extends \BaseElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public static $PRESENT = 1;
     public static $NOT_PRESENT = 0;

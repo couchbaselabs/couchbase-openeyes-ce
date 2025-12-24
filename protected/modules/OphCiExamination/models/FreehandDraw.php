@@ -38,6 +38,7 @@ use OEModule\OphCiExamination\widgets\FreehandDraw as FreehandDrawWidget;
 class FreehandDraw extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected $auto_update_relations = true;

@@ -28,6 +28,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class HistoryMedicationsStopReason extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'ophciexamination_medication_stop_reason';
