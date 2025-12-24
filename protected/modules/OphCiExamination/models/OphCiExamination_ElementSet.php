@@ -32,6 +32,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_ElementSet extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

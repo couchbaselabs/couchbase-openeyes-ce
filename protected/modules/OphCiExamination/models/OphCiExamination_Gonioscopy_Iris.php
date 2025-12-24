@@ -24,6 +24,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_Gonioscopy_Iris extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
