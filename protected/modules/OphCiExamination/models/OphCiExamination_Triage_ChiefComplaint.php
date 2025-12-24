@@ -22,6 +22,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_Triage_ChiefComplaint extends \BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($class_name = null)
     {
         return parent::model($class_name);

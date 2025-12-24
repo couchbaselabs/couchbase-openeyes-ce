@@ -26,6 +26,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_TargetIop extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $attribute_options = array();
 
     /**

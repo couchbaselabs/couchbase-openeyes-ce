@@ -31,6 +31,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_Slit_Lamp_Cornea extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**
