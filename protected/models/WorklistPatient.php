@@ -33,6 +33,7 @@ use OEModule\OphDrPGDPSD\models\OphDrPGDPSD_Assignment;
 class WorklistPatient extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

@@ -51,6 +51,7 @@ use RRule\RRule;
 class WorklistDefinition extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

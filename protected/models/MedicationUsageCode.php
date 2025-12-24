@@ -36,6 +36,7 @@ use OE\factories\models\traits\HasFactory;
 class MedicationUsageCode extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @inheritDoc
