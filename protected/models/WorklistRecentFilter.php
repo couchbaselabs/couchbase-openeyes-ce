@@ -29,6 +29,7 @@ use OE\factories\models\traits\HasFactory;
 class WorklistRecentFilter extends BaseActiveRecord
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const MAX_RECENT_FILTERS = 5;
 

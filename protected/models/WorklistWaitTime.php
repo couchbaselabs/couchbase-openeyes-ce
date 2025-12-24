@@ -22,6 +22,7 @@ use OE\factories\models\traits\HasFactory;
 class WorklistWaitTime extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
 
     public function getSupportedLevels(): int

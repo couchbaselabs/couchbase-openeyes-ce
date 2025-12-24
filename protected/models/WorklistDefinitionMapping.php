@@ -28,6 +28,8 @@
  */
 class WorklistDefinitionMapping extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Convenience variable for storing the string representation of the mapping values.
      *

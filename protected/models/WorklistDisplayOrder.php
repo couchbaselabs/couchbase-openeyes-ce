@@ -17,6 +17,8 @@
  */
 class WorklistDisplayOrder extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Declared to support retrieving the max display value for a user.
      *

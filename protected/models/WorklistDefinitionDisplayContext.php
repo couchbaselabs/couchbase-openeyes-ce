@@ -35,6 +35,7 @@
 class WorklistDefinitionDisplayContext extends BaseActiveRecord
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     /**
      * @return string the associated database table name
      */
