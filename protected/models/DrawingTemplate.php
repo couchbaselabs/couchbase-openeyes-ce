@@ -38,6 +38,8 @@
  */
 class DrawingTemplate extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $image;
     protected int $max_document_size = 10485760;
     protected array $allowed_file_types = [];

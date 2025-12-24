@@ -3,6 +3,8 @@
 
 class PathwayStepTypePresetAssignment extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static array $duration_period = [1 => 'days', 2 => 'weeks', 3 => 'months', 4 => 'years'];
     /**
      * @return string the associated database table name
