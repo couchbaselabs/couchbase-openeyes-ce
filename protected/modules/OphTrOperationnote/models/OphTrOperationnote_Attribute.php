@@ -23,6 +23,8 @@
  */
 class OphTrOperationnote_Attribute extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function init()
     {
         $this->display_order = null;

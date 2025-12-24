@@ -29,6 +29,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationNote_Generic_Procedure_Data extends BaseActiveRecord
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $service;
 

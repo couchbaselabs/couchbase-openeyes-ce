@@ -14,6 +14,8 @@
  */
 class OphTrOperationnote_Antimetabolite_Application_Type extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const SPONGE = 1;
     const INJECTION = 2;
 }
