@@ -37,6 +37,8 @@
  */
 class Referral extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $use_pas = true;
 
     /**

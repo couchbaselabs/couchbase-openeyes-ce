@@ -43,6 +43,7 @@ use OEModule\OphCoMessaging\models\Mailbox;
 class Team extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use \APICache;
 
     public const TASK_OWNER = 'TaskOwnTeam';

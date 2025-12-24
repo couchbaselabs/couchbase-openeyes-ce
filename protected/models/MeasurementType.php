@@ -2,6 +2,8 @@
 
 class MeasurementType extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'measurement_type';
