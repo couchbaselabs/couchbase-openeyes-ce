@@ -20,13 +20,13 @@ return [
     // - mariadb: All reads from MariaDB
     // - couchbase: All reads from Couchbase (fallback to MariaDB on error if enabled)
     // - hybrid: Use couchbase_read_percentage to split traffic
-    'read_source' => 'hybrid',
+    'read_source' => 'couchbase',
     
     // Write mode: 'mariadb_only', 'dual_write', 'couchbase_primary'
     // - mariadb_only: Only write to MariaDB
     // - dual_write: Write to both MariaDB and Couchbase
     // - couchbase_primary: Write to Couchbase only (MariaDB optional)
-    'write_mode' => 'dual_write',
+    'write_mode' => 'couchbase_primary',
     
     // ============================================
     // TRAFFIC CONTROL
@@ -34,7 +34,7 @@ return [
     
     // Percentage of read traffic to route to Couchbase (0-100)
     // Start at 10% for canary, gradually increase to 100%
-    'couchbase_read_percentage' => 10,
+    'couchbase_read_percentage' => 100,
     
     // ============================================
     // FALLBACK SETTINGS
