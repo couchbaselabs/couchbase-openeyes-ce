@@ -34,6 +34,7 @@
  */
 class DeletedEpisode extends Episode
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     private $defaultScopeDisabled = true;
 
     /**

@@ -41,6 +41,7 @@
  */
 class DeletedEvent extends Event
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     protected $event_view_path = '/default/removed';
     /**
      * Returns the static model of the specified AR class.
