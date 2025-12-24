@@ -26,6 +26,7 @@ use FindOrNewModel;
 class OphCiExamination_Pain_Entry extends \BaseActiveRecordVersioned
 {
     use FindOrNewModel;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

@@ -20,6 +20,8 @@ namespace OEModule\OphCiExamination\models;
 
 class OphCiExamination_Primary_Reason_For_Surgery extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

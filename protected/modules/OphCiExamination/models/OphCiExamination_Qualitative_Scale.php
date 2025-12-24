@@ -30,6 +30,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_Qualitative_Scale extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $attribute_options = array();
 
