@@ -34,6 +34,7 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationnote_PostOpDrugs extends Element_OpNote
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.

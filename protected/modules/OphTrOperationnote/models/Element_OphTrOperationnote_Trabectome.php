@@ -42,6 +42,8 @@
  */
 class Element_OphTrOperationnote_Trabectome extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

@@ -35,6 +35,7 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationnote_Surgeon extends Element_OpNote
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use \OE\Models\Traits\CouchbaseElementBridge;
 
     public $service;

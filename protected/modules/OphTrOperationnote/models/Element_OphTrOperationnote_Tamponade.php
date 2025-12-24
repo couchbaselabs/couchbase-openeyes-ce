@@ -32,6 +32,8 @@
  */
 class Element_OphTrOperationnote_Tamponade extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

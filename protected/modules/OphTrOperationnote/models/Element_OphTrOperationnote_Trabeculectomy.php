@@ -14,6 +14,8 @@
  */
 class Element_OphTrOperationnote_Trabeculectomy extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'et_ophtroperationnote_trabeculectomy';

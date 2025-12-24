@@ -40,6 +40,8 @@
  */
 class Element_OphTrOperationnote_RevisionAqueousShunt extends Element_OnDemand
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 // Plate position of revised tube
     const PLATE_POS_STQ = 1;

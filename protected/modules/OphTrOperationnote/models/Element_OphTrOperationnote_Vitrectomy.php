@@ -32,6 +32,8 @@
  */
 class Element_OphTrOperationnote_Vitrectomy extends Element_OnDemandEye
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $requires_eye = true;
 
     /**
