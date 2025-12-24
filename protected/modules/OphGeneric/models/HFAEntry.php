@@ -38,6 +38,7 @@ use OE\factories\models\traits\HasFactory;
 
 class HFAEntry extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public const MEAN_DEVIATION_MIN = -30;

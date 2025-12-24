@@ -53,6 +53,7 @@ use User;
  */
 class HFA extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected $auto_update_relations = true;

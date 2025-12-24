@@ -35,6 +35,7 @@ use OE\factories\models\traits\HasFactory;
 
 class Comments extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public $widgetClass = 'OEModule\OphGeneric\widgets\Comments';

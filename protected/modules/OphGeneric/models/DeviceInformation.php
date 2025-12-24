@@ -22,6 +22,7 @@ use OEModule\OphGeneric\widgets\DeviceInformation as DeviceInformationWidget;
 
 class DeviceInformation extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public $widgetClass = DeviceInformationWidget::class;

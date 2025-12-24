@@ -17,6 +17,8 @@ namespace OEModule\OphGeneric\models;
 
 class Assessment extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $widgetClass = 'OEModule\OphGeneric\widgets\AssessmentElement';
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;

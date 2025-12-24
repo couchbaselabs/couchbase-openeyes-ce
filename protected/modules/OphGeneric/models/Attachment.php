@@ -19,6 +19,7 @@ use OE\factories\models\traits\HasFactory;
 
 class Attachment extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected $auto_update_relations = true;
