@@ -37,6 +37,8 @@ use OEModule\OphDrPGDPSD\models\OphDrPGDPSD_Assignment;
  */
 class PathwayStep extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public const STEP_REQUESTED = 0;
     public const STEP_STARTED = 1;
     public const STEP_COMPLETED = 2;

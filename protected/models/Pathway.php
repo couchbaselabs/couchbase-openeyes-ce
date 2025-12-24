@@ -31,6 +31,8 @@
  */
 class Pathway extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public const STATUS_LATER = 0;
     public const STATUS_ACTIVE = 1;
     public const STATUS_STUCK = 2;

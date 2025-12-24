@@ -24,6 +24,7 @@ use OE\factories\models\traits\HasFactory;
 class EventSubTypeItem extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public static function model($className = __CLASS__)
     {

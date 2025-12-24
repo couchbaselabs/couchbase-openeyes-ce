@@ -29,6 +29,8 @@
  */
 class MedicationAdherence extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
