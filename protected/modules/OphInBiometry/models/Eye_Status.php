@@ -10,6 +10,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class Eye_Status extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

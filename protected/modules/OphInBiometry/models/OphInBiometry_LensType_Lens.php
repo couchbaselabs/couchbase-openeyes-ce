@@ -43,6 +43,7 @@
  */
 class OphInBiometry_LensType_Lens extends BaseActiveRecordVersionedSoftDelete
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
     public $notDeletedField = 'active';
 

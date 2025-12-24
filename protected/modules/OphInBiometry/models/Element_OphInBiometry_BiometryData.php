@@ -43,6 +43,8 @@
  */
 class Element_OphInBiometry_BiometryData extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

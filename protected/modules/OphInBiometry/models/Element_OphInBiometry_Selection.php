@@ -36,6 +36,8 @@
  */
 class Element_OphInBiometry_Selection extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $service;
 
 
@@ -173,6 +175,56 @@ class Element_OphInBiometry_Selection extends SplitEventTypeElement
             'lens_left' => array(self::BELONGS_TO, 'OphInBiometry_LensType_Lens', 'lens_id_left'),
             'lens_right' => array(self::BELONGS_TO, 'OphInBiometry_LensType_Lens', 'lens_id_right'),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed eye
+        if ($this->eye) {
+            $data['eye'] = [
+                'id' => (int)$this->eye->id,
+                'name' => $this->eye->name,
+            ];
+        }
+        
+        // Embed left lens if selected
+        if ($this->lens_id_left && $this->lens_left) {
+            $data['lens_left'] = [
+                'id' => (int)$this->lens_left->id,
+                'name' => $this->lens_left->name,
+                'description' => $this->lens_left->description,
+            ];
+        }
+        
+        // Embed right lens if selected
+        if ($this->lens_id_right && $this->lens_right) {
+            $data['lens_right'] = [
+                'id' => (int)$this->lens_right->id,
+                'name' => $this->lens_right->name,
+                'description' => $this->lens_right->description,
+            ];
+        }
+        
+        // IOL power and predicted refraction values are already in attributes
+        
+        return $data;
     }
 
     /**

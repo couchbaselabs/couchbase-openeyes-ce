@@ -40,6 +40,8 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphInBiometry_Measurement extends SplitEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $service;
 
     /**
@@ -184,6 +186,54 @@ class Element_OphInBiometry_Measurement extends SplitEventTypeElement
             'eye_status_left' => array(self::BELONGS_TO, 'Eye_Status', 'eye_status_left'),
             'eye_status_right' => array(self::BELONGS_TO, 'Eye_Status', 'eye_status_right'),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed eye
+        if ($this->eye) {
+            $data['eye'] = [
+                'id' => (int)$this->eye->id,
+                'name' => $this->eye->name,
+            ];
+        }
+        
+        // Embed eye status for both eyes if present
+        if ($this->eye_status_left) {
+            $data['eye_status_left_info'] = [
+                'id' => (int)$this->eye_status_left,
+                'name' => isset($this->{'eye_status_left'}) ? $this->{'eye_status_left'}->name : null,
+            ];
+        }
+        
+        if ($this->eye_status_right) {
+            $data['eye_status_right_info'] = [
+                'id' => (int)$this->eye_status_right,
+                'name' => isset($this->{'eye_status_right'}) ? $this->{'eye_status_right'}->name : null,
+            ];
+        }
+        
+        // All measurement values are already in attributes - no need to embed separately
+        // They include: axial_length, K1, K2, K_axis, delta_k, ACD, SNR, etc.
+        
+        return $data;
     }
 
     /**
