@@ -31,6 +31,7 @@ use OE\factories\models\traits\HasFactory;
 class LetterString extends LetterStringBase
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected function getSupportedLevels(): int

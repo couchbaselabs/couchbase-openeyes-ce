@@ -17,6 +17,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseElementBridge;
+
 /**
  * The followings are the available columns in table '':.
  *
@@ -56,6 +58,8 @@
  */
 class ElementLetter extends BaseEventTypeElement implements Exportable
 {
+    use CouchbaseElementBridge;
+    
     private const NDR_URI = 'http://www.wales.nhs.uk/ndr';
     public $cc_targets = array();
     public $address_target = null;
@@ -1488,5 +1492,91 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
         }
 
         return Yii::app()->request->getPost('saveprint', null) !== null;
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed letter type
+        if ($this->letterType) {
+            $data['letter_type'] = [
+                'id' => (int)$this->letterType->id,
+                'name' => $this->letterType->name,
+            ];
+        }
+        
+        // Embed site
+        if ($this->site) {
+            $data['site'] = [
+                'id' => (int)$this->site->id,
+                'name' => $this->site->name,
+            ];
+        }
+        
+        // Embed enclosures
+        if (!empty($this->enclosures)) {
+            $data['enclosures'] = array_map(function($enc) {
+                return [
+                    'id' => (int)$enc->id,
+                    'content' => $enc->content,
+                ];
+            }, $this->enclosures);
+        }
+        
+        // Embed document instances if present
+        if (!empty($this->document_instance)) {
+            $data['document_instances'] = array_map(function($doc) {
+                return [
+                    'id' => (int)$doc->id,
+                    'document_type' => $doc->document_type ?? null,
+                ];
+            }, $this->document_instance);
+        }
+        
+        // Embed internal referral details if present
+        if ($this->to_subspecialty_id && $this->toSubspecialty) {
+            $data['to_subspecialty'] = [
+                'id' => (int)$this->toSubspecialty->id,
+                'name' => $this->toSubspecialty->name,
+            ];
+        }
+        
+        if ($this->to_firm_id && $this->toFirm) {
+            $data['to_firm'] = [
+                'id' => (int)$this->toFirm->id,
+                'name' => $this->toFirm->name,
+            ];
+        }
+        
+        if ($this->to_location_id && $this->toLocation) {
+            $data['to_location'] = [
+                'id' => (int)$this->toLocation->id,
+                'name' => $this->toLocation->site->name ?? null,
+            ];
+        }
+        
+        // Status flags
+        $data['draft'] = (bool)$this->draft;
+        $data['print_all'] = (bool)$this->print_all;
+        $data['is_signed_off'] = (bool)$this->is_signed_off;
+        $data['is_urgent'] = (bool)$this->is_urgent;
+        $data['locked'] = (bool)$this->locked;
+        
+        return $data;
     }
 }

@@ -34,6 +34,7 @@ use OE\factories\models\traits\HasFactory;
 class LetterMacro extends BaseActiveRecordVersioned
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected function getSupportedLevels(): int

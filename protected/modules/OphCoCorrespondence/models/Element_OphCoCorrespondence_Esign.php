@@ -29,6 +29,7 @@ use \OE\factories\models\traits\HasFactory;
 class Element_OphCoCorrespondence_Esign extends BaseEsignElement
 {
     use AutoSignTrait;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     private $signature_class = \OphCoCorrespondence_Signature::class;

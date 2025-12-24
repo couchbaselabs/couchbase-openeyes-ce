@@ -24,6 +24,8 @@
 
 class LetterMacro_Firm extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($class_name = __CLASS__)
     {
         return parent::model($class_name);

@@ -21,6 +21,7 @@ use OE\factories\models\traits\HasFactory;
 class LetterRecipient extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public function tableName()
     {
