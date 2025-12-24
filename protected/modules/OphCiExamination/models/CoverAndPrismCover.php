@@ -21,6 +21,7 @@ use OEModule\OphCiExamination\widgets\CoverAndPrismCover as CoverAndPrismCoverWi
 class CoverAndPrismCover extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasChildrenWithEventScopeValidation;
     use \LoadFromExistingWithRelation;
 

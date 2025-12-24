@@ -25,6 +25,7 @@ namespace OEModule\OphCiExamination\models;
 class ContrastSensitivity_Result extends \BaseElement
 {
     use traits\HasCorrectionType;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasRelationOptions;
 
     protected $auto_update_relations = true;

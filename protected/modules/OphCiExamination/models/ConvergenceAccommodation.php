@@ -14,6 +14,7 @@ use OEModule\OphCiExamination\widgets\ConvergenceAccommodation as ConvergenceAcc
 class ConvergenceAccommodation extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasCorrectionType;
     use traits\HasRelationOptions;
     use traits\HasWithHeadPosture;
