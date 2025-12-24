@@ -33,6 +33,7 @@ class CommonOphthalmicDisorderGroup extends BaseActiveRecordVersioned
 {
     use HasFactory;
     use OwnedByReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected function getSupportedLevelMask(): int
     {

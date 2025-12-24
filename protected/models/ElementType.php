@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "element_type".
@@ -35,6 +36,57 @@ use OE\factories\models\traits\HasFactory;
 class ElementType extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed element group (relation may be named differently - try both)
+        if ($this->element_group_id) {
+            $group = isset($this->elementGroup) ? $this->elementGroup : (isset($this->elementGroups) ? $this->elementGroups : null);
+            if ($group) {
+                $data['element_group'] = [
+                    'id' => (int)$group->id,
+                    'name' => $group->name,
+                    'display_order' => (int)$group->display_order,
+                ];
+            }
+        }
+        
+        // Embed event type reference
+        if ($this->eventType) {
+            $data['event_type'] = [
+                'id' => (int)$this->eventType->id,
+                'name' => $this->eventType->name,
+                'class_name' => $this->eventType->class_name,
+            ];
+        }
+        
+        return $data;
+    }
 
     /**
      * Returns the static model of the specified AR class.

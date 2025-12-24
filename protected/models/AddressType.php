@@ -25,6 +25,8 @@
  */
 class AddressType extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     // Database ids for the different address types that are hard mapped
     const REPLYTO = 1;
     const HOME = 2;

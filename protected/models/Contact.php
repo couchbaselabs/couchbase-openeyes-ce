@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "contact".
@@ -53,8 +54,64 @@ use OE\factories\models\traits\HasFactory;
 class Contact extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     public $source;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed primary address
+        if ($this->address) {
+            $data['address'] = [
+                'id' => (int)$this->address->id,
+                'address1' => $this->address->address1,
+                'address2' => $this->address->address2,
+                'city' => $this->address->city,
+                'postcode' => $this->address->postcode,
+                'county' => $this->address->county,
+                'country_id' => $this->address->country_id,
+                'country_name' => $this->address->country ? $this->address->country->name : null,
+                'address_type_id' => $this->address->address_type_id,
+                'date_start' => $this->address->date_start,
+                'date_end' => $this->address->date_end,
+            ];
+        }
+        
+        // Embed contact label
+        if ($this->label) {
+            $data['label'] = [
+                'id' => (int)$this->label->id,
+                'name' => $this->label->name,
+            ];
+        }
+        
+        return $data;
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *

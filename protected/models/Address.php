@@ -16,6 +16,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "address".
@@ -40,6 +41,52 @@ use OE\factories\models\traits\HasFactory;
 class Address extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        if ($this->country_id && $this->country) {
+            $data['country'] = [
+                'id' => (int)$this->country->id,
+                'name' => $this->country->name,
+                'code' => $this->country->code,
+            ];
+        }
+        
+        // Address type relation (AddressType model)
+        if ($this->address_type_id && $this->type) {
+            $data['address_type'] = [
+                'id' => (int)$this->type->id,
+                'name' => $this->type->name,
+            ];
+        }
+        
+        return $data;
+    }
 
     /**
      * Returns the static model of the specified AR class.

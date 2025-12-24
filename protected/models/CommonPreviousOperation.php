@@ -28,6 +28,7 @@
 class CommonPreviousOperation extends BaseActiveRecordVersioned
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public function getSupportedLevels(): int
     {
