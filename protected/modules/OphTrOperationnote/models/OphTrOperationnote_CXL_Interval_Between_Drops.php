@@ -28,6 +28,8 @@
  */
 class OphTrOperationnote_CXL_Interval_Between_Drops extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *
