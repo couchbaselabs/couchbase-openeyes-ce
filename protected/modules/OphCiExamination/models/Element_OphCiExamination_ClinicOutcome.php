@@ -38,6 +38,7 @@ class Element_OphCiExamination_ClinicOutcome extends \BaseEventTypeElement
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;

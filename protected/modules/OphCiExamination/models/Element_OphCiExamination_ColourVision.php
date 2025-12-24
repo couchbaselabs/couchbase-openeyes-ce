@@ -44,6 +44,7 @@ class Element_OphCiExamination_ColourVision extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $auto_update_relations = true;
     protected $relation_defaults = array(

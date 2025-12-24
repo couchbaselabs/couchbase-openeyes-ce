@@ -28,6 +28,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Allergy extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     // Custom attribute to determine the allergy validation
     public $allergy_group;
 

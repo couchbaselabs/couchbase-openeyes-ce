@@ -34,6 +34,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_AdnexalComorbidity extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
     const ELEMENT_CHILDREN = [
         'MedicalLids',

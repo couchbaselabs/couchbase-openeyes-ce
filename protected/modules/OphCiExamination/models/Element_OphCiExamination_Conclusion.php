@@ -33,6 +33,7 @@ class Element_OphCiExamination_Conclusion extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     
     public $service;
 

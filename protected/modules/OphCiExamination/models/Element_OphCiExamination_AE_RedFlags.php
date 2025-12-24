@@ -33,6 +33,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_AE_RedFlags extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

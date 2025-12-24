@@ -53,6 +53,7 @@ class Element_OphCiExamination_AnteriorSegment extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     
     protected static $ed_persistence_attributes = array(
         'left_eyedraw' => \Eye::LEFT,
