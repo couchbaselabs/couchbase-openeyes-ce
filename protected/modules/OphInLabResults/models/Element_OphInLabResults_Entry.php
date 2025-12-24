@@ -2,6 +2,8 @@
 
 class Element_OphInLabResults_Entry extends Element_OphInLabResults_ResultTimedNumeric
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $htmlOptions = array(
         'time' => array('type' => 'time'),
         'result' => array('type' => 'number', 'step' => 0.1, 'min' => 0.1, 'max' => 50),

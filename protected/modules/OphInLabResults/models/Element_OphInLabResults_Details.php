@@ -17,6 +17,8 @@
  */
 class Element_OphInLabResults_Details extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'et_ophinlabresults_details';

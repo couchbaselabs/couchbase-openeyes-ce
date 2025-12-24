@@ -26,6 +26,8 @@
  */
 class OphInLabResults_Field_Type extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'ophinlabresults_field_type';

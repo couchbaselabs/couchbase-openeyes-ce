@@ -22,6 +22,7 @@
  */
 class OphInLabResults_Type extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
 
     protected function getSupportedLevels(): int

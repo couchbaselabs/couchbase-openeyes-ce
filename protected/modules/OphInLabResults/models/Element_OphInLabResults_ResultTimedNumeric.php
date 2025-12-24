@@ -5,6 +5,8 @@
  */
 class Element_OphInLabResults_ResultTimedNumeric extends BaseLabResultElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string
      */
