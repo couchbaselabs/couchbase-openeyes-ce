@@ -39,6 +39,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationbooking_Operation_Ward extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     const RESTRICTION_MALE = 1;
     const RESTRICTION_FEMALE = 2;

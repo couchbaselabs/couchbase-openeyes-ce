@@ -30,6 +30,7 @@
 class OphTrOperationbooking_ScheduleOperation_PatientUnavailableReason extends BaseActiveRecordVersioned
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     protected function getSupportedLevels(): int
     {
         return ReferenceData::LEVEL_INSTITUTION;

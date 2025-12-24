@@ -36,6 +36,7 @@
 class OphTrOperationbooking_Waiting_List_Contact_Rule extends BaseTree
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected function getSupportedLevels(): int
     {

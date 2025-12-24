@@ -33,6 +33,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationbooking_PreAssessment_Location extends BaseActiveRecordVersionedSoftDelete
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.
