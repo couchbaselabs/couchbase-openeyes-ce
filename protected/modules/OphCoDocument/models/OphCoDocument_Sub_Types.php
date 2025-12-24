@@ -30,6 +30,8 @@
  */
 class OphCoDocument_Sub_Types extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $image;
     protected $max_document_size = 10485760;
     protected $allowed_file_types = array();

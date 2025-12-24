@@ -30,6 +30,8 @@
  */
 class Element_OphCoDocument_Document extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string
      */
