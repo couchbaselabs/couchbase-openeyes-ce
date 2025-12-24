@@ -32,6 +32,8 @@
  */
 class Element_OphTrOperationchecklists_NursingAssessment extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

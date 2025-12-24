@@ -43,6 +43,8 @@
  */
 class Element_OphTrOperationchecklists_ProcedureList extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $total_duration;
     /**
      * @return string the associated database table name
