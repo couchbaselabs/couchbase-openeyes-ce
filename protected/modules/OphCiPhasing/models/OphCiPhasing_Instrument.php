@@ -31,6 +31,7 @@ use LookupTable;
  */
 class OphCiPhasing_Instrument extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

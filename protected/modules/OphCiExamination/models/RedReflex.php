@@ -30,6 +30,7 @@ use OEModule\OphCiExamination\widgets\RedReflex as RedReflexWidget;
  */
 class RedReflex extends \BaseEventTypeElement implements interfaces\SidedData
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasSidedData;
     use traits\CustomOrdering;
 

@@ -40,6 +40,7 @@ use OEModule\OphCiExamination\widgets\HistoryIOP as HistoryIOPWidget;
  */
 class HistoryIOP extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
 
     public $container_view_view = 'element_container_no_view';

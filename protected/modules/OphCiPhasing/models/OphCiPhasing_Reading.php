@@ -32,6 +32,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class OphCiPhasing_Reading extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     const RIGHT = 0;

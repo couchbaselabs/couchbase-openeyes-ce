@@ -15,6 +15,8 @@
  */
 class LSOAToIMDMapping extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $pre_purified_skip_purification_in_validation = ['imd_score'];
 
     /**

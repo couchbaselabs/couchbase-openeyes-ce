@@ -6,6 +6,8 @@ use OEModule\OphDrPGDPSD\models\Element_DrugAdministration;
 
 class Element_OphCiExamination_DrugAdministration extends Element_DrugAdministration
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     public static $entry_class = Element_OphCiExamination_DrugAdministration_record::class;
 

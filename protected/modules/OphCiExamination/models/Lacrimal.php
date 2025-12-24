@@ -24,6 +24,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class Lacrimal extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
 
     /**

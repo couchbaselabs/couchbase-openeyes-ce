@@ -33,6 +33,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class OCT extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     public $widgetClass = 'OEModule\OphCiExamination\widgets\OCT';
     protected $default_from_previous = false;

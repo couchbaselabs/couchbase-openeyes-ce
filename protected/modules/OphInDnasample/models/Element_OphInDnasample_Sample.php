@@ -42,6 +42,8 @@
  */
 class Element_OphInDnasample_Sample extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     protected $auto_update_relations = true;

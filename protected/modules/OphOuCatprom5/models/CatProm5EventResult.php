@@ -13,6 +13,8 @@
  */
 class CatProm5EventResult extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     protected $relation_defaults = array(
         'catProm5AnswerResults' => array(),

@@ -31,6 +31,7 @@ use Yii;
  */
 class Element_OphCiExamination_CataractSurgicalManagement_Archive extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     public $service;
 

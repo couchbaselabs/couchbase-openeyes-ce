@@ -31,6 +31,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class SystemicDiagnoses_RequiredDiagnosisCheck extends SystemicDiagnoses_Diagnosis
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.

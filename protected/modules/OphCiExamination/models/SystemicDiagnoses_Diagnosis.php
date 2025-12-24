@@ -36,6 +36,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class SystemicDiagnoses_Diagnosis extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public static $PRESENT = 1;

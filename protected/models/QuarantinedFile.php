@@ -10,6 +10,8 @@
  */
 class QuarantinedFile extends CActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     private const PROTECTED_DIR = '/var/www/openeyes/protected/files/';
     private const QUARANTINED_DIR = '/var/www/openeyes/protected/files/quarantine/';
 

@@ -26,6 +26,7 @@ use OEModule\OphCiExamination\widgets\SensoryFunction as SensoryFunctionWidget;
  */
 class SensoryFunction extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use traits\HasChildrenWithEventScopeValidation;
 

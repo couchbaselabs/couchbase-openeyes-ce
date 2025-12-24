@@ -33,6 +33,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class Trial extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

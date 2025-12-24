@@ -17,6 +17,8 @@ namespace OEModule\OphCiExamination\models;
 
 class SensoryFunction_Distance extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'ophciexamination_sensoryfunction_distance';

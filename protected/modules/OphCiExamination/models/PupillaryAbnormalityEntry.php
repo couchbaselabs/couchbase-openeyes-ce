@@ -31,6 +31,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class PupillaryAbnormalityEntry extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static $PRESENT = 1;
     public static $NOT_PRESENT = 0;
     public static $NOT_CHECKED = -9;

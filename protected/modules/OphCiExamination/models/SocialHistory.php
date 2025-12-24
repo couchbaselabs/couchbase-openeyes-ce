@@ -47,6 +47,7 @@ use OEModule\OphCiExamination\widgets\SocialHistory as SocialHistoryWidget;
  */
 class SocialHistory extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use CustomOrdering;
     use HasRelationOptions;
 

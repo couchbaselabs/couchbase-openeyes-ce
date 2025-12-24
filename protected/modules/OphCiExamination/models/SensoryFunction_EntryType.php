@@ -25,6 +25,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class SensoryFunction_EntryType extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public function tableName()
     {

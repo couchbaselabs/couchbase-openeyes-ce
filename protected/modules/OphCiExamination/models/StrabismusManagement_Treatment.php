@@ -29,6 +29,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class StrabismusManagement_Treatment extends \BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'ophciexamination_strabismusmanagement_treatment';

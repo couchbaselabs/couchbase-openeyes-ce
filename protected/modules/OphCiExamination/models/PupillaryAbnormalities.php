@@ -36,6 +36,7 @@ use OEModule\OphCiExamination\widgets\PupillaryAbnormalities as PupillaryAbnorma
  */
 class PupillaryAbnormalities extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     protected $auto_update_relations = true;
 

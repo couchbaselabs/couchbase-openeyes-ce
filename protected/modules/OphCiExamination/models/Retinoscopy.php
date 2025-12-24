@@ -23,6 +23,7 @@ use OEModule\OphCiExamination\widgets\Retinoscopy as RetinoscopyWidget;
 
 class Retinoscopy extends \BaseEventTypeElement implements SidedData
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use HasFactory;
     use HasSidedData;

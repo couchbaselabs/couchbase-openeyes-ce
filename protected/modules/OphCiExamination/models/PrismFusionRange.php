@@ -20,6 +20,7 @@ use OEModule\OphCiExamination\widgets\PrismFusionRange as PrismFusionRangeWidget
 
 class PrismFusionRange extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use traits\HasChildrenWithEventScopeValidation;
 

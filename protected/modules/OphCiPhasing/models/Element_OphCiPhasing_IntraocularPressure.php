@@ -38,6 +38,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class Element_OphCiPhasing_IntraocularPressure extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

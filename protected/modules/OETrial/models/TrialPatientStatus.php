@@ -22,6 +22,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class TrialPatientStatus extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

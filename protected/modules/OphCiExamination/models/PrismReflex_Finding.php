@@ -23,6 +23,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class PrismReflex_Finding extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

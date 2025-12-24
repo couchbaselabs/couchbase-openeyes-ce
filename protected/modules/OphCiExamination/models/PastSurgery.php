@@ -38,6 +38,7 @@ use OEModule\OphCiExamination\widgets\PastSurgery as PastSurgeryWidget;
  */
 class PastSurgery extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     protected $default_view_order = 10;
 

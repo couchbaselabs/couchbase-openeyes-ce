@@ -28,6 +28,8 @@ namespace OEModule\PASAPI\models;
  */
 class PasApiAssignment extends \BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Default time (in seconds) before cached PAS details are considered stale
      * 0 : always stale - update from query PAS every time

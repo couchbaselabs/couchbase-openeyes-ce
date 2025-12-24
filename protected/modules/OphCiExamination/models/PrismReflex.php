@@ -14,6 +14,7 @@ use OEModule\OphCiExamination\widgets\PrismReflex as PrismReflexWidget;
  */
 class PrismReflex extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use traits\HasChildrenWithEventScopeValidation;
 

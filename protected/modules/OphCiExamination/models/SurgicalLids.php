@@ -40,6 +40,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class SurgicalLids extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
 
     public $exclude_element_from_empty_discard_check = true;

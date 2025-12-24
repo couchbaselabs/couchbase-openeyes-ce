@@ -15,8 +15,12 @@
  * @copyright Copyright (c) 2011-2013, OpenEyes Foundation
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
+
+use OE\Models\Traits\CouchbaseModelBridge;
+
 class ImportStatus extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      *

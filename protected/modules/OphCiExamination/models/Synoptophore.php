@@ -15,6 +15,7 @@ use OEModule\OphCiExamination\widgets\Synoptophore as SynoptophoreWidget;
  */
 class Synoptophore extends \BaseEventTypeElement implements SidedData
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use traits\HasSidedData;
     use traits\HasRelationOptions;

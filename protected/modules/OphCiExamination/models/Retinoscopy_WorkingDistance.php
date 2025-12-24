@@ -20,6 +20,7 @@ use OE\factories\models\traits\HasFactory;
 
 class Retinoscopy_WorkingDistance extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

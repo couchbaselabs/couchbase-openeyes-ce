@@ -31,6 +31,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class Synoptophore_ReadingForGaze extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasRelationOptions;
 
     protected $auto_validate_relations = true;

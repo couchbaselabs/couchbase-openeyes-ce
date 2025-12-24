@@ -16,6 +16,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class PrismReflex_Entry extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasCorrectionType;
     use traits\HasRelationOptions;
     use traits\HasWithHeadPosture;

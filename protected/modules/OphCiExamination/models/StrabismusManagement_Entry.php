@@ -31,6 +31,7 @@ use OEModule\OphCiExamination\models\traits\HasSidedData;
  */
 class StrabismusManagement_Entry extends \BaseElement implements SidedData
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasSidedData;
 
     public function tableName()

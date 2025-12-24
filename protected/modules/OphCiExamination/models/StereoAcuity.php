@@ -6,6 +6,7 @@ use OEModule\OphCiExamination\widgets\StereoAcuity as StereoAcuityWidget;
 
 class StereoAcuity extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use traits\HasChildrenWithEventScopeValidation;
 

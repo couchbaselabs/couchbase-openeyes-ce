@@ -37,6 +37,7 @@ use OEModule\OphCiExamination\widgets\VanHerick as VanHerickWidget;
  */
 class VanHerick extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;

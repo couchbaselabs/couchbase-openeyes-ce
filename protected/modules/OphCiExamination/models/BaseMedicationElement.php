@@ -28,6 +28,8 @@ use User;
 
 abstract class BaseMedicationElement extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $default_view_order = 25;
     protected $auto_update_relations = false;
     protected $auto_validate_relations = false;

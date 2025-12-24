@@ -21,6 +21,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class TreatmentType extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

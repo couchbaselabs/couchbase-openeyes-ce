@@ -30,6 +30,8 @@
  */
 class LDAPConfig extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Temporary variables used to set the ldap json value
      */

@@ -25,6 +25,7 @@ use OEModule\OphCiExamination\models\traits\HasWithHeadPosture;
  */
 class SensoryFunction_Entry extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasRelationOptions;
     use HasWithHeadPosture;
 

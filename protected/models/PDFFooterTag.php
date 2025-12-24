@@ -17,6 +17,8 @@
  */
 class PDFFooterTag extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'pdf_footer_tag';

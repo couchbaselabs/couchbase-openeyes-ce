@@ -34,6 +34,8 @@
  */
 class Element_OphInGeneticresults_Test extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
     /**
      * Returns the static model of the specified AR class.

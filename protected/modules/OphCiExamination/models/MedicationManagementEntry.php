@@ -28,6 +28,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class MedicationManagementEntry extends \EventMedicationUse
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $taper_support = true;
 
     /** @var int Temporary flag to store locked (non-editable) status */

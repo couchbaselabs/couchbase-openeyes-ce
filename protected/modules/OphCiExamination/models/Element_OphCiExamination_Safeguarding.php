@@ -25,11 +25,12 @@ namespace OEModule\OphCiExamination\models;
  */
 class Element_OphCiExamination_Safeguarding extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    use traits\CustomOrdering;
+
     public const NO_SAFEGUARDING_CONCERNS = 1;
     public const CONFIRM_SAFEGUARDING_CONCERNS = 2;
     public const FOLLOWUP_REQUIRED = 3;
-
-    use traits\CustomOrdering;
 
     /**
      * @return string the associated database table name

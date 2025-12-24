@@ -32,6 +32,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class SocialHistoryOccupation extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

@@ -39,6 +39,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class SystemicSurgery extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;

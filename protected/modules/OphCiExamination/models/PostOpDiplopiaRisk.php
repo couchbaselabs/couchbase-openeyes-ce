@@ -29,6 +29,7 @@ use OEModule\OphCiExamination\widgets\PostOpDiplopiaRisk as PostOpDiplopiaRiskWi
  */
 class PostOpDiplopiaRisk extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
 
     protected $auto_update_relations = true;

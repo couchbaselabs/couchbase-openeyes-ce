@@ -14,6 +14,8 @@
  */
 class CatProm5Questions extends CActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function init()
     {
         $this->mandatory = 1;

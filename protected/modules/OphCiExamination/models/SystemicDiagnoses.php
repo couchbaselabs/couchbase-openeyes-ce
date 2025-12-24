@@ -38,6 +38,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class SystemicDiagnoses extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
     use traits\CustomOrdering;
 

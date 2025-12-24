@@ -33,6 +33,7 @@
  */
 class FollowupAnalysisAggregate extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     public const TYPE_FOLLOWUP = 'FollowUp';
     public const TYPE_TICKETED = 'Ticketed';
     public const TYPE_REFERRAL = 'Referral';

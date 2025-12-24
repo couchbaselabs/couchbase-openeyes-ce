@@ -39,6 +39,7 @@ use OEModule\OphCiExamination\models\traits\HasRelationOptions;
  */
 class PrismFusionRange_Entry extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasCorrectionType;
     use traits\HasWithHeadPosture;
     use HasRelationOptions;

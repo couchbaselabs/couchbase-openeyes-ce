@@ -3,6 +3,8 @@
 
 class BaseLabResultElement extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $htmlOptions = array();
 
     /**

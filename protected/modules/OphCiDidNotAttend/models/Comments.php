@@ -34,6 +34,7 @@ use OEModule\OphCiDidNotAttend\widgets\Comments as CommentsWidget;
 
 class Comments extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $widgetClass = CommentsWidget::class;
 

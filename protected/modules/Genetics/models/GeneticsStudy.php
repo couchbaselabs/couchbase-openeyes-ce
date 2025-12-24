@@ -27,6 +27,7 @@
  */
 class GeneticsStudy extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use Study;
 
     protected $auto_update_relations = true;

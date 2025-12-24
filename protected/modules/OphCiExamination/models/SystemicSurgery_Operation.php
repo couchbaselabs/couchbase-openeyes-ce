@@ -42,6 +42,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class SystemicSurgery_Operation extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public static $PRESENT = 1;
     public static $NOT_PRESENT = 0;

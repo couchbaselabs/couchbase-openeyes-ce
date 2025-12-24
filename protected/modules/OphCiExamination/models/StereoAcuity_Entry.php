@@ -15,6 +15,7 @@ namespace OEModule\OphCiExamination\models;
  */
 class StereoAcuity_Entry extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasCorrectionType;
     use traits\HasRelationOptions;
     use traits\HasWithHeadPosture;

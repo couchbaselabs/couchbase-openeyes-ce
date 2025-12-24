@@ -28,6 +28,7 @@ use OEModule\OphCiExamination\widgets\StrabismusManagement as StrabismusManageme
  */
 class StrabismusManagement extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use \LoadFromExistingWithRelation;
 

@@ -19,6 +19,8 @@
  */
 class ArchivePatientIdentifier extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     private $_config;
 
     /**

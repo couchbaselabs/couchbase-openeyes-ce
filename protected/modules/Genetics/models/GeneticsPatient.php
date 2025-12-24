@@ -28,6 +28,8 @@
  */
 class GeneticsPatient extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     protected $statuses = array();
     protected $preExistingPedigreesIds = array();
