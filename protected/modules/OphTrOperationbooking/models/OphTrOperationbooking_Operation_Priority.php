@@ -36,6 +36,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationbooking_Operation_Priority extends BaseActiveRecordVersionedSoftDelete
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $notDeletedField = 'active';
 

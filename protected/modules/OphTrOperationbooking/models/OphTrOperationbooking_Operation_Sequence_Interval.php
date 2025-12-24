@@ -26,6 +26,8 @@
  */
 class OphTrOperationbooking_Operation_Sequence_Interval extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

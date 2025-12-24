@@ -36,6 +36,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationbooking_Operation_Procedures extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.

@@ -37,6 +37,8 @@
  */
 class OphTrOperationbooking_Operation_Sequence extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const SELECT_1STWEEK = 1;
     const SELECT_2NDWEEK = 2;
     const SELECT_3RDWEEK = 4;

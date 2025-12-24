@@ -31,6 +31,7 @@
 class OphTrOperationbooking_Operation_Session_UnavailableReason extends BaseActiveRecordVersioned
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected function getSupportedLevels(): int
     {

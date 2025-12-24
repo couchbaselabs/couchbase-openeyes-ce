@@ -31,6 +31,7 @@ use OE\factories\models\traits\HasFactory;
 class OphTrOperationbooking_Operation_Status extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     const STATUS_REQUIRES_SCHEDULING = 1;
     const STATUS_SCHEDULED = 2;
