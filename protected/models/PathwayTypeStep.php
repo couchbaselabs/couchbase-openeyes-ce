@@ -40,6 +40,7 @@ use OE\factories\models\traits\HasFactory;
 class PathwayTypeStep extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const STEP_REQUESTED = 0;
     public const STEP_STARTED = 1;

@@ -39,6 +39,8 @@
  */
 class Pedigree extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $lowest_version = 37;
 
     protected $highest_version = 38;

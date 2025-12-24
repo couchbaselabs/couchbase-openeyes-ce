@@ -2,6 +2,8 @@
 
 class OescapeSummaryItem extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'oescape_summary_item';

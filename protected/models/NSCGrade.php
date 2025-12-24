@@ -29,6 +29,8 @@
  */
 class NSCGrade extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const RETINOPATHY = 1;
     const MACULOPATHY = 2;
 

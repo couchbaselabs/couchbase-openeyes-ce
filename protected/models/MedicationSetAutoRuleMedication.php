@@ -37,6 +37,8 @@
  */
 class MedicationSetAutoRuleMedication extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     private $delete_with_tapers = false;
     protected $auto_update_relations = true;
 
