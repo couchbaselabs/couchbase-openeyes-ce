@@ -45,6 +45,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCoCorrespondence_Signature extends BaseSignature
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     const LBL_ELECTRONIC_VERIFIED = "VERIFIED ELECTRONICALLY, NOT SIGNED TO AVOID DELAYS";
 
