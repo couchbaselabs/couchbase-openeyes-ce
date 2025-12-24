@@ -35,6 +35,8 @@
  */
 class RTT extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $use_pas = true;
 
     /**

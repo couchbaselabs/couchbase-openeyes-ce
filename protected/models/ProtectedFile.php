@@ -32,6 +32,8 @@
  */
 class ProtectedFile extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected const THUMBNAIL_QUALITY = 85;
     // used in model creation
     protected $source_path;

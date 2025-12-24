@@ -32,6 +32,7 @@ use OE\factories\models\traits\HasFactory;
 class Worklist extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * A search attribute to allow searching for worklists that are valid for a particular date.
