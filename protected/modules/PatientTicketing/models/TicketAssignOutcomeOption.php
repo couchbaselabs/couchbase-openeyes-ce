@@ -27,6 +27,7 @@ use ReferenceData;
 
 class TicketAssignOutcomeOption extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
     use \FindOrNewModel;
 

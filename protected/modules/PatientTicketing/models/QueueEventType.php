@@ -33,6 +33,8 @@ namespace OEModule\PatientTicketing\models;
  */
 class QueueEventType extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'patientticketing_queue_event_type';

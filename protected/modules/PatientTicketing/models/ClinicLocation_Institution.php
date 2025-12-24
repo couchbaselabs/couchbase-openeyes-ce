@@ -23,6 +23,8 @@ use Institution;
 
 class ClinicLocation_Institution extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'patientticketing_clinic_location_institution';

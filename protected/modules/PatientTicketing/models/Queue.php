@@ -49,6 +49,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class Queue extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     // used to prevent form field name conflicts

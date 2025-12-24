@@ -29,6 +29,7 @@ use ReferenceData;
 
 class QueueSet extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
     use HasFactory;
 

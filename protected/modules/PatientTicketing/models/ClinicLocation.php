@@ -25,6 +25,7 @@ use ReferenceData;
 
 class ClinicLocation extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
     use \FindOrNewModel;
 

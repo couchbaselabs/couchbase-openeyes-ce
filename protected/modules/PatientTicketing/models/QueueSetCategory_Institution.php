@@ -26,6 +26,7 @@ use OE\factories\models\traits\HasFactory;
 
 class QueueSetCategory_Institution extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**
