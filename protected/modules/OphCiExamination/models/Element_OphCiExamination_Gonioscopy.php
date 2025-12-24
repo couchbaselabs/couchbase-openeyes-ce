@@ -51,6 +51,9 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Gonioscopy extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    
     /**
      * Returns the static model of the specified AR class.
      *
@@ -287,5 +290,38 @@ class Element_OphCiExamination_Gonioscopy extends \SplitEventTypeElement
         }
 
         return $defaults;
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Left eye gonioscopy angles
+        if ($this->hasLeft()) {
+            $data['left_gonio'] = [
+                'sup' => $this->left_gonio_sup ? ['id' => $this->left_gonio_sup->id, 'name' => $this->left_gonio_sup->name] : null,
+                'tem' => $this->left_gonio_tem ? ['id' => $this->left_gonio_tem->id, 'name' => $this->left_gonio_tem->name] : null,
+                'nas' => $this->left_gonio_nas ? ['id' => $this->left_gonio_nas->id, 'name' => $this->left_gonio_nas->name] : null,
+                'inf' => $this->left_gonio_inf ? ['id' => $this->left_gonio_inf->id, 'name' => $this->left_gonio_inf->name] : null,
+            ];
+            $data['left_iris'] = $this->left_iris ? ['id' => $this->left_iris->id, 'name' => $this->left_iris->name] : null;
+        }
+        
+        // Right eye gonioscopy angles
+        if ($this->hasRight()) {
+            $data['right_gonio'] = [
+                'sup' => $this->right_gonio_sup ? ['id' => $this->right_gonio_sup->id, 'name' => $this->right_gonio_sup->name] : null,
+                'tem' => $this->right_gonio_tem ? ['id' => $this->right_gonio_tem->id, 'name' => $this->right_gonio_tem->name] : null,
+                'nas' => $this->right_gonio_nas ? ['id' => $this->right_gonio_nas->id, 'name' => $this->right_gonio_nas->name] : null,
+                'inf' => $this->right_gonio_inf ? ['id' => $this->right_gonio_inf->id, 'name' => $this->right_gonio_inf->name] : null,
+            ];
+            $data['right_iris'] = $this->right_iris ? ['id' => $this->right_iris->id, 'name' => $this->right_iris->name] : null;
+        }
+        
+        return $data;
     }
 }

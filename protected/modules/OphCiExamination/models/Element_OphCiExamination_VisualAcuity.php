@@ -21,6 +21,7 @@ namespace OEModule\OphCiExamination\models;
 use OEModule\OphCiExamination\models\interfaces\BEOSidedData;
 use OEModule\OphCiExamination\widgets\VisualAcuity as VisualAcuityWidget;
 use OE\factories\models\traits\HasFactory;
+use OEModule\OphCiExamination\models\traits\CouchbaseElementBridge;
 
 /**
  * This is the main record element for Visual Acuity, which records VA for left, right and BEO eyes.
@@ -74,8 +75,10 @@ class Element_OphCiExamination_VisualAcuity extends \BaseEventTypeElement implem
 {
     use traits\CustomOrdering;
     use traits\HasBEOSidedData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasChildrenWithEventScopeValidation;
     use HasFactory;
+    use CouchbaseElementBridge;
 
     const RECORD_MODE_COMPLEX = 'complex';
     const RECORD_MODE_SIMPLE = 'simple';
@@ -747,5 +750,64 @@ class Element_OphCiExamination_VisualAcuity extends \BaseEventTypeElement implem
         }, $readings);
 
         return array_unique($method_ids) === $method_ids;
+    }
+    
+    /**
+     * Override to provide detailed VA readings with resolved lookups for Couchbase
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed left readings with resolved lookups
+        if ($this->hasLeft()) {
+            $data['left_readings'] = [];
+            foreach ($this->left_readings as $reading) {
+                $data['left_readings'][] = [
+                    'value' => $reading->value,
+                    'method_id' => $reading->method_id,
+                    'method' => $reading->method ? $reading->method->name : null,
+                    'unit_id' => $reading->unit_id,
+                    'unit' => $reading->unit ? $reading->unit->name : null,
+                    'source_id' => $reading->source_id,
+                    'source' => $reading->source ? $reading->source->name : null,
+                    'with_correction' => (bool) $reading->with_correction,
+                ];
+            }
+        }
+        
+        // Embed right readings with resolved lookups
+        if ($this->hasRight()) {
+            $data['right_readings'] = [];
+            foreach ($this->right_readings as $reading) {
+                $data['right_readings'][] = [
+                    'value' => $reading->value,
+                    'method_id' => $reading->method_id,
+                    'method' => $reading->method ? $reading->method->name : null,
+                    'unit_id' => $reading->unit_id,
+                    'unit' => $reading->unit ? $reading->unit->name : null,
+                    'source_id' => $reading->source_id,
+                    'source' => $reading->source ? $reading->source->name : null,
+                    'with_correction' => (bool) $reading->with_correction,
+                ];
+            }
+        }
+        
+        // Embed BEO readings if present
+        if (isset($this->beo_readings) && !empty($this->beo_readings)) {
+            $data['beo_readings'] = [];
+            foreach ($this->beo_readings as $reading) {
+                $data['beo_readings'][] = [
+                    'value' => $reading->value,
+                    'method_id' => $reading->method_id,
+                    'method' => $reading->method ? $reading->method->name : null,
+                    'unit_id' => $reading->unit_id,
+                    'unit' => $reading->unit ? $reading->unit->name : null,
+                ];
+            }
+        }
+        
+        return $data;
     }
 }

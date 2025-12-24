@@ -43,6 +43,7 @@ use Yii;
 class Element_OphCiExamination_ColourVision extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
 
     protected $auto_update_relations = true;
     protected $relation_defaults = array(
@@ -244,5 +245,54 @@ class Element_OphCiExamination_ColourVision extends \SplitEventTypeElement
     public function canViewPrevious()
     {
         return true;
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        if ($this->hasLeft() && !empty($this->left_readings)) {
+            $data['left_readings'] = array_map(function($reading) {
+                $readingData = [
+                    'method_id' => $reading->method_id,
+                    'value' => $reading->value,
+                ];
+                
+                // Embed method lookup
+                if ($reading->method) {
+                    $readingData['method'] = [
+                        'id' => $reading->method->id,
+                        'name' => $reading->method->name,
+                    ];
+                }
+                
+                return $readingData;
+            }, $this->left_readings);
+        }
+        
+        if ($this->hasRight() && !empty($this->right_readings)) {
+            $data['right_readings'] = array_map(function($reading) {
+                $readingData = [
+                    'method_id' => $reading->method_id,
+                    'value' => $reading->value,
+                ];
+                
+                // Embed method lookup
+                if ($reading->method) {
+                    $readingData['method'] = [
+                        'id' => $reading->method->id,
+                        'name' => $reading->method->name,
+                    ];
+                }
+                
+                return $readingData;
+            }, $this->right_readings);
+        }
+        
+        return $data;
     }
 }

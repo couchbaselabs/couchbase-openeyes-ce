@@ -42,6 +42,8 @@ use Eye;
 class Element_OphCiExamination_PostOpComplications extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    
     public $service;
     public $firm;
     public $subspecialty_id;
@@ -417,5 +419,16 @@ class Element_OphCiExamination_PostOpComplications extends \SplitEventTypeElemen
                 $this->addError('complication_other[' . $eye_abbr . ']', 'Other cannot be empty');
             }
         }
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // Post-op complications are managed via a different mechanism
+        // Most data is in complication_items which are handled by parent trait
+        return [];
     }
 }

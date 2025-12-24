@@ -59,6 +59,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_CataractSurgicalManagement extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    
     public $service;
 
     /**
@@ -270,5 +272,36 @@ class Element_OphCiExamination_CataractSurgicalManagement extends \SplitEventTyp
         $right_description = ($this->eye_id !== (string)self::LEFT) ? $this->rightEye->name . ' target post-op: ' . $this->right_target_postop_refraction . ' ' : '';
         $left_description = ($this->eye_id !== (string)self::RIGHT) ? $this->leftEye->name . ' target post-op: ' . $this->left_target_postop_refraction : '';
         return $right_description . $left_description;
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        if ($this->hasLeft()) {
+            $data['left_management'] = [
+                'eye' => $this->leftEye ? ['id' => $this->leftEye->id, 'name' => $this->leftEye->name] : null,
+                'reason_for_surgery' => $this->leftReasonForSurgery ? [
+                    'id' => $this->leftReasonForSurgery->id,
+                    'name' => $this->leftReasonForSurgery->name
+                ] : null,
+            ];
+        }
+        
+        if ($this->hasRight()) {
+            $data['right_management'] = [
+                'eye' => $this->rightEye ? ['id' => $this->rightEye->id, 'name' => $this->rightEye->name] : null,
+                'reason_for_surgery' => $this->rightReasonForSurgery ? [
+                    'id' => $this->rightReasonForSurgery->id,
+                    'name' => $this->rightReasonForSurgery->name
+                ] : null,
+            ];
+        }
+        
+        return $data;
     }
 }

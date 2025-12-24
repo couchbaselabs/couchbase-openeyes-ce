@@ -36,6 +36,9 @@ class Element_OphCiExamination_History extends \BaseEventTypeElement
 {
     use HasFactory;
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    use traits\CouchbaseElementBridge;
+    
     public $service;
 
     /**
@@ -142,5 +145,16 @@ class Element_OphCiExamination_History extends \BaseEventTypeElement
     {
         $this->description = \CHtml::decode($this->description);
         parent::afterFind();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // History is mainly text/description field
+        // No complex relations to embed
+        return [];
     }
 }

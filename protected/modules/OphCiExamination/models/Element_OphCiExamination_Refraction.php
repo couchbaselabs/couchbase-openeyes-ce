@@ -21,6 +21,7 @@ namespace OEModule\OphCiExamination\models;
 use OEModule\OphCiExamination\models\interfaces\SidedData;
 use OEModule\OphCiExamination\models\traits\HasSidedData;
 use OEModule\OphCiExamination\widgets\Refraction;
+use OEModule\OphCiExamination\models\traits\CouchbaseElementBridge;
 
 /**
  * This is the model class for table "et_ophciexamination_refraction".
@@ -40,6 +41,8 @@ class Element_OphCiExamination_Refraction extends \BaseEventTypeElement implemen
     use traits\CustomOrdering;
     use HasSidedData;
     use \LoadFromExistingWithRelation;
+    use CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;
@@ -267,5 +270,46 @@ class Element_OphCiExamination_Refraction extends \BaseEventTypeElement implemen
                 $readings
             )
         );
+    }
+    
+    /**
+     * Override to provide detailed refraction readings with resolved lookups for Couchbase
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed left refraction readings with resolved lookups
+        if ($this->hasLeft() && $this->left_readings) {
+            $data['left_readings'] = [];
+            foreach ($this->left_readings as $reading) {
+                $data['left_readings'][] = [
+                    'sphere' => $reading->sphere,
+                    'cylinder' => $reading->cylinder,
+                    'axis' => $reading->axis,
+                    'type_id' => $reading->type_id,
+                    'type' => $reading->type ? $reading->type->name : null,
+                    'type_other' => $reading->type_other,
+                ];
+            }
+        }
+        
+        // Embed right refraction readings with resolved lookups
+        if ($this->hasRight() && $this->right_readings) {
+            $data['right_readings'] = [];
+            foreach ($this->right_readings as $reading) {
+                $data['right_readings'][] = [
+                    'sphere' => $reading->sphere,
+                    'cylinder' => $reading->cylinder,
+                    'axis' => $reading->axis,
+                    'type_id' => $reading->type_id,
+                    'type' => $reading->type ? $reading->type->name : null,
+                    'type_other' => $reading->type_other,
+                ];
+            }
+        }
+        
+        return $data;
     }
 }

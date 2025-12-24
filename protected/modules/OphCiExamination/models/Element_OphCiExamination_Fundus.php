@@ -12,6 +12,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Fundus extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $exclude_element_from_empty_discard_check = true;
 
@@ -162,5 +164,16 @@ class Element_OphCiExamination_Fundus extends \SplitEventTypeElement
         return new \CActiveDataProvider(get_class($this), array(
             'criteria' => $criteria,
         ));
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // Fundus data is mostly eyedraw and scalar fields (large images)
+        // No complex relations to embed - images handled separately
+        return [];
     }
 }

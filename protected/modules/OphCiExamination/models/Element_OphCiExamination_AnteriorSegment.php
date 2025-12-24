@@ -52,6 +52,8 @@ use Patient;
 class Element_OphCiExamination_AnteriorSegment extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    
     protected static $ed_persistence_attributes = array(
         'left_eyedraw' => \Eye::LEFT,
         'right_eyedraw' => \Eye::RIGHT,
@@ -285,5 +287,16 @@ class Element_OphCiExamination_AnteriorSegment extends \SplitEventTypeElement
     public function getPrint_view()
     {
         return 'print_'.$this->getDefaultView();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // AnteriorSegment data is mostly eyedraw and scalar fields
+        // No complex relations to embed
+        return [];
     }
 }

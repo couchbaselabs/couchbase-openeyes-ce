@@ -35,6 +35,8 @@ use Yii;
 class Element_OphCiExamination_Dilation extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $errorExceptions = array(
       'OEModule_OphCiExamination_models_Element_OphCiExamination_Dilation_left_treatments' => 'dilation_left',
@@ -290,5 +292,38 @@ class Element_OphCiExamination_Dilation extends \SplitEventTypeElement
     public function getPrint_view()
     {
         return 'print_'.$this->getDefaultView();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed dilation treatments
+        if (!empty($this->treatments)) {
+            $data['treatments'] = array_map(function($treatment) {
+                $treatmentData = [
+                    'drug_id' => $treatment->drug_id,
+                    'drops' => $treatment->drops,
+                    'treatment_time' => $treatment->treatment_time,
+                    'side' => $treatment->side ?? null,
+                ];
+                
+                // Embed drug lookup
+                if ($treatment->drug) {
+                    $treatmentData['drug'] = [
+                        'id' => $treatment->drug->id,
+                        'name' => $treatment->drug->name,
+                    ];
+                }
+                
+                return $treatmentData;
+            }, $this->treatments);
+        }
+        
+        return $data;
     }
 }

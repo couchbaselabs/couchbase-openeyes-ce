@@ -59,6 +59,8 @@ use Yii;
 class Element_OphCiExamination_DRGrading extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    
     public $service;
 
     /**
@@ -336,5 +338,62 @@ class Element_OphCiExamination_DRGrading extends \SplitEventTypeElement
     public function canCopy()
     {
         return true;
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        if ($this->hasLeft()) {
+            $data['left_grading'] = [
+                'nsc_retinopathy' => $this->left_nscretinopathy ? [
+                    'id' => $this->left_nscretinopathy->id,
+                    'name' => $this->left_nscretinopathy->name,
+                    'grade' => $this->left_nscretinopathy->grade ?? null
+                ] : null,
+                'nsc_maculopathy' => $this->left_nscmaculopathy ? [
+                    'id' => $this->left_nscmaculopathy->id,
+                    'name' => $this->left_nscmaculopathy->name,
+                    'grade' => $this->left_nscmaculopathy->grade ?? null
+                ] : null,
+                'clinical_retinopathy' => $this->left_clinicalret ? [
+                    'id' => $this->left_clinicalret->id,
+                    'name' => $this->left_clinicalret->name
+                ] : null,
+                'clinical_maculopathy' => $this->left_clinicalmac ? [
+                    'id' => $this->left_clinicalmac->id,
+                    'name' => $this->left_clinicalmac->name
+                ] : null,
+            ];
+        }
+        
+        if ($this->hasRight()) {
+            $data['right_grading'] = [
+                'nsc_retinopathy' => $this->right_nscretinopathy ? [
+                    'id' => $this->right_nscretinopathy->id,
+                    'name' => $this->right_nscretinopathy->name,
+                    'grade' => $this->right_nscretinopathy->grade ?? null
+                ] : null,
+                'nsc_maculopathy' => $this->right_nscmaculopathy ? [
+                    'id' => $this->right_nscmaculopathy->id,
+                    'name' => $this->right_nscmaculopathy->name,
+                    'grade' => $this->right_nscmaculopathy->grade ?? null
+                ] : null,
+                'clinical_retinopathy' => $this->right_clinicalret ? [
+                    'id' => $this->right_clinicalret->id,
+                    'name' => $this->right_clinicalret->name
+                ] : null,
+                'clinical_maculopathy' => $this->right_clinicalmac ? [
+                    'id' => $this->right_clinicalmac->id,
+                    'name' => $this->right_clinicalmac->name
+                ] : null,
+            ];
+        }
+        
+        return $data;
     }
 }

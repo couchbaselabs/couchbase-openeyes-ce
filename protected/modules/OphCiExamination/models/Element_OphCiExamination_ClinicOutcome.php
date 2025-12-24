@@ -36,7 +36,9 @@ use Yii;
 class Element_OphCiExamination_ClinicOutcome extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
     use HasFactory;
+    
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;
 
@@ -257,5 +259,48 @@ class Element_OphCiExamination_ClinicOutcome extends \BaseEventTypeElement
             }
         }
         return false;
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed clinic outcome entries (status, follow-up periods, etc.)
+        if (!empty($this->entries)) {
+            $data['entries'] = array_map(function($entry) {
+                $entryData = [
+                    'status_id' => $entry->status_id,
+                    'followup_quantity' => $entry->followup_quantity,
+                    'followup_period_id' => $entry->followup_period_id,
+                    'role_comments' => $entry->role_comments,
+                ];
+                
+                // Embed status lookup
+                if ($entry->status) {
+                    $entryData['status'] = [
+                        'id' => $entry->status->id,
+                        'name' => $entry->status->name,
+                        'is_discharge' => $entry->status->is_discharge ?? false,
+                        'is_follow_up' => $entry->status->is_follow_up ?? false,
+                    ];
+                }
+                
+                // Embed follow-up period lookup
+                if ($entry->followup_period_id && $entry->followup_period) {
+                    $entryData['followup_period'] = [
+                        'id' => $entry->followup_period->id,
+                        'name' => $entry->followup_period->name,
+                    ];
+                }
+                
+                return $entryData;
+            }, $this->entries);
+        }
+        
+        return $data;
     }
 }

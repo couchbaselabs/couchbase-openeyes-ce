@@ -20,6 +20,7 @@
 namespace OEModule\OphCiExamination\models;
 
 use OE\factories\models\traits\HasFactory;
+use OEModule\OphCiExamination\models\traits\CouchbaseElementBridge;
 
 /**
  * This is the model class for table "et_ophciexamination_diagnoses". It's worth noting that this Element was originally
@@ -40,6 +41,8 @@ class Element_OphCiExamination_Diagnoses extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    use CouchbaseElementBridge;
 
     protected $default_view_order = 10;
     public $no_ophthalmic_diagnoses = false;
@@ -693,5 +696,39 @@ class Element_OphCiExamination_Diagnoses extends \BaseEventTypeElement
     {
         $action_list = array('view', 'createImage', 'renderEventImage', 'removed');
         return in_array($action, $action_list) ? 1 : null;
+    }
+    
+    /**
+     * Override to provide detailed diagnosis entries with resolved disorder lookups for Couchbase
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed diagnoses with resolved disorder lookups
+        if ($this->diagnoses) {
+            $data['diagnoses'] = [];
+            foreach ($this->diagnoses as $diagnosis) {
+                $diagnosisData = [
+                    'eye_id' => $diagnosis->eye_id,
+                    'eye' => $diagnosis->eye ? $diagnosis->eye->name : null,
+                    'disorder_id' => $diagnosis->disorder_id,
+                    'disorder' => $diagnosis->disorder ? $diagnosis->disorder->term : null,
+                    'date' => $diagnosis->date,
+                    'principal' => (bool) $diagnosis->principal,
+                ];
+                
+                // Add secondary diagnosis if present
+                if ($diagnosis->secondary_diagnosis_id) {
+                    $diagnosisData['secondary_diagnosis_id'] = $diagnosis->secondary_diagnosis_id;
+                    $diagnosisData['secondary_diagnosis'] = $diagnosis->secondaryDiagnosis ? $diagnosis->secondaryDiagnosis->term : null;
+                }
+                
+                $data['diagnoses'][] = $diagnosisData;
+            }
+        }
+        
+        return $data;
     }
 }

@@ -43,6 +43,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_PosteriorPole extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    
     public $service;
     public $exclude_element_from_empty_discard_check = true;
 
@@ -184,5 +186,16 @@ class Element_OphCiExamination_PosteriorPole extends \SplitEventTypeElement
         return new \CActiveDataProvider(get_class($this), array(
                 'criteria' => $criteria,
         ));
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // PosteriorPole data is mostly eyedraw and scalar fields
+        // No complex relations to embed
+        return [];
     }
 }

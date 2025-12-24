@@ -32,6 +32,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Conclusion extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    
     public $service;
 
     /**
@@ -120,5 +122,16 @@ class Element_OphCiExamination_Conclusion extends \BaseEventTypeElement
     public function getLetter_string()
     {
         return "Conclusion: $this->description\n";
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // Conclusion is mainly text/description field
+        // No complex relations to embed
+        return [];
     }
 }

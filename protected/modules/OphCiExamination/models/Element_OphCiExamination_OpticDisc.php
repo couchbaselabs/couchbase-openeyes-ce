@@ -43,6 +43,9 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_OpticDisc extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    
     // used for the letter string method in the eyedraw element behavior
     public $letter_string_prefix = "Optic Disc:\n";
 
@@ -213,5 +216,16 @@ class Element_OphCiExamination_OpticDisc extends \SplitEventTypeElement
             'cd_ratio_id' => OphCiExamination_OpticDisc_CDRatio::model()->findByAttributes(array('name' => 'Not checked'))->id,
 
         );
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // OpticDisc data is mostly eyedraw and scalar fields
+        // No complex relations to embed
+        return [];
     }
 }

@@ -32,6 +32,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Management extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use traits\CouchbaseElementBridge;
+    
     const ELEMENT_CHILDREN = [
         'Element_OphCiExamination_CataractSurgicalManagement',
         'Element_OphCiExamination_OverallManagementPlan',
@@ -183,5 +185,16 @@ class Element_OphCiExamination_Management extends \BaseEventTypeElement
     public function canCopy()
     {
         return true;
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        // Management is a container element for child elements
+        // No direct relations to embed
+        return [];
     }
 }

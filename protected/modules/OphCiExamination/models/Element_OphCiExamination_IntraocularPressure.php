@@ -19,6 +19,7 @@
 namespace OEModule\OphCiExamination\models;
 
 use OE\factories\models\traits\HasFactory;
+use OEModule\OphCiExamination\models\traits\CouchbaseElementBridge;
 
 /**
  * This is the model class for table "et_ophciexamination_intraocularpressure".
@@ -37,6 +38,8 @@ class Element_OphCiExamination_IntraocularPressure extends \SplitEventTypeElemen
 {
     use traits\CustomOrdering;
     use HasFactory;
+    use CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $service;
 
@@ -256,5 +259,62 @@ class Element_OphCiExamination_IntraocularPressure extends \SplitEventTypeElemen
             }
         }
         return parent::afterFind();
+    }
+    
+    /**
+     * Override to provide detailed IOP readings with resolved lookups for Couchbase
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed left IOP values with resolved lookups
+        if ($this->hasLeft() && $this->left_values) {
+            $data['left_values'] = [];
+            foreach ($this->left_values as $value) {
+                $valueData = [
+                    'reading_id' => $value->reading_id,
+                    'value' => $value->reading ? $value->reading->value : null,
+                    'instrument_id' => $value->instrument_id,
+                    'instrument' => $value->instrument ? $value->instrument->name : null,
+                    'reading_time' => $value->reading_time,
+                    'eye_id' => $value->eye_id,
+                ];
+                
+                // Add qualitative reading if present
+                if ($value->qualitative_reading_id) {
+                    $valueData['qualitative_reading_id'] = $value->qualitative_reading_id;
+                    $valueData['qualitative_reading'] = $value->qualitativeReading ? $value->qualitativeReading->name : null;
+                }
+                
+                $data['left_values'][] = $valueData;
+            }
+        }
+        
+        // Embed right IOP values with resolved lookups
+        if ($this->hasRight() && $this->right_values) {
+            $data['right_values'] = [];
+            foreach ($this->right_values as $value) {
+                $valueData = [
+                    'reading_id' => $value->reading_id,
+                    'value' => $value->reading ? $value->reading->value : null,
+                    'instrument_id' => $value->instrument_id,
+                    'instrument' => $value->instrument ? $value->instrument->name : null,
+                    'reading_time' => $value->reading_time,
+                    'eye_id' => $value->eye_id,
+                ];
+                
+                // Add qualitative reading if present
+                if ($value->qualitative_reading_id) {
+                    $valueData['qualitative_reading_id'] = $value->qualitative_reading_id;
+                    $valueData['qualitative_reading'] = $value->qualitativeReading ? $value->qualitativeReading->name : null;
+                }
+                
+                $data['right_values'][] = $valueData;
+            }
+        }
+        
+        return $data;
     }
 }
