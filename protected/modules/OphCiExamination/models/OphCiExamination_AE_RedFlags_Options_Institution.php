@@ -31,6 +31,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_AE_RedFlags_Options_Institution extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($class_name = __CLASS__)
     {
         return parent::model($class_name);

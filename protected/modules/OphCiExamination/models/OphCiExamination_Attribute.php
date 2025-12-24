@@ -36,6 +36,7 @@ use ElementType;
 class OphCiExamination_Attribute extends \BaseActiveRecordVersioned
 {
     use OwnedByReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected $attribute_options = array();

@@ -34,6 +34,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_AttributeElement extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const SELECTION_ORDER = 'element_type_id,attribute_id';
 
