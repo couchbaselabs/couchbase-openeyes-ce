@@ -36,6 +36,8 @@
  */
 class OphTrOperationbooking_Letter_Contact_Rule extends BaseTree
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $textFields = array('site', 'firm', 'theatre', 'subspecialty', 'refuse_telephone' => 'refuse', 'refuse_title' => 'title', 'health_telephone' => 'health');
     public $textFieldsDropdown = array('site', 'firm', 'theatre', 'subspecialty', 'refuse_telephone' => 'refuse', 'health_telephone' => 'health');
 

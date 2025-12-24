@@ -34,6 +34,8 @@
  */
 class OphTrOperationbooking_Operation_Date_Letter_Sent extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

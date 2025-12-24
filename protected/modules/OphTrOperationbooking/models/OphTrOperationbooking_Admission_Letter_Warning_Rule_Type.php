@@ -26,6 +26,8 @@
  */
 class OphTrOperationbooking_Admission_Letter_Warning_Rule_Type extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

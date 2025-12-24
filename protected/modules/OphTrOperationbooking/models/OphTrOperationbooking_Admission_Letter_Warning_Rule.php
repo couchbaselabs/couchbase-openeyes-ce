@@ -29,6 +29,8 @@
  */
 class OphTrOperationbooking_Admission_Letter_Warning_Rule extends BaseTree
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $textFields = array('ruleType', 'site', 'firm', 'theatre', 'subspecialty', 'is_child', 'show_warning', 'warning_text', 'emphasis', 'strong');
     public $textFieldsDropdown = array('ruleType', 'site', 'firm', 'theatre', 'subspecialty', 'is_child', 'show_warning', 'warning_text', 'emphasis', 'strong');
 
