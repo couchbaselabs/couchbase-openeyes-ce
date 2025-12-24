@@ -44,6 +44,7 @@ use OEModule\OphCiExamination\models\traits\HasWithHeadPosture;
 class OphCiExamination_VisualAcuity_Reading extends \BaseActiveRecordVersioned
 {
     use HasWithHeadPosture;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasRelationOptions;
     use HasFactory;
 

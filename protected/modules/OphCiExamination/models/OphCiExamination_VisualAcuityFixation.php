@@ -24,6 +24,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_VisualAcuityFixation extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return "ophciexamination_visual_acuity_fixation";

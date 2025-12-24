@@ -30,6 +30,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_VisualAcuity_Method extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public static $UNAIDED_FLAG_TYPE = 1;
     public static $AIDED_FLAG_TYPE = 2;

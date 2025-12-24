@@ -26,6 +26,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_VisualAcuityOccluder extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'ophciexamination_visual_acuity_occluder';

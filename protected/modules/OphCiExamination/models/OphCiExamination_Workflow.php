@@ -33,6 +33,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_Workflow extends \BaseActiveRecordVersioned
 {
     use \OwnedByReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

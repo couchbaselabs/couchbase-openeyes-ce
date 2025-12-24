@@ -17,6 +17,8 @@ namespace OEModule\OphCiExamination\models;
 
 class OphCiExamination_VisualAcuitySource extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return "ophciexamination_visual_acuity_source";
