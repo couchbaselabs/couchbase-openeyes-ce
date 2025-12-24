@@ -19,6 +19,8 @@
  */
 class OphTrConsent_Paper_Copies extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

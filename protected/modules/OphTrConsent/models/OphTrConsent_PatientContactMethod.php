@@ -21,6 +21,8 @@
  */
 class OphTrConsent_PatientContactMethod extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public const SIGNATURE_REQUIRED = 1;
     public const SIGNATURE_NOT_REQUIRED = 0;
     public const SIGNATURE_OPTIONAL = 2;

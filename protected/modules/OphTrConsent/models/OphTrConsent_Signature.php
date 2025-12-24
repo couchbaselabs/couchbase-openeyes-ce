@@ -42,6 +42,8 @@
  */
 class OphTrConsent_Signature extends BaseSignature
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /** @var string|null The signatory's id if applicable */
     public ?string $user_id = null;
 
