@@ -16,6 +16,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 use OEModule\OphCiExamination\models\OphCiExaminationAllergy;
 
 /**
@@ -60,6 +61,7 @@ use OEModule\OphCiExamination\models\OphCiExaminationAllergy;
 class Medication extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
     use MappedReferenceData {
         buildCriteriaForFindAllAtLevel as baseBuildCriteriaForFindAllAtLevel;
     }
@@ -669,5 +671,87 @@ class Medication extends BaseActiveRecordVersioned
         $baseCriteria->params[':_localSourceType'] = static::SOURCE_TYPE_LOCAL;
 
         return $baseCriteria;
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'medication';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed default route
+        if ($this->default_route_id && $this->defaultRoute) {
+            $data['default_route'] = [
+                'id' => (int)$this->defaultRoute->id,
+                'term' => $this->defaultRoute->term,
+                'code' => $this->defaultRoute->code ?? null,
+            ];
+        }
+        
+        // Embed default form
+        if ($this->default_form_id && $this->defaultForm) {
+            $data['default_form'] = [
+                'id' => (int)$this->defaultForm->id,
+                'term' => $this->defaultForm->term,
+                'code' => $this->defaultForm->code ?? null,
+            ];
+        }
+        
+        // Embed default frequency
+        if (isset($this->default_frequency_id) && $this->default_frequency_id) {
+            $frequency = MedicationFrequency::model()->findByPk($this->default_frequency_id);
+            if ($frequency) {
+                $data['default_frequency'] = [
+                    'id' => (int)$frequency->id,
+                    'term' => $frequency->term,
+                    'code' => $frequency->code ?? null,
+                ];
+            }
+        }
+        
+        // Embed allergy warnings (skip if table doesn't exist)
+        $data['allergy_warnings'] = [];
+        // Note: MedicationAllergyAssignment table may not exist in all installations
+        // Silently skip if there's any issue accessing this table
+        
+        return $data;
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

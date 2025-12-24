@@ -18,6 +18,7 @@
  */
 class MedicationLaterality extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     const LEFT = 1;
     const RIGHT = 2;

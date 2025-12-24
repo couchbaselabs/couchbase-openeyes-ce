@@ -24,6 +24,7 @@ use OE\factories\models\traits\HasFactory;
 class MedicationAttributeOption extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

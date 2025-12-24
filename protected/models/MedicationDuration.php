@@ -1,5 +1,7 @@
 <?php
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "medication_duration".
  *
@@ -20,6 +22,8 @@
  */
 class MedicationDuration extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
@@ -144,5 +148,41 @@ class MedicationDuration extends BaseActiveRecordVersioned
     public static function model($className=__CLASS__)
     {
         return parent::model($className);
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'medication_duration';
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

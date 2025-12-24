@@ -16,6 +16,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 use OEModule\OphCiExamination\models\OphCiExaminationAllergy;
 
 /**
@@ -54,6 +55,7 @@ use OEModule\OphCiExamination\models\OphCiExaminationAllergy;
 class MedicationSet extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     /*
      * These variables stand for temporary storage only
@@ -846,5 +848,50 @@ class MedicationSet extends BaseActiveRecordVersioned
                 }
             }
         }
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'medication_set';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getCouchbaseEmbeddedData()
+    {
+        $data = [
+            'hidden' => (bool)$this->hidden,
+            'automatic' => (bool)$this->automatic,
+            'display_order' => $this->display_order ? (int)$this->display_order : null,
+        ];
+
+        // Embed usage rules for querying
+        if (!empty($this->medicationSetRules)) {
+            $data['rules'] = array_map(function($rule) {
+                return [
+                    'id' => (int)$rule->id,
+                    'site_id' => $rule->site_id ? (int)$rule->site_id : null,
+                    'subspecialty_id' => $rule->subspecialty_id ? (int)$rule->subspecialty_id : null,
+                    'usage_code' => $rule->usageCode ? $rule->usageCode->usage_code : null,
+                ];
+            }, $this->medicationSetRules);
+        }
+
+        return $data;
     }
 }

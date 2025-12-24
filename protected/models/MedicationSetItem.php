@@ -1,6 +1,7 @@
 <?php
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "medication_set_item".
@@ -37,6 +38,7 @@ use OE\factories\models\traits\HasFactory;
 class MedicationSetItem extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     public $auto_update_relations = true;
     public $auto_validate_relations = true;
@@ -177,5 +179,93 @@ class MedicationSetItem extends BaseActiveRecordVersioned
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'medication_set_item';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * Embed full medication and default values for efficient queries
+     * @return array
+     */
+    protected function getCouchbaseEmbeddedData()
+    {
+        $data = [];
+
+        // Embed medication details
+        if ($this->medication) {
+            $data['medication'] = [
+                'id' => (int)$this->medication->id,
+                'preferred_term' => $this->medication->preferred_term,
+                'short_term' => $this->medication->short_term,
+                'source_type' => $this->medication->source_type,
+                'vtm_term' => $this->medication->vtm_term,
+                'vmp_term' => $this->medication->vmp_term,
+                'amp_term' => $this->medication->amp_term,
+            ];
+        }
+
+        // Embed medication set details
+        if ($this->medicationSet) {
+            $data['medication_set'] = [
+                'id' => (int)$this->medicationSet->id,
+                'name' => $this->medicationSet->name,
+                'hidden' => (bool)$this->medicationSet->hidden,
+            ];
+        }
+
+        // Embed default route
+        if ($this->defaultRoute) {
+            $data['default_route'] = [
+                'id' => (int)$this->defaultRoute->id,
+                'term' => $this->defaultRoute->term,
+            ];
+        }
+
+        // Embed default form
+        if ($this->defaultForm) {
+            $data['default_form'] = [
+                'id' => (int)$this->defaultForm->id,
+                'term' => $this->defaultForm->term,
+            ];
+        }
+
+        // Embed default frequency
+        if ($this->defaultFrequency) {
+            $data['default_frequency'] = [
+                'id' => (int)$this->defaultFrequency->id,
+                'term' => $this->defaultFrequency->term,
+            ];
+        }
+
+        // Embed default duration
+        if ($this->defaultDuration) {
+            $data['default_duration'] = [
+                'id' => (int)$this->defaultDuration->id,
+                'name' => $this->defaultDuration->name,
+            ];
+        }
+
+        // Add scalar defaults
+        $data['default_dose'] = $this->default_dose;
+        $data['default_dose_unit_term'] = $this->default_dose_unit_term;
+
+        return $data;
     }
 }

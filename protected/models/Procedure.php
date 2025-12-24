@@ -17,6 +17,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "proc".
@@ -36,6 +37,7 @@ use OE\factories\models\traits\HasFactory;
 class Procedure extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     protected $auto_update_relations = true;
 
@@ -345,4 +347,105 @@ class Procedure extends BaseActiveRecordVersioned
         return count($this->risks) > 0;
     }
     // @codingStandardsIgnoreEnd
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'procedure';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed OPCS codes
+        if (!empty($this->opcsCodes)) {
+            $data['opcs_codes'] = array_map(function($opcs) {
+                return [
+                    'id' => (int)$opcs->id,
+                    'name' => $opcs->name,  // This is actually the OPCS code
+                    'description' => $opcs->description ?? null,
+                ];
+            }, $this->opcsCodes);
+        } else {
+            $data['opcs_codes'] = [];
+        }
+        
+        // Embed benefits
+        if (!empty($this->benefits)) {
+            $data['benefits'] = array_map(function($benefit) {
+                return [
+                    'id' => (int)$benefit->id,
+                    'name' => $benefit->name,
+                ];
+            }, $this->benefits);
+        } else {
+            $data['benefits'] = [];
+        }
+        
+        // Embed complications
+        if (!empty($this->complications)) {
+            $data['complications'] = array_map(function($complication) {
+                return [
+                    'id' => (int)$complication->id,
+                    'name' => $complication->name,
+                ];
+            }, $this->complications);
+        } else {
+            $data['complications'] = [];
+        }
+        
+        // Embed subspecialty assignments
+        $subspecialties = [];
+        $assignments = ProcedureSubspecialtyAssignment::model()->with('subspecialty')->findAll(
+            'proc_id = ?', [$this->id]
+        );
+        if ($assignments) {
+            foreach ($assignments as $assignment) {
+                if ($assignment->subspecialty) {
+                    $subspecialties[] = [
+                        'id' => (int)$assignment->subspecialty->id,
+                        'name' => $assignment->subspecialty->name,
+                    ];
+                }
+            }
+        }
+        $data['subspecialties'] = $subspecialties;
+        
+        return $data;
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

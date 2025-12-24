@@ -16,6 +16,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "medication_drug". This provides a wider scope of drug look up than the original
  * Drug model, which only contains the data that the Institution prescribes.
@@ -32,6 +34,8 @@
  */
 class MedicationDrug extends BaseActiveRecordVersioned
 {
+    use CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
 
     /**
