@@ -45,6 +45,8 @@
  */
 class Element_OphTrIntravitrealinjection_Anaesthetic extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

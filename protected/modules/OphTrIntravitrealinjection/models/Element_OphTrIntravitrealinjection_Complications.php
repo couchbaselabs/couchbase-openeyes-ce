@@ -36,6 +36,8 @@
  */
 class Element_OphTrIntravitrealinjection_Complications extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

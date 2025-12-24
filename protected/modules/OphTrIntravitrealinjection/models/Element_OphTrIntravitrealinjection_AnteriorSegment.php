@@ -39,6 +39,8 @@
  */
 class Element_OphTrIntravitrealinjection_AnteriorSegment extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

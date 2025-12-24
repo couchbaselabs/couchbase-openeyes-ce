@@ -35,6 +35,8 @@
  */
 class Element_OphTrIntravitrealinjection_Site extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**
