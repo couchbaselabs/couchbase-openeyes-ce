@@ -32,6 +32,7 @@ namespace OEModule\OphCiExamination\models;
 class OphCiExamination_AE_RedFlags_Options extends \BaseActiveRecordVersioned
 {
     use \MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected function getSupportedLevels(): int
     {

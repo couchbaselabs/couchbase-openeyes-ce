@@ -50,6 +50,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExaminationRiskSet extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

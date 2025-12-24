@@ -31,6 +31,7 @@ namespace OEModule\OphCiExamination\models;
 class OphCiExamination_AE_RedFlags_Options_Assignment extends \BaseActiveRecordVersioned
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     public $service;
 
     /**
