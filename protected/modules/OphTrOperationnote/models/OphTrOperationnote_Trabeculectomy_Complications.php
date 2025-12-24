@@ -14,6 +14,8 @@
  */
 class OphTrOperationnote_Trabeculectomy_Complications extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function relations()
     {
         return array(

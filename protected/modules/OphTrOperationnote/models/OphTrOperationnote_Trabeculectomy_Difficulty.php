@@ -14,4 +14,5 @@
  */
 class OphTrOperationnote_Trabeculectomy_Difficulty extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 }

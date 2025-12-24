@@ -14,4 +14,5 @@
  */
 class OphTrOperationnote_Trabeculectomy_Site extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 }

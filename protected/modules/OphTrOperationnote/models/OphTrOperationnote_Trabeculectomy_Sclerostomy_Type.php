@@ -14,4 +14,5 @@
  */
 class OphTrOperationnote_Trabeculectomy_Sclerostomy_Type extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 }

@@ -14,4 +14,5 @@
  */
 class OphTrOperationnote_Trabeculectomy_Viscoelastic_Flow extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 }
