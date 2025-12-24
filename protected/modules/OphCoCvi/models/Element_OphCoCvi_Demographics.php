@@ -49,6 +49,8 @@ use PatientIdentifierHelper;
  */
 class Element_OphCoCvi_Demographics extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const PDF_ETHNIC_GROUP_MAPPING = [
         1 => 0,
         2 => 1,

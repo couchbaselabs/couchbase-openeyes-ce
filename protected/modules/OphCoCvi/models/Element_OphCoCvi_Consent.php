@@ -27,6 +27,8 @@ namespace OEModule\OphCoCvi\models;
  */
 class Element_OphCoCvi_Consent extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

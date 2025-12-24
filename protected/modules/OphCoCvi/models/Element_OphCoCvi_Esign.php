@@ -30,6 +30,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class Element_OphCoCvi_Esign extends \BaseEsignElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use AutoSignTrait;
     use HasFactory;
 

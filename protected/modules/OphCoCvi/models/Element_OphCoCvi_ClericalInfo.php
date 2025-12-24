@@ -47,6 +47,55 @@ namespace OEModule\OphCoCvi\models;
 
 class Element_OphCoCvi_ClericalInfo extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed employment status
+        if ($this->employment_status) {
+            $data['employment_status'] = [
+                'id' => (int)$this->employment_status->id,
+                'name' => $this->employment_status->name,
+            ];
+        }
+        
+        // Embed preferred language
+        if ($this->preferred_language) {
+            $data['preferred_language'] = [
+                'id' => (int)$this->preferred_language->id,
+                'name' => $this->preferred_language->name,
+            ];
+        }
+        
+        // Embed contact urgency
+        if ($this->contact_urgency) {
+            $data['contact_urgency'] = [
+                'id' => (int)$this->contact_urgency->id,
+                'name' => $this->contact_urgency->name,
+            ];
+        }
+        
+        // Most clerical details stored as direct attributes
+        
+        return $data;
+    }
 
     public $preferred_format_ids = array();
     /**

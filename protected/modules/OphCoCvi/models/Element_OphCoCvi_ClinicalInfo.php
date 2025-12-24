@@ -59,6 +59,46 @@ use OEModule\OphCoCvi\models\OphCoCvi_ClinicalInfo_Diagnosis_Not_Covered;
  */
 class Element_OphCoCvi_ClinicalInfo extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed consultant
+        if ($this->consultant) {
+            $data['consultant'] = [
+                'id' => (int)$this->consultant->id,
+                'title' => $this->consultant->title,
+                'first_name' => $this->consultant->first_name,
+                'last_name' => $this->consultant->last_name,
+                'full_name' => $this->consultant->getFullName(),
+            ];
+        }
+        
+        // Clinical status
+        $data['is_considered_blind'] = (bool)$this->is_considered_blind;
+        $data['examination_date'] = $this->examination_date;
+        
+        // Visual acuity values stored as attributes
+        
+        return $data;
+    }
 
     public static $BLIND_STATUS = 'Severely Sight Impaired';
     public static $NOT_BLIND_STATUS = 'Sight Impaired';

@@ -37,6 +37,8 @@ namespace OEModule\OphCoCvi\models;
 
 class OphCoCvi_ClericalInfo_PreferredComm extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

@@ -52,6 +52,8 @@ namespace OEModule\OphCoCvi\models;
 
 class Element_OphCoCvi_EventInfo extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     const DELIVERY_STATUS_PENDING = "PENDING";
     const DELIVERY_STATUS_SENT = "SENT";
     const DELIVERY_STATUS_ERROR = "ERROR";
@@ -176,6 +178,77 @@ class Element_OphCoCvi_EventInfo extends \BaseEventTypeElement
 
 
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed site
+        if ($this->site) {
+            $data['site'] = [
+                'id' => (int)$this->site->id,
+                'name' => $this->site->name,
+            ];
+        }
+        
+        // Embed consultant in charge
+        if ($this->consultantInChargeOfThisCvi) {
+            $data['consultant_in_charge'] = [
+                'id' => (int)$this->consultantInChargeOfThisCvi->id,
+                'name' => $this->consultantInChargeOfThisCvi->name,
+            ];
+        }
+        
+        // Embed document info if generated
+        if ($this->generated_document_id && $this->generated_document) {
+            $data['generated_document'] = [
+                'id' => (int)$this->generated_document->id,
+                'name' => $this->generated_document->name ?? null,
+            ];
+        }
+        
+        // Status flags
+        $data['is_draft'] = (bool)$this->is_draft;
+        
+        // Delivery statuses
+        if ($this->gp_delivery !== null) {
+            $data['gp_delivery'] = [
+                'enabled' => (bool)$this->gp_delivery,
+                'status' => $this->gp_delivery_status ?? null,
+            ];
+        }
+        
+        if ($this->la_delivery !== null) {
+            $data['la_delivery'] = [
+                'enabled' => (bool)$this->la_delivery,
+                'status' => $this->la_delivery_status ?? null,
+            ];
+        }
+        
+        if ($this->rco_delivery !== null) {
+            $data['rco_delivery'] = [
+                'enabled' => (bool)$this->rco_delivery,
+                'status' => $this->rco_delivery_status ?? null,
+            ];
+        }
+        
+        return $data;
     }
 
     /**

@@ -36,6 +36,8 @@ namespace OEModule\OphCoCvi\models;
 
 class OphCoCvi_ClericalInfo_PatientFactor extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      * @return the static model class

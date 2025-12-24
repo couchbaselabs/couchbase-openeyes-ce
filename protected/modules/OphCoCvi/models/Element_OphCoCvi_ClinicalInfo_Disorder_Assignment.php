@@ -36,6 +36,8 @@ namespace OEModule\OphCoCvi\models;
 
 class Element_OphCoCvi_ClinicalInfo_Disorder_Assignment extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      * @return the static model class
