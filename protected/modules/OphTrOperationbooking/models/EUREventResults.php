@@ -14,6 +14,8 @@
  */
 class EUREventResults extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     /**
      * @return string the associated database table name

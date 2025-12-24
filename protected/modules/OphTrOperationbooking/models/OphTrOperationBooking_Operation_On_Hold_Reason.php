@@ -3,6 +3,8 @@
 
 class OphTrOperationBooking_Operation_On_Hold_Reason extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

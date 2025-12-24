@@ -39,6 +39,9 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationbooking_ScheduleOperation extends BaseEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $service;
 
     /**
@@ -93,6 +96,48 @@ class Element_OphTrOperationbooking_ScheduleOperation extends BaseEventTypeEleme
             'schedule_options' => array(self::BELONGS_TO, 'OphTrOperationbooking_ScheduleOperation_Options', 'schedule_options_id'),
             'patient_unavailables' => array(self::HAS_MANY, 'OphTrOperationbooking_ScheduleOperation_PatientUnavailable', 'element_id'),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed schedule options
+        if ($this->schedule_options) {
+            $data['schedule_options'] = [
+                'id' => (int)$this->schedule_options->id,
+                'name' => $this->schedule_options->name,
+            ];
+        }
+        
+        // Embed patient unavailable periods
+        if (!empty($this->patient_unavailables)) {
+            $data['patient_unavailables'] = array_map(function($unavail) {
+                return [
+                    'id' => (int)$unavail->id,
+                    'start_date' => $unavail->start_date,
+                    'end_date' => $unavail->end_date,
+                    'reason' => $unavail->reason ?? null,
+                ];
+            }, $this->patient_unavailables);
+        }
+        
+        return $data;
     }
 
     /**

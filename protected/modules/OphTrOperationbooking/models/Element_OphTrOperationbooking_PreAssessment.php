@@ -20,6 +20,7 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationbooking_PreAssessment extends BaseEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      *

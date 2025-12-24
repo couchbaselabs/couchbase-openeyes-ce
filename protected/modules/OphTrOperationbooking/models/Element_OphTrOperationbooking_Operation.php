@@ -18,6 +18,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseElementBridge;
 
 /**
  * This is the model class for table "et_ophtroperationbooking_operation".
@@ -62,6 +63,8 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+    use CouchbaseElementBridge;
 
     public $count;
     public $reschedule;
@@ -1840,5 +1843,130 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
     public function afterSave()
     {
         parent::afterSave();
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed eye
+        if ($this->eye) {
+            $data['eye'] = [
+                'id' => (int)$this->eye->id,
+                'name' => $this->eye->name,
+            ];
+        }
+        
+        // Embed procedures with SNOMED codes
+        if (!empty($this->procedures)) {
+            $data['procedures'] = array_map(function($proc) {
+                return [
+                    'id' => (int)$proc->procedure_id,
+                    'term' => $proc->procedure ? $proc->procedure->term : null,
+                    'short_format' => $proc->procedure ? $proc->procedure->short_format : null,
+                    'snomed_code' => $proc->procedure ? $proc->procedure->snomed_code : null,
+                    'default_duration' => $proc->procedure ? (int)$proc->procedure->default_duration : null,
+                ];
+            }, $this->procedures);
+        }
+        
+        // Embed anaesthetic types
+        if (!empty($this->anaesthetic_type)) {
+            $data['anaesthetic_types'] = array_map(function($type) {
+                return [
+                    'id' => (int)$type->id,
+                    'name' => $type->name,
+                    'code' => $type->code ?? null,
+                ];
+            }, $this->anaesthetic_type);
+        }
+        
+        // Embed site
+        if ($this->site) {
+            $data['site'] = [
+                'id' => (int)$this->site->id,
+                'name' => $this->site->name,
+            ];
+        }
+        
+        // Embed priority
+        if ($this->priority) {
+            $data['priority'] = [
+                'id' => (int)$this->priority->id,
+                'name' => $this->priority->name,
+            ];
+        }
+        
+        // Embed status if available
+        if ($this->status) {
+            $data['status'] = [
+                'id' => (int)$this->status->id,
+                'name' => $this->status->name,
+            ];
+        }
+        
+        // Embed booking information if scheduled
+        if (isset($this->booking) && $this->booking) {
+            $bookingData = [
+                'id' => (int)$this->booking->id,
+            ];
+            
+            if ($this->booking->session) {
+                $bookingData['session_date'] = $this->booking->session->date;
+                $bookingData['session_start_time'] = $this->booking->session->start_time;
+                $bookingData['session_end_time'] = $this->booking->session->end_time;
+                
+                if ($this->booking->session->theatre) {
+                    $bookingData['theatre'] = $this->booking->session->theatre->name;
+                }
+            }
+            
+            if (isset($this->booking->admission_time)) {
+                $bookingData['admission_time'] = $this->booking->admission_time;
+            }
+            
+            if (isset($this->booking->display_order)) {
+                $bookingData['display_order'] = (int)$this->booking->display_order;
+            }
+            
+            $data['booking'] = $bookingData;
+        }
+        
+        // Embed overnight stay requirement
+        if ($this->overnight_stay_required_id && $this->overnight_stay_required) {
+            $data['overnight_stay_required'] = [
+                'id' => (int)$this->overnight_stay_required->id,
+                'name' => $this->overnight_stay_required->name,
+            ];
+        }
+        
+        // Status flags
+        $data['consultant_required'] = (bool)$this->consultant_required;
+        $data['any_grade_of_doctor'] = (bool)$this->any_grade_of_doctor;
+        $data['is_golden_patient'] = (bool)$this->is_golden_patient;
+        $data['decision_date'] = $this->decision_date;
+        
+        if ($this->complexity !== null) {
+            $data['complexity'] = [
+                'value' => (int)$this->complexity,
+                'caption' => $this->getComplexityCaption(),
+            ];
+        }
+        
+        return $data;
     }
 }
