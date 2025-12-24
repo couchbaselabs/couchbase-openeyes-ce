@@ -34,6 +34,8 @@
  */
 class OphTrOperationchecklists_ProcedurelistProcedureAssignment extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
