@@ -37,6 +37,8 @@
  */
 class Element_OphCoTherapyapplication_MrServiceInformation extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

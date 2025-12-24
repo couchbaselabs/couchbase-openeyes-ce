@@ -36,6 +36,8 @@
  */
 class Element_OphCoTherapyapplication_RelativeContraindications extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

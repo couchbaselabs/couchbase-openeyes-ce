@@ -79,6 +79,8 @@
  */
 class Element_OphCoTherapyapplication_ExceptionalCircumstances extends SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     protected $auto_update_relations = true;

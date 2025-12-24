@@ -30,6 +30,8 @@
  **/
 class OphCoTherapyapplication_DecisionTreeNodeRule extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $COMPARATORS = array(
             'eq' => '=',
             'lt' => '<',
