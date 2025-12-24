@@ -34,6 +34,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_CXL_Quality_Score extends \SplitEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $service;
 

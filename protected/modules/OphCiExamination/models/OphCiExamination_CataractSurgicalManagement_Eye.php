@@ -27,6 +27,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_CataractSurgicalManagement_Eye extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const FIRST_EYE = 1;
     const SECOND_EYE = 2;
     /**
