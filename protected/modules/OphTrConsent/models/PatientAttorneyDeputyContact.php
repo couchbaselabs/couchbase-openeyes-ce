@@ -31,6 +31,8 @@
  */
 class PatientAttorneyDeputyContact extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static $PRESENT = 1;
     public static $NOT_PRESENT = 2;
 
