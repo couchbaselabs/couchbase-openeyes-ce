@@ -56,6 +56,7 @@ use Period;
 class ClinicOutcomeEntry extends \BaseElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.

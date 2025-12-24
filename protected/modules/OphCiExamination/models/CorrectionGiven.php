@@ -23,6 +23,7 @@ class CorrectionGiven extends \BaseEventTypeElement implements SidedData
 {
     use traits\CustomOrdering;
     use HasSidedData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const SOURCE_ELEMENT_TYPES = [Retinoscopy::class, Element_OphCiExamination_Refraction::class];
     public const ORDER_AS_FOUND_LABEL = "Order as Found";

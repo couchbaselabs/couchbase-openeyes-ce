@@ -49,6 +49,7 @@ use OEModule\OphCiExamination\widgets\BirthHistory as BirthHistoryWidget;
 class BirthHistory extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasRelationOptions {
         __get as __relationOptionsGet;
     }

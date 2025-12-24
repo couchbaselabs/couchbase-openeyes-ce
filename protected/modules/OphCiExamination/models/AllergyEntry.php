@@ -37,6 +37,7 @@ use OE\factories\models\traits\HasFactory;
 class AllergyEntry extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public static $PRESENT = 1;
     public static $NOT_PRESENT = 0;

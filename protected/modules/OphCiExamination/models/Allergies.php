@@ -39,6 +39,7 @@ class Allergies extends \BaseEventTypeElement
 {
     use HasFactory;
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $default_view_order = 50;
 

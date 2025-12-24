@@ -31,6 +31,7 @@ class AdviceLeafletCategory extends \BaseActiveRecordVersioned
 {
     use \MappedReferenceData;
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public function behaviors()
     {

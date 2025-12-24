@@ -24,6 +24,7 @@ use OE\factories\models\traits\HasFactory;
 class AdviceLeaflet extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public function behaviors()
     {

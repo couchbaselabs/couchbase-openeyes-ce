@@ -36,6 +36,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class AdviceGiven extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $widgetClass = \OEModule\OphCiExamination\widgets\AdviceGiven::class;
 
     /**

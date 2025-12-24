@@ -7,6 +7,7 @@ use OEModule\OphCiExamination\widgets\ContrastSensitivity as ContrastSensitivity
 class ContrastSensitivity extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public $widgetClass = ContrastSensitivityWidget::class;
     protected $auto_update_relations = true;
