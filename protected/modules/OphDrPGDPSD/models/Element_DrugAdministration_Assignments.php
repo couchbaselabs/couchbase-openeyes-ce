@@ -17,6 +17,7 @@ use OE\factories\models\traits\HasFactory;
 
 class Element_DrugAdministration_Assignments extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
     /**
      * @return string the associated database table name

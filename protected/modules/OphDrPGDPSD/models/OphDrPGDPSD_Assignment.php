@@ -30,6 +30,7 @@ use WorklistPatient;
  */
 class OphDrPGDPSD_Assignment extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public const INACTIVE = 0;

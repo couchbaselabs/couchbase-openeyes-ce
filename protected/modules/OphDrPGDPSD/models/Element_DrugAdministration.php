@@ -29,6 +29,7 @@ use WorklistManager;
 
 class Element_DrugAdministration extends BaseMedicationElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
     use CustomOrdering;
 

@@ -43,6 +43,7 @@ use Team;
  */
 class OphDrPGDPSD_PGDPSD extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public $temp_user_ids = array();

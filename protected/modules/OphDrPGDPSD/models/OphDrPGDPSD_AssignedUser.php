@@ -25,6 +25,7 @@ use User;
  */
 class OphDrPGDPSD_AssignedUser extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

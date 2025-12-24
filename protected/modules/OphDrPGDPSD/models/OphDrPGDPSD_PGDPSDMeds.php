@@ -37,6 +37,7 @@ use OphDrPrescription_DispenseLocation;
  */
 class OphDrPGDPSD_PGDPSDMeds extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public $laterality = null;

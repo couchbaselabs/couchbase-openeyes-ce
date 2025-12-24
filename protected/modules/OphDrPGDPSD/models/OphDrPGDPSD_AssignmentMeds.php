@@ -26,6 +26,7 @@ use User;
  */
 class OphDrPGDPSD_AssignmentMeds extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     const ADMINISTERED = 1;

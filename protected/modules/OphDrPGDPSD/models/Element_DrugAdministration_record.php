@@ -20,6 +20,7 @@ use OE\factories\models\traits\HasFactory;
 use OEModule\OphCiExamination\models\HistoryMedicationsStopReason;
 class Element_DrugAdministration_record extends \EventMedicationUse
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public $taper_support = false;
