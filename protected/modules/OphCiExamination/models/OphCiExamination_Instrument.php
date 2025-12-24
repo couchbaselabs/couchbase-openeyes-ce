@@ -39,6 +39,7 @@ use Institution;
 class OphCiExamination_Instrument extends BaseActiveRecordVersioned
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected function getSupportedLevels(): int

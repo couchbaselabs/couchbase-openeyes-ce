@@ -36,6 +36,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_InjectionManagementComplex_RiskAssignment extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

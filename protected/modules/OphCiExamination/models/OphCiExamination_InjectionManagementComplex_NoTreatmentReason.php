@@ -31,6 +31,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_InjectionManagementComplex_NoTreatmentReason extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const DEFAULT_LETTER_STRING = 'The patient did not receive an intra-vitreal injection today.';
 
     /**

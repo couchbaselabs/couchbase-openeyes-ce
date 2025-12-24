@@ -20,6 +20,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_IntraocularPressure_Value extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public function tableName()
     {
