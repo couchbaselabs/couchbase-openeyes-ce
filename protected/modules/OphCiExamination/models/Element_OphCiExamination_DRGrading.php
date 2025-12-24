@@ -60,6 +60,7 @@ class Element_OphCiExamination_DRGrading extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     
     public $service;
 

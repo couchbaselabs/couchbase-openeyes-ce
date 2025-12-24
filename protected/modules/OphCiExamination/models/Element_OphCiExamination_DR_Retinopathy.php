@@ -30,6 +30,8 @@ use SplitEventTypeElement;
 class Element_OphCiExamination_DR_Retinopathy extends SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

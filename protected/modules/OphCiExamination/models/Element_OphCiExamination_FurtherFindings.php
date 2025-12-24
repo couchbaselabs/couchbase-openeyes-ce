@@ -33,6 +33,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_FurtherFindings extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
 
     /**

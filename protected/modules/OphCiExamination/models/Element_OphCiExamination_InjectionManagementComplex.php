@@ -59,6 +59,8 @@ use Yii;
 class Element_OphCiExamination_InjectionManagementComplex extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $_injection_installed = null;
 
     /**

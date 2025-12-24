@@ -34,6 +34,8 @@ use services\DateTime;
 class Element_OphCiExamination_HistoryRisk extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

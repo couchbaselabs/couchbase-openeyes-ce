@@ -63,6 +63,8 @@ use OEModule\OphCiExamination\components\OphCiExamination_API;
 class Element_OphCiExamination_CurrentManagementPlan  extends  \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

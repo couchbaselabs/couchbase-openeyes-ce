@@ -35,6 +35,7 @@ use OEModule\OphCiExamination\widgets\Investigations as InvestigationsWidget;
 class Element_OphCiExamination_Investigation extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $widgetClass = InvestigationsWidget::class;
     public $service;
