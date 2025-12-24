@@ -53,6 +53,8 @@ namespace OEModule\OphTrConsent\models;
 
 class Element_OphTrConsent_AdditionalSignatures extends \BaseEventTypeElement implements RequiresSignature
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $cf_type_id;
 
     /**

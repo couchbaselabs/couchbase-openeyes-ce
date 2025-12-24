@@ -30,6 +30,8 @@
 namespace OEModule\OphTrConsent\models;
 class Element_OphTrConsent_CapacityAssessment extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

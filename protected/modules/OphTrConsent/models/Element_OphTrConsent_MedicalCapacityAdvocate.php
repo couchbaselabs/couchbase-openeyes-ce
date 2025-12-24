@@ -38,6 +38,8 @@ namespace OEModule\OphTrConsent\models;
 
 class Element_OphTrConsent_MedicalCapacityAdvocate extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function getElementTypeName()
     {
         return "Independent Medical Capacity Advocate";

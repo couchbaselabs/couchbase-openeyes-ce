@@ -46,6 +46,8 @@ namespace OEModule\OphTrConsent\models;
 
 class Element_OphTrConsent_BestInterestDecision extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function getElementTypeName()
     {
         return "Assessment of patient's best interests";

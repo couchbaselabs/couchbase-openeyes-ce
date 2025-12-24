@@ -18,6 +18,8 @@
  */
 class Element_OphTrConsent_AdvancedDecision extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
     /**
      * @return string the associated database table name

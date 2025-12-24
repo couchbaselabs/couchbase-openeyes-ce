@@ -33,6 +33,7 @@ use OEModule\OphTrConsent\widgets\EsignElementWidget;
 class Element_OphTrConsent_Esign extends \BaseEsignElement implements RequiresSignature
 {
     use AutoSignTrait;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
     private $signature_class = \OphTrConsent_Signature::class;
     private $pin_required_setting_name = 'require_pin_for_consent';

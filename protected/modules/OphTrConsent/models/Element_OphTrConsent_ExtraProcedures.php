@@ -33,6 +33,8 @@
  */
 class Element_OphTrConsent_ExtraProcedures extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
     protected $auto_update_relations = true;
     protected $errorExceptions = array(

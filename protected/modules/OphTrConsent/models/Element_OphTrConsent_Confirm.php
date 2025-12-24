@@ -31,6 +31,8 @@ use OEModule\OphTrConsent\models\RequiresSignature;
 
 class Element_OphTrConsent_Confirm extends BaseEventTypeElement implements RequiresSignature
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
 
     public function getElementTypeName()
     {

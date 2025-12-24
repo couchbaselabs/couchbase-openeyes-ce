@@ -21,6 +21,8 @@ use OEModule\OphTrConsent\models\RequiresSignature;
 
 class Element_OphTrConsent_OthersInvolvedDecisionMakingProcess extends BaseEventTypeElement implements RequiresSignature
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public const TYPE_PATIENT_AGREEMENT_ID = 4;
 
     public const PATIENT_CONTACTS_TYPE = 1;

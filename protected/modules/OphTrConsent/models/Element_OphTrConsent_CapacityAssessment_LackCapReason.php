@@ -38,6 +38,8 @@
 namespace OEModule\OphTrConsent\models;
 class Element_OphTrConsent_CapacityAssessment_LackCapReason extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
