@@ -14,6 +14,8 @@
  */
 class EpisodeSummaryItem extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'episode_summary_item';

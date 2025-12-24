@@ -18,6 +18,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 use OEModule\OESysEvent\events\ClinicalEventSoftDeletedSystemEvent;
 
 /**
@@ -65,6 +66,7 @@ use OEModule\OESysEvent\events\ClinicalEventSoftDeletedSystemEvent;
 class Event extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     protected $event_view_path = '/default/view';
 
@@ -871,7 +873,12 @@ class Event extends BaseActiveRecordVersioned
      */
     public function getEventViewPath()
     {
-        return Yii::app()->createUrl($this->eventType->class_name . $this->event_view_path) . '/' . $this->id ;
+        $eventType = $this->eventType;
+        if (!$eventType || !$eventType->class_name) {
+            return '';
+        }
+
+        return Yii::app()->createUrl($eventType->class_name . $this->event_view_path) . '/' . $this->id ;
     }
 
     /**
@@ -923,7 +930,16 @@ class Event extends BaseActiveRecordVersioned
      */
     public function getDetailedIssueText($event_icon_class, $event_issue_text, $event_issue_class)
     {
-        $event_type = $this->eventType->class_name;
+        $eventType = $this->eventType;
+        if (!$eventType || !$eventType->class_name) {
+            return array(
+                'event_icon_class' => $event_icon_class,
+                'event_issue_class' => $event_issue_class,
+                'event_issue_text' => $event_issue_text,
+            );
+        }
+
+        $event_type = $eventType->class_name;
         $text = $event_issue_text;
         $class = $event_issue_class;
         switch ($event_type) {
@@ -1156,5 +1172,81 @@ class Event extends BaseActiveRecordVersioned
         } else {
             return $status;
         }
+    }
+
+    // =========================================================================
+    // COUCHBASE INTEGRATION METHODS
+    // =========================================================================
+    
+    /**
+     * Get the Couchbase scope
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+    
+    /**
+     * Convert event to Couchbase document
+     * @return array
+     */
+    public function toCouchbaseDocument()
+    {
+        $doc = [];
+        $schema = $this->getMetaData()->columns;
+        
+        foreach ($this->attributes as $attr => $value) {
+            if (isset($schema[$attr])) {
+                $doc[$attr] = \OE\Couchbase\Transformers\TypeTransformer::toJson(
+                    $value,
+                    $schema[$attr]->dbType,
+                    $attr
+                );
+            } else {
+                $doc[$attr] = $value;
+            }
+        }
+        
+        // Document metadata
+        $doc['_type'] = 'event';
+        $doc['_mysql_id'] = $this->id;
+        $doc['_modified'] = date('c');
+        $doc['_created'] = $this->isNewRecord ? date('c') : ($doc['_created'] ?? date('c'));
+        $doc['_version'] = isset($doc['_version']) ? $doc['_version'] + 1 : 1;
+        
+        // Denormalize event type info for easier querying
+        if ($this->eventType) {
+            $doc['event_type_name'] = $this->eventType->name;
+            $doc['event_type_class'] = $this->eventType->class_name;
+        }
+        
+        // Denormalize site/institution names
+        if ($this->site) {
+            $doc['site_name'] = $this->site->name;
+        }
+        if ($this->institution) {
+            $doc['institution_name'] = $this->institution->name;
+        }
+        
+        return $doc;
+    }
+    
+    /**
+     * Hook: After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+    
+    /**
+     * Hook: After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

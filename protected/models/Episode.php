@@ -1,5 +1,6 @@
 <?php
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * OpenEyes.
@@ -41,6 +42,7 @@ use OE\factories\models\traits\HasFactory;
 class Episode extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.
@@ -488,6 +490,9 @@ class Episode extends BaseActiveRecordVersioned
 
     protected function afterSave()
     {
+        parent::afterSave();
+        
+        // Original logic: Handle SecondaryDiagnosis cleanup
         foreach (SecondaryDiagnosis::model()->findAll('patient_id=? and disorder_id=?', array($this->patient_id, $this->disorder_id)) as $sd) {
             if ($this->eye_id == $sd->eye_id || ($this->eye_id == 3 && in_array($sd->eye_id, array(1, 2)))) {
                 $sd->delete();
@@ -496,6 +501,9 @@ class Episode extends BaseActiveRecordVersioned
                 $sd->save();
             }
         }
+        
+        // Couchbase sync
+        $this->saveToCouchbase();
     }
 
     public function setPrincipalDiagnosis($disorder_id, $eye_id, $disorder_date = false, $disorder_time = false)
@@ -556,5 +564,76 @@ class Episode extends BaseActiveRecordVersioned
     public static function getEpisodeLabelPlural()
     {
         return 'Specialties';
+    }
+
+    // =========================================================================
+    // COUCHBASE INTEGRATION METHODS
+    // =========================================================================
+    
+    /**
+     * Get the Couchbase scope
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+    
+    /**
+     * Convert episode to Couchbase document
+     * @return array
+     */
+    public function toCouchbaseDocument()
+    {
+        $doc = [];
+        $schema = $this->getMetaData()->columns;
+        
+        foreach ($this->attributes as $attr => $value) {
+            if (isset($schema[$attr])) {
+                $doc[$attr] = \OE\Couchbase\Transformers\TypeTransformer::toJson(
+                    $value,
+                    $schema[$attr]->dbType,
+                    $attr
+                );
+            } else {
+                $doc[$attr] = $value;
+            }
+        }
+        
+        // Document metadata
+        $doc['_type'] = 'episode';
+        $doc['_mysql_id'] = $this->id;
+        $doc['_modified'] = date('c');
+        $doc['_created'] = $this->isNewRecord ? date('c') : ($doc['_created'] ?? date('c'));
+        $doc['_version'] = isset($doc['_version']) ? $doc['_version'] + 1 : 1;
+        
+        // Denormalize useful references
+        if ($this->firm && $this->firm->serviceSubspecialtyAssignment) {
+            $doc['subspecialty_name'] = $this->firm->serviceSubspecialtyAssignment->subspecialty 
+                ? $this->firm->serviceSubspecialtyAssignment->subspecialty->name 
+                : null;
+        }
+        
+        if ($this->status) {
+            $doc['status_name'] = $this->status->name;
+        }
+        
+        if ($this->diagnosis) {
+            $doc['principal_diagnosis'] = [
+                'id' => $this->disorder_id,
+                'term' => $this->diagnosis->term,
+            ];
+        }
+        
+        return $doc;
+    }
+    
+    /**
+     * Hook: After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

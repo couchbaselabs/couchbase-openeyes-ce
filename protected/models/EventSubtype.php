@@ -23,6 +23,7 @@ use OE\factories\models\traits\HasFactory;
 class EventSubtype extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $auto_update_relations = true;
 

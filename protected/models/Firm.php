@@ -18,6 +18,7 @@
  */
 
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * This is the model class for table "firm".
@@ -45,10 +46,65 @@ class Firm extends BaseActiveRecordVersioned
 {
     use HasFactory;
     use OwnedByReferenceData;
+    use CouchbaseModelBridge;
 
     const SELECTION_ORDER = 'name';
 
     public $subspecialty_id;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'core';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed service subspecialty assignment
+        if ($this->serviceSubspecialtyAssignment) {
+            $ssa = $this->serviceSubspecialtyAssignment;
+            $data['service_subspecialty'] = [
+                'id' => (int)$ssa->id,
+                'service_id' => (int)$ssa->service_id,
+                'subspecialty_id' => (int)$ssa->subspecialty_id,
+                'subspecialty' => $ssa->subspecialty ? [
+                    'id' => (int)$ssa->subspecialty->id,
+                    'name' => $ssa->subspecialty->name,
+                    'ref_spec' => $ssa->subspecialty->ref_spec,
+                ] : null,
+            ];
+        }
+        
+        // Embed consultant user
+        if ($this->consultant) {
+            $data['consultant'] = [
+                'id' => (int)$this->consultant->id,
+                'first_name' => $this->consultant->first_name,
+                'last_name' => $this->consultant->last_name,
+                'title' => $this->consultant->title ?? '',
+            ];
+        }
+        
+        return $data;
+    }
 
     /**
      * Returns the static model of the specified AR class.

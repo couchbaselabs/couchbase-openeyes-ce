@@ -69,6 +69,8 @@ use OEModule\OphDrPGDPSD\models\OphDrPGDPSD_PGDPSD;
  */
 class EventMedicationUse extends BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /** This ID is used as medication_id when the user is adding a new medication using the adder dialog */
     const USER_MEDICATION_ID = -1;
 

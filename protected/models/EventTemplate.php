@@ -26,6 +26,7 @@ class EventTemplate extends BaseActiveRecordVersioned
 {
     use HasFactory;
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const UPDATE_UNNEEDED = 'UNNEEDED';
     public const UPDATE_CREATE_ONLY = 'CREATE_ONLY';

@@ -1,5 +1,6 @@
 <?php
 use OE\factories\models\traits\HasFactory;
+use OE\Models\Traits\CouchbaseModelBridge;
 
 /**
  * (C) Copyright Apperta Foundation 2022
@@ -41,6 +42,62 @@ use OE\factories\models\traits\HasFactory;
 class Site extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use CouchbaseModelBridge;
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed institution
+        if ($this->institution) {
+            $data['institution'] = [
+                'id' => (int)$this->institution->id,
+                'name' => $this->institution->name,
+                'short_name' => $this->institution->short_name,
+                'remote_id' => $this->institution->remote_id,
+            ];
+        }
+        
+        // Embed contact/address
+        if ($this->contact) {
+            $data['contact'] = [
+                'id' => (int)$this->contact->id,
+                'primary_phone' => $this->contact->primary_phone,
+                'address' => $this->contact->address ? [
+                    'address1' => $this->contact->address->address1,
+                    'address2' => $this->contact->address->address2,
+                    'city' => $this->contact->address->city,
+                    'postcode' => $this->contact->address->postcode,
+                    'county' => $this->contact->address->county,
+                    'country' => $this->contact->address->country ? $this->contact->address->country->name : null,
+                ] : null,
+            ];
+        }
+        
+        return $data;
+    }
 
     /**
      * Returns the static model of the specified AR class.
