@@ -33,6 +33,8 @@ use OE\factories\models\traits\HasFactory;
  */
 class OphCiExaminationRisk extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
 
     use \MappedReferenceData;

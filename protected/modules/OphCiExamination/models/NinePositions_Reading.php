@@ -38,6 +38,7 @@ use OEModule\OphCiExamination\models\traits\HasWithHeadPosture;
  */
 class NinePositions_Reading extends \BaseElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasWithHeadPosture {
         getDisplay_with_head_posture as baseDisplay_with_head_posture;
     }
