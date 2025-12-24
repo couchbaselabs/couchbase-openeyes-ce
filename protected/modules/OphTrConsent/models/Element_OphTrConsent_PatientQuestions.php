@@ -35,6 +35,8 @@
  */
 class Element_OphTrConsent_PatientQuestions extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

@@ -38,6 +38,8 @@ use OEModule\OphTrConsent\models\RequiresSignature;
 
 class Element_OphTrConsent_PatientAttorneyDeputy extends \BaseEventTypeElement implements RequiresSignature
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;
 

@@ -40,6 +40,7 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrConsent_Procedure extends BaseEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     public $service;
     protected $auto_update_relations = true;
     protected $errorExceptions = array(

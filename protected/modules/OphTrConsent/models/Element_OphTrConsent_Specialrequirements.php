@@ -34,6 +34,8 @@
  */
 class Element_OphTrConsent_Specialrequirements extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

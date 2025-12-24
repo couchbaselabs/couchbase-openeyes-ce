@@ -38,6 +38,7 @@ use OE\factories\models\traits\HasFactory;
 class Element_OphTrConsent_Type extends BaseEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     public $service;
 
     public const TYPE_PATIENT_AGREEMENT_ID = 1;
