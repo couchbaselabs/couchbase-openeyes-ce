@@ -39,6 +39,7 @@ use OEModule\OphCiExamination\widgets\FamilyHistory as FamilyHistoryWidget;
 class FamilyHistory extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     protected $auto_update_relations = true;
     protected $widgetClass = FamilyHistoryWidget::class;
     protected $default_from_previous = true;

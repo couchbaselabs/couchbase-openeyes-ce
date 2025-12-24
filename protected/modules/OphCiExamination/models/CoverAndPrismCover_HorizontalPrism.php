@@ -23,6 +23,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class CoverAndPrismCover_HorizontalPrism extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

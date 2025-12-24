@@ -33,6 +33,7 @@ namespace OEModule\OphCiExamination\models;
 class CoverAndPrismCover_Entry extends \BaseElement
 {
     use traits\HasRelationOptions;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasWithHeadPosture;
     use traits\HasCorrectionType;
 
