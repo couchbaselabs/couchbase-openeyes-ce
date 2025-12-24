@@ -40,6 +40,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class OphCoCvi_Signature extends BaseSignature
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     const SIGNATORY_PERSON_REPRESENTATIVE = "Patient's representative";

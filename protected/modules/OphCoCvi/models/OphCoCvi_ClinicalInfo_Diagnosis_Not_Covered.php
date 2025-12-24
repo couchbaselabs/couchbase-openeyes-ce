@@ -34,6 +34,7 @@ namespace OEModule\OphCoCvi\models;
  */
 class OphCoCvi_ClinicalInfo_Diagnosis_Not_Covered extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     const TYPE_CLINICINFO_DISORDER = 1;  //table -> ophcocvi_et_clinicinfo_disorder
     const TYPE_DISORDER = 2; //table -> disorder

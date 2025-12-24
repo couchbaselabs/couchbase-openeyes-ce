@@ -37,6 +37,8 @@ namespace OEModule\OphCoCvi\models;
 
 class OphCoCvi_ClinicalInfo_Disorder_Section extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const PATIENT_TYPE_ADULT = 0;
     const PATIENT_TYPE_CHILD = 1;
 

@@ -41,6 +41,7 @@ use OE\factories\models\traits\HasFactory;
 
 class OphCoCvi_ClinicalInfo_Disorder extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     const PATIENT_TYPE_ADULT = 0;
