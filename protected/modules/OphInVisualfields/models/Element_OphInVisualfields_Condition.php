@@ -17,6 +17,8 @@
  */
 class Element_OphInVisualfields_Condition extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'et_ophinvisualfields_condition';

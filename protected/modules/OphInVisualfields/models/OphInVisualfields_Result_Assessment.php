@@ -33,6 +33,8 @@
  */
 class OphInVisualfields_Result_Assessment extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

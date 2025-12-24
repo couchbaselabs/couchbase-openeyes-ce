@@ -18,6 +18,8 @@
  */
 class Element_OphInVisualfields_Image extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function tableName()
     {
         return 'et_ophinvisualfields_image';

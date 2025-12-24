@@ -2,6 +2,8 @@
 
 class OphInVisualfields_Field_Measurement extends Measurement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */
