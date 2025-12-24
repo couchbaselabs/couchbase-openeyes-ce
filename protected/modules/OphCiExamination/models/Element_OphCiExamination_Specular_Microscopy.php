@@ -37,6 +37,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Specular_Microscopy extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

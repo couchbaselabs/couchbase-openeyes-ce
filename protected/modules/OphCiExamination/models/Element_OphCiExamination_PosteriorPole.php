@@ -44,6 +44,7 @@ class Element_OphCiExamination_PosteriorPole extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     
     public $service;
     public $exclude_element_from_empty_discard_check = true;

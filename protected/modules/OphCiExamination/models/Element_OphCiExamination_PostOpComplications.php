@@ -43,6 +43,7 @@ class Element_OphCiExamination_PostOpComplications extends \SplitEventTypeElemen
 {
     use traits\CustomOrdering;
     use traits\CouchbaseElementBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     
     public $service;
     public $firm;

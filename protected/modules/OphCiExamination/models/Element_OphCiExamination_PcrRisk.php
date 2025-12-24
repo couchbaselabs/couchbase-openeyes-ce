@@ -10,6 +10,7 @@ class Element_OphCiExamination_PcrRisk extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.

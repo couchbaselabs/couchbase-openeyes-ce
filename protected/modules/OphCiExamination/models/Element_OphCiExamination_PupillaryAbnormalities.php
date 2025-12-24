@@ -29,6 +29,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_PupillaryAbnormalities extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**
