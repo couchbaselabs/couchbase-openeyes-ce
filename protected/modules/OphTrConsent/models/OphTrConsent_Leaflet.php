@@ -34,6 +34,7 @@
 class OphTrConsent_Leaflet extends BaseActiveRecordVersioned
 {
     use MappedReferenceData;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected function getSupportedLevels(): int
     {

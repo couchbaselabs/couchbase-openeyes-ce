@@ -26,6 +26,8 @@
  */
 class OphTrConsent_Extra_Procedure extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     /**
      * Returns the static model of the specified AR class.

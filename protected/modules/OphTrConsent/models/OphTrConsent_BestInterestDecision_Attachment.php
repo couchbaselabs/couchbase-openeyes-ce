@@ -35,6 +35,8 @@ namespace OEModule\OphTrConsent\models;
  */
 class OphTrConsent_BestInterestDecision_Attachment extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /** @var string A temporary name that only exists until the model is saved */
     public string $tmp_name = "";
 
