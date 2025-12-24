@@ -19,6 +19,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCoCorrespondence_InternalReferral_ToLocation extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     /**
      * @return string the associated database table name
      */

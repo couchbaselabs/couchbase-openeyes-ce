@@ -30,6 +30,7 @@ use OE\factories\models\traits\HasFactory;
 class LetterType extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const NAME_FOR_INTERNAL_REFERRAL = 'Internal Referral';
 

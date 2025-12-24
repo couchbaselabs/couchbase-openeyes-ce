@@ -17,6 +17,8 @@
  */
 class LetterStringBase extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public function shouldShow($patient, $event_types)
     {
         if (!$this->event_type || !$this->element_type) {

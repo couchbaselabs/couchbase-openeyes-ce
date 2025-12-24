@@ -30,6 +30,7 @@ use OE\factories\models\traits\HasFactory;
 class LetterStringGroup extends BaseEventTypeElement
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $auto_update_relations = true;
 
