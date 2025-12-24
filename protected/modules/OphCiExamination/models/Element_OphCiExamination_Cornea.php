@@ -32,6 +32,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Cornea extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

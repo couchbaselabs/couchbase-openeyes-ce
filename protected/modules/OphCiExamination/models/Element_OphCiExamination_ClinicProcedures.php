@@ -29,6 +29,7 @@ use services\DateTime;
 class Element_OphCiExamination_ClinicProcedures extends \BaseEventTypeElement
 {
     use CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public static function model($class_name = null)
     {

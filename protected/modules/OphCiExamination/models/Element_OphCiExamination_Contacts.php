@@ -24,6 +24,8 @@ use OEModule\OphCiExamination\widgets\Contacts as ContactsWidget;
 class Element_OphCiExamination_Contacts extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;
 

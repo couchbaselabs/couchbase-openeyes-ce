@@ -35,6 +35,8 @@ use Yii;
 class Element_OphCiExamination_CommunicationPreferences extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     protected $default_from_previous = true;

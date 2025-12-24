@@ -40,6 +40,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_BlebAssessment extends \SplitEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**

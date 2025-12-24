@@ -31,6 +31,8 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_Comorbidities extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $default_view_order = 45;
 
     protected $auto_update_relations = true;

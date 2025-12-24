@@ -21,6 +21,7 @@ namespace OEModule\OphCiExamination\models;
 class Element_OphCiExamination_CVI_Status extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public static $BLIND_STATUS = 'Severely Sight Impaired';
     public static $NOT_BLIND_STATUS = 'Sight Impaired';
