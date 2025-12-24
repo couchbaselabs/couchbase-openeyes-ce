@@ -33,6 +33,7 @@ use OEModule\OphCiExamination\models\traits\HasRelationOptions;
 class OphCiExamination_Refraction_Reading extends \BaseActiveRecordVersioned
 {
     use HasRelationOptions;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name

@@ -22,6 +22,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_Safeguarding_Entry extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

@@ -42,6 +42,8 @@ use OEModule\OphCiExamination\models\MedicationManagement;
 
 class OphCiExamination_Signature extends \BaseSignature
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * @return string the associated database table name
      */

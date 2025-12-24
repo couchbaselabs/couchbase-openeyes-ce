@@ -31,6 +31,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_Scan_Quality extends \SplitEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public $service;
 
     /**
