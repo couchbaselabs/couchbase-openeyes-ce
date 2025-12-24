@@ -35,6 +35,7 @@ namespace OEModule\OphCiExamination\models;
 class OphCiExamination_ColourVision_Reading extends \BaseActiveRecordVersioned
 {
     use traits\HasCorrectionType;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasRelationOptions;
 
     protected $auto_update_relations = true;

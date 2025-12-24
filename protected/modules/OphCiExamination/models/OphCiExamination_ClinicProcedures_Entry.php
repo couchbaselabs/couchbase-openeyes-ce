@@ -33,6 +33,8 @@ use services\DateTime;
  */
 class OphCiExamination_ClinicProcedures_Entry extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public static function model($class_name = null)
     {
         return parent::model($class_name);

@@ -14,6 +14,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_ClinicOutcome_Risk_Status extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.
