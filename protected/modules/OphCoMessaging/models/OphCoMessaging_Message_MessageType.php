@@ -41,6 +41,7 @@ use CActiveDataProvider;
  */
 class OphCoMessaging_Message_MessageType extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

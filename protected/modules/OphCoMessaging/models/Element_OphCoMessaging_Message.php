@@ -55,6 +55,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class Element_OphCoMessaging_Message extends \BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     protected $auto_update_relations = true;

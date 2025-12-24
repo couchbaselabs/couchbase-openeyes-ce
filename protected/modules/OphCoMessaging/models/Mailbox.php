@@ -30,6 +30,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class Mailbox extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     public const MAX_NAME_PERSONAL = 200;

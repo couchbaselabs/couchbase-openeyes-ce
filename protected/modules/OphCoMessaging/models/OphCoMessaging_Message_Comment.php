@@ -30,6 +30,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class OphCoMessaging_Message_Comment extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**
