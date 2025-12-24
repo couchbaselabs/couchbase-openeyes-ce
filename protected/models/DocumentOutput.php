@@ -18,6 +18,8 @@
  */
 class DocumentOutput extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     public const TYPE_PRINT = 'Print';
     public const TYPE_EMAIL = 'Email';
     public const TYPE_EMAIL_DELAYED = 'Email (Delayed)';

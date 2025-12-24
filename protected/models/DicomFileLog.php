@@ -8,6 +8,8 @@
  */
 class DicomFileLog extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     protected $auto_update_relations = true;
 
     /**

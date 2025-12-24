@@ -34,6 +34,7 @@ use OE\factories\models\traits\HasFactory;
 class Gp extends BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     public const UNKNOWN_SALUTATION = 'Doctor';
     public const UNKNOWN_NAME = 'The General Practitioner';
