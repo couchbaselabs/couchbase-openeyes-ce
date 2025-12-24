@@ -39,6 +39,8 @@ use OEModule\OphDrPGDPSD\models\OphDrPGDPSD_PGDPSD;
  */
 class Element_OphDrPrescription_Details extends BaseEventTypeElement
 {
+    use \OE\Models\Traits\CouchbaseElementBridge;
+
     public $check_for_duplicate_entries = false;
 
     /**
@@ -113,6 +115,97 @@ class Element_OphDrPrescription_Details extends BaseEventTypeElement
             'authorisedByUser' => array(self::BELONGS_TO, 'User', 'authorised_by_user'),
             'esign' => array(self::BELONGS_TO, Element_OphDrPrescription_Esign::class, array('event_id' => 'event_id')),
         );
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * 
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get embedded relations for Couchbase document
+     * 
+     * @return array
+     */
+    protected function getEmbeddedRelations()
+    {
+        $data = [];
+        
+        // Embed all prescription items with full medication details
+        if (!empty($this->items)) {
+            $data['prescription_items'] = array_map(function($item) {
+                $itemData = [
+                    'id' => (int)$item->id,
+                    'dose' => $item->dose,
+                    'start_date' => $item->start_date,
+                    'end_date' => $item->end_date,
+                    'continue_by_gp' => (bool)$item->continue_by_gp,
+                ];
+                
+                // Embed medication details
+                if ($item->medication_id && $item->medication) {
+                    $itemData['medication'] = [
+                        'id' => (int)$item->medication->id,
+                        'preferred_term' => $item->medication->preferred_term,
+                        'preferred_code' => $item->medication->preferred_code,
+                    ];
+                }
+                
+                // Embed route
+                if ($item->route_id && $item->route) {
+                    $itemData['route'] = [
+                        'id' => (int)$item->route->id,
+                        'term' => $item->route->term,
+                    ];
+                }
+                
+                // Embed frequency
+                if ($item->frequency_id && $item->frequency) {
+                    $itemData['frequency'] = [
+                        'id' => (int)$item->frequency->id,
+                        'term' => $item->frequency->term,
+                    ];
+                }
+                
+                // Embed duration
+                if ($item->duration_id && $item->duration) {
+                    $itemData['duration'] = [
+                        'id' => (int)$item->duration->id,
+                        'name' => $item->duration->name,
+                    ];
+                }
+                
+                return $itemData;
+            }, $this->items);
+        }
+        
+        // Embed print status and dates
+        if ($this->printed_by_user && $this->printedByUser) {
+            $data['printed_by'] = [
+                'id' => (int)$this->printedByUser->id,
+                'full_name' => $this->printedByUser->getFullName(),
+                'printed_date' => $this->printed_date,
+            ];
+        }
+        
+        // Embed authorisation status
+        if ($this->authorised_by_user && $this->authorisedByUser) {
+            $data['authorised_by'] = [
+                'id' => (int)$this->authorisedByUser->id,
+                'full_name' => $this->authorisedByUser->getFullName(),
+                'authorised_date' => $this->authorised_date,
+            ];
+        }
+        
+        // Draft status
+        $data['draft'] = (bool)$this->draft;
+        
+        return $data;
     }
 
     /**

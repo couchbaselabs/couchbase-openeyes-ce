@@ -27,6 +27,8 @@ use OEModule\OphCiExamination\models\MedicationManagementEntry;
  */
 class OphDrPrescription_Item extends EventMedicationUse
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     // Maximum characters per line on FP10 form is roughly 31.
     // Maximum characters per line on WP10 form is roughly 30.
     // Assuming the space left of the white margin can be used for printing, this could be expanded further.

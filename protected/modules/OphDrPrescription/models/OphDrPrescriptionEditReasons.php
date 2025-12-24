@@ -12,6 +12,7 @@
  */
 class OphDrPrescriptionEditReasons extends BaseActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
 
     protected function getSupportedLevels(): int

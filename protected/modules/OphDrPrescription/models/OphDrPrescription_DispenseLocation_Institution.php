@@ -8,6 +8,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class OphDrPrescription_DispenseLocation_Institution extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
     /**

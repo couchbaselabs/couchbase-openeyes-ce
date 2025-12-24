@@ -10,6 +10,7 @@ use OE\factories\models\traits\HasFactory;
  */
 class OphDrPrescription_DispenseCondition extends BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use MappedReferenceData;
     use HasFactory;
 

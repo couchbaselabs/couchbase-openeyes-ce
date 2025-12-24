@@ -30,6 +30,7 @@ use OEModule\OphDrPrescription\widgets\PrescriptionEsignElementWidget;
 
 class Element_OphDrPrescription_Esign extends BaseEsignElement
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use AutoSignTrait;
     private $signature_class = \OphDrPrescription_Signature::class;
     private $pin_required_setting_name = 'require_pin_for_prescription';
