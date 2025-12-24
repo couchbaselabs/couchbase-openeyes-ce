@@ -30,6 +30,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_DRGrading_ClinicalRetinopathy extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

@@ -33,6 +33,7 @@ use OE\factories\models\traits\HasFactory;
 class OphCiExamination_Diagnosis extends \BaseActiveRecordVersioned
 {
     use HasFactory;
+    use \OE\Models\Traits\CouchbaseModelBridge;
 
     protected $attr_dirty_check_methods = [
         "eye_id" => "isIntAttributeDirty",

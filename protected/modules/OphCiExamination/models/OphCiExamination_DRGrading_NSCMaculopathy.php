@@ -29,6 +29,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_DRGrading_NSCMaculopathy extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     /**
      * Returns the static model of the specified AR class.
      *

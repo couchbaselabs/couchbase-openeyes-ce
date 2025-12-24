@@ -29,6 +29,8 @@ namespace OEModule\OphCiExamination\models;
  */
 class OphCiExamination_Dilation_Treatment extends \BaseActiveRecordVersioned
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
+
     const LEFT = 1;
     const RIGHT = 0;
 
