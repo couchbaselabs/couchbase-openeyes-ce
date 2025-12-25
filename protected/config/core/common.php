@@ -480,6 +480,13 @@ $config = array(
             'setting_site',
             'setting_firm',
             'setting_user',
+            'setting_group',
+            'setting_field_type',
+            'user_authentication',
+            'institution_authentication',
+            'user_authentication_method',
+            'auth_item',
+            'auth_assignment',
         ),
         // This is used in contact page
         /***
@@ -1046,40 +1053,6 @@ $config = array(
         'user_breakglass_field' => $userBreakGlassField,
         'enable_default_support_text' => true,
 
-        // Database Adapter Configuration (Phase 2 - Abstract Database Layer)
-        'database_adapter' => getenv('DATABASE_ADAPTER') ?: 'mariadb',
-        
-        // Collections that have been migrated to Couchbase (empty until Phase 4+)
-        'couchbase_migrated_collections' => [
-            // Phase 12: Administrative & Settings
-            'audit',
-            'audit_action',
-            'audit_type',
-            'setting_metadata',
-            'setting_installation',
-            'setting_institution',
-            'setting_site',
-            'setting_firm',
-            'setting_user',
-            'setting_group',
-            'setting_field_type',
-            'user_authentication',
-            'institution_authentication',
-            'user_authentication_method',
-            'auth_item',
-            'auth_assignment',
-        ],
-        
-        // Enable dual-write mode (writes to both MariaDB and Couchbase)
-        'enable_dual_write' => filter_var(getenv('OPENEYES_ENABLE_DUAL_WRITE') ?: 'true', FILTER_VALIDATE_BOOLEAN),
-        
-        // Enable reading from Couchbase (for migrated collections)
-        'enable_couchbase_read' => true,
-
-        // Enforce Couchbase as the authoritative store for patient data
-        'require_couchbase_patient_writes' => true,
-        'require_couchbase_patient_reads' => true,
-        
         // Modules migrated to Couchbase (Phase 17 - All modules)
         'couchbase_migrated_modules' => array(
             // Phase 5 - Core clinical modules
