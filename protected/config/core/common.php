@@ -219,6 +219,11 @@ $config = array(
             'charset' => 'utf8',
             'schemaCachingDuration' => 300,
         ),
+        // Couchbase connection component (Phase 1 - Infrastructure)
+        'couchbase' => array(
+            'class' => 'application.components.CouchbaseConnection',
+            'config' => require(dirname(__FILE__) . '/../couchbase.php'),
+        ),
         'errorHandler' => array(
             // use 'site/error' action to display errors
             'errorAction' => YII_DEBUG ? null : 'site/error',
@@ -365,6 +370,10 @@ $config = array(
                 'patient/viewpas/<pas_key:\d+>' => 'patient/viewpas',
                 'file/view/<id:\d+>/<dimensions:\d+(x\d+)?>/<name:\w+\.\w+>' => 'protectedFile/thumbnail',
                 'file/view/<id:\d+>/<name:\w+\.\w+>' => 'protectedFile/view',
+                
+                // Couchbase health check endpoints (Phase 1)
+                'couchbaseHealth' => 'couchbaseHealth/index',
+                'couchbaseHealth/ping' => 'couchbaseHealth/ping',
 
                 // API
                 array('api/conformance', 'pattern' => 'api/metadata', 'verb' => 'GET'),
@@ -415,6 +424,63 @@ $config = array(
         'pseudonymise_patient_details' => false,
         'ab_testing' => false,
         'auth_source' => $authSource,
+        
+        // Database adapter configuration
+        'database_adapter' => getenv('OPENEYES_DATABASE_ADAPTER') ?: 'mariadb',
+        
+        // Dual-write mode - writes to both MariaDB and Couchbase
+        'enable_dual_write' => filter_var(getenv('OPENEYES_ENABLE_DUAL_WRITE') ?: true, FILTER_VALIDATE_BOOLEAN),
+        
+        // Couchbase read mode - reads from Couchbase for migrated collections
+        'enable_couchbase_read' => true,
+
+        // Enforce Couchbase as the authoritative store for patient data
+        'require_couchbase_patient_writes' => true,
+        'require_couchbase_patient_reads' => true,
+        
+        // Collections that have been fully migrated to Couchbase
+        'couchbase_migrated_collections' => array(
+            // Core reference data
+            'institution',
+            'site',
+            'specialty',
+            'subspecialty',
+            'firm',
+            'event_type',
+            'element_type',
+            'ethnic_group',
+            'gender',
+            'country',
+            'eye',
+            // User and contact
+            'user',
+            'contact',
+            'address',
+            // Clinical core
+            'patient',
+            'episode',
+            'event',
+            // Clinical reference (Phase 17)
+            'disorder',
+            'procedure',
+            'medication',
+            'drug',
+            'allergy',
+            'benefit',
+            'complication',
+            'common_ophthalmic_disorder',
+            'opcs_code',
+            // Administrative (Phase 12)
+            'audit',
+            'audit_action',
+            'audit_type',
+            'setting_metadata',
+            'setting_installation',
+            'setting_institution',
+            'setting_site',
+            'setting_firm',
+            'setting_user',
+        ),
         // This is used in contact page
         /***
          * Commented out LDAP settings as these should now be handled by Admin->Core->LDAP configurations
@@ -979,6 +1045,95 @@ $config = array(
         'breakglass_enabled' => $breakGlassEnabled,
         'user_breakglass_field' => $userBreakGlassField,
         'enable_default_support_text' => true,
+
+        // Database Adapter Configuration (Phase 2 - Abstract Database Layer)
+        'database_adapter' => getenv('DATABASE_ADAPTER') ?: 'mariadb',
+        
+        // Collections that have been migrated to Couchbase (empty until Phase 4+)
+        'couchbase_migrated_collections' => [
+            // Phase 12: Administrative & Settings
+            'audit',
+            'audit_action',
+            'audit_type',
+            'setting_metadata',
+            'setting_installation',
+            'setting_institution',
+            'setting_site',
+            'setting_firm',
+            'setting_user',
+            'setting_group',
+            'setting_field_type',
+            'user_authentication',
+            'institution_authentication',
+            'user_authentication_method',
+            'auth_item',
+            'auth_assignment',
+        ],
+        
+        // Enable dual-write mode (writes to both MariaDB and Couchbase)
+        'enable_dual_write' => filter_var(getenv('OPENEYES_ENABLE_DUAL_WRITE') ?: 'true', FILTER_VALIDATE_BOOLEAN),
+        
+        // Enable reading from Couchbase (for migrated collections)
+        'enable_couchbase_read' => true,
+
+        // Enforce Couchbase as the authoritative store for patient data
+        'require_couchbase_patient_writes' => true,
+        'require_couchbase_patient_reads' => true,
+        
+        // Modules migrated to Couchbase (Phase 17 - All modules)
+        'couchbase_migrated_modules' => array(
+            // Phase 5 - Core clinical modules
+            'OphCiExamination',
+            'OphTrOperationbooking',
+            'OphCoCorrespondence',
+            // Phase 17 - Additional clinical modules
+            'OphTrOperationnote',
+            'OphTrConsent',
+            'OphTrIntravitrealinjection',
+            'OphTrLaser',
+            'OphDrPrescription',
+            'OphDrPGDPSD',
+            // Phase 17 - Diagnostic modules
+            'OphCiPhasing',
+            'OphInBiometry',
+            'OphInVisualfields',
+            'OphInLabResults',
+            'OphInDnasample',
+            'OphInDnaextraction',
+            'OphInGeneticresults',
+            // Phase 17 - Administrative modules
+            'OphCoCvi',
+            'OphCoMessaging',
+            'OphCoDocument',
+            'OphCoTherapyapplication',
+            'OphTrOperationchecklists',
+            'OphGeneric',
+            // Phase 17 - Supporting modules
+            'OECaseSearch',
+            'OETrial',
+            'PatientTicketing',
+            'Genetics',
+            'PASAPI',
+            'OphOuCatprom5',
+            'OphCiDidNotAttend',
+            'BreakGlass',
+        ),
+        
+        // Module-specific Couchbase settings (Phase 5)
+        'couchbase_module_settings' => array(
+            'OphCiExamination' => array(
+                'embed_elements' => true,  // Embed elements in examination document
+                'element_size_threshold' => 10240, // 10KB - elements larger than this are referenced
+            ),
+            'OphTrOperationbooking' => array(
+                'embed_procedures' => true,
+                'embed_bookings' => true,
+            ),
+            'OphCoCorrespondence' => array(
+                'embed_recipients' => true,
+                'embed_enclosures' => true,
+            ),
+        ),
     ),
 );
 
@@ -1132,5 +1287,24 @@ $config["params"]["special_usernames"] = array_map('trim', explode(',', $special
 $correspondence_export_institutions = trim(getenv('OE_CORRESPONDENCE_EXPORT_INSTITUTIONS'));
 $correspondence_export_institutions = !empty($correspondence_export_institutions) ? explode(" ", $correspondence_export_institutions) : null;
 $config["params"]["correspondence_export_institutions"] = $correspondence_export_institutions;
+
+/**
+ * Phase 6: Query Migration Feature Flags
+ * These flags control the gradual rollout of Couchbase N1QL queries
+ */
+$config["params"]["enable_couchbase_queries"] = strtolower(getenv('ENABLE_COUCHBASE_QUERIES') ?: 'false') === 'true';
+$config["params"]["couchbase_query_collections"] = []; // Collections using Couchbase queries
+
+/**
+ * Phase 7: Services Layer Feature Flags
+ * These flags control the services layer Couchbase integration
+ */
+$config["params"]["enable_couchbase_services"] = true;
+$config["params"]["couchbase_service_collections"] = [
+    'patient' => true,
+    'episode' => true,
+    'event' => true,
+    'examination' => false, // Enable gradually
+];
 
 return $config;
