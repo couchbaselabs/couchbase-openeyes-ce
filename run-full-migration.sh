@@ -32,7 +32,7 @@ echo ""
 run_yii() {
     local cmd=$1
     echo -e "${YELLOW}Running: ${cmd}${NC}"
-    docker exec -it $DOCKER_CONTAINER $YII_CMD $cmd
+    docker exec $DOCKER_CONTAINER $YII_CMD $cmd
 }
 
 # Function to check if container is running
@@ -114,7 +114,7 @@ enable_couchbase_read() {
     echo -e "${GREEN}════════════════════════════════════════${NC}\n"
     
     echo -e "${YELLOW}Current configuration:${NC}"
-    docker exec -it $DOCKER_CONTAINER grep -A5 "enable_couchbase_read" protected/config/core/common.php | head -10
+    docker exec $DOCKER_CONTAINER grep -A5 "enable_couchbase_read" protected/config/core/common.php | head -10
     
     echo -e "\n${GREEN}Couchbase read is ENABLED in configuration${NC}"
     echo -e "The application will read from Couchbase for migrated collections."
