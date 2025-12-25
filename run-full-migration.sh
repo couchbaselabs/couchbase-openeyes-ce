@@ -20,7 +20,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-DOCKER_CONTAINER="openeyes-web-1"
+DOCKER_CONTAINER="devcontainer-web-1"
 YII_CMD="php protected/yiic"
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
