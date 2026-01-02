@@ -230,7 +230,7 @@ class PathwayType extends BaseActiveRecordVersioned
      */
     public function enqueue(PathwayTypeStep $step): bool
     {
-        $end_position = Yii::app()->db->createCommand()
+        $end_position = Yii::app()->cbdb->createCommand()
             ->select('MAX(queue_order)')
             ->from('pathway_type_step')
             ->where('pathway_type_id = :id')

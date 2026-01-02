@@ -90,7 +90,7 @@ class SsoDefaultRights extends BaseActiveRecordVersioned
         }
         $roles = $attributes['sso_default_roles'];
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             SsoDefaultFirms::model()->deleteAll('sso_user_id = :sso_user_id', array('sso_user_id' => $this->id));

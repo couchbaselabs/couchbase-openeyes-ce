@@ -62,10 +62,10 @@
                 <tr class="clickable" data-id="<?php echo $model->id ?>"
                     data-uri="OphCiExamination/admin/editWorkflowRule/<?php echo $model->id ?>">
                     <td><input type="checkbox" name="workflowrules[]" value="<?php echo $model->id ?>"/></td>
-                    <td><?php echo $model->subspecialty ? $model->subspecialty->name : 'All' ?></td>
-                    <td><?php echo $model->firm ? $model->firm->name : 'All' ?></td>
-                    <td><?php echo $model->episode_status ? $model->episode_status->name : 'All' ?></td>
-                    <td data-test="workflow-name"><?php echo $model->workflow->name ?></td>
+                    <td><?php echo $model->subspecialty_id && isset($subspecialtyMap[$model->subspecialty_id]) ? $subspecialtyMap[$model->subspecialty_id] : 'All' ?></td>
+                    <td><?php echo $model->firm_id && isset($firmMap[$model->firm_id]) ? $firmMap[$model->firm_id] : 'All' ?></td>
+                    <td><?php echo $model->episode_status_id && isset($episodeStatusMap[$model->episode_status_id]) ? $episodeStatusMap[$model->episode_status_id] : 'All' ?></td>
+                    <td data-test="workflow-name"><?php echo $model->workflow_id && isset($workflows[$model->workflow_id]) ? $workflows[$model->workflow_id]->name : 'Unknown' ?></td>
                 </tr>
             <?php } ?>
             </tbody>

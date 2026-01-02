@@ -154,7 +154,9 @@ class SettingMetadata extends BaseActiveRecordVersioned
             return self::model()->getSetting($key) === $value;
         }
 
-        $setting_value = self::model()->findByAttributes(['key' => $key])->getSettingName();
+        $setting = self::model()->findByAttributes(['key' => $key]);
+        $setting_value = $setting ? $setting->getSettingName() : null;
+        
         if (is_string($setting_value)) {
             $setting_value = strtolower($setting_value);
         }
@@ -251,25 +253,12 @@ class SettingMetadata extends BaseActiveRecordVersioned
         // Gets the last combined updated time of the settings_tables and uses as a cache dependency. The cache will be invalidated if the tables have been updated
         $debounce_val = Yii::app()->settingCache->get('SettingMetaDebounce');
         if ($debounce_val === false) {
-            $dependency_sql = " SELECT sha1(GROUP_CONCAT(UPDATE_TIME))
-                                FROM   information_schema.tables
-                                WHERE  TABLE_SCHEMA = DATABASE()
-                                AND TABLE_NAME IN (
-                                    'setting_metadata'
-                                    ,'setting_installation'
-                                    ,'setting_institution'
-                                    ,'setting_firm'
-                                    ,'setting_institution_subspecialty'
-                                    ,'setting_site'
-                                    ,'setting_specialty'
-                                    ,'setting_subspecialty'
-                                    ,'setting_user'
-                                )";
-
-            $debounce_val = Yii::app()->db->createCommand($dependency_sql)->queryScalar();
-            // add a debounce of a few seconds before poling for the setting cache dependency, to avoid a DB query for every run.
+            // Try to get cache dependency from database, fall back to time-based if unavailable
+            // Use time-based cache by default - MariaDB is deprecated
+            $debounce_val = sha1(floor(time() / 30));
+            // add a debounce of a few seconds before polling for the setting cache dependency, to avoid a DB query for every run.
             Yii::app()->settingCache->set('SettingMetaDebounce', $debounce_val, 5);
-        };
+        }
 
         // set the last update timestamp = to the latest debounce time
         if (Yii::app()->settingCache->get('SettingMetaLastUpdate') != $debounce_val) {

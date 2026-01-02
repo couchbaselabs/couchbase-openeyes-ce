@@ -6,11 +6,11 @@ class m180315_140200_add_ultrasound_retcam_document_type extends OEMigration
     {
 
         # Check that these values do not already exist
-        $isUS = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Ultrasound'))->queryRow();
-        $isRC = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Retcam'))->queryRow();
+        $isUS = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Ultrasound'))->queryScalar();
+        $isRC = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Retcam'))->queryScalar();
 
         # Insert values if they don't already exist
-        if ($isUS['id'] == '') {
+        if (!$isUS) {
             $this->insert('ophcodocument_sub_types', array(
                           'name' => 'Ultrasound',
                           'display_order' => '30',
@@ -18,7 +18,7 @@ class m180315_140200_add_ultrasound_retcam_document_type extends OEMigration
         }
 
         # Insert values if they don't already exist
-        if ($isRC['id'] == '') {
+        if (!$isRC) {
             $this->insert('ophcodocument_sub_types', array(
                           'name' => 'Retcam',
                           'display_order' => '20',

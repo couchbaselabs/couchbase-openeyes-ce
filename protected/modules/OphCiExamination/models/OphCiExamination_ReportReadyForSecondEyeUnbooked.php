@@ -40,7 +40,7 @@ class OphCiExamination_ReportReadyForSecondEyeUnbooked extends BaseReport
     {
         $this->setInstitutionAndSite();
 
-        $cmd = Yii::app()->db->createCommand()
+        $cmd = Yii::app()->cbdb->createCommand()
             ->select(array('event.event_date', 'patient.id'))
             ->from('et_ophciexamination_optom_comments')
             ->join('event', 'event.id = et_ophciexamination_optom_comments.event_id')

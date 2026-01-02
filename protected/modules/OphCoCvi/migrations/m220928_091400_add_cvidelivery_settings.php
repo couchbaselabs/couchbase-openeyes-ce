@@ -75,30 +75,51 @@ class m220928_091400_add_cvidelivery_settings extends OEMigration
     public function up()
     {
         $this->setUp();
+        $metadataSchema = $this->dbConnection->schema->getTable('setting_metadata', true);
+        $installationSchema = $this->dbConnection->schema->getTable('setting_installation', true);
+        $fieldTypeSchema = $this->dbConnection->schema->getTable('setting_field_type', true);
+
+        if (!$metadataSchema || !$installationSchema || !$fieldTypeSchema) {
+            $this->migrationEcho('Skipping CVI delivery settings - required setting tables missing.');
+            return true;
+        }
+
         foreach ($this->settings as $setting) {
-            $this->insert('setting_metadata', [
+            $data = [
                 'key' => $setting['key'],
                 'name' => $setting['name'],
                 'element_type_id' => null,
-                'default_value' => '',
+                'default_value' => $setting['default_value'],
                 'field_type_id' => $this->getSettingFieldIdByName($setting['type']),
-                'data' => $setting['data'],
-                'description' => '',
-                'group_id' => 1
-            ]);
+                'data' => $setting['data']
+            ];
+
+            if (array_key_exists('description', $metadataSchema->columns)) {
+                $data['description'] = '';
+            }
+
+            if (array_key_exists('group_id', $metadataSchema->columns)) {
+                $data['group_id'] = 1;
+            }
+
+            $this->insert('setting_metadata', $data);
             $this->insert('setting_installation', [
                 'key' => $setting['key'],
                 'value' => $setting['value'],
             ]);
-        };
+        }
     }
 
     public function down()
     {
         $this->setUp();
         foreach ($this->settings as $setting) {
-            $this->delete('setting_installation', '`key` = ?', [$setting['key']]);
-            $this->delete('setting_metadata', '`key` = ?', [$setting['key']]);
+            if ($this->dbConnection->schema->getTable('setting_installation', true)) {
+                $this->delete('setting_installation', '`key` = ?', [$setting['key']]);
+            }
+            if ($this->dbConnection->schema->getTable('setting_metadata', true)) {
+                $this->delete('setting_metadata', '`key` = ?', [$setting['key']]);
+            }
         }
     }
 }

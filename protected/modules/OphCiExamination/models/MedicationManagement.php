@@ -376,7 +376,7 @@ class MedicationManagement extends BaseMedicationElement
             }
 
             if ($is_new) {
-                $id = Yii::app()->db->getLastInsertID();
+                $id = Yii::app()->cbdb->getLastInsertID();
                 $entry->id = $id;
             }
 
@@ -513,7 +513,7 @@ class MedicationManagement extends BaseMedicationElement
             if ($changed) {
                 if (empty(OphDrPrescription_Item::model()->findAllByAttributes(['event_id' => $prescription->event_id]))) {
                     // if no more items on the prescription, delete it
-                    Yii::app()->db->createCommand("UPDATE " . $this->tableName() . " SET prescription_id=NULL WHERE id=" . $this->id)->execute();
+                    Yii::app()->cbdb->createCommand("UPDATE " . $this->tableName() . " SET prescription_id=NULL WHERE id=" . $this->id)->execute();
                     $prescription->delete();
                     $prescription->event->softDelete("Deleted via examination clinical management");
                 } else {

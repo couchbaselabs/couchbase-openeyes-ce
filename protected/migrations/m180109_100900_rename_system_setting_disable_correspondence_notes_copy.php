@@ -8,7 +8,7 @@ class m180109_100900_rename_system_setting_disable_correspondence_notes_copy ext
         # Check that these values do not already exist
         $ismetadata = $this->dbConnection->createCommand()->select('id')->from('setting_metadata')->where('`key` = :setting_key', array(':setting_key' => 'disable_correspondence_notes_copy'))->queryRow();
         # Insert values if they don't already exist
-        if ($ismetadata['id'] == '') {
+        if (!$ismetadata || $ismetadata['id'] == '') {
             $this->insert('setting_metadata', array(
                 'display_order' => 0,
                 'field_type_id' => 3,

@@ -722,7 +722,7 @@ class DefaultController extends BaseEventTypeController
         $rule = MedicationSetRule::model()->findByAttributes(array(
             'subspecialty_id' => $subspecialty_id,
             'site_id' => $site_id,
-            'usage_code_id' => \Yii::app()->db->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => 'COMMON_OPH'])->queryScalar()
+            'usage_code_id' => \Yii::app()->cbdb->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => 'COMMON_OPH'])->queryScalar()
         ));
         if ($rule) {
             return $rule->medicationSet;
@@ -856,7 +856,8 @@ class DefaultController extends BaseEventTypeController
                 }
             }
         }
-        $unit_options = MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'")->medicationAttributeOptions;
+        $unitOfMeasureAttr = MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'");
+        $unit_options = $unitOfMeasureAttr ? $unitOfMeasureAttr->medicationAttributeOptions : [];
         if (isset($this->patient)) {
             $this->renderPartial(
                 '/default/form_Element_OphDrPrescription_Details_Item',
@@ -1044,7 +1045,7 @@ class DefaultController extends BaseEventTypeController
                     $es_signatures = $prescription_esign->getSignatures();
                     $index = 0;
 
-                    $transaction = Yii::app()->db->beginTransaction();
+                    $transaction = Yii::app()->cbdb->beginTransaction();
                     $errors = array();
 
                     foreach ($es_signatures as $signature) {

@@ -193,7 +193,7 @@ class DefaultController extends BaseEventTypeController
 
             // creation
             if (empty($errors)) {
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
 
                 try {
                     $this->event->template_id = $this->template->id ?? null;
@@ -1506,28 +1506,28 @@ class DefaultController extends BaseEventTypeController
 
         $element->anaesthetic_type_assignments = $type_assessments;
 
-        $anaesthetic_GA_id = Yii::app()->db->createCommand()
+        $anaesthetic_GA_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('anaesthetic_type')
             ->where('name=:name', array(':name' => 'GA'))
             ->queryScalar();
         if (count($element->anaesthetic_type_assignments) == 1 && $element->anaesthetic_type_assignments[0]->anaesthetic_type_id == $anaesthetic_GA_id) {
             $data['AnaestheticDelivery'] = array(
-                Yii::app()->db->createCommand()
+                Yii::app()->cbdb->createCommand()
                     ->select('id')
                     ->from('anaesthetic_delivery')
                     ->where('name=:name', array(':name' => 'Other'))
                     ->queryScalar()
             );
 
-            $element->anaesthetist_id = Yii::app()->db->createCommand()
+            $element->anaesthetist_id = Yii::app()->cbdb->createCommand()
                 ->select('id')
                 ->from('anaesthetist')
                 ->where('name=:name', array(':name' => 'Anaesthetist'))
                 ->queryScalar();
         }
 
-        $anaesthetic_NoA_id = Yii::app()->db->createCommand()
+        $anaesthetic_NoA_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('anaesthetic_type')
             ->where('code=:code', array(':code' => 'NoA'))

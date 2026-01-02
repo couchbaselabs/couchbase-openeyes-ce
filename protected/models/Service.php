@@ -35,6 +35,14 @@ class Service extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * Couchbase scope for reference data
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return Service the static model class

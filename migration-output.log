@@ -1,0 +1,504 @@
+[0;34m╔══════════════════════════════════════════════════════════════╗[0m
+[0;34m║       OpenEyes Couchbase Migration - Phase 17                ║[0m
+[0;34m╚══════════════════════════════════════════════════════════════╝[0m
+
+
+[0;32m════════════════════════════════════════[0m
+[0;32mStep 1: Testing Dual-Write Functionality[0m
+[0;32m════════════════════════════════════════[0m
+
+[1;33mRunning: testdualwrite[0m
+======================================
+Phase 11 Dual-Write Test
+======================================
+
+Dual-write config: ENABLED
+Couchbase read config: ENABLED
+
+Testing Benefit dual-write...
+  ✓ Benefit saved to MariaDB (ID: 6)
+  ✓ Benefit found in Couchbase
+    - Name: Test Benefit 1766647009
+    - Type: benefit
+    - Modified: 2025-12-25T07:16:49+00:00
+  ✓ Test benefit cleaned up from MariaDB
+  ✓ Benefit deleted from Couchbase (not found)
+
+Testing Complication dual-write...
+  ✓ Complication saved to MariaDB (ID: 18)
+  ✓ Complication found in Couchbase
+    - Name: Test Complication 1766647009
+    - Type: complication
+  ✓ Test complication cleaned up
+
+======================================
+Dual-Write Test Complete
+======================================
+
+[0;32m✓ Dual-write test complete[0m
+
+[0;32m════════════════════════════════════════[0m
+[0;32mStep 2: Running Full Data Migration[0m
+[0;32m════════════════════════════════════════[0m
+
+[1;33mStage 1: Reference Data[0m
+[1;33mRunning: fulldatamigration stage --stage=1[0m
+============================================================
+STAGE 1: Reference Data
+============================================================
+
+Table: event_type (Model: EventType, Scope: reference)
+  Total Records: 15
+  ✓ Migrated: 15/15 (100%), Errors: 0
+Table: element_type (Model: ElementType, Scope: reference)
+  Total Records: 190
+  ✓ Migrated: 190/190 (100%), Errors: 0
+Table: specialty (Model: Specialty, Scope: reference)
+  Total Records: 78
+  ✓ Migrated: 78/78 (100%), Errors: 0
+Table: subspecialty (Model: Subspecialty, Scope: reference)
+  Total Records: 1
+  ✓ Migrated: 1/1 (100%), Errors: 0
+Table: site (Model: Site, Scope: reference)
+  Total Records: 2
+  ❌ BATCH ERROR at offset 0: ambiguous_timeout (13): "unable to execute upsert"
+  ✓ Migrated: 0/2 (0%), Errors: 2
+
+============================================================
+STAGE 1 COMPLETE
+============================================================
+Migrated: 284
+Errors: 2
+Duration: 0.15 minutes
+============================================================
+============================================================
+STAGE 4: Module Elements
+============================================================
+
+Delegating to command: yiic modulemigration migrate --module=all --batch=100
+Executing: php /var/www/openeyes/protected/yiic modulemigration migrate --module=all --batch=100
+===========================================
+Phase 13: Clinical Module Data Migration
+===========================================
+
+
+[MODULE: Examination]
+==================================================
+  Auto-discovered 57 elements
+
+  Migrating: Element_OphCiExamination_AE_RedFlags
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_AdnexalComorbidity
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Allergy
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_AnteriorSegment
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_AnteriorSegment_CCT
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_BlebAssessment
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_CVI_Status
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_CXL_History
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_CXL_Outcome
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_CataractSurgicalManagement
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_ClinicOutcome
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_ClinicProcedures
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_ColourVision
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_CommunicationPreferences
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Comorbidities
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Conclusion
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Contacts
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Cornea
+    FATAL ERROR: The table "et_ophciexamination_cornea" for active record class "OEModule\OphCiExamination\models\Element_OphCiExamination_Cornea" cannot be found in the database.
+
+  Migrating: Element_OphCiExamination_CurrentManagementPlan
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_DRGrading
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_DR_Maculopathy
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_DR_Retinopathy
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Diagnoses
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Dilation
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_DrugAdministration
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Fundus
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_FurtherFindings
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_GlaucomaRisk
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Gonioscopy
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_History
+    Total records: 8
+    FATAL ERROR: OEModule\OphCiExamination\models\Element_OphCiExamination_History and its behaviors do not have a method or closure named "limit".
+
+  Migrating: Element_OphCiExamination_HistoryRisk
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_InjectionManagement
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_InjectionManagementComplex
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_IntraocularPressure
+    Total records: 1
+    FATAL ERROR: OEModule\OphCiExamination\models\Element_OphCiExamination_IntraocularPressure and its behaviors do not have a method or closure named "limit".
+
+  Migrating: Element_OphCiExamination_Investigation
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Keratometry
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_LaserManagement
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Management
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_NearVisualAcuity
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_NextSteps
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_OCT
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Observations
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_OpticDisc
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_OptomComments
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_OverallManagementPlan
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Pain
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_PcrRisk
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_PostOpComplications
+    Total records: 5
+    FATAL ERROR: OEModule\OphCiExamination\models\Element_OphCiExamination_PostOpComplications and its behaviors do not have a method or closure named "limit".
+
+  Migrating: Element_OphCiExamination_PosteriorPole
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_PupillaryAbnormalities
+    FATAL ERROR: The table "et_ophciexamination_pupillaryabnormalities" for active record class "OEModule\OphCiExamination\models\Element_OphCiExamination_PupillaryAbnormalities" cannot be found in the database.
+
+  Migrating: Element_OphCiExamination_Refraction
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Risks
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Safeguarding
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Slit_Lamp
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Specular_Microscopy
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_Triage
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphCiExamination_VisualAcuity
+    Total records: 6
+    FATAL ERROR: OEModule\OphCiExamination\models\Element_OphCiExamination_VisualAcuity and its behaviors do not have a method or closure named "limit".
+
+[MODULE: Operation Notes]
+==================================================
+
+  Migrating: Element_OphTrOperationnote_Cataract
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrOperationnote_ProcedureList
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrOperationnote_Surgeon
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrOperationnote_Anaesthetic
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrOperationnote_Comments
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrOperationnote_GenericProcedure
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+[MODULE: Laser Treatment]
+==================================================
+
+  Migrating: Element_OphTrLaser_Treatment
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrLaser_Site
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrLaser_AnteriorSegment
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrLaser_PosteriorPole
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+[MODULE: Biometry]
+==================================================
+
+  Migrating: Element_OphInBiometry_Measurement
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphInBiometry_Calculation
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphInBiometry_Selection
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+[MODULE: Prescription]
+==================================================
+
+  Migrating: Element_OphDrPrescription_Details
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+[MODULE: Correspondence]
+==================================================
+
+  Migrating: ElementLetter
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+[MODULE: Operation Booking]
+==================================================
+
+  Migrating: Element_OphTrOperationbooking_Operation
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrOperationbooking_Diagnosis
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+  Migrating: Element_OphTrOperationbooking_ScheduleOperation
+    Total records: 0
+
+    Completed: Migrated=0, Skipped=0, Errors=0
+
+[MODULE: CVI (Certificate of Vision Impairment)]
+==================================================
+
+  Migrating: Element_OphCoCvi_EventInfo
+    Total records: 2
+    FATAL ERROR: OEModule\OphCoCvi\models\Element_OphCoCvi_EventInfo and its behaviors do not have a method or closure named "limit".
+
+  Migrating: Element_OphCoCvi_ClinicalInfo
+    Total records: 2
+    FATAL ERROR: OEModule\OphCoCvi\models\Element_OphCoCvi_ClinicalInfo and its behaviors do not have a method or closure named "limit".
+
+  Migrating: Element_OphCoCvi_ClericalInfo
+    Total records: 2
+    FATAL ERROR: OEModule\OphCoCvi\models\Element_OphCoCvi_ClericalInfo and its behaviors do not have a method or closure named "limit".
+
+===========================================
+Migration Complete
+===========================================
+Total Migrated: 0
+Total Skipped:  0
+Total Errors:   9
+===========================================
+⚠ Command exited with code: 1
+
+============================================================
+STAGE 4 COMPLETE
+============================================================
+Migrated: 0
+Errors: 1
+Duration: 0 minutes
+============================================================

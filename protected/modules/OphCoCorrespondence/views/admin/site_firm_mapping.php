@@ -70,7 +70,7 @@
             <?= \CHtml::hiddenField('site_id', $site->id) ?>
             <?= \CHtml::hiddenField('subspecialty_id', $subspecialty->id ?? null) ?>
             <?php
-                $command = Yii::app()->db->createCommand()
+                $command = Yii::app()->cbdb->createCommand()
                                          ->select('f.id, f.name, s.name AS subspecialty, sfm.id AS context_location')
                                          ->from('firm f')
                                          ->join('service_subspecialty_assignment ssa', 'f.service_subspecialty_assignment_id = ssa.id')

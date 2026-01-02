@@ -48,30 +48,50 @@ class OEWebUser extends CWebUser
     }
 
     private function isValidSession() {
-        $session_table_name = Yii::app()->components['session']->sessionTableName;
-        $invalidated_id = Yii::app()->db->createCommand()
-            ->select('id')
-            ->from($session_table_name)
-            ->where('id = :id')
-            ->bindValue(':id', $this->createInvalidatedIDfromID(session_id()))
-            ->queryScalar();
+        // If session component is not DB-backed or table name is missing, treat as valid
+        $sessionComponent = Yii::app()->components['session'] ?? null;
+        if (!$sessionComponent || !isset($sessionComponent->sessionTableName)) {
+            return true;
+        }
 
-        return $invalidated_id === false;
+        $session_table_name = $sessionComponent->sessionTableName;
+
+        try {
+            $invalidated_id = Yii::app()->cbdb->createCommand()
+                ->select('id')
+                ->from($session_table_name)
+                ->where('id = :id')
+                ->bindValue(':id', $this->createInvalidatedIDfromID(session_id()))
+                ->queryScalar();
+
+            return $invalidated_id === false;
+        } catch (Exception $e) {
+            // If CBDB is unavailable, don't block login
+            return true;
+        }
     }
 
     private function invalidateSession() {
         if($this->session_id_to_invalidate) {
-            $session_table_name = Yii::app()->components['session']->sessionTableName;
+            $sessionComponent = Yii::app()->components['session'] ?? null;
+            if (!$sessionComponent || !isset($sessionComponent->sessionTableName)) {
+                return;
+            }
+            $session_table_name = $sessionComponent->sessionTableName;
             $invalidated_id = $this->createInvalidatedIDfromID($this->session_id_to_invalidate);
             $expire = time() + 3600 * 48; // 2 days
             $query = <<<EOD
 insert into $session_table_name (id, expire, data) values
 (:invalid_id, :expire, 'Logged out.') on duplicate key update expire = :expire;
 EOD;
-            Yii::app()->db->createCommand($query)
-            ->bindValue(':invalid_id', $invalidated_id)
-            ->bindValue(':expire', $expire)
-            ->execute();
+            try {
+                Yii::app()->cbdb->createCommand($query)
+                ->bindValue(':invalid_id', $invalidated_id)
+                ->bindValue(':expire', $expire)
+                ->execute();
+            } catch (Exception $e) {
+                // swallow if CBDB unavailable
+            }
         }
     }
 
@@ -133,7 +153,7 @@ EOD;
         $roles = array();
         $query = "SELECT itemname FROM authassignment
                   WHERE userid = $id;";
-        $command = Yii::app()->db->createCommand($query);
+        $command = Yii::app()->cbdb->createCommand($query);
         $command->prepare();
         $result = $command->queryAll();
         foreach ($result as $item=>$value)

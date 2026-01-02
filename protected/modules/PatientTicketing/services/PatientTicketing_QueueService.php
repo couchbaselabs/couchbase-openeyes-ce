@@ -152,8 +152,8 @@ class PatientTicketing_QueueService extends \services\ModelService
      */
     public function delete($queue_id)
     {
-        $transaction = Yii::app()->db->getCurrentTransaction() === null
-                ? Yii::app()->db->beginTransaction()
+        $transaction = Yii::app()->cbdb->getCurrentTransaction() === null
+                ? Yii::app()->cbdb->beginTransaction()
                 : false;
 
         try {

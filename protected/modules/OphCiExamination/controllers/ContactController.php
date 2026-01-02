@@ -143,7 +143,7 @@ class ContactController extends \BaseController
     {
         if (\Yii::app()->request->isAjaxRequest) {
             if (isset($_POST['data'])) {
-                $transaction = \Yii::app()->db->beginTransaction();
+                $transaction = \Yii::app()->cbdb->beginTransaction();
                 $errors = [];
 
                 $data = json_decode($_POST['data']);

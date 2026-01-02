@@ -18,15 +18,254 @@
  */
 class OEDbConnection extends CDbConnection
 {
+    /**
+     * @var bool Whether to use static schema cache (no MariaDB required for schema)
+     */
+    public $useStaticSchema = false;
+    
+    /**
+     * @var string Path to static schema cache file
+     */
+    public $staticSchemaFile = 'protected/config/schema-cache.php';
+    
+    /**
+     * @var bool Whether connection is available
+     */
+    private $_connectionAvailable = null;
+    
+    /**
+     * Initialize the component
+     */
+    public function init()
+    {
+        // Check if we should use static schema (when MariaDB is unavailable)
+        if ($this->useStaticSchema) {
+            $this->initStaticSchema();
+        }
+        
+        // Try to initialize parent, but don't fail if MariaDB is unavailable
+        try {
+            parent::init();
+        } catch (CDbException $e) {
+            // MariaDB not available - we'll use static schema
+            Yii::log('MariaDB connection failed, using static schema: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+            $this->_connectionAvailable = false;
+        }
+    }
+    
+    /**
+     * Check if database connection is available
+     * @return bool
+     */
+    public function isConnectionAvailable()
+    {
+        // Quick check - if already determined, return cached value
+        if ($this->_connectionAvailable !== null) {
+            return $this->_connectionAvailable;
+        }
+        
+        // If connection string is empty, MariaDB is removed
+        if (empty($this->connectionString)) {
+            $this->_connectionAvailable = false;
+            return false;
+        }
+        
+        // Default to false - will be set to true only on successful connection
+        $this->_connectionAvailable = false;
+        return false;
+    }
+    
+    /**
+     * Override setActive to handle connection failures gracefully
+     * @param bool $value
+     */
+    public function setActive($value)
+    {
+        if ($value && $this->useStaticSchema) {
+            try {
+                parent::setActive($value);
+                $this->_connectionAvailable = true;
+            } catch (\Throwable $e) {
+                // Connection failed - use static schema
+                Yii::log('MariaDB connection unavailable, using static schema: ' . $e->getMessage(), CLogger::LEVEL_INFO);
+                $this->_connectionAvailable = false;
+            }
+        } else {
+            try {
+                parent::setActive($value);
+            } catch (\Throwable $e) {
+                $this->_connectionAvailable = false;
+                throw $e;
+            }
+        }
+    }
+    
+    /**
+     * Initialize static schema support
+     */
+    protected function initStaticSchema()
+    {
+        // Override the schema class to use CouchbaseDbSchema
+        $this->driverMap = array_merge($this->driverMap, [
+            'mysql' => 'CouchbaseDbSchema',
+            'mysqli' => 'CouchbaseDbSchema',
+        ]);
+    }
+    
+    /**
+     * @var CDbSchema Cached schema instance
+     */
+    private $_staticSchema;
+    
+    /**
+     * Create schema instance with static schema support
+     * @return CDbSchema
+     */
+    protected function createSchema()
+    {
+        // For static schema mode, create schema without requiring connection
+        if ($this->useStaticSchema && !$this->isConnectionAvailable()) {
+            if ($this->_staticSchema === null) {
+                $this->_staticSchema = new CouchbaseDbSchema($this);
+                $this->_staticSchema->useStaticSchemas = true;
+                $this->_staticSchema->schemaCacheFile = $this->staticSchemaFile;
+            }
+            return $this->_staticSchema;
+        }
+        
+        $schema = parent::createSchema();
+        
+        // Configure static schema settings if applicable
+        if ($schema instanceof CouchbaseDbSchema) {
+            $schema->useStaticSchemas = $this->useStaticSchema;
+            $schema->schemaCacheFile = $this->staticSchemaFile;
+        }
+        
+        return $schema;
+    }
+    
+    /**
+     * Override getSchema to handle static schema mode
+     * @return CDbSchema
+     */
+    public function getSchema()
+    {
+        if ($this->useStaticSchema && !$this->isConnectionAvailable()) {
+            return $this->createSchema();
+        }
+        return parent::getSchema();
+    }
+    
+    /**
+     * Override getServerVersion to handle no-connection case
+     * @return string
+     */
+    public function getServerVersion()
+    {
+        if (!$this->isConnectionAvailable()) {
+            return 'Couchbase (MariaDB removed)';
+        }
+        try {
+            return parent::getServerVersion();
+        } catch (\Throwable $e) {
+            return 'N/A';
+        }
+    }
+    
+    /**
+     * Override getServerInfo to handle no-connection case
+     * @return string
+     */
+    public function getServerInfo()
+    {
+        if (!$this->isConnectionAvailable()) {
+            return 'Using Couchbase via REST API';
+        }
+        try {
+            return parent::getServerInfo();
+        } catch (\Throwable $e) {
+            return 'N/A';
+        }
+    }
+    
+    /**
+     * Override getAttribute to handle no-connection case
+     * @param int $name
+     * @return mixed
+     */
+    public function getAttribute($name)
+    {
+        if (!$this->isConnectionAvailable()) {
+            return null;
+        }
+        try {
+            return parent::getAttribute($name);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Override getPdoInstance to handle no-connection case
+     * @return PDO|null
+     */
+    public function getPdoInstance()
+    {
+        if (!$this->isConnectionAvailable()) {
+            return null;
+        }
+        try {
+            return parent::getPdoInstance();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Override createCommand to handle no-connection case
+     * @param string $query
+     * @return CDbCommand
+     */
+    public function createCommand($query = null)
+    {
+        if (!$this->isConnectionAvailable()) {
+            if ($query !== null) {
+                Yii::log('SQL query attempted without MariaDB (returning empty): ' . substr($query, 0, 100), CLogger::LEVEL_INFO, 'application.db');
+            }
+            // Return a dummy command that won't execute
+            return new OEDummyDbCommand($this, $query);
+        }
+        return parent::createCommand($query);
+    }
+    
+    /**
+     * Override getDriverName to handle no-connection case
+     * @return string
+     */
+    public function getDriverName()
+    {
+        if (!$this->isConnectionAvailable()) {
+            return 'couchbase';
+        }
+        try {
+            return parent::getDriverName();
+        } catch (\Throwable $e) {
+            return 'couchbase';
+        }
+    }
+    
     public function beginTransaction()
     {
+        // If the underlying PDO is unavailable (no MariaDB), return a stub transaction
+        if (!$this->isConnectionAvailable()) {
+            return new OETransactionStub();
+        }
+
         if (Yii::app()->params['enable_transactions']) {
             return parent::beginTransaction();
-        } else {
-            $stub = new OETransactionStub();
-
-            return $stub;
         }
+
+        return new OETransactionStub();
     }
 
     /**
@@ -35,11 +274,14 @@ class OEDbConnection extends CDbConnection
     public function beginInternalTransaction()
     {
         if ($this->getCurrentTransaction()) {
-            $stub = new OETransactionStub();
-
-            return $stub;
-        } else {
-            return $this->beginTransaction();
+            return new OETransactionStub();
         }
+
+        // If connection is unavailable, return stub instead of attempting PDO transaction
+        if (!$this->isConnectionAvailable()) {
+            return new OETransactionStub();
+        }
+
+        return $this->beginTransaction();
     }
 }

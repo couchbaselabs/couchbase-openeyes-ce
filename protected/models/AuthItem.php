@@ -38,7 +38,7 @@ class AuthItem extends BaseActiveRecord
      */
     public function couchbaseCollection()
     {
-        return 'auth_item';
+        return 'authitem';
     }
 
     /**

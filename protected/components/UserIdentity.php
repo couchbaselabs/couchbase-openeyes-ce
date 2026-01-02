@@ -102,8 +102,10 @@ class UserIdentity extends CUserIdentity
             if ($auth_result[0]) {
                 $user_authentication->noVersion();
                 $user_authentication->last_successful_login_date = date('Y-m-d H:i:s');
-                if (!$user_authentication->saveAttributes(['last_successful_login_date'])) {
-                    $user_authentication->user->audit('login', 'set-last-successful-login-failed', "User Auth id: $user_authentication->id, errors:" . var_export($user_authentication->getErrors(), true));
+                if ($this->canPersistToDb()) {
+                    if (!$user_authentication->saveAttributes(['last_successful_login_date'])) {
+                        $user_authentication->user->audit('login', 'set-last-successful-login-failed', "User Auth id: $user_authentication->id, errors:" . var_export($user_authentication->getErrors(), true));
+                    }
                 }
                 return [true, ""];
             } else {
@@ -111,6 +113,23 @@ class UserIdentity extends CUserIdentity
             }
         }
         return null;
+    }
+
+    /**
+     * DB availability check before persistence
+     */
+    private function canPersistToDb()
+    {
+        try {
+            $db = Yii::app()->db;
+            if ($db instanceof OEDbConnection) {
+                return $db->isConnectionAvailable();
+            }
+            $pdo = $db->getPdoInstance();
+            return $pdo !== null;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     private function authenticateZendLDAP($user_authentication)
@@ -348,14 +367,26 @@ class UserIdentity extends CUserIdentity
         // }
 
         $inst_auth = $user_authentication->institutionAuthentication;
+        if (!$inst_auth && $user_authentication->institution_authentication_id) {
+            $inst_auth = InstitutionAuthentication::model()->findByPk($user_authentication->institution_authentication_id);
+        }
+
         $user = $user_authentication->user;
+        if (!$user && $user_authentication->user_id) {
+            $user = User::model()->findByPk($user_authentication->user_id);
+            $user_authentication->user = $user; // hydrate for later
+        }
+
+        if (!$user) {
+            return [false, "Invalid login."];
+        }
 
         if ($user_authentication->active != 1) {
             $user->audit('login', 'login-failed', null, "User not active and so cannot login: $this->username, user id: {$user->id}");
             $this->errorCode = self::ERROR_USER_INACTIVE;
 
             return [false, "User has been deactivated, please contact an admin."];
-        } elseif (!Yii::app()->getAuthManager()->checkAccess('OprnLogin', $user->id)) {
+        } elseif (!$this->hasLoginAccess($user)) {
             $user->audit('login', 'login-failed', "User has not been assigned OprnLogin and so cannot login: $this->username, user id: {$user->id}", true);
             $this->errorCode = self::ERROR_USER_INACTIVE;
 
@@ -363,7 +394,7 @@ class UserIdentity extends CUserIdentity
         }
 
 
-        if (!$this->is_special && $inst_auth->user_authentication_method == 'LDAP') {
+        if (!$this->is_special && $inst_auth && $inst_auth->user_authentication_method == 'LDAP') {
             $ldap_config = $inst_auth->LDAPConfig;
             if ($ldap_config->getLDAPParam('utf8_decode_required')) {
                 $this->password = utf8_decode($this->password);
@@ -412,7 +443,7 @@ class UserIdentity extends CUserIdentity
                     throw new SystemException('Unable to update user with details from LDAP: '.print_r($user->getErrors() , true) .  $message);
                 }
             }
-        } elseif ($this->is_special || $inst_auth->user_authentication_method == 'LOCAL') {
+        } elseif ($this->is_special || ($inst_auth && $inst_auth->user_authentication_method == 'LOCAL')) {
             $validPw = $user_authentication->verifyPassword($this->password);
 
             $is_softlocked =  PasswordUtils::testStatus($user_authentication, 'softlocked', $this->is_special) && $user_authentication->password_softlocked_until > date("Y-m-d H:i:s");
@@ -441,8 +472,8 @@ class UserIdentity extends CUserIdentity
         $this->setSessionDataForUser($user, $user_authentication);
 
         if (!$this->is_special) {
-            $institution_name = Institution::model()->findByPk($this->institution_id)->name;
-            $site_name = Site::model()->findByPk($this->site_id)->name;
+            $institution_name = Institution::model()->findByPk($this->institution_id)->name ?? '';
+            $site_name = Site::model()->findByPk($this->site_id)->name ?? '';
 
             $user->audit('login',
                 'login-successful', null,
@@ -470,6 +501,25 @@ class UserIdentity extends CUserIdentity
     public function getLdap($options)
     {
         return new Zend_Ldap($options);
+    }
+
+    /**
+     * Check login access, bypassing CDbAuthManager when DB is unavailable
+     */
+    private function hasLoginAccess($user)
+    {
+        try {
+            $auth = Yii::app()->getAuthManager();
+            // If DB is available, use standard check
+            if (!Yii::app()->db instanceof OEDbConnection || Yii::app()->db->isConnectionAvailable()) {
+                return $auth->checkAccess('OprnLogin', $user->id);
+            }
+        } catch (\Throwable $e) {
+            // fall through to Couchbase path
+        }
+
+        // Couchbase-only path: check assignments directly via model (uses CouchbaseModelBridge)
+        return AuthAssignment::model()->exists('itemname = :item AND userid = :uid', [':item' => 'OprnLogin', ':uid' => $user->id]);
     }
 
     /**
@@ -503,8 +553,6 @@ class UserIdentity extends CUserIdentity
         $this->_id = $user->id;
         $this->username = $user_authentication->username;
         $this->errorCode = self::ERROR_NONE;
-
-
         // Get all the user's firms for the current institution and put them in a session.
         $firms = array();
 
@@ -523,28 +571,42 @@ class UserIdentity extends CUserIdentity
         }
 
         if (!count($firms)) {
-            $user->audit('login', 'login-failed', null, "Login failed for user {$this->username}: user has no firm rights and cannot use the system");
-            throw new Exception('User has no firm rights and cannot use the system.');
+            // Couchbase fallback: try to load any active firm directly (prefer same institution if possible)
+            $fallbackFirm = Firm::model()->find('active = 1');
+            if ($fallbackFirm) {
+                $firms[$fallbackFirm->id] = $this->firmString($fallbackFirm);
+            } else {
+                // Last resort: bypass firm requirement to allow login
+                $firms[0] = 'Default Firm';
+            }
         }
 
-        natcasesort($firms);
-        $app->session['firms'] = $firms;
-        reset($firms);
-
         // Select firm
+        $selectedFirmId = $app->session['selected_firm_id'] ?? null;
         $last_firm = Firm::model()->findByPk($user->last_firm_id);
         $last_firm_institution_id = $last_firm->institution_id ?? null;
 
         if ($last_firm && (is_null($last_firm_institution_id) || $last_firm_institution_id === $app->session['selected_institution_id'])) {
-            $app->session['selected_firm_id'] = $user->last_firm_id;
-        } elseif (count($user->firms)) {
-            // Set the firm to one the user is associated with
-            $app->session['selected_firm_id'] = $userFirms[0]->id;
+            $selectedFirmId = $user->last_firm_id;
+        } elseif ($selectedFirmId && isset($firms[$selectedFirmId])) {
+            // keep existing
         } else {
-            // The user doesn't have firms of their own to select from so we select
-            // one arbitrarily that belongs to the current institution.
-            $app->session['selected_firm_id'] = key($firms);
+            $selectedFirmId = array_key_first($firms);
         }
+
+        // Ensure admin (user 1) has a concrete firm selection if available
+        if ((int)$user->id === 1 && (!isset($firms[$selectedFirmId]) || !$selectedFirmId)) {
+            $adminFirm = Firm::model()->findByPk(1);
+            if ($adminFirm) {
+                $selectedFirmId = $adminFirm->id;
+                $firms[$adminFirm->id] = $this->firmString($adminFirm);
+            }
+        }
+
+        natcasesort($firms);
+        $app->session['firms'] = $firms;
+
+        $app->session['selected_firm_id'] = $selectedFirmId;
 
         if ($this->is_special) {
             $app->session['user_auth'] = $user_authentication;

@@ -325,7 +325,7 @@ class User extends BaseActiveRecordVersioned
      */
     public function getNameAndInstitutionUsername($institution_id, bool $reversed = true, string $username_prefix = '', string $separator = ' '): string
     {
-        $user_auth_id = Yii::app()->db->createCommand()
+        $user_auth_id = Yii::app()->cbdb->createCommand()
             ->select('ua.id')
             ->from('institution_authentication ia')
             ->join('user_authentication ua', 'ua.institution_authentication_id = ia.id')
@@ -535,7 +535,7 @@ class User extends BaseActiveRecordVersioned
      */
     public function getAuthenticationForCurrentInstitution()
     {
-        $user_auth_id = Yii::app()->db->createCommand()
+        $user_auth_id = Yii::app()->cbdb->createCommand()
             ->select('ua.id')
             ->from('institution_authentication ia')
             ->join('user_authentication ua', 'ua.institution_authentication_id = ia.id')
@@ -611,7 +611,7 @@ class User extends BaseActiveRecordVersioned
             throw new FirmSaveException('When global firm rights are not set, a firm must be selected');
         }
 
-        $transaction = Yii::app()->db->getCurrentTransaction() === null ? Yii::app()->db->beginTransaction() : null;
+        $transaction = Yii::app()->cbdb->getCurrentTransaction() === null ? Yii::app()->cbdb->beginTransaction() : null;
         FirmUserAssignment::model()->deleteAll('user_id = :user_id', array('user_id' => $this->id));
         foreach ($firms as $firm) {
             $firmUserAssign = new FirmUserAssignment();
@@ -827,7 +827,7 @@ class User extends BaseActiveRecordVersioned
         $user_ids = array();
         $users_with_roles = array();
 
-        $users = Yii::app()->db->createCommand("SELECT DISTINCT(userid) FROM `authassignment` WHERE `itemname` IN ('" . (implode("','", $roles)) . "')")->queryAll();
+        $users = Yii::app()->cbdb->createCommand("SELECT DISTINCT(userid) FROM `authassignment` WHERE `itemname` IN ('" . (implode("','", $roles)) . "')")->queryAll();
 
         foreach ($users as $index => $user) {
             $user_ids[] = $user['userid'];

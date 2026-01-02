@@ -107,7 +107,7 @@ class PatientIdentifier extends BaseActiveRecordVersioned
 
             if ($length == 11) {
                 // Unique check
-                $count = Yii::app()->db->createCommand()
+                $count = Yii::app()->cbdb->createCommand()
                     ->select('COUNT(p.id)')
                     ->from('patient p')
                     ->join('patient_identifier pi', 'p.id = pi.patient_id')

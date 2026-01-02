@@ -99,7 +99,7 @@ class DidNotAttend extends BaseResource
                 return;
             }
 
-            $DNA_type_id = \Yii::app()->db->createCommand('SELECT id FROM event_type WHERE name = "Did Not Attend"')->queryScalar();
+            $DNA_type_id = \Yii::app()->cbdb->createCommand('SELECT id FROM event_type WHERE name = "Did Not Attend"')->queryScalar();
             if (!$DNA_type_id) {
                 $this->addError("Could not find 'Did not attend' event type");
                 return;

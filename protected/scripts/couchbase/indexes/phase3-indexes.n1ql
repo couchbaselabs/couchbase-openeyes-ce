@@ -1,0 +1,180 @@
+-- ============================================================================
+-- Phase 3: Core Document Indexes
+-- Run after collections are created
+-- ============================================================================
+
+-- ======================
+-- CORE SCOPE INDEXES
+-- ======================
+
+-- Patient indexes
+CREATE INDEX idx_patient_type ON `openeyes`.`core`.`patient`(_type) 
+    WHERE _type = "patient" USING GSI;
+
+CREATE INDEX idx_patient_hos_num ON `openeyes`.`core`.`patient`(hos_num) 
+    WHERE _type = "patient" AND hos_num IS NOT NULL USING GSI;
+
+CREATE INDEX idx_patient_nhs_num ON `openeyes`.`core`.`patient`(nhs_num) 
+    WHERE _type = "patient" AND nhs_num IS NOT NULL USING GSI;
+
+CREATE INDEX idx_patient_name ON `openeyes`.`core`.`patient`(
+    contact.last_name, 
+    contact.first_name
+) WHERE _type = "patient" USING GSI;
+
+CREATE INDEX idx_patient_dob ON `openeyes`.`core`.`patient`(dob) 
+    WHERE _type = "patient" USING GSI;
+
+CREATE INDEX idx_patient_dob_name ON `openeyes`.`core`.`patient`(
+    dob, 
+    contact.last_name, 
+    contact.first_name
+) WHERE _type = "patient" USING GSI;
+
+CREATE INDEX idx_patient_institution ON `openeyes`.`core`.`patient`(primary_institution_id) 
+    WHERE _type = "patient" USING GSI;
+
+CREATE INDEX idx_patient_gp ON `openeyes`.`core`.`patient`(gp_id) 
+    WHERE _type = "patient" AND gp_id IS NOT NULL USING GSI;
+
+CREATE INDEX idx_patient_deleted ON `openeyes`.`core`.`patient`(deleted) 
+    WHERE _type = "patient" USING GSI;
+
+-- Episode indexes
+CREATE INDEX idx_episode_patient ON `openeyes`.`core`.`episode`(patient_id) 
+    WHERE _type = "episode" USING GSI;
+
+CREATE INDEX idx_episode_firm ON `openeyes`.`core`.`episode`(firm_id) 
+    WHERE _type = "episode" USING GSI;
+
+CREATE INDEX idx_episode_subspecialty ON `openeyes`.`core`.`episode`(subspecialty_id) 
+    WHERE _type = "episode" USING GSI;
+
+CREATE INDEX idx_episode_status_date ON `openeyes`.`core`.`episode`(
+    episode_status_id, 
+    start_date DESC
+) WHERE _type = "episode" USING GSI;
+
+CREATE INDEX idx_episode_patient_firm ON `openeyes`.`core`.`episode`(
+    patient_id, 
+    firm_id
+) WHERE _type = "episode" USING GSI;
+
+-- Event indexes
+CREATE INDEX idx_event_episode ON `openeyes`.`core`.`event`(episode_id) 
+    WHERE _type = "event" USING GSI;
+
+CREATE INDEX idx_event_type ON `openeyes`.`core`.`event`(event_type_id) 
+    WHERE _type = "event" USING GSI;
+
+CREATE INDEX idx_event_date ON `openeyes`.`core`.`event`(event_date DESC) 
+    WHERE _type = "event" USING GSI;
+
+CREATE INDEX idx_event_deleted ON `openeyes`.`core`.`event`(deleted, delete_pending) 
+    WHERE _type = "event" USING GSI;
+
+CREATE INDEX idx_event_institution_site ON `openeyes`.`core`.`event`(
+    institution_id, 
+    site_id
+) WHERE _type = "event" USING GSI;
+
+CREATE INDEX idx_event_episode_date ON `openeyes`.`core`.`event`(
+    episode_id, 
+    event_date DESC
+) WHERE _type = "event" USING GSI;
+
+-- User indexes
+CREATE INDEX idx_user_username ON `openeyes`.`core`.`user`(username) 
+    WHERE _type = "user" USING GSI;
+
+CREATE INDEX idx_user_active ON `openeyes`.`core`.`user`(active) 
+    WHERE _type = "user" AND active = true USING GSI;
+
+CREATE INDEX idx_user_institution ON `openeyes`.`core`.`user`(primary_institution_id) 
+    WHERE _type = "user" USING GSI;
+
+-- Firm indexes
+CREATE INDEX idx_firm_active ON `openeyes`.`core`.`firm`(active) 
+    WHERE _type = "firm" USING GSI;
+
+CREATE INDEX idx_firm_institution ON `openeyes`.`core`.`firm`(institution_id) 
+    WHERE _type = "firm" USING GSI;
+
+-- ======================
+-- CLINICAL SCOPE INDEXES
+-- ======================
+
+CREATE INDEX idx_examination_event ON `openeyes`.`clinical`.`examination`(event_id) 
+    WHERE _type = "examination" USING GSI;
+
+CREATE INDEX idx_examination_date ON `openeyes`.`clinical`.`examination`(_modified DESC) 
+    WHERE _type = "examination" USING GSI;
+
+CREATE INDEX idx_diagnosis_disorder ON `openeyes`.`clinical`.`diagnosis`(disorder_id) 
+    WHERE _type = "diagnosis" USING GSI;
+
+CREATE INDEX idx_diagnosis_patient ON `openeyes`.`clinical`.`diagnosis`(patient_id) 
+    WHERE _type = "diagnosis" USING GSI;
+
+CREATE INDEX idx_medication_patient ON `openeyes`.`clinical`.`medication`(patient_id) 
+    WHERE _type = "medication" USING GSI;
+
+CREATE INDEX idx_allergy_patient ON `openeyes`.`clinical`.`allergy`(patient_id) 
+    WHERE _type = "allergy" USING GSI;
+
+-- ======================
+-- REFERENCE SCOPE INDEXES
+-- ======================
+
+CREATE INDEX idx_disorder_term ON `openeyes`.`reference`.`disorder`(term) 
+    WHERE _type = "disorder" USING GSI;
+
+CREATE INDEX idx_disorder_snomed ON `openeyes`.`reference`.`disorder`(
+    DISTINCT ARRAY s FOR s IN snomed_codes END
+) WHERE _type = "disorder" USING GSI;
+
+-- ======================
+-- ADMIN SCOPE INDEXES
+-- ======================
+
+CREATE INDEX idx_audit_date ON `openeyes`.`admin`.`audit`(created_date DESC) 
+    WHERE _type = "audit" USING GSI;
+
+CREATE INDEX idx_audit_patient ON `openeyes`.`admin`.`audit`(patient_id) 
+    WHERE _type = "audit" AND patient_id IS NOT NULL USING GSI;
+
+CREATE INDEX idx_audit_user ON `openeyes`.`admin`.`audit`(user_id) 
+    WHERE _type = "audit" USING GSI;
+
+CREATE INDEX idx_audit_action ON `openeyes`.`admin`.`audit`(action, target) 
+    WHERE _type = "audit" USING GSI;
+
+-- ======================
+-- COVERING INDEXES (for common queries)
+-- ======================
+
+-- Patient search covering index
+CREATE INDEX idx_patient_search_covering ON `openeyes`.`core`.`patient`(
+    hos_num,
+    nhs_num,
+    contact.last_name,
+    contact.first_name,
+    dob,
+    gender
+) WHERE _type = "patient" AND deleted = false USING GSI;
+
+-- Episode list covering index
+CREATE INDEX idx_episode_list_covering ON `openeyes`.`core`.`episode`(
+    patient_id,
+    start_date DESC,
+    episode_status_id,
+    subspecialty_id
+) WHERE _type = "episode" USING GSI;
+
+-- Event list covering index
+CREATE INDEX idx_event_list_covering ON `openeyes`.`core`.`event`(
+    episode_id,
+    event_date DESC,
+    event_type_id,
+    deleted
+) WHERE _type = "event" USING GSI;

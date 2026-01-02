@@ -44,6 +44,38 @@ class Episode extends BaseActiveRecordVersioned
     use HasFactory;
     use CouchbaseModelBridge;
 
+    public function __get($name)
+    {
+        if ($name === 'firm') {
+            return $this->resolveFirmRelation();
+        }
+
+        return parent::__get($name);
+    }
+
+    /**
+     * Couchbase-friendly resolver for firm relation
+     * @return Firm|null
+     */
+    private function resolveFirmRelation()
+    {
+        $related = $this->getRelated('firm', false);
+        if ($related !== null) {
+            return $related;
+        }
+
+        if (!$this->firm_id) {
+            return null;
+        }
+
+        $firm = Firm::model()->findByPk($this->firm_id);
+        if ($firm) {
+            $this->addRelatedRecord('firm', $firm, false);
+        }
+
+        return $firm;
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *
@@ -85,7 +117,9 @@ class Episode extends BaseActiveRecordVersioned
      */
     public function defaultScope()
     {
-        $this->displayDeletedEvents();
+        if (method_exists($this, 'displayDeletedEvents')) {
+            $this->displayDeletedEvents();
+        }
         if ($this->getDefaultScopeDisabled()) {
             return [];
         }
@@ -127,7 +161,8 @@ class Episode extends BaseActiveRecordVersioned
                 self::HAS_MANY,
                 Event::class,
                 'episode_id',
-                'order' => ' events.event_date asc, events.created_date asc'
+                // Couchbase-safe: avoid table alias in ORDER BY
+                'order' => 'event_date desc, created_date desc'
             ],
             'user' => array(self::BELONGS_TO, 'User', 'created_user_id'),
             'usermodified' => array(self::BELONGS_TO, 'User', 'last_modified_user_id'),
@@ -265,34 +300,36 @@ class Episode extends BaseActiveRecordVersioned
     {
         $where = $include_closed ? '' : ' AND e.end_date IS NULL';
 
-        // Check for an open episode for this patient and firm's service with a referral
-        if (!is_null($subspecialty_id)) {
-            $episode = Yii::app()->db->createCommand()
-                ->select('e.id AS eid')
-                ->from('episode e')
-                ->join('firm f', 'e.firm_id = f.id')
-                ->join('service_subspecialty_assignment s_s_a', 'f.service_subspecialty_assignment_id = s_s_a.id')
-                ->where('e.deleted = false' . $where . ' AND e.patient_id = :patient_id AND s_s_a.subspecialty_id = :subspecialty_id', array(
-                    ':patient_id' => $patient_id,
-                    ':subspecialty_id' => $subspecialty_id,
-                ))
-                ->queryRow();
-        } else {
-            $episode = Yii::app()->db->createCommand()
-                ->select('e.id AS eid')
-                ->from('episode e')
-                ->where('e.deleted = false AND e.legacy = false AND e.support_services = TRUE ' . $where . ' AND e.patient_id = :patient_id', array(
-                    ':patient_id' => $patient_id,
-                ))
-                ->queryRow();
+        // Couchbase-native lookup (avoid CouchbaseDbCommand::select which is unavailable)
+        try {
+            $params = ['patient_id' => (int)$patient_id];
+            if (!is_null($subspecialty_id)) {
+                $params['subspecialty_id'] = (int)$subspecialty_id;
+                $n1ql = "SELECT e.id AS eid FROM `openeyes`.`core`.`episode` e "
+                    . "JOIN `openeyes`.`core`.`firm` f ON e.firm_id = f.id "
+                    . "JOIN `openeyes`.`reference`.`service_subspecialty_assignment` ssa ON ssa.id = f.service_subspecialty_assignment_id "
+                    . "WHERE (e.deleted = false OR e.deleted = 0)$where "
+                    . "AND e.patient_id = \$patient_id "
+                    . "AND ssa.subspecialty_id = \$subspecialty_id "
+                    . "LIMIT 1";
+            } else {
+                $n1ql = "SELECT e.id AS eid FROM `openeyes`.`core`.`episode` e "
+                    . "WHERE (e.deleted = false OR e.deleted = 0) AND (e.legacy = false OR e.legacy = 0) AND e.support_services = TRUE$where "
+                    . "AND e.patient_id = \$patient_id "
+                    . "LIMIT 1";
+            }
+
+            $rows = Yii::app()->couchbaseRest->query($n1ql, $params);
+            $episode = !empty($rows) ? reset($rows) : null;
+            if ($episode && !empty($episode['eid'])) {
+                return self::model()->findByPk($episode['eid']);
+            }
+        } catch (Exception $e) {
+            Yii::log('Episode Couchbase lookup failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
         }
 
-        if (!$episode || !$episode['eid']) {
-            // No episode found
-            return;
-        }
-        // return the episode object
-        return self::model()->findByPk($episode['eid']);
+        // No episode found
+        return;
     }
 
     /**

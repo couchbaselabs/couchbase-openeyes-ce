@@ -15,31 +15,22 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
-/**
-* Obtain db access credentials.
-* - If old db.conf file exists (old method from OpenEyes v2.x) then use it.
-*   - Else chack for docker secrets
-*     - Else test environment variables
-*       - Else use default values
-**/
-if (file_exists('/etc/openeyes/db.conf')) {
-    $db = parse_ini_file('/etc/openeyes/db.conf');
-} else {
-    $db = array(
-        'host' => getenv('DATABASE_HOST') ?: 'localhost',
-        'port' => getenv('DATABASE_PORT') ?: '3306',
-        'dbname' => getenv('DATABASE_NAME') ?: 'openeyes',
-        'username' => rtrim(@file_get_contents("/run/secrets/DATABASE_USER")) ?: (getenv('DATABASE_USER') ?: 'openeyes'),
-        'password' => rtrim(@file_get_contents("/run/secrets/DATABASE_PASS")) ?: (getenv('DATABASE_PASS') ?: 'openeyes'),
-    );
-    $db_test = array(
-        'host' => getenv('DATABASE_TEST_HOST') ?: (getenv('DATABASE_HOST') ?: 'localhost'),
-        'port' => getenv('DATABASE_TEST_PORT') ?: (getenv('DATABASE_PORT') ?: '3306'),
-        'dbname' => getenv('DATABASE_TEST_NAME') ?: (getenv('DATABASE_NAME') ?: 'openeyes_test'),
-        'username' => rtrim(@file_get_contents("/run/secrets/DATABASE_TEST_USER")) ?: (getenv('DATABASE_TEST_USER') ?: (rtrim(@file_get_contents("/run/secrets/DATABASE_USER")) ?: (getenv('DATABASE_USER') ?: 'openeyes'))),
-        'password' => rtrim(@file_get_contents("/run/secrets/DATABASE_TEST_PASS")) ?: (getenv('DATABASE_TEST_PASS') ?: (rtrim(@file_get_contents("/run/secrets/DATABASE_PASS")) ?: (getenv('DATABASE_PASS') ?: 'openeyes'))),
-    );
-}
+// MariaDB has been REMOVED - Couchbase is now the only database
+// These dummy values are kept for backward compatibility with Yii framework
+$db = array(
+    'host' => 'localhost',
+    'port' => '3306',
+    'dbname' => 'openeyes',
+    'username' => 'openeyes',
+    'password' => 'openeyes',
+);
+$db_test = array(
+    'host' => 'localhost',
+    'port' => '3306',
+    'dbname' => 'openeyes_test',
+    'username' => 'openeyes',
+    'password' => 'openeyes',
+);
 
 $config = array(
     'name' => 'OpenEyes Console',
@@ -57,17 +48,25 @@ $config = array(
         ),
     ),
     'components' => array(
+        // DEPRECATED: MariaDB removed - uses static schema only
         'db' => array(
             'class' => "OEDbConnection",
-            'connectionString' => "mysql:host={$db['host']};port={$db['port']};dbname={$db['dbname']}",
-            'username' => $db['username'],
-            'password' => $db['password'],
+            'connectionString' => '', // No connection - MariaDB removed
+            'username' => '',
+            'password' => '',
+            'autoConnect' => false,
         ),
+        // DEPRECATED: Test database - MariaDB removed
         'testdb' => array(
             'class' => "OEDbConnection",
-            'connectionString' => "mysql:host={$db_test['host']};port={$db_test['port']};dbname={$db_test['dbname']}",
-            'username' => $db_test['username'],
-            'password' => $db_test['password'],
+            'connectionString' => '', // No connection - MariaDB removed
+            'username' => '',
+            'password' => '',
+            'autoConnect' => false,
+        ),
+        'couchbase' => array(
+            'class' => 'application.components.CouchbaseConnection',
+            'config' => require(__DIR__ . '/../couchbase.php'),
         ),
         'mailer' => array(
             // Setting the mailer mode to null will suppress email
@@ -102,6 +101,20 @@ if ($modules) {
                     }
                 }
             }
+        }
+    }
+}
+
+// Merge with local console config if it exists
+$localConfig = __DIR__ . '/../local/console.php';
+if (file_exists($localConfig)) {
+    $localConsoleConfig = include($localConfig);
+    // Manually merge arrays (can't use CMap::mergeArray as Yii not loaded yet)
+    foreach ($localConsoleConfig as $key => $value) {
+        if (isset($config[$key]) && is_array($config[$key]) && is_array($value)) {
+            $config[$key] = array_replace_recursive($config[$key], $value);
+        } else {
+            $config[$key] = $value;
         }
     }
 }

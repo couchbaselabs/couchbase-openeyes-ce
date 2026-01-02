@@ -27,9 +27,28 @@ class OphTrLaser_API extends BaseAPI
      */
     public function getLaterality($event_id)
     {
+        // Couchbase-first lookup
+        $useCouchbase = Yii::app()->params['enable_couchbase_read'] ?? false;
+        if ($useCouchbase) {
+            try {
+                $adapter = \OE\Database\DatabaseAdapterFactory::getAdapter(\OE\Database\DatabaseAdapterFactory::ADAPTER_COUCHBASE);
+                // Treatment data typically sits in clinical scope keyed by event_id
+                $rows = $adapter->query(
+                    "SELECT d.eye FROM `" . Yii::app()->couchbase->config['bucket'] . "`.`clinical`.`examination` d WHERE d.event_id = $event_id LIMIT 1",
+                    ['event_id' => (int)$event_id]
+                );
+                if (!empty($rows[0]['eye'])) {
+                    return $rows[0]['eye'];
+                }
+            } catch (\Exception $e) {
+                Yii::log('Couchbase laser laterality lookup failed: ' . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application.laser');
+            }
+        }
+
+        // MariaDB fallback
         $laser_treatment = Element_OphTrLaser_Treatment::model()->find('event_id=?', array($event_id));
         if (!$laser_treatment) {
-            throw new Exception("Laser treatment event not found: $event_id");
+            return null;
         }
         return $laser_treatment->eye;
     }

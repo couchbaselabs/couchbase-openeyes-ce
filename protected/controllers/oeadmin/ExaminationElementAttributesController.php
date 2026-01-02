@@ -158,7 +158,7 @@ class ExaminationElementAttributesController extends BaseAdminController
                 $newOCEA->is_multiselect = $attributeIsMultiSelect;
 
                 if ($newOCEA->save()) {
-                    $newAttributeId = Yii::app()->db->getLastInsertID();
+                    $newAttributeId = Yii::app()->cbdb->getLastInsertID();
 
                     $newOCEAE->attribute_id = $newAttributeId;
                     $newOCEAE->element_type_id = $attributeElements;

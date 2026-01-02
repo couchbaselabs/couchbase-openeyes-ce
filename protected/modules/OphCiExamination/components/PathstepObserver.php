@@ -56,7 +56,7 @@ class PathstepObserver
             // Determine if an examination event already exists for the patient visit.
             // If it doesn't exist, set the URL to the event creation URL so the episode is also created.
             // Otherwise, set the URL to the step create URL for the existing event.
-            $latest_exam_event_for_visit = Yii::app()->db->createCommand()
+            $latest_exam_event_for_visit = Yii::app()->cbdb->createCommand()
                 ->select('e.id')
                 ->from('event e')
                 ->join('event_type et', 'et.id = e.event_type_id')

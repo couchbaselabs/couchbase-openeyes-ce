@@ -318,7 +318,34 @@ class BaseController extends Controller
      */
     public function checkAccess($operation, ...$params): bool
     {
-        return (bool)Yii::app()->user->checkAccess($operation, $params);
+        $payload = $params;
+
+        // Normalize positional arguments into named parameters for biz rules
+        if (is_array($payload) && array_keys($payload) === range(0, count($payload) - 1)) {
+            $normalized = [];
+            foreach ($payload as $value) {
+                if ($value instanceof \Event) {
+                    $normalized['event'] = $value;
+                } elseif ($value instanceof \Episode) {
+                    $normalized['episode'] = $value;
+                } elseif ($value instanceof \Firm) {
+                    $normalized['firm'] = $value;
+                } elseif ($value instanceof \Institution) {
+                    $normalized['institution'] = $value;
+                } elseif ($value instanceof \User || $value instanceof \OEWebUser) {
+                    $normalized['user'] = $value;
+                } else {
+                    $normalized[] = $value;
+                }
+            }
+            // If only one positional item was an associative array, prefer it
+            if (count($payload) === 1 && is_array($payload[0]) && array_keys($payload[0]) !== range(0, count($payload[0]) - 1)) {
+                $normalized = $payload[0];
+            }
+            $payload = $normalized;
+        }
+
+        return (bool)Yii::app()->user->checkAccess($operation, $payload);
     }
 
     /**
@@ -408,9 +435,9 @@ class BaseController extends Controller
     private function getActiveUnusedUniqueCode()
     {
         UniqueCodeMapping::model()->lock();
-        //Yii::app()->db->createCommand("LOCK TABLES unique_codes READ, unique_codes_mapping WRITE")->execute();
+        //Yii::app()->cbdb->createCommand("LOCK TABLES unique_codes READ, unique_codes_mapping WRITE")->execute();
 
-        $record = Yii::app()->db->createCommand()
+        $record = Yii::app()->cbdb->createCommand()
             ->select('unique_codes.id as id')
             ->from('unique_codes')
             ->leftJoin('unique_codes_mapping', 'unique_code_id=unique_codes.id')
@@ -420,7 +447,7 @@ class BaseController extends Controller
             ->queryRow();
 
         UniqueCodeMapping::model()->unlock();
-        //Yii::app()->db->createCommand("UNLOCK TABLES")->execute();
+        //Yii::app()->cbdb->createCommand("UNLOCK TABLES")->execute();
 
         return $record ? $record["id"] : null;
     }

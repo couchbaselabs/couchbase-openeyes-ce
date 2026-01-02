@@ -358,7 +358,10 @@ abstract class ModelFactory
     {
         $modelName = $this->modelName();
         $criteria = new CDbCriteria();
-        $criteria->order = 'RAND()';
+        // Use RANDOM() for Couchbase N1QL compatibility (RAND() is MySQL-only)
+        // The CouchbaseModelBridge will also convert RAND() to RANDOM() but
+        // using RANDOM() directly is more reliable
+        $criteria->order = 'RANDOM()';
         $criteria->limit = $this->count ?? 1;
         $criteria->addColumnCondition($attributes);
 

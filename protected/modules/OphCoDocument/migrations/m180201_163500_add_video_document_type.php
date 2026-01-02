@@ -6,10 +6,10 @@ class m180201_163500_add_video_document_type extends OEMigration
     {
 
         # Check that these values do not already exist
-        $isVid = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Video'))->queryRow();
+        $isVid = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Video'))->queryScalar();
 
         # Insert values if they don't already exist
-        if ($isVid['id'] == '') {
+        if (!$isVid) {
             $this->insert('ophcodocument_sub_types', array(
                           'name' => 'Video',
                           'display_order' => '11',

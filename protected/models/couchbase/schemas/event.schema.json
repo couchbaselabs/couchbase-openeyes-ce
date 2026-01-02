@@ -1,0 +1,113 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://openeyes.org/schemas/event.schema.json",
+    "title": "Event Document",
+    "description": "Couchbase document schema for clinical events",
+    "type": "object",
+    "required": ["_type", "_id", "event_type_id", "event_date"],
+    "properties": {
+        "_type": {
+            "type": "string",
+            "const": "event"
+        },
+        "_id": {
+            "type": "string"
+        },
+        "_mysql_id": {
+            "type": "integer"
+        },
+        "_created": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "_modified": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "_version": {
+            "type": "integer",
+            "default": 1
+        },
+        "episode_id": {
+            "type": ["integer", "null"],
+            "description": "Reference to episode document"
+        },
+        "event_type_id": {
+            "type": "integer",
+            "description": "Reference to event_type lookup"
+        },
+        "event_type_name": {
+            "type": ["string", "null"],
+            "description": "Denormalized event type name for display"
+        },
+        "event_date": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "info": {
+            "type": ["string", "null"],
+            "description": "Additional event information"
+        },
+        "deleted": {
+            "type": "boolean",
+            "default": false
+        },
+        "delete_reason": {
+            "type": ["string", "null"],
+            "maxLength": 1024
+        },
+        "delete_pending": {
+            "type": "boolean",
+            "default": false
+        },
+        "institution_id": {
+            "type": ["integer", "null"]
+        },
+        "site_id": {
+            "type": ["integer", "null"]
+        },
+        "firm_id": {
+            "type": ["integer", "null"]
+        },
+        "is_automated": {
+            "type": "boolean",
+            "default": false
+        },
+        "automated_source": {
+            "type": ["string", "null"]
+        },
+        "parent_id": {
+            "type": ["integer", "null"],
+            "description": "Reference to parent event if linked"
+        },
+        "worklist_patient_id": {
+            "type": ["integer", "null"]
+        },
+        "elements": {
+            "type": "object",
+            "description": "Embedded examination elements (small ones only)",
+            "additionalProperties": {
+                "type": "object",
+                "description": "Element data keyed by element type"
+            }
+        },
+        "element_refs": {
+            "type": "array",
+            "description": "References to large elements stored separately",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "element_type_id": {"type": "integer"},
+                    "element_type_name": {"type": "string"},
+                    "document_id": {"type": "string"}
+                },
+                "required": ["element_type_id", "document_id"]
+            }
+        },
+        "created_user_id": {"type": "integer"},
+        "created_date": {"type": "string", "format": "date-time"},
+        "last_modified_user_id": {"type": "integer"},
+        "last_modified_date": {"type": "string", "format": "date-time"}
+    },
+    "additionalProperties": false
+}

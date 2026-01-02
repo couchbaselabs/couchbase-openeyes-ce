@@ -17,15 +17,19 @@
  */
 ?>
 <?php
+$patient = $this->patient ?? null;
+if (!$patient) {
+    return;
+}
 $this->widget('application.widgets.PatientPanel', array(
-    'patient' => $this->patient,
+    'patient' => $patient,
     'selected_site_id' => $this->selectedSiteId,
     'summary'=>true
 ));
 ?>
 <script type="application/javascript">
     $(function () {
-        PatientPanel.patientPopups.init($('[id=oe-patient-details][data-patient-id=<?= $this->patient->id?>]'));
+        PatientPanel.patientPopups.init($('[id=oe-patient-details][data-patient-id=<?= $patient->id?>]'));
         $('body').on('click', '.js-patient-expand-btn', function () {
             $(this).toggleClass('collapse expand');
             $(this).parents('table').find('tbody').toggle();

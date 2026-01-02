@@ -85,7 +85,7 @@ class OphInDnaextraction_DnaExtraction_Box extends BaseActiveRecord
 
     public function boxMaxValues($boxID)
     {
-        $boxMaxValues = Yii::app()->db->createCommand()
+        $boxMaxValues = Yii::app()->cbdb->createCommand()
             ->select('id, value, maxletter, maxnumber')
             ->from('ophindnaextraction_dnaextraction_box')
             ->where('id =:id', array(':id' => $boxID))

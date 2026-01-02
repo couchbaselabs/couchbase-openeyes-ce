@@ -306,7 +306,7 @@ class WorklistController extends BaseAdminController
         }
 
         if (!empty($pathwayStepType) || !empty($pathwayStepTypePreset)) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             $model->attributes = $pathwayStepType;
             // Custom steps have type process only
@@ -316,7 +316,7 @@ class WorklistController extends BaseAdminController
                 if (!$model->save()) {
                     $errors[] = $model->getErrors();
                 } else {
-                    $id = Yii::app()->db->getLastInsertID();
+                    $id = Yii::app()->cbdb->getLastInsertID();
                     $model->createMapping(ReferenceData::LEVEL_INSTITUTION, Institution::model()->getCurrent()->id);
                 }
             }
@@ -778,7 +778,7 @@ class WorklistController extends BaseAdminController
 
         $pathway_types = PathwayType::model()->findAllByPk($ids);
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             foreach ($pathway_types as $pathway_type) {

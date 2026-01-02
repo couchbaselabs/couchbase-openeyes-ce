@@ -130,6 +130,13 @@ class EventImageController extends BaseController
      */
     public function actionGenerateImage($id)
     {
+        // If relational DB is unavailable (e.g. offline/static schema mode), skip generation gracefully
+        if (Yii::app()->db instanceof OEDbConnection && !Yii::app()->db->isConnectionAvailable()) {
+            Yii::log("Skipped event image generation for event {$id} because DB is unavailable", CLogger::LEVEL_INFO);
+            echo 'ok';
+            return;
+        }
+
         $event = Event::model()->findByPk($id);
         if (!$event) {
             throw new Exception("Event not found: $id");

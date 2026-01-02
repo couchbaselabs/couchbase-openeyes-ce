@@ -247,7 +247,7 @@ class PatientMerge
             throw new Exception($msg);
         }
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             // Update Episode

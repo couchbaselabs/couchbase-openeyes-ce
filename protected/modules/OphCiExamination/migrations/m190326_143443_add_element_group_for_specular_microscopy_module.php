@@ -1,6 +1,10 @@
 <?php
 
-class m190326_143443_add_element_group_for_specular_microscopy extends CDbMigration
+if (class_exists('m190326_143443_add_element_group_for_specular_microscopy_module', false)) {
+    return;
+}
+
+class m190326_143443_add_element_group_for_specular_microscopy_module extends CDbMigration
 {
     public function up()
     {

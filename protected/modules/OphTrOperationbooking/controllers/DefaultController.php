@@ -44,6 +44,63 @@ class DefaultController extends OphTrOperationbookingEventController
     protected $show_element_sidebar = false;
 
     /**
+     * Ensure duplicated event types (e.g. Operation booking 2) can still resolve element definitions.
+     *
+     * @return ElementType[]
+     */
+    protected function getAllElementTypes()
+    {
+        $types = parent::getAllElementTypes();
+        if (empty($types)) {
+            $fallback = EventType::model()->find('name = :name', array(':name' => 'Operation booking'));
+            if ($fallback && $fallback->id != $this->event_type->id) {
+                $types = $fallback->getAllElementTypes();
+            }
+
+            if (empty($types)) {
+                $fallback = EventType::model()->find(
+                    'class_name = :cls AND id != :id',
+                    array(':cls' => $this->event_type->class_name, ':id' => $this->event_type->id)
+                );
+                if ($fallback) {
+                    $types = $fallback->getAllElementTypes();
+                }
+            }
+        }
+
+        // Existing behaviour: drop PreAssessment element type when it has no configured types
+        $preassessment_element = new Element_OphTrOperationbooking_PreAssessment();
+        $remove = !$preassessment_element->hasTypes() ? ['Element_OphTrOperationbooking_PreAssessment'] : [];
+
+        return array_filter(
+            $types,
+            function ($et) use ($remove) {
+                return !in_array($et->class_name, $remove);
+            }
+        );
+    }
+
+    public function getOptionalElements()
+    {
+        $open_et = array();
+        foreach ($this->open_elements as $open) {
+            $open_et[] = get_class($open);
+        }
+
+        $optional = array();
+        foreach ($this->getAllElementTypes() as $element_type) {
+            if (
+                !in_array($element_type->class_name, $open_et) &&
+                class_exists($element_type->class_name)
+            ) {
+                $optional[] = $element_type->getInstance();
+            }
+        }
+
+        return $optional;
+    }
+
+    /**
      * setup the various js scripts for this controller.
      *
      * @param CAction $action
@@ -288,7 +345,7 @@ class DefaultController extends OphTrOperationbookingEventController
                     parent::actionCreate();
                 } else {
                     // failed eur, save eur
-                    $transaction = Yii::app()->db->beginTransaction();
+                    $transaction = Yii::app()->cbdb->beginTransaction();
                     try {
                         $success = $this->saveEURForm();
                         if ($success) {
@@ -929,23 +986,6 @@ class DefaultController extends OphTrOperationbookingEventController
             }
         }
         return $elements;
-    }
-
-    /**
-     * Get all the available element types for the event
-     *
-     * @return array
-     */
-    public function getAllElementTypes()
-    {
-        $preassessment_element = new Element_OphTrOperationbooking_PreAssessment();
-        $remove = !$preassessment_element->hasTypes() ? ['Element_OphTrOperationbooking_PreAssessment'] : [];
-        return array_filter(
-            parent::getAllElementTypes(),
-            function ($et) use ($remove) {
-                return !in_array($et->class_name, $remove);
-            }
-        );
     }
 
     public function actionGetHighFlowCriteriaPopupContent()

@@ -8,16 +8,16 @@ class m160606_123111_remove_pc_rupture_complication extends CDbMigration
      */
     public function up()
     {
-        $pcRupture = $this->dbConnection->createCommand('SELECT id FROM ophtroperationnote_cataract_complication WHERE name = "PC rupture"')
-            ->queryScalar();
-        $vitreousLoss = $this->dbConnection->createCommand('SELECT id FROM ophtroperationnote_cataract_complication WHERE name = "Vitreous loss"')
-            ->queryScalar();
-        $pcRuptureNoLoss = $this->dbConnection
-            ->createCommand('SELECT id FROM ophtroperationnote_cataract_complication WHERE name = "PC rupture no vitreous loss"')
-            ->queryScalar();
-        $pcRuptureLoss = $this->dbConnection
-            ->createCommand('SELECT id FROM ophtroperationnote_cataract_complication WHERE name = "PC rupture with vitreous loss"')
-            ->queryScalar();
+        $complicationTable = 'ophtroperationnote_cataract_complications';
+        $pcRupture = $this->dbConnection->createCommand()->select('id')->from($complicationTable)->where('name = :name', array(':name' => 'PC rupture'))->queryScalar();
+        $vitreousLoss = $this->dbConnection->createCommand()->select('id')->from($complicationTable)->where('name = :name', array(':name' => 'Vitreous loss'))->queryScalar();
+        $pcRuptureNoLoss = $this->dbConnection->createCommand()->select('id')->from($complicationTable)->where('name = :name', array(':name' => 'PC rupture no vitreous loss'))->queryScalar();
+        $pcRuptureLoss = $this->dbConnection->createCommand()->select('id')->from($complicationTable)->where('name = :name', array(':name' => 'PC rupture with vitreous loss'))->queryScalar();
+
+        if (!$pcRupture || !$vitreousLoss || !$pcRuptureNoLoss || !$pcRuptureLoss) {
+            echo "Skipping PC rupture removal migration due to missing complication definitions.\n";
+            return;
+        }
 
         foreach ($this->dbConnection
                      ->createCommand('SELECT cataract_id FROM ophtroperationnote_cataract_complication WHERE complication_id = :id')
@@ -38,7 +38,7 @@ class m160606_123111_remove_pc_rupture_complication extends CDbMigration
         }
 
         $this->delete(
-            'ophtroperationnote_cataract_complication',
+            $complicationTable,
             'id = :id',
             array(':id' => $pcRupture)
         );

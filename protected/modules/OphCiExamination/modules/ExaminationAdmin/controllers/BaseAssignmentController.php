@@ -28,7 +28,7 @@ class BaseAssignmentController extends \ModuleAdminController
         $model->setAttributes($this->getSetPostData(), false);
 
         /** @var \CDbTransaction $transaction */
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
 
         if (!$model->isNewRecord) {
             foreach ($model->entries as $entry) {
@@ -86,7 +86,7 @@ class BaseAssignmentController extends \ModuleAdminController
     {
         $set_ids = \Yii::app()->request->getPost(str_replace('\\', '_', $this->set_model_name), []);
 
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
         try {
             foreach ($set_ids as $set_id) {
                 $valid = true;

@@ -233,6 +233,27 @@ class Audit extends BaseActiveRecord
      */
     public static function add($target, $action, $data = null, $log_message = null, $properties = array())
     {
+        // If MariaDB is unavailable (removed), skip persistence but do not block the app
+        if (self::isDbUnavailable()) {
+            Yii::log("Audit skipped (DB unavailable): {$target}/{$action}", CLogger::LEVEL_WARNING, 'application.audit');
+            $audit = new self();
+            $audit->type_id = null;
+            $audit->action_id = null;
+            $audit->data = $data;
+
+            // Avoid setting non-existent attributes (e.g. 'model', 'module') when DB is unavailable
+            foreach (['model', 'module'] as $key) {
+                if (isset($properties[$key])) {
+                    unset($properties[$key]);
+                }
+            }
+
+            foreach ($properties as $key => $value) {
+                $audit->{$key} = $value;
+            }
+            return $audit;
+        }
+
         if (!$_target = AuditType::model()->find('name=?', array($target))) {
             $_target = new AuditType();
             $_target->name = $target;
@@ -304,6 +325,29 @@ class Audit extends BaseActiveRecord
         $log_message && OELog::log($log_message, @$user_id);
 
         return $audit;
+    }
+
+    /**
+     * Determine if the primary DB is unavailable (MariaDB removed)
+     * @return bool
+     */
+    private static function isDbUnavailable()
+    {
+        try {
+            $db = Yii::app()->db;
+            if ($db instanceof \OEDbConnection) {
+                return !$db->isConnectionAvailable();
+            }
+            // For other connections, consider unavailable if PDO cannot be obtained
+            try {
+                $pdo = $db->getPdoInstance();
+                return ($pdo === null);
+            } catch (\Throwable $e) {
+                return true;
+            }
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 
     /**

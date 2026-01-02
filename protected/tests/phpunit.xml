@@ -34,6 +34,20 @@
     <testsuite name="core">
       <directory suffix="Test.php">./unit</directory>
     </testsuite>
+    <testsuite name="couchbase-unit">
+      <directory suffix="Test.php">unit/components/migration</directory>
+      <directory suffix="Test.php">unit/components/database</directory>
+      <directory suffix="Test.php">unit/components/reports</directory>
+      <file>unit/services/PatientServiceTest.php</file>
+      <file>unit/services/EpisodeServiceTest.php</file>
+      <file>unit/services/EventServiceTest.php</file>
+    </testsuite>
+    <testsuite name="couchbase-integration">
+      <directory suffix="Test.php">./integration</directory>
+    </testsuite>
+    <testsuite name="couchbase-performance">
+      <directory suffix="Test.php">./performance</directory>
+    </testsuite>
   </testsuites>
   <groups>
     <exclude>

@@ -26,12 +26,12 @@ class ParallelMigration extends CDbMigration
     public function checkForkPossible()
     {
         if (function_exists('pcntl_fork')) {
-            Yii::app()->db->setActive(false);
+            Yii::app()->cbdb->setActive(false);
             $pid = pcntl_fork();
             if ($pid == 0) {
                 exit;
             }
-            Yii::app()->db->setActive(true);
+            Yii::app()->cbdb->setActive(true);
 
             if ($pid != -1) {
                 $this->canFork = true;

@@ -201,7 +201,7 @@ class OphCoCorrespondence_ReportLetters extends BaseReport
 
     public function getDbCommand()
     {
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->from('event e')
             ->join('episode ep', 'e.episode_id = ep.id')
             ->join('patient p', 'ep.patient_id = p.id')

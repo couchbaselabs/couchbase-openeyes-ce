@@ -629,7 +629,7 @@ class DefaultController extends BaseEventTypeController
         }
         $this->initWithEventId($event_id);
 
-        $trans = Yii::app()->db->beginTransaction();
+        $trans = Yii::app()->cbdb->beginTransaction();
 
         $withdrawal_element_criteria = new CDbCriteria();
         $withdrawal_element_criteria->compare('t.event_id', $event_id);
@@ -690,7 +690,7 @@ class DefaultController extends BaseEventTypeController
     {
         $event_id = $this->request->getParam('event_id');
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $withdrawal_element_criteria = new CDbCriteria();
         $withdrawal_element_criteria->compare('t.event_id', $event_id);
@@ -724,7 +724,7 @@ class DefaultController extends BaseEventTypeController
         }
         $this->initWithEventId($event_id);
 
-        $trans = Yii::app()->db->beginTransaction();
+        $trans = Yii::app()->cbdb->beginTransaction();
 
         $confirm_element_criteria = new CDbCriteria();
         $confirm_element_criteria->compare('t.event_id', $event_id);
@@ -754,7 +754,7 @@ class DefaultController extends BaseEventTypeController
     {
         $event_id = $this->request->getParam('event_id');
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $confirm_element_criteria = new CDbCriteria();
         $confirm_element_criteria->compare('t.event_id', $event_id);
@@ -1379,7 +1379,7 @@ class DefaultController extends BaseEventTypeController
         $data,
         $index = null
     ) {
-        $existing_ids = Yii::app()->db->createCommand(
+        $existing_ids = Yii::app()->cbdb->createCommand(
             "SELECT id FROM " . OphTrConsent_BestInterestDecision_Attachment::model()->tableName()
             . " WHERE element_id = :element_id"
         )->queryColumn([":element_id" => $element->id]);

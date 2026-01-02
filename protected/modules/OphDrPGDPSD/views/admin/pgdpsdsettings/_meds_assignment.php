@@ -14,7 +14,10 @@
         $fpten_dispense_condition->id => array('label' => "Print to $fpten_setting")
     );
     $dispense_location_options = \CHtml::listData(\OphDrPrescription_DispenseLocation::model()->findAllAtLevel(ReferenceData::LEVEL_INSTITUTION), 'id', 'name');
-    $unit_options = \CHtml::listData(\MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'")->medicationAttributeOptions, 'description', 'description');
+    $unitOfMeasureAttr = \MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'");
+    $unit_options = $unitOfMeasureAttr && $unitOfMeasureAttr->medicationAttributeOptions 
+        ? \CHtml::listData($unitOfMeasureAttr->medicationAttributeOptions, 'description', 'description') 
+        : [];
     $duration_options = \CHtml::listData(\MedicationDuration::model()->findAll('deleted_date IS NULL'), 'id', 'name');
     $frequency_options = \CHtml::listData(\MedicationFrequency::model()->findAll('deleted_date IS NULL'), 'id', 'term');
     ?>

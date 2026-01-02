@@ -125,7 +125,7 @@ class SubspecialtySubsection extends BaseActiveRecordVersioned
 
     public function getList($subspecialtyId)
     {
-        $sections = Yii::app()->db->createCommand()
+        $sections = Yii::app()->cbdb->createCommand()
             ->select('id, name')
             ->from('subspecialty_subsection')
             ->where('subspecialty_id = :id and active = 1', array(':id' => $subspecialtyId))

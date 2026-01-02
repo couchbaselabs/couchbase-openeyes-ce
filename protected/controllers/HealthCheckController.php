@@ -42,7 +42,7 @@ class HealthCheckController extends BaseController
      */
     public function actionIndex()
     {
-        $dbconn = Yii::app()->db;
+        $dbconn = Yii::app()->cbdb;
 
         $result = $dbconn->createCommand('select `key` from setting_metadata limit 1')->queryAll();
 

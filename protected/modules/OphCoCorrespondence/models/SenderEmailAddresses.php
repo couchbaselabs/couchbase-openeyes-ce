@@ -80,7 +80,7 @@ class SenderEmailAddresses extends BaseActiveRecordVersioned
         $op1 = ($this->institution_id != '' ? ' = ' : ' IS ' );
         $op2 = ($this->site_id != '' ? ' = ' : ' IS ' );
 
-        $query = Yii::app()->db->createCommand()
+        $query = Yii::app()->cbdb->createCommand()
             ->select('osea.id')
             ->from('ophcocorrespondence_sender_email_addresses osea')
             ->where(

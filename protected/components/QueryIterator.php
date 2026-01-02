@@ -20,7 +20,7 @@
  *
  * Usage :
  * Create "createCommand" :
- * $command = Yii::app()->db->createCommand()
+ * $command = Yii::app()->cbdb->createCommand()
  *              ->select('*')
  *              ->from('patient');
  *
@@ -89,7 +89,7 @@ class QueryIterator implements Iterator {
                 FROM information_schema.tables
                 WHERE table_type = 'BASE TABLE' AND table_name = :table";
 
-        $command = \Yii::app()->db->createCommand($sql);
+        $command = \Yii::app()->cbdb->createCommand($sql);
         return $command->queryScalar([':table' => $table]);
     }
 }

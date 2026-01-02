@@ -131,7 +131,7 @@ class DisorderController extends BaseController
 
     protected function postRequest($model, $options, &$errors)
     {
-        $tx = Yii::app()->db->beginTransaction();
+        $tx = Yii::app()->cbdb->beginTransaction();
         $j = 0;
 
         foreach ((array) @$_POST['id'] as $i => $id) {
@@ -295,7 +295,7 @@ class DisorderController extends BaseController
         $parent_id = Yii::app()->request->getParam('parent_id', 1);
 
         if (Yii::app()->request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             $display_orders = Yii::app()->request->getParam('display_order', array());
             $disorders = Yii::app()->request->getParam('SecondaryToCommonOphthalmicDisorder', array());

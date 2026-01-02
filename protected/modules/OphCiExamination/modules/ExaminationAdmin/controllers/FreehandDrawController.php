@@ -184,7 +184,7 @@ class FreehandDrawController extends \ModuleAdminController
             echo 0;
         }
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             foreach (DrawingTemplate::model()->findAllByPk($pks) as $template) {
                 $protected_file = ProtectedFile::model()->findByPk($template->protected_file_id);

@@ -281,11 +281,14 @@ foreach ($ethnic_list as $key => $item) {
             <div class="flex-layout date_of_death" style="<?= $patient->is_deceased == 0 ? 'display: none;' : '' ?>">
               <span><?= $form->label($patient, 'date_of_death') ?></span>
                 <?php
-                if ((bool)strtotime($patient->date_of_death)) {
-                    $date_of_death = new DateTime($patient->date_of_death);
-                    $patient->date_of_death = $date_of_death->format('d/m/Y');
-                } else {
-                    $patient->date_of_death = str_replace('-', '/', $patient->date_of_death);
+                if (!empty($patient->date_of_death)) {
+                    $timestamp = strtotime($patient->date_of_death);
+                    if ($timestamp !== false) {
+                        $date_of_death = new DateTime($patient->date_of_death);
+                        $patient->date_of_death = $date_of_death->format('d/m/Y');
+                    } else {
+                        $patient->date_of_death = str_replace('-', '/', $patient->date_of_death);
+                    }
                 }
                 ?>
 

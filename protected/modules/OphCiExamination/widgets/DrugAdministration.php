@@ -28,7 +28,7 @@ class DrugAdministration extends BaseMedicationWidget
         if (OphDrPGDPSD_AssignedUser::model()->with('pgdpsd')->exists("user_id = :user_id AND LOWER(pgdpsd.type) = 'pgd'", [':user_id' => $user->id])) {
             return true;
         }
-        $user_teams = \Yii::app()->db->createCommand()
+        $user_teams = \Yii::app()->cbdb->createCommand()
             ->select('team_id')
             ->from('team_user_assign')
             ->join('team', 'team.id = team_id')

@@ -68,10 +68,15 @@ class m201101_090000_default_strab_workflow extends OEMigration
 
     public function safeUp()
     {
-        $subspecialty_ids = [
+        $subspecialty_ids = array_filter([
             $this->getIdOfSubspecialtyByName('Strabismus'),
             $this->getIdOfSubspecialtyByName('Paediatrics')
-        ];
+        ]);
+
+        if (empty($subspecialty_ids)) {
+            $this->migrationEcho('Skipping default strabismus workflow - subspecialties not found.');
+            return true;
+        }
 
         $this->insert('ophciexamination_workflow', ['name' => $this->workflow_name]);
         $workflow_id = $this->getDbConnection()->getLastInsertID();
@@ -92,6 +97,10 @@ class m201101_090000_default_strab_workflow extends OEMigration
 
         foreach ($this->strabismus_elements as $i => $element_cls) {
             $element_id = $this->getIdOfElementTypeByClassName($element_cls);
+            if (!$element_id) {
+                $this->migrationEcho("Skipping missing element type {$element_cls} in workflow setup.");
+                continue;
+            }
             $this->insert('ophciexamination_element_set_item', [
                 'set_id' => $set_id,
                 'element_type_id' => $element_id,

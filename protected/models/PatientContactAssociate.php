@@ -131,7 +131,7 @@ class PatientContactAssociate extends BaseActiveRecordVersioned
 
     public function getGpsByPatientId($patient_id){
         $return_array = array();
-        $command = Yii::app()->db->createCommand()->select('gp_id')->from('patient_contact_associate')->where('patient_id = '.$patient_id);
+        $command = Yii::app()->cbdb->createCommand()->select('gp_id')->from('patient_contact_associate')->where('patient_id = '.$patient_id);
         $records = $command->query();
         foreach ($records as $record ) {
             $return_array[] = $record['gp_id'];

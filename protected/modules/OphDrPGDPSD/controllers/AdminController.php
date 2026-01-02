@@ -86,7 +86,7 @@ class AdminController extends BaseAdminController
         $errors = array();
         $prefix = \CHtml::modelName($pgdpsd);
         if (Yii::app()->request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $data = Yii::app()->request->getParam($prefix, array());
             $pgdpsd->attributes = array_key_exists('attributes', $data) ? $data['attributes'] : array();
             $pgdpsd->temp_team_ids = array_key_exists('team_assign', $data) ? $data['team_assign'] : array();

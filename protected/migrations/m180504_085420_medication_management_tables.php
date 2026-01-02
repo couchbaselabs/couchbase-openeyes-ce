@@ -7,6 +7,10 @@ class m180504_085420_medication_management_tables extends OEMigration
 
         $this->execute("RENAME TABLE medication TO medication_old");
 
+        if ($this->dbConnection->schema->getTable('medication_version', true) !== null) {
+            $this->dropTable('medication_version');
+        }
+
         $this->createOETable('medication', array(
             'id'                => 'pk',
             'source_type'       => 'VARCHAR(10) NOT NULL',

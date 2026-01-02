@@ -65,8 +65,11 @@ class BaseAPI
     {
         if (!$this->event_type) {
             $module_class = $this->getModuleClass();
-            if (!$this->event_type = EventType::model()->find('class_name=?', array($module_class))) {
-                throw new Exception("Module is not migrated: $module_class");
+            $this->event_type = EventType::model()->find('class_name=?', array($module_class));
+
+            if (!$this->event_type) {
+                \Yii::log("Module is not migrated: {$module_class}", \CLogger::LEVEL_WARNING, 'application.api');
+                return null;
             }
         }
         return $this->event_type;
@@ -81,6 +84,11 @@ class BaseAPI
     protected function constructEventCriteria(\Patient $patient, $before = null, $visible = false)
     {
         $event_type = $this->getEventType();
+        if (!$event_type) {
+            $criteria = new CDbCriteria();
+            $criteria->addCondition('1=0');
+            return $criteria;
+        }
         $criteria = new CDbCriteria();
         $criteria->compare('t.deleted', 0);
         $criteria->compare('episode.deleted', 0);
@@ -352,6 +360,16 @@ class BaseAPI
         trigger_error('getElementForLatestEventInEpisode is deprecated as of version 2.0, please use getElementFromLatestEvent instead', E_USER_NOTICE);
         $event_type = $this->getEventType();
 
+        // Handle case where event type is not found (e.g., not yet synced to Couchbase)
+        if (!$event_type) {
+            Yii::log(
+                'Event type not found for API class: ' . get_class($this) . ' in getElementForLatestEventInEpisode',
+                CLogger::LEVEL_WARNING,
+                'application.components.BaseAPI'
+            );
+            return null;
+        }
+
         if ($event = $episode->getMostRecentEventByType($event_type->id)) {
             $criteria = new CDbCriteria();
             $criteria->compare('episode_id', $episode->id);
@@ -384,6 +402,16 @@ class BaseAPI
     {
         $event_type = $this->getEventType();
 
+        // Handle case where event type is not found (e.g., not yet synced to Couchbase)
+        if (!$event_type) {
+            Yii::log(
+                'Event type not found for API class: ' . get_class($this) . ' in getElementForAllEventInEpisode',
+                CLogger::LEVEL_WARNING,
+                'application.components.BaseAPI'
+            );
+            return null;
+        }
+
         if ($events = $episode->getAllEventsByType($event_type->id))
         {
             foreach($events as $event)
@@ -413,6 +441,16 @@ class BaseAPI
     public function getEventsInEpisode($patient, $episode)
     {
         $event_type = $this->getEventType();
+
+        // Handle case where event type is not found (e.g., not yet synced to Couchbase)
+        if (!$event_type) {
+            Yii::log(
+                'Event type not found for API class: ' . get_class($this) . ' in getEventsInEpisode',
+                CLogger::LEVEL_WARNING,
+                'application.components.BaseAPI'
+            );
+            return array();
+        }
 
         if ($episode) {
             return $episode->getAllEventsByType($event_type->id);

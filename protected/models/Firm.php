@@ -200,6 +200,38 @@ class Firm extends BaseActiveRecordVersioned
         );
     }
 
+    public function __get($name)
+    {
+        if ($name === 'serviceSubspecialtyAssignment') {
+            return $this->resolveServiceSubspecialtyAssignment();
+        }
+
+        return parent::__get($name);
+    }
+
+    /**
+     * Couchbase-friendly resolver for serviceSubspecialtyAssignment
+     * @return ServiceSubspecialtyAssignment|null
+     */
+    private function resolveServiceSubspecialtyAssignment()
+    {
+        $related = $this->getRelated('serviceSubspecialtyAssignment', false);
+        if ($related !== null) {
+            return $related;
+        }
+
+        if (!$this->service_subspecialty_assignment_id) {
+            return null;
+        }
+
+        $ssa = ServiceSubspecialtyAssignment::model()->findByPk($this->service_subspecialty_assignment_id);
+        if ($ssa) {
+            $this->addRelatedRecord('serviceSubspecialtyAssignment', $ssa, false);
+        }
+
+        return $ssa;
+    }
+
     public function scopes()
     {
         return array(
@@ -293,7 +325,7 @@ class Firm extends BaseActiveRecordVersioned
         /**
          * @var CDbCommand $cmd
          */
-        $cmd = Yii::app()->db->createCommand()
+        $cmd = Yii::app()->cbdb->createCommand()
             ->select('f.id, f.name, s.name as subspecialty')
             ->from('firm f')
             ->join('service_subspecialty_assignment ssa', 'f.service_subspecialty_assignment_id = ssa.id')
@@ -342,7 +374,7 @@ class Firm extends BaseActiveRecordVersioned
 
         $join_method = $include_non_subspecialty ? 'leftJoin' : 'join';
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('f.id, f.name, s.name AS subspecialty')
             ->from('firm f')
             ->$join_method('service_subspecialty_assignment ssa', 'f.service_subspecialty_assignment_id = ssa.id')
@@ -412,7 +444,7 @@ class Firm extends BaseActiveRecordVersioned
     public function getConsultantNameAndUsername($institution_id, bool $reversed = true, string $username_prefix = '', string $separator = ' '): string
     {
         if ($consultant = $this->consultant) {
-            $user_auth_id = Yii::app()->db->createCommand()
+            $user_auth_id = Yii::app()->cbdb->createCommand()
                 ->select('ua.id')
                 ->from('institution_authentication ia')
                 ->join('user_authentication ua', 'ua.institution_authentication_id = ia.id')
@@ -475,7 +507,7 @@ class Firm extends BaseActiveRecordVersioned
      */
     public function getSpecialty()
     {
-        $result = Yii::app()->db->createCommand()
+        $result = Yii::app()->cbdb->createCommand()
             ->select('su.specialty_id as id')
             ->from('subspecialty su')
             ->join('service_subspecialty_assignment svc_ass', 'svc_ass.subspecialty_id = su.id')

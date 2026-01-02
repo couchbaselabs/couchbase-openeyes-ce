@@ -233,6 +233,16 @@ class MailboxSearch
 
     public static function getAllMailboxesForUser($user_id)
     {
+        // Couchbase-only fallback: if MariaDB is unavailable, skip recursive mailbox query and return empty
+        try {
+            $db = \Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return [];
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
         $user_mailbox_sql = "WITH RECURSIVE user_teams AS (
             SELECT team_id FROM team_user_assign tua WHERE tua.user_id = :target_user_id
                 UNION DISTINCT
@@ -248,7 +258,7 @@ class MailboxSearch
             JOIN mailbox_user mu ON mu.mailbox_id = m.id
             WHERE mu.user_id = :target_user_id)) ORDER BY is_personal DESC, `name` ASC";
 
-        $user_mailbox_command = \Yii::app()->db->createCommand($user_mailbox_sql);
+        $user_mailbox_command = \Yii::app()->cbdb->createCommand($user_mailbox_sql);
         $user_mailbox_command->params = [':target_user_id' => $user_id, 'active_mailbox' => 1];
 
         return $user_mailbox_command->queryAll();
@@ -467,7 +477,7 @@ class MailboxSearch
             ) intermediate_messages
         ) contextualised_messages";
 
-        $mailbox_counts_command = \Yii::app()->db->createCommand($sql);
+        $mailbox_counts_command = \Yii::app()->cbdb->createCommand($sql);
 
         $mailbox_folders = [
             ':folder_all' => self::FOLDER_ALL,
@@ -537,13 +547,36 @@ class MailboxSearch
 
     public static function getMaximumSearchMessageCount()
     {
+        try {
+            $db = \Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return 0;
+            }
+        } catch (\Throwable $e) {
+            return 0;
+        }
+
         $sql = "SELECT COUNT(DISTINCT eom.id) + COUNT(omr.id) FROM et_ophcomessaging_message eom LEFT OUTER JOIN ophcomessaging_message_comment omc ON omc.element_id = eom.id LEFT OUTER JOIN ophcomessaging_message_recipient omr ON omr.element_id = eom.id";
 
-        return \Yii::app()->db->createCommand($sql)->queryScalar();
+        try {
+            return \Yii::app()->cbdb->createCommand($sql)->queryScalar();
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
     public function retrieveMailboxContentsUsingSQL($user_id, $mailbox_ids = null)
     {
+        // Couchbase-only fallback: if MariaDB is unavailable or keyspace missing, return empty
+        try {
+            $db = \Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return [];
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
         $mailbox_id_params = MailboxSearch::getMailboxQueryParams($user_id, $mailbox_ids);
 
         $sql = "SELECT

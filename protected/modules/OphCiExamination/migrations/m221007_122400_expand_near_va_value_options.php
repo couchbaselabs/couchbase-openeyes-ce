@@ -75,8 +75,10 @@ ERR;
             return false;
         }
 
-        // Adding unique unit-value constraint
-        $this->createIndex('unique_unit_value', 'ophciexamination_visual_acuity_unit_value', ['unit_id', 'value'], true);
+        // Adding unique unit-value constraint if missing
+        if (!$this->indexExists('ophciexamination_visual_acuity_unit_value', 'unique_unit_value')) {
+            $this->createIndex('unique_unit_value', 'ophciexamination_visual_acuity_unit_value', ['unit_id', 'value'], true);
+        }
 
         $values_as_sql = array_map(function ($values) use ($unit_id) {
             return "($unit_id,'$values[0]',$values[1])";
@@ -141,10 +143,20 @@ ERR;
             VALUES " . implode(',', $values_as_sql) . " ON DUPLICATE KEY UPDATE base_value = VALUES(base_value);
         ");
 
-        // Adding unique unit-value constraint
-        $this->dropIndex('unique_unit_value', 'ophciexamination_visual_acuity_unit_value');
+        // Removing unique unit-value constraint if present
+        if ($this->indexExists('ophciexamination_visual_acuity_unit_value', 'unique_unit_value')) {
+            $this->dropIndex('unique_unit_value', 'ophciexamination_visual_acuity_unit_value');
+        }
 
         // Rename the N Scale unit
         $this->execute("UPDATE ophciexamination_visual_acuity_unit SET name = '$this->old_unit_name' WHERE name = '$this->new_unit_name'");
+    }
+
+    private function indexExists(string $table, string $index): bool
+    {
+        $quotedTable = $this->dbConnection->quoteTableName($table);
+        return (bool) $this->dbConnection->createCommand(
+            "SHOW INDEX FROM {$quotedTable} WHERE Key_name = :name"
+        )->queryScalar([':name' => $index]);
     }
 }

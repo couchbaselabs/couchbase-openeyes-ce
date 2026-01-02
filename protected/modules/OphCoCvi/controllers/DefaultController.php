@@ -1532,7 +1532,7 @@ class DefaultController extends \BaseEventTypeController
         $search = "%" . strtolower($term) . "%";
         $where = '(LOWER(term) like :search or id like :search)';
         $where .= ' and active = 1';
-        $diagnosis = \Yii::app()->db->createCommand()
+        $diagnosis = \Yii::app()->cbdb->createCommand()
             ->select('id, term AS value, term AS label')
             ->from('disorder')
             ->where($where, array(

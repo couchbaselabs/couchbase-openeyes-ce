@@ -164,7 +164,7 @@ class OphTrOperationbooking_Whiteboard extends BaseActiveRecordVersioned
             $this->comments = '';
         }
 
-        $transaction = Yii::app()->db->beginInternalTransaction();
+        $transaction = Yii::app()->cbdb->beginInternalTransaction();
 
         if ($this->save()) {
             // get the whiteboard procedure assignments
@@ -249,7 +249,7 @@ class OphTrOperationbooking_Whiteboard extends BaseActiveRecordVersioned
      */
     protected function allergyString($episode)
     {
-        $allergies = Yii::app()->db->createCommand()
+        $allergies = Yii::app()->cbdb->createCommand()
             ->select('a.name as name, pas.other as other')
             ->from('patient_allergy_assignment pas')
             ->leftJoin('allergy a', 'pas.allergy_id = a.id')
@@ -257,7 +257,7 @@ class OphTrOperationbooking_Whiteboard extends BaseActiveRecordVersioned
             ->order('a.name')
             ->queryAll();
 
-        $allergiesOther = Yii::app()->db->createCommand()
+        $allergiesOther = Yii::app()->cbdb->createCommand()
             ->select('a.name as name, pas.other as other')
             ->from('patient_allergy_assignment pas')
             ->leftJoin('allergy a', 'pas.allergy_id = a.id')
@@ -296,7 +296,7 @@ class OphTrOperationbooking_Whiteboard extends BaseActiveRecordVersioned
      */
     protected function operation($id)
     {
-        $operation = Yii::app()->db->createCommand()
+        $operation = Yii::app()->cbdb->createCommand()
             ->select('proc.id as id')
             ->from('et_ophtroperationbooking_operation op')
             ->leftJoin('ophtroperationbooking_operation_procedures_procedures opp', 'opp.element_id = op.id')

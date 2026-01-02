@@ -148,7 +148,7 @@ class OphTrConsent_Template extends BaseActiveRecordVersioned
      */
     public function saveProcedures(array $procedures)
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         OphTrConsent_TemplateProcedure::model()->deleteAll('template_id = :template_id', array('template_id' => $this->id));
         foreach ($procedures as $procedure) {
             $templateProcedure = new OphTrConsent_TemplateProcedure();

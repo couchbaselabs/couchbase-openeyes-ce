@@ -7,26 +7,60 @@ class m200227_045838_indexSearch_table extends OEMigration
 {
     public function up()
     {
-        $this->createOETable('index_search', array(
-            'id' => 'pk',
-            'event_type_id' => 'int(10) unsigned',
-            'parent' => 'int(11)',//Parent row id (if this row is a child row)
-            'primary_term' => 'varchar(128)',
-            'secondary_term_list' => 'varchar(1024)',
-            'description' => 'varchar(512)',
-            'general_note' => 'varchar(256)',
-            'open_element_class_name' => 'varchar(256)',
-            'goto_id' => 'varchar(256)',
-            'goto_tag' => 'varchar(256)',
-            'goto_text' => 'varchar(256)',
-            'img_url' => 'varchar(256)',
-            'goto_subcontainer_class' => 'varchar(256)',
-            'goto_doodle_class_name' => 'varchar(256)',
-            'goto_property' => 'varchar(256)',
-            'warning_note' => 'varchar(256)'
-        ));
-        $this->addForeignKey('event_type_id_indexsearch_fk', 'index_search', 'event_type_id', 'event_type', 'id');
-        $this->addForeignKey('parent_id_fk', 'index_search', 'parent', 'index_search', 'id');
+        if (!$this->verifyTableExists('index_search')) {
+            $this->createOETable('index_search', array(
+                'id' => 'pk',
+                'event_type_id' => 'int(10) unsigned',
+                'parent' => 'int(11)',//Parent row id (if this row is a child row)
+                'primary_term' => 'varchar(128)',
+                'secondary_term_list' => 'varchar(1024)',
+                'description' => 'varchar(512)',
+                'general_note' => 'varchar(256)',
+                'open_element_class_name' => 'varchar(256)',
+                'goto_id' => 'varchar(256)',
+                'goto_tag' => 'varchar(256)',
+                'goto_text' => 'varchar(256)',
+                'img_url' => 'varchar(256)',
+                'goto_subcontainer_class' => 'varchar(256)',
+                'goto_doodle_class_name' => 'varchar(256)',
+                'goto_property' => 'varchar(256)',
+                'warning_note' => 'varchar(256)'
+            ));
+        }
+        if (!$this->verifyForeignKeyExists('index_search', 'event_type_id_indexsearch_fk')) {
+            $this->addForeignKey('event_type_id_indexsearch_fk', 'index_search', 'event_type_id', 'event_type', 'id');
+        }
+        if (!$this->verifyForeignKeyExists('index_search', 'parent_id_fk')) {
+            $this->addForeignKey('parent_id_fk', 'index_search', 'parent', 'index_search', 'id');
+        }
+
+        $seeded = (bool) $this->dbConnection->createCommand()
+            ->select('COUNT(*)')
+            ->from('index_search')
+            ->where('primary_term = :term', [':term' => 'Description'])
+            ->queryScalar();
+        if ($seeded) {
+            return;
+        }
+
+        $preExistingRows = $this->dbConnection->createCommand()
+            ->select('*')
+            ->from('index_search')
+            ->queryAll();
+        if (!empty($preExistingRows)) {
+            $this->execute('SET FOREIGN_KEY_CHECKS=0');
+            $this->truncateTable('index_search');
+            $this->execute('SET FOREIGN_KEY_CHECKS=1');
+        }
+
+        $eventTypeId = $this->dbConnection->createCommand()
+            ->select('id')
+            ->from('event_type')
+            ->where('class_name = :class', [':class' => 'OphCiExamination'])
+            ->queryScalar();
+        if (!$eventTypeId) {
+            throw new CException('Unable to resolve event_type id for OphCiExamination');
+        }
 
         $table_data = array
         (
@@ -6590,9 +6624,18 @@ class m200227_045838_indexSearch_table extends OEMigration
                 'warning_note' => null,
             )
         );
+        $table_data = array_map(function ($row) use ($eventTypeId) {
+            $row['event_type_id'] = $eventTypeId;
+            return $row;
+        }, $table_data);
+
         $builder = $this->dbConnection->schema->commandBuilder;
         $command = $builder->createMultipleInsertCommand('index_search', $table_data);
         $command->execute();
+
+        if (!empty($preExistingRows)) {
+            $this->reinsertPreExistingIndexRows($preExistingRows);
+        }
     }
 
     public function down()
@@ -6600,5 +6643,31 @@ class m200227_045838_indexSearch_table extends OEMigration
         $this->dropForeignKey('event_type_id_indexsearch_fk', 'index_search');
         $this->dropForeignKey('parent_id_fk', 'index_search');
         $this->dropTable('index_search');
+    }
+
+    private function reinsertPreExistingIndexRows(array $rows): void
+    {
+        $idMap = [];
+        foreach ($rows as $row) {
+            $originalId = $row['id'];
+            unset($row['id']);
+
+            $parentId = $row['parent'];
+            if (!empty($parentId)) {
+                if (isset($idMap[$parentId])) {
+                    $row['parent'] = $idMap[$parentId];
+                } else {
+                    $existingParent = $this->dbConnection->createCommand()
+                        ->select('id')
+                        ->from('index_search')
+                        ->where('id = :id', [':id' => $parentId])
+                        ->queryScalar();
+                    $row['parent'] = $existingParent ? $existingParent : null;
+                }
+            }
+
+            $this->insert('index_search', $row);
+            $idMap[$originalId] = $this->dbConnection->getLastInsertID();
+        }
     }
 }

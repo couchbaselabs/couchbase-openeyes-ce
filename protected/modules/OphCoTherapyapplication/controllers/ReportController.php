@@ -109,7 +109,7 @@ class ReportController extends BaseReportController
 
     protected function getApplications($date_from, $date_to, $firm = null, $institution_id = null)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 "p.id as patient_id, diag.left_diagnosis1_id, diag.left_diagnosis2_id, diag.right_diagnosis1_id, diag.right_diagnosis2_id, e.id,
 						c.first_name, c.last_name, e.created_date, p.gender, p.dob, eye.name AS eye, site.name as site_name,
@@ -305,7 +305,7 @@ class ReportController extends BaseReportController
                         continue;
                     }
 
-                    $command = Yii::app()->db->createCommand()
+                    $command = Yii::app()->cbdb->createCommand()
                         ->select(
                             'treat.' . $side . '_number as last_injection_number, treat.created_date as last_injection_date, site.name as last_injection_site'
                         )
@@ -340,7 +340,7 @@ class ReportController extends BaseReportController
                         continue;
                     }
 
-                    $command = Yii::app()->db->createCommand()
+                    $command = Yii::app()->cbdb->createCommand()
                         ->select(
                             'treat.created_date as first_injection_date'
                         )

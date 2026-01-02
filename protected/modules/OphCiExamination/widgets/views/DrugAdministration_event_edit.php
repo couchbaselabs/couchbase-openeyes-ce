@@ -188,7 +188,10 @@ $field_prefix = $model_name . '[assignment][{{section_key}}][entries][{{entry_ke
                             $dose_field_name = $model_name . "[assignment][{$key}][entries][{$entry_key}][dose_unit_term]";
                             $dose_field_value = $entry->dose_unit_term;
                             if (!$dose_field_value) {
-                                $dose_dropdown_data = CHtml::listData(MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'")->medicationAttributeOptions, 'description', 'description');
+                                $unitOfMeasureAttr = MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'");
+                                $dose_dropdown_data = $unitOfMeasureAttr && $unitOfMeasureAttr->medicationAttributeOptions 
+                                    ? CHtml::listData($unitOfMeasureAttr->medicationAttributeOptions, 'description', 'description') 
+                                    : [];
                                 $dose_dropdown_htmloptions = array(
                                     'empty' => '-Unit-',
                                     'class' => 'js-unit-dropdown cols-5',

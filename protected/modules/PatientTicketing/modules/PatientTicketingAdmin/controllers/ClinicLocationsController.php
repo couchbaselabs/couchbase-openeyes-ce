@@ -69,7 +69,7 @@ class ClinicLocationsController extends BaseAdminController
 
         $errors = [];
         $models = [];
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $step = 0;
         foreach ($data as $entry) {
             $model = OEModule\PatientTicketing\models\ClinicLocation::model()->findOrNew($entry['id'] ?? null);

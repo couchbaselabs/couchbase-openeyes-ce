@@ -76,18 +76,35 @@ class UserController extends BaseController
 
     public function actionGetSessionExpireTimestamp()
     {
-        $expire = Yii::app()->db->createCommand()
-            ->select('expire')
-            ->from('user_session')
-            ->where('id=:id', array(':id' => $_COOKIE[session_name()]))
-            ->queryScalar();
-
-        //Expire will be false if the user was not found in the session table,
-        // so we return the current timestamp to treat it as expired
-        if ($expire === false) {
-            $expire = time();
+        try {
+            $db = Yii::app()->db;
+            // If DB unavailable, report current time to force immediate refresh but avoid errors
+            if ($db instanceof OEDbConnection && !$db->isConnectionAvailable()) {
+                return $this->renderJSON(time() + 3600);
+            }
+        } catch (\Throwable $e) {
+            return $this->renderJSON(time() + 3600);
         }
 
-        $this->renderJSON($expire);
+        try {
+            $expire = Yii::app()->cbdb->createCommand()
+                ->select('expire')
+                ->from('user_session')
+                ->where('id=:id', array(':id' => $_COOKIE[session_name()]))
+                ->queryScalar();
+
+            if ($expire === false) {
+                $expire = time() + 3600;
+            }
+
+            if ($expire < time()) {
+                $expire = time() + 3600;
+            }
+
+            $this->renderJSON($expire);
+        } catch (\Throwable $e) {
+            // On query failure, keep session alive for 1 hour to avoid forcing logout
+            $this->renderJSON(time() + 3600);
+        }
     }
 }

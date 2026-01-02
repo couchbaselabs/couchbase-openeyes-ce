@@ -25,7 +25,8 @@
     "jumbojett/openid-connect-php": "0.9.*",
     "ext-openssl": "*",
     "ext-soap": "*",
-    "xenolope/quahog": "2.*"
+    "xenolope/quahog": "2.*",
+    "couchbase/couchbase": "^4.2"
   },
   "require-dev": {
     "phpunit/phpunit": "9.6.5",
@@ -62,7 +63,16 @@
       "OE\\contracts\\": "protected/contracts",
       "OE\\factories\\": "protected/factories",
       "OE\\listeners\\": "protected/listeners",
-      "OE\\seeders\\": "protected/seeders"
+      "OE\\seeders\\": "protected/seeders",
+      "OE\\Models\\": "protected/models",
+      "OE\\Database\\": "protected/components/database",
+      "OE\\Migration\\": "protected/components/migration",
+      "OE\\Reports\\": "protected/components/reports",
+      "OE\\Couchbase\\": "protected/components",
+      "OE\\Couchbase\\Transformers\\": "protected/models/couchbase/transformers",
+      "OEModule\\OphCiExamination\\": "protected/modules/OphCiExamination",
+      "OEModule\\OphTrOperationbooking\\": "protected/modules/OphTrOperationbooking",
+      "OEModule\\OphCoCorrespondence\\": "protected/modules/OphCoCorrespondence"
     }
   },
   "autoload-dev": {

@@ -115,7 +115,7 @@ class PupillaryAbnormalitiesController extends \ModuleAdminController
     public function actionDelete()
     {
         $delete_ids = \Yii::app()->request->getPost('select', []);
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
         $success = true;
         $result = [];
         $result['status'] = 1;

@@ -1,0 +1,35 @@
+-- Primary indexes for OpenEyes Couchbase migration
+-- Execute using: cbq -u Administrator -p password -f create-primary-indexes.n1ql
+-- Or via Couchbase Query Workbench
+
+-- Core scope indexes
+-- NOTE: Primary indexes are for development/debugging only
+-- In production, use specific GSI indexes for better performance
+
+-- Primary indexes (required for unindexed queries)
+CREATE PRIMARY INDEX `#primary` ON `openeyes`.`core`.`patient` USING GSI;
+CREATE PRIMARY INDEX `#primary` ON `openeyes`.`core`.`user` USING GSI;
+CREATE PRIMARY INDEX `#primary` ON `openeyes`.`core`.`episode` USING GSI;
+CREATE PRIMARY INDEX `#primary` ON `openeyes`.`core`.`event` USING GSI;
+CREATE PRIMARY INDEX `#primary` ON `openeyes`.`core`.`firm` USING GSI;
+CREATE PRIMARY INDEX `#primary` ON `openeyes`.`core`.`site` USING GSI;
+CREATE PRIMARY INDEX `#primary` ON `openeyes`.`core`.`institution` USING GSI;
+
+-- Patient indexes (frequently queried)
+CREATE INDEX `idx_patient_hos_num` ON `openeyes`.`core`.`patient`(`hos_num`) USING GSI;
+CREATE INDEX `idx_patient_nhs_num` ON `openeyes`.`core`.`patient`(`nhs_num`) USING GSI;
+CREATE INDEX `idx_patient_dob` ON `openeyes`.`core`.`patient`(`dob`) USING GSI;
+CREATE INDEX `idx_patient_name` ON `openeyes`.`core`.`patient`(`last_name`, `first_name`) USING GSI;
+
+-- Episode indexes
+CREATE INDEX `idx_episode_patient_id` ON `openeyes`.`core`.`episode`(`patient_id`) USING GSI;
+CREATE INDEX `idx_episode_firm_id` ON `openeyes`.`core`.`episode`(`firm_id`) USING GSI;
+
+-- Event indexes
+CREATE INDEX `idx_event_episode_id` ON `openeyes`.`core`.`event`(`episode_id`) USING GSI;
+CREATE INDEX `idx_event_created` ON `openeyes`.`core`.`event`(`created_date`) USING GSI;
+CREATE INDEX `idx_event_type` ON `openeyes`.`core`.`event`(`event_type_id`) USING GSI;
+
+-- User indexes
+CREATE INDEX `idx_user_username` ON `openeyes`.`core`.`user`(`username`) USING GSI;
+CREATE INDEX `idx_user_active` ON `openeyes`.`core`.`user`(`active`) USING GSI;

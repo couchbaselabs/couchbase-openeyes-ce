@@ -350,7 +350,7 @@ class ProfileController extends BaseController
     public function actionDeleteSites()
     {
         $user = User::model()->findByPk(Yii::app()->user->id);
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         if (!empty($_POST['sites'])) {
             foreach ($_POST['sites'] as $site_id) {
                 if ($us = UserSite::model()->find('user_id=? and site_id=?', array($user->id, $site_id))) {
@@ -404,7 +404,7 @@ class ProfileController extends BaseController
     public function actionDeleteFirms()
     {
         $user = User::model()->findByPk(Yii::app()->user->id);
-        $firm_transaction = Yii::app()->db->beginTransaction();
+        $firm_transaction = Yii::app()->cbdb->beginTransaction();
         if (!empty($_POST['firms'])) {
             foreach ($_POST['firms'] as $firm_id) {
                 if ($uf = UserFirm::model()->find('user_id=? and firm_id=?', array($user->id, $firm_id))) {
@@ -633,7 +633,7 @@ class ProfileController extends BaseController
 
         $op_note_event_type_id = EventType::model()->findByAttributes(['class_name' => 'OphTrOperationnote'])->id;
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('t.id, t.name, et.id event_type_id, et.name event_type_name, ot.proc_set_id proc_set_id')
             ->from('event_template t')
             ->leftJoin('event_type et', 'et.id = t.event_type_id')
@@ -661,7 +661,7 @@ class ProfileController extends BaseController
     {
         $template_data = Yii::app()->request->getPost('template_data');
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $errors = [];
 
@@ -688,7 +688,7 @@ class ProfileController extends BaseController
     {
         $template_ids = Yii::app()->request->getPost('template_ids');
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         foreach ($template_ids as $template_id) {
             $template = EventTemplate::model()->findByPk($template_id);
@@ -715,7 +715,7 @@ class ProfileController extends BaseController
 
     protected function getNotSelectedFirmList(User $user)
     {
-        $firms = Yii::app()->db->createCommand()
+        $firms = Yii::app()->cbdb->createCommand()
         ->select('f.id, f.name, s.name AS subspecialty, i.name AS institution')
             ->from('firm f')
             ->join('institution i', 'i.id = f.institution_id')

@@ -149,7 +149,7 @@ class OphTrOperationbooking_Operation_Theatre extends BaseActiveRecordVersioned
     public static function getSiteList($current_site_id = null)
     {
         $model = static::model();
-        $cmd = Yii::app()->db->createCommand()
+        $cmd = Yii::app()->cbdb->createCommand()
             ->selectDistinct('site_id')
             ->where('active = 1')
             ->from($model->tableName());

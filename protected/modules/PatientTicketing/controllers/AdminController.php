@@ -111,7 +111,7 @@ class AdminController extends \ModuleAdminController
             }
 
             if (!count($errors)) {
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
                 try {
                     $queue->save();
 
@@ -182,7 +182,7 @@ class AdminController extends \ModuleAdminController
                 );
                 echo \CJSON::encode($resp);
             } else {
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
                 try {
                     $queueset->save();
                     \Audit::add('admin', 'update', $queueset->id, null, array('module' => 'PatientTicketing', 'model' => $queueset->getShortModelName()));
@@ -328,7 +328,7 @@ class AdminController extends \ModuleAdminController
             );
             echo \CJSON::encode($resp);
         } else {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 $action = $queue->isNewRecord ? 'create' : 'update';
                 $queue->save();
@@ -408,7 +408,7 @@ class AdminController extends \ModuleAdminController
         if (!$queue = models\Queue::model()->findByPk((int) @$_POST['id'])) {
             throw new \CHttpException(404, 'Queue not found with id '.@$_POST['id']);
         }
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             $this->deactivateQueue($queue);
             $transaction->commit();

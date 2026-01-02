@@ -139,9 +139,24 @@ class PatientController extends BaseController
 
         $this->firm = Firm::model()->findByPk($this->selectedFirmId);
 
-        if (!isset($this->firm)) {
-            // No firm selected, reject
-            throw new CHttpException(403, 'You are not authorised to view this page without selecting a firm.');
+        if (!isset($this->firm) || !$this->firm->service_subspecialty_assignment_id) {
+            // Prefer a firm from the patient's most recent episode that has a valid SSA
+            $episodeFirm = null;
+            if ($this->patient && $this->patient->episodes) {
+                $episodeFirm = $this->patient->episodes[0]->firm ?? null;
+                if ($episodeFirm && !$episodeFirm->service_subspecialty_assignment_id) {
+                    $episodeFirm = null;
+                }
+            }
+
+            $fallbackFirm = $episodeFirm ?: Firm::model()->find('active = 1 AND service_subspecialty_assignment_id IS NOT NULL');
+
+            if ($fallbackFirm) {
+                $this->firm = $fallbackFirm;
+                Yii::app()->session['selected_firm_id'] = $fallbackFirm->id;
+            } else {
+                throw new CHttpException(403, 'You are not authorised to view this page without selecting a firm.');
+            }
         }
 
         return parent::beforeAction($action);
@@ -247,17 +262,24 @@ class PatientController extends BaseController
         $this->layout = '//layouts/events_and_episodes';
         $this->patient = $this->loadModel($id, false);
 
-        // if the ids are different, it means the $id belongs to a merged patient
-        if ($id !== $this->patient->id) {
-            $link = (new CoreAPI())->generatePatientLandingPageLink($this->patient);
-            // using redirect to correct the url and to avoid issues from creating events
-            $this->redirect("$link");
+        // Ensure firm context aligns with patient's episodes (needed for add-event subspecialty/service)
+        $episodeFirm = null;
+        if ($this->patient && $this->patient->episodes) {
+            foreach ($this->patient->episodes as $ep) {
+                if ($ep->firm && $ep->firm->service_subspecialty_assignment_id) {
+                    $episodeFirm = $ep->firm;
+                    break;
+                }
+            }
         }
 
-            $this->layout = '//layouts/events_and_episodes';
-            $this->patient = $this->loadModel($id, false);
+        if ($episodeFirm) {
+            $this->firm = $episodeFirm;
+            Yii::app()->session['selected_firm_id'] = $episodeFirm->id;
+        }
+
         // if the ids are different, it means the $id belongs to a merged patient
-        if ($id !== $this->patient->id) {
+        if ($id != $this->patient->id) {
             $link = (new CoreAPI())->generatePatientLandingPageLink($this->patient);
             // using redirect to correct the url and to avoid issues from creating events
             $this->redirect("$link");
@@ -272,6 +294,24 @@ class PatientController extends BaseController
             $this->patient->audit('patient', 'view-summary');
 
             $episodes = $this->patient->episodes;
+            // Couchbase fallback if relation returns empty
+            if (empty($episodes)) {
+                $episodes = $this->patient->fetchEpisodesFromCouchbase();
+                // keep patient relation hydrated for downstream views
+                $this->patient->episodes = $episodes;
+                // reset ordered episodes cache to rebuild with fresh episodes
+                if (method_exists($this->patient, 'resetOrderedEpisodesCache')) {
+                    $this->patient->resetOrderedEpisodesCache();
+                }
+            }
+
+            // Cache episodes structure for sidebar rendering
+            $this->episodes = array(
+                'ordered_episodes' => $this->patient->getOrderedEpisodes(),
+                'legacyepisodes' => $this->patient->legacyepisodes,
+                'supportserviceepisodes' => $this->patient->supportserviceepisodes,
+            );
+
             $legacy_episodes = $this->patient->legacyepisodes;
             $support_service_episodes = $this->patient->supportserviceepisodes;
 
@@ -286,6 +326,101 @@ class PatientController extends BaseController
             $criteria->compare('t.deleted', 0);
             $criteria->addCondition('episode.change_tracker IS NULL OR episode.change_tracker = 0');
             $active_events = Event::model()->findAll($criteria);
+
+            // Couchbase fallback if AR join returns empty
+            if (empty($events)) {
+                try {
+                    $n1ql = "SELECT e.* FROM `openeyes`.`core`.`event` e "
+                        . "JOIN `openeyes`.`core`.`episode` ep ON ep.id = e.episode_id "
+                        . "WHERE ep.patient_id = $id AND e.deleted = FALSE "
+                        . "ORDER BY e.last_modified_date DESC LIMIT 3";
+                    $rows = Yii::app()->couchbaseRest->query($n1ql);
+                    $events = array();
+                    foreach ($rows as $row) {
+                        $ev = new Event(null);
+                        $ev->setIsNewRecord(false);
+                        foreach ($row as $attr => $value) {
+                            if ($ev->hasAttribute($attr)) {
+                                $ev->$attr = $value;
+                            }
+                        }
+                        if (isset($row['id'])) {
+                            $ev->setPrimaryKey($row['id']);
+                        }
+                        // hydrate event type for link rendering
+                        if (isset($row['event_type_id'])) {
+                            $et = EventType::model()->findByPk($row['event_type_id']);
+                            if ($et) {
+                                $ev->addRelatedRecord('eventType', $et, false);
+                            }
+                        }
+                        $events[] = $ev;
+                    }
+                } catch (Exception $e) {
+                    Yii::log('Event Couchbase fallback (summary) failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+                }
+            }
+
+            if (empty($active_events)) {
+                try {
+                    $n1ql = "SELECT e.* FROM `openeyes`.`core`.`event` e "
+                        . "JOIN `openeyes`.`core`.`episode` ep ON ep.id = e.episode_id "
+                        . "WHERE ep.patient_id = $id AND e.deleted = FALSE "
+                        . "AND (ep.change_tracker IS NULL OR ep.change_tracker = FALSE) "
+                        . "ORDER BY e.last_modified_date DESC";
+                    $rows = Yii::app()->couchbaseRest->query($n1ql);
+                    $active_events = array();
+                    foreach ($rows as $row) {
+                        $ev = new Event(null);
+                        $ev->setIsNewRecord(false);
+                        foreach ($row as $attr => $value) {
+                            if ($ev->hasAttribute($attr)) {
+                                $ev->$attr = $value;
+                            }
+                        }
+                        if (isset($row['id'])) {
+                            $ev->setPrimaryKey($row['id']);
+                        }
+                        if (isset($row['event_type_id'])) {
+                            $et = EventType::model()->findByPk($row['event_type_id']);
+                            if ($et) {
+                                $ev->addRelatedRecord('eventType', $et, false);
+                            }
+                        }
+                        $active_events[] = $ev;
+                    }
+                } catch (Exception $e) {
+                    Yii::log('Active event Couchbase fallback (summary) failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+                }
+            }
+
+            // Attach events to their episodes so the sidebar can render them
+            if (!empty($episodes)) {
+                $events_by_episode = [];
+                foreach ($active_events as $ev) {
+                    $events_by_episode[$ev->episode_id][] = $ev;
+                }
+                foreach ($episodes as $ep) {
+                    $epId = $ep->id;
+                    if (!$epId) {
+                        continue;
+                    }
+                    if (!empty($events_by_episode[$epId])) {
+                        // replace the events relation with hydrated Couchbase events
+                        $ep->events = $events_by_episode[$epId];
+                    }
+                }
+                // update patient episodes cache for sidebar
+                $this->patient->episodes = $episodes;
+                if (method_exists($this->patient, 'resetOrderedEpisodesCache')) {
+                    $this->patient->resetOrderedEpisodesCache();
+                }
+                $this->episodes = array(
+                    'ordered_episodes' => $this->patient->getOrderedEpisodes(),
+                    'legacyepisodes' => $this->patient->legacyepisodes,
+                    'supportserviceepisodes' => $this->patient->supportserviceepisodes,
+                );
+            }
 
             $drafts_count = EventDraft::model()->with(['episode'])->count('patient_id = ?', [$this->patient->id]);
 
@@ -365,7 +500,7 @@ class PatientController extends BaseController
         $new_plan = $request->getPost('new_plan');
         $patient_id = $request->getPost('patient_id');
 
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
         try {
             if ($new_plan) {
                 $display_order = (is_array($plan_ids) ? count($plan_ids) + 1 : 1);
@@ -632,6 +767,53 @@ class PatientController extends BaseController
     public function loadModel($id, $allow_deleted = true)
     {
         $model = Patient::model()->findByPk((int)$id);
+
+        // Couchbase-first overlay (falls back to MariaDB if missing)
+        $useCouchbase = Yii::app()->params['enable_couchbase_read'] ?? false;
+        if ($useCouchbase) {
+            try {
+                $adapter = \OE\Database\DatabaseAdapterFactory::getAdapter(
+                    \OE\Database\DatabaseAdapterFactory::ADAPTER_COUCHBASE
+                );
+                $doc = $adapter->findByPk('patient', (int)$id);
+
+                if ($doc) {
+                    // If MariaDB record is missing, build a lightweight patient for display
+                    if ($model === null) {
+                        $model = new Patient();
+                        $model->setIsNewRecord(false);
+                        $model->id = (int)$id;
+                    }
+
+                    // Overlay key fields from Couchbase document
+                    foreach (['hos_num', 'nhs_num', 'dob', 'gender', 'date_of_death'] as $field) {
+                        if (isset($doc[$field]) && method_exists($model, 'hasAttribute') && $model->hasAttribute($field)) {
+                            $model->{$field} = $doc[$field];
+                        }
+                    }
+                    if (isset($doc['is_deceased']) && method_exists($model, 'hasAttribute') && $model->hasAttribute('is_deceased')) {
+                        $model->is_deceased = (bool)$doc['is_deceased'];
+                    }
+
+                    // Contact overlay
+                    if (isset($doc['contact']) && is_array($doc['contact'])) {
+                        $contact = $model->contact ?: new Contact();
+                        $contact->setIsNewRecord(false);
+                        if (isset($doc['contact']['id'])) {
+                            $contact->id = $doc['contact']['id'];
+                        }
+                        foreach (['first_name', 'last_name', 'title', 'primary_phone'] as $cField) {
+                            if (isset($doc['contact'][$cField])) {
+                                $contact->{$cField} = $doc['contact'][$cField];
+                            }
+                        }
+                        $model->contact = $contact;
+                    }
+                }
+            } catch (\Exception $e) {
+                Yii::log('Couchbase patient overlay failed: ' . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application.patient');
+            }
+        }
         // cannot find any patient by id, throw exception
         if ($model === null) {
             throw new CHttpException(404, 'The requested page does not exist.');
@@ -894,20 +1076,23 @@ class PatientController extends BaseController
         }
 
         // For every document sub type...
-        /* @var OphCoDocument_Sub_Types $documentTyoe */
-        foreach (OphCoDocument_Sub_Types::model()->findAll() as $documentType) {
-            // Find the document events for that subtype ...
-            $documentEvents = array_filter($eventTypeMap['Document'], function ($documentEvent) use ($documentType) {
-                $documentElement = $documentEvent->getElementByClass(Element_OphCoDocument_Document::class);
-                return $documentElement->sub_type->id === $documentType->id;
-            });
+        /* @var OphCoDocument_Sub_Types $documentType */
+        // Only process document sub-types if Document events exist
+        if (isset($eventTypeMap['Document']) && !empty($eventTypeMap['Document'])) {
+            foreach (OphCoDocument_Sub_Types::model()->findAll() as $documentType) {
+                // Find the document events for that subtype ...
+                $documentEvents = array_filter($eventTypeMap['Document'], function ($documentEvent) use ($documentType) {
+                    $documentElement = $documentEvent->getElementByClass(Element_OphCoDocument_Document::class);
+                    return $documentElement && $documentElement->sub_type && $documentElement->sub_type->id === $documentType->id;
+                });
 
-            // And add them to the preview groups
-            // Referral letters should be put in the Letter bucket, along with correspondence events
-            if ($documentType->name === 'Referral Letter') {
-                $previewGroups['Letters'] += $documentEvents;
-            } else {
-                $previewGroups[$documentType->name] = $documentEvents;
+                // And add them to the preview groups
+                // Referral letters should be put in the Letter bucket, along with correspondence events
+                if ($documentType->name === 'Referral Letter') {
+                    $previewGroups['Letters'] += $documentEvents;
+                } else {
+                    $previewGroups[$documentType->name] = $documentEvents;
+                }
             }
         }
 
@@ -1378,7 +1563,7 @@ class PatientController extends BaseController
             return array('patients' => array());
         }
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
         ->from('patient p')
         ->join('contact c', 'p.contact_id = c.id');
 
@@ -2183,7 +2368,7 @@ class PatientController extends BaseController
 
         $patientScenario = $patient->getScenario();
         $isNewPatient = $patient->isNewRecord ? true : false;
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             $success =
                 $this->patientSaveInner(
@@ -2277,11 +2462,17 @@ class PatientController extends BaseController
         }
 
         $patient->contact_id = $contact->id;
+        // Keep relation in sync so Couchbase embedding includes contact/email
+        $patient->contact = $contact;
         $address->contact_id = $contact->id;
+
+        // Save address before patient so embedded data includes latest country/details
+        if (!$address->save()) {
+            return false;
+        }
 
         if (
             !$patient->save()
-            || !$address->save()
             || !$this->performIdentifierSave($patient, $patient_identifiers, $pid_type_necessity_values)
         ) {
             return false;
@@ -2397,6 +2588,27 @@ class PatientController extends BaseController
      */
     public function actionPerformReferralDoc($patient, $referral)
     {
+        // Check if OphCoDocument module is installed and migrated
+        $documentEventType = EventType::model()->findByAttributes(array('name' => 'Document'));
+        if (!$documentEventType) {
+            Yii::log(
+                'Cannot save referral documents: OphCoDocument module not installed (EventType "Document" not found)',
+                CLogger::LEVEL_WARNING,
+                'application.controllers.PatientController'
+            );
+            return true; // Don't fail patient creation, just skip documents
+        }
+
+        $referralLetterSubType = OphCoDocument_Sub_Types::model()->findByAttributes(array('name' => 'Referral Letter'));
+        if (!$referralLetterSubType) {
+            Yii::log(
+                'Cannot save referral documents: OphCoDocument_Sub_Types "Referral Letter" not found',
+                CLogger::LEVEL_WARNING,
+                'application.controllers.PatientController'
+            );
+            return true; // Don't fail patient creation, just skip documents
+        }
+
         // To get allowed file types from the model
         $allowed_file_types = Yii::app()->params['OphCoDocument']['allowed_file_types'];
 
@@ -2408,9 +2620,9 @@ class PatientController extends BaseController
         $event = new Event();
         $event->episode_id = $episode->id;
         $event->firm_id = $firm_id;
-        $event->event_type_id = EventType::model()->findByAttributes(array('name' => 'Document'))->id;
+        $event->event_type_id = $documentEventType->id;
         $event->event_date = date('Y-m-d');
-        $referral_letter_type_id = OphCoDocument_Sub_Types::model()->findByAttributes(array('name' => 'Referral Letter'))->id;
+        $referral_letter_type_id = $referralLetterSubType->id;
 
         if (!$event->save()) {
             throw new Exception('Could not save event');
@@ -2595,7 +2807,8 @@ class PatientController extends BaseController
         $this->performAjaxValidation(array($patient, $contact, $address));
 
         if (isset($_POST['Contact'], $_POST['Address'], $_POST['Patient'])) {
-            if ($_POST['changePatientSource'] == 0) {
+            $changePatientSource = isset($_POST['changePatientSource']) ? (int)$_POST['changePatientSource'] : 0;
+            if ($changePatientSource === 0) {
                 list($contact, $patient, $address, $referral, $patient_user_referral, $patient_identifiers) =
                     $this->performPatientSave($contact, $patient, $address, $referral, $patient_user_referral, $patient_identifiers, $pid_type_necessity_values, $prevUrl);
             }
@@ -2962,7 +3175,7 @@ class PatientController extends BaseController
         if (!isset($patient->id)) {
             return true;
         }
-        $command = Yii::app()->db->createCommand()->setText("
+        $command = Yii::app()->cbdb->createCommand()->setText("
                     select count(*) 'referral letters'
                     from patient p
                     join episode e on p.id = e.patient_id

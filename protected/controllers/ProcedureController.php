@@ -88,7 +88,7 @@ class ProcedureController extends BaseController
 
         $benefits = array();
 
-        foreach (Yii::app()->db->createCommand()
+        foreach (Yii::app()->cbdb->createCommand()
             ->select('b.name')
             ->from('benefit b')
             ->join('procedure_benefit pb', 'pb.benefit_id = b.id')
@@ -109,7 +109,7 @@ class ProcedureController extends BaseController
 
         $complications = array();
 
-        foreach (Yii::app()->db->createCommand()
+        foreach (Yii::app()->cbdb->createCommand()
             ->select('b.name')
             ->from('complication b')
             ->join('procedure_complication pb', 'pb.complication_id = b.id')

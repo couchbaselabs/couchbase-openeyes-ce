@@ -155,76 +155,97 @@ class FollowupAnalysisAggregate extends BaseActiveRecord
 
     private static function findLatestFollowUpElementEvent($patient_id)
     {
-        return Yii::app()->db->createCommand()
-            ->select(
+        // Skip complex SQL query when using Couchbase (not supported)
+        // This feature requires MariaDB for complex JOIN operations
+        try {
+            $db = Yii::app()->cbdb;
+            if (!method_exists($db->createCommand(), 'select')) {
+                return null;
+            }
+            return $db->createCommand()
+                ->select(
+                    "
+                    e.id as event_id,
+                    e.event_date as event_date,
+                    DATE_ADD(event_date, INTERVAL IF(period.name = 'weeks', 7 ,IF( period.name = 'months', 30, IF(period.name = 'years', 365, 1)))*eoc_entry.followup_quantity DAY) as due_date
                 "
-                e.id as event_id,
-                e.event_date as event_date,
-                DATE_ADD(event_date, INTERVAL IF(period.name = 'weeks', 7 ,IF( period.name = 'months', 30, IF(period.name = 'years', 365, 1)))*eoc_entry.followup_quantity DAY) as due_date
-            "
-            )
-            ->from("event e")
-            ->leftjoin("episode e2", "e.episode_id = e2.id")
-            ->leftjoin("patient p", "p.id = e2.patient_id")
-            ->leftjoin("event_type e3", "e3.id = e.event_type_id")
-            ->leftjoin("et_ophciexamination_clinicoutcome eoc", "eoc.event_id = e.id")
-            ->leftjoin("ophciexamination_clinicoutcome_entry eoc_entry", "eoc_entry.element_id = eoc.id")
-            ->leftjoin("period", "period.id = eoc_entry.followup_period_id")
-            ->where("p.deleted <> 1 and e.deleted <> 1 and e2.deleted <> 1")
-            ->andWhere('p.id = :patient_id', [':patient_id' => $patient_id])
-            ->andWhere("lower(e3.name) like lower('%examination%')")
-            ->andWhere(
-                "
-                e.event_date = (
-                    select MAX(e4.event_date) from event e4
-                    left join episode e5 on e4.episode_id = e5.id
-                    left join patient p2 on e5.patient_id = p2.id
-                    left join event_type e6 ON e6.id = e4.event_type_id
-                    WHERE p2.id = p.id and e4.deleted = 0 and e5.deleted = 0
-                    and lower(e3.name) like lower('%examination%')
                 )
-            "
-            )
-            ->andWhere("eoc.id is not null")
-            ->andWhere("eoc_entry.followup_period_id is not null")
-            ->queryRow();
+                ->from("event e")
+                ->leftjoin("episode e2", "e.episode_id = e2.id")
+                ->leftjoin("patient p", "p.id = e2.patient_id")
+                ->leftjoin("event_type e3", "e3.id = e.event_type_id")
+                ->leftjoin("et_ophciexamination_clinicoutcome eoc", "eoc.event_id = e.id")
+                ->leftjoin("ophciexamination_clinicoutcome_entry eoc_entry", "eoc_entry.element_id = eoc.id")
+                ->leftjoin("period", "period.id = eoc_entry.followup_period_id")
+                ->where("p.deleted <> 1 and e.deleted <> 1 and e2.deleted <> 1")
+                ->andWhere('p.id = :patient_id', [':patient_id' => $patient_id])
+                ->andWhere("lower(e3.name) like lower('%examination%')")
+                ->andWhere(
+                    "
+                    e.event_date = (
+                        select MAX(e4.event_date) from event e4
+                        left join episode e5 on e4.episode_id = e5.id
+                        left join patient p2 on e5.patient_id = p2.id
+                        left join event_type e6 ON e6.id = e4.event_type_id
+                        WHERE p2.id = p.id and e4.deleted = 0 and e5.deleted = 0
+                        and lower(e3.name) like lower('%examination%')
+                    )
+                "
+                )
+                ->andWhere("eoc.id is not null")
+                ->andWhere("eoc_entry.followup_period_id is not null")
+                ->queryRow();
+        } catch (\Exception $e) {
+            Yii::log("FollowupAnalysisAggregate: Skipping findLatestFollowUpElementEvent - " . $e->getMessage(), CLogger::LEVEL_INFO);
+            return null;
+        }
     }
 
     /* Get the waiting follow up data, uses Document event with referral letter type and later on the worklist time
         To calculate how long a patient will wait frm the date of referral to the date assigned in a worklist */
     private static function findLatestReferralLetterEvent($patient_id)
     {
-        return Yii::app()->db->createCommand()
-            ->select(
+        // Skip complex SQL query when using Couchbase (not supported)
+        try {
+            $db = Yii::app()->cbdb;
+            if (!method_exists($db->createCommand(), 'select')) {
+                return null;
+            }
+            return $db->createCommand()
+                ->select(
+                    "
+                    e.id as event_id,
+                    p.id as patient_id,
+                    e.event_date as event_date
                 "
-                e.id as event_id,
-                p.id as patient_id,
-                e.event_date as event_date
-            "
-            )
-            ->from("event e")
-            ->leftjoin("episode e2", "e.episode_id = e2.id")
-            ->leftjoin("patient p", "p.id = e2.patient_id")
-            ->leftjoin("event_type e3", "e3.id = e.event_type_id")
-            ->leftjoin("et_ophcodocument_document eod", "e.id = eod.event_id")
-            ->leftjoin("ophcodocument_sub_types ost", "eod.event_sub_type = ost.id")
-            ->where("ost.name = 'Referral Letter'")
-            ->andWhere('p.id = :patient_id', [':patient_id' => $patient_id])
-            ->andWhere("p.deleted <> 1 and e.deleted <> 1 and e2.deleted <> 1")
-            ->andWhere("lower(e3.name) like lower('%document%')")
-            ->andWhere(
-                "
-                e.event_date = (
-                    select MAX(e4.event_date) from event e4
-                    left join episode e5 on e4.episode_id = e5.id
-                    left join patient p2 on e5.patient_id = p2.id
-                    left join event_type e6 ON e6.id = e4.event_type_id
-                WHERE p2.id = p.id and e4.deleted = 0 and e5.deleted = 0
-                and lower(e3.name) like lower('%document%')
                 )
-            "
-            )
-            ->queryRow();
+                ->from("event e")
+                ->leftjoin("episode e2", "e.episode_id = e2.id")
+                ->leftjoin("patient p", "p.id = e2.patient_id")
+                ->leftjoin("event_type e3", "e3.id = e.event_type_id")
+                ->leftjoin("et_ophcodocument_document eod", "e.id = eod.event_id")
+                ->leftjoin("ophcodocument_sub_types ost", "eod.event_sub_type = ost.id")
+                ->where("ost.name = 'Referral Letter'")
+                ->andWhere('p.id = :patient_id', [':patient_id' => $patient_id])
+                ->andWhere("p.deleted <> 1 and e.deleted <> 1 and e2.deleted <> 1")
+                ->andWhere("lower(e3.name) like lower('%document%')")
+                ->andWhere(
+                    "
+                    e.event_date = (
+                        select MAX(e4.event_date) from event e4
+                        left join episode e5 on e4.episode_id = e5.id
+                        left join patient p2 on e5.patient_id = p2.id
+                        left join event_type e6 ON e6.id = e4.event_type_id
+                    WHERE p2.id = p.id and e4.deleted = 0 and e5.deleted = 0
+                    and lower(e3.name) like lower('%document%')
+                    )
+                "
+                )
+                ->queryRow();
+        } catch (\Exception $e) {
+            Yii::log("FollowupAnalysisAggregate: Skipping findLatestReferralLetterEvent - " . $e->getMessage(), CLogger::LEVEL_INFO);
+            return null;
+        }
     }
 
     private static function createEntry($type, $patient_id, $event_id, $ticket_id, $made_at_date, $due_date)
@@ -328,7 +349,7 @@ class FollowupAnalysisAggregate extends BaseActiveRecord
 
     public static function retrieveFormattedAnalytics(&$patient_list, &$csv_data, $start_date = null, $end_date = null, $diagnosis_text = null, $surgeon_id = null, $subspecialty_id = null)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
                  ->select('type, faa.patient_id AS patient_id,
                            UNIX_TIMESTAMP(made_at_date) AS made_at_date,
                            UNIX_TIMESTAMP(due_date) AS due_date,

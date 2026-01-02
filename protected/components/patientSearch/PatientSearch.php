@@ -139,6 +139,14 @@ class PatientSearch
 
             // remove spaces and dashes, NHS number can come like 000-000-0000, 000 000 0000
             $this->search_terms['term'] = str_replace([' ', '-'], '', $this->search_terms['term']);
+
+            // Fallback: if the term is purely alphabetic (likely a surname-only search), treat as a name search
+            if (!preg_match('/\d/', $this->search_terms['term'])) {
+                $this->search_terms['first_name'] = '';
+                $this->search_terms['last_name'] = trim($this->search_terms['term']);
+                $this->search_terms['dob'] = '';
+                $this->search_terms['is_name_search'] = true;
+            }
         }
 
         $this->search_terms = CHtml::encodeArray($this->search_terms);
@@ -312,17 +320,42 @@ class PatientSearch
      * Searching for patients.
      *
      * @param $term
-     * @return CActiveDataProvider
+     * @return CDataProvider
      */
-    public function search($term, $patient_identifier_type = null): CActiveDataProvider
+    public function search($term, $patient_identifier_type = null): CDataProvider
     {
+        $patient_criteria = $this->prepareSearch($term, $patient_identifier_type);
+        
+        // Check if Couchbase reads are enabled
+        $useCouchbase = \Yii::app()->params['enable_couchbase_read'] ?? false;
+        
+        if ($useCouchbase) {
+            try {
+                $couchbaseSearch = new \OE\Reports\CouchbasePatientSearch();
+                $dataProvider = $couchbaseSearch->searchForDataProvider($patient_criteria);
+
+                // If Couchbase yields any results, return them (even when MariaDB lacks the record)
+                if ($dataProvider->getItemCount() > 0) {
+                    \Yii::log("Patient search using Couchbase returned {$dataProvider->getItemCount()} results",
+                              \CLogger::LEVEL_INFO, 'application.search');
+                    return $dataProvider;
+                }
+
+                // Fall through to MariaDB only when Couchbase returns zero
+                \Yii::log("No Couchbase results, falling back to MariaDB search",
+                          \CLogger::LEVEL_INFO, 'application.search');
+            } catch (\Exception $e) {
+                \Yii::log("Couchbase search failed, falling back to MariaDB: " . $e->getMessage(),
+                          \CLogger::LEVEL_WARNING, 'application.search');
+            }
+        }
+        
+        // MariaDB search (original logic)
         $patient = new Patient();
 
         if ($this->use_pas === true) {
             $patient = $patient->usePas();
         }
-
-        $patient_criteria = $this->prepareSearch($term, $patient_identifier_type);
 
         return $patient->search($patient_criteria, $this->save_from_pas_by_type_id);
     }

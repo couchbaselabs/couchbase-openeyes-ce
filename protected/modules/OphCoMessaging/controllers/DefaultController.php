@@ -202,7 +202,7 @@ class DefaultController extends \BaseEventTypeController
                 'comment' => $comment,
             ));
         } else {
-            $transaction = \Yii::app()->db->beginTransaction();
+            $transaction = \Yii::app()->cbdb->beginTransaction();
 
             try {
                 $recipients =
@@ -431,7 +431,7 @@ class DefaultController extends \BaseEventTypeController
      */
     public function markMessageRead($el, $mailbox)
     {
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
 
         try {
             $recipient = OphCoMessaging_Message_Recipient::model()->findByAttributes(['element_id' => $el->id, 'mailbox_id' => $mailbox->id]);
@@ -487,7 +487,7 @@ class DefaultController extends \BaseEventTypeController
                       ->find('primary_recipient = 0');
 
         if ($cc_recipient) {
-            $transaction = \Yii::app()->db->beginTransaction();
+            $transaction = \Yii::app()->cbdb->beginTransaction();
 
             try {
                 $cc_recipient->marked_as_read = true;

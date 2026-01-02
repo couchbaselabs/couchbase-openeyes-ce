@@ -131,7 +131,7 @@ class BookingController extends OphTrOperationbookingEventController
                         throw new Exception('Operation not found: '.$_POST['Booking']['element_id']);
                     }
 
-                    $transaction = Yii::app()->db->beginTransaction();
+                    $transaction = Yii::app()->cbdb->beginTransaction();
 
                     try {
                         $cancellation_data = array(

@@ -99,11 +99,11 @@ class UniqueCodeMapping extends BaseActiveRecord
 
     public function lock()
     {
-        Yii::app()->db->createCommand('LOCK TABLES `'.UniqueCodes::model()->tableName().'` READ, `'.UniqueCodes::model()->tableName().'` AS `'.UniqueCodes::model()->getTableAlias().'` READ, `'.$this->tableName().'` WRITE,`'.$this->tableName().'` as `'.$this->getTableAlias().'` READ ')->execute();
+        Yii::app()->cbdb->createCommand('LOCK TABLES `'.UniqueCodes::model()->tableName().'` READ, `'.UniqueCodes::model()->tableName().'` AS `'.UniqueCodes::model()->getTableAlias().'` READ, `'.$this->tableName().'` WRITE,`'.$this->tableName().'` as `'.$this->getTableAlias().'` READ ')->execute();
     }
 
     public function unlock()
     {
-        Yii::app()->db->createCommand('UNLOCK TABLES')->execute();
+        Yii::app()->cbdb->createCommand('UNLOCK TABLES')->execute();
     }
 }

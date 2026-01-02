@@ -180,7 +180,7 @@ class WaitingListController extends BaseModuleController
             $criteria->addCondition('t.status_id = :status_id');
             $criteria->params[':status_id'] = $booking_status;
         } else {
-            $booking_status_ids = Yii::app()->db->createCommand()->select('id')->from('ophtroperationbooking_operation_status')
+            $booking_status_ids = Yii::app()->cbdb->createCommand()->select('id')->from('ophtroperationbooking_operation_status')
                 ->where(['in','name', ['On-Hold', 'Requires scheduling', 'Requires rescheduling', ]])->queryColumn();
             $booking_status_ids = "(" . implode(',', $booking_status_ids) . ")";
             $criteria->addCondition("t.status_id IN $booking_status_ids");
@@ -390,14 +390,14 @@ class WaitingListController extends BaseModuleController
 
         $this->layout = '//layouts/print';
 
-        $cmd = Yii::app()->db->createCommand('SELECT GET_LOCK(?, 1)');
+        $cmd = Yii::app()->cbdb->createCommand('SELECT GET_LOCK(?, 1)');
 
         while (!$cmd->queryScalar(array('waitingListPrint'))) {
         }
 
         $directory = Yii::app()->assetManager->basePath.'/waitingList';
 
-        Yii::app()->db->createCommand('SELECT RELEASE_LOCK(?)')->execute(array('waitingListPrint'));
+        Yii::app()->cbdb->createCommand('SELECT RELEASE_LOCK(?)')->execute(array('waitingListPrint'));
 
         $documents = 0;
 
@@ -645,7 +645,7 @@ class WaitingListController extends BaseModuleController
             exit;
         }
 
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
 
         try {
             $element->status_id = 2; //@TODO: change hardcoded id to a query
@@ -655,7 +655,7 @@ class WaitingListController extends BaseModuleController
             $event = Event::model()->find("id = :event_id", array(":event_id"=>$event_id));
             $event->deleteIssue("Operation requires scheduling");
 
-            $listed_episode_status_id = Yii::app()->db->createCommand()
+            $listed_episode_status_id = Yii::app()->cbdb->createCommand()
                 ->select('id')
                 ->from('episode_status')->where('name=:name', array(':name' => 'Listed/booked'))
                 ->queryScalar();

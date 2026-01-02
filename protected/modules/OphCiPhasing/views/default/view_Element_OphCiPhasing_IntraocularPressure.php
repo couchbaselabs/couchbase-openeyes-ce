@@ -18,7 +18,7 @@
 <div class="element-data element-eyes full-width data-group">
     <div class="js-element-eye right-eye">
         <?php
-        $this->renderPartial('view_Element_OphCiPhasing_IntraocularPressure_Side', array(
+        $this->renderPartial('application.modules.OphCiPhasing.views.default.view_Element_OphCiPhasing_IntraocularPressure_Side', array(
             'element' => $element,
             'side' => 'Right',
         ));
@@ -26,7 +26,7 @@
     </div>
     <div class="js-element-eye left-eye">
         <?php
-        $this->renderPartial('view_Element_OphCiPhasing_IntraocularPressure_Side', array(
+        $this->renderPartial('application.modules.OphCiPhasing.views.default.view_Element_OphCiPhasing_IntraocularPressure_Side', array(
             'element' => $element,
             'side' => 'Left',
         ));

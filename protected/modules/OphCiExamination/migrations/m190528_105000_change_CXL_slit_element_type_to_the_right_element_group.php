@@ -9,13 +9,17 @@ class m190528_105000_change_CXL_slit_element_type_to_the_right_element_group ext
             ->queryScalar();
 
         $element_group = $this->dbConnection->createCommand('SELECT id FROM element_group WHERE name = :name AND event_type_id = :event_type')
-            ->bindValues(array(':name' => 'Anterior Segment', ':event_type' => $examination_event_type));
-        $this->update(
-            'element_type',
-            ['element_group_id' => $element_group],
-            'class_name = :class_name',
-            [':class_name' => 'OEModule\OphCiExamination\models\Element_OphCiExamination_Slit_Lamp']
-        );
+            ->bindValues(array(':name' => 'Anterior Segment', ':event_type' => $examination_event_type))
+            ->queryScalar();
+
+        if ($examination_event_type && $element_group) {
+            $this->update(
+                'element_type',
+                ['element_group_id' => $element_group],
+                'class_name = :class_name',
+                [':class_name' => 'OEModule\OphCiExamination\models\Element_OphCiExamination_Slit_Lamp']
+            );
+        }
     }
 
     public function down()

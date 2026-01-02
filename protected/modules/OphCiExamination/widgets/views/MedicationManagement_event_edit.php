@@ -46,7 +46,10 @@ foreach ($element->getFrequencyOptions() as $k => $v) {
 $stop_reason_options = CHtml::listData($element->getStopReasonOptions(), 'id', 'name');
 
 $laterality_options = Chtml::listData($element->getLateralityOptions(), 'id', 'name');
-$unit_options = CHtml::listData(MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'")->medicationAttributeOptions, 'description', 'description');
+$unitOfMeasureAttr = MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'");
+$unit_options = $unitOfMeasureAttr && $unitOfMeasureAttr->medicationAttributeOptions 
+    ? CHtml::listData($unitOfMeasureAttr->medicationAttributeOptions, 'description', 'description') 
+    : [];
 
 $element_errors = $element->getErrors();
 $read_only = $element->event && !empty(ExamController::getMedicationManagementEditable($element->event->getPatient()->id, date('d M Y', strtotime($element->event->event_date)))['errorMessages']);

@@ -26,7 +26,11 @@ class OEPhoneNumberValidator extends CValidator
             return;
         }
 
-        $object->$attribute=str_replace(array(' ','-'), '', $object->$attribute);
+        if ($object->$attribute === null) {
+            return;
+        }
+
+        $object->$attribute = str_replace(array(' ','-'), '', $object->$attribute);
 
         $value = $object->$attribute;
 

@@ -22,8 +22,9 @@ $li_id = 'js-sideEvent' . $event->id;
     data-created-date="<?= $event->created_date ?>"
     data-event-year-display="<?= substr($event->NHSDate('event_date'), -4) ?>"
     data-event-date-display="<?= $event->NHSDate('event_date') ?>"
+    <?php $inst_name = isset($event->institution) && $event->institution ? ($event->institution->name ?? 'Unknown institution') : 'Unknown institution'; ?>
     data-event-type="<?= $event_name ?>"
-    data-institution="<?= $event->institution->name ?>"
+    data-institution="<?= CHtml::encode($inst_name) ?>"
     data-subspecialty="<?= $subspecialty_name ?>"
     data-event-icon='<?= $event->getEventIcon('medium') ?>'
     <?php if ($event_image !== null) { ?>
@@ -81,16 +82,26 @@ $li_id = 'js-sideEvent' . $event->id;
         </span>
         <span class="event-extra">
             <?php
-            $api = Yii::app()->moduleAPI->get($event->eventType->class_name);
+            $eventType = $event->eventType;
+            $api = ($eventType && $eventType->class_name)
+                ? Yii::app()->moduleAPI->get($eventType->class_name)
+                : null;
 
-            if ($api !== false && method_exists($api, 'getLaterality')) {
-                $this->widget('EyeLateralityWidget', [
-                    'show_if_both_eyes_are_null' =>
-                      !property_exists($api, 'show_if_both_eyes_are_null') ||
-                      $api->show_if_both_eyes_are_null,
-                    'eye' => $api->getLaterality($event->id),
-                    'pad' => '',
-                ]);
+            if ($api && $api !== false && method_exists($api, 'getLaterality')) {
+                try {
+                    $eye = $api->getLaterality($event->id);
+                } catch (Exception $e) {
+                    $eye = null;
+                }
+                if ($eye !== null) {
+                    $this->widget('EyeLateralityWidget', [
+                        'show_if_both_eyes_are_null' =>
+                          !property_exists($api, 'show_if_both_eyes_are_null') ||
+                          $api->show_if_both_eyes_are_null,
+                        'eye' => $eye,
+                        'pad' => '',
+                    ]);
+                }
             } ?>
         </span>
         <span class="event-date <?= ($event->isEventDateDifferentFromCreated()) ? ' backdated' : '' ?>">

@@ -86,7 +86,7 @@ class LocalDrugsAdminController extends RefMedicationAdminController
 
         $row_ids = Yii::app()->request->getPost('id');
         $selected = Yii::app()->request->getPost('selected');
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         try {
             foreach ($row_ids as $row => $id) {

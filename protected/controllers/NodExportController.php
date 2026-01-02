@@ -229,7 +229,7 @@ class NodExportController extends BaseController
 
         while (true) {
             $runQuery = $dataQuery['query'] . " LIMIT " . $chunk . " OFFSET " . $offset . ";";
-            $dataCmd = Yii::app()->db->createCommand($runQuery);
+            $dataCmd = Yii::app()->cbdb->createCommand($runQuery);
 
             $data = $dataCmd->queryAll();
 
@@ -259,45 +259,45 @@ class NodExportController extends BaseController
         $query = '';
 
         $query = $this->createTmpRcoNodMainEventEpisodes();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodPatients();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodPatientCVIStatus();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodePreOpAssessment();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeRefraction();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeDrug();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeIOP();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeBiometry();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodSurgeon();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeDiabeticDiagnosis();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodPostOpComplication();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeOperationCoPathology();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeOperation();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeTreatment();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeTreatmentCataract();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeOperationAnaesthesia();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeOperationIndication();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeOperationComplication();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeVisualAcuity();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->createTmpRcoNodEpisodeDiagnosis();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
 
         $query = <<<EOL
 
@@ -321,7 +321,7 @@ class NodExportController extends BaseController
 				KEY `tmp_treatment_ids_id` (`id`)
 			);
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 DROP TABLE IF EXISTS tmp_rco_nod_pathology_type;
@@ -365,12 +365,12 @@ SELECT
   END nod_id
 FROM disorder d;
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 			DROP TEMPORARY TABLE IF EXISTS tmp_iol_positions;
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 			CREATE TEMPORARY TABLE tmp_iol_positions (
@@ -378,7 +378,7 @@ EOL;
 				`term` VARCHAR(100)
 			);
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
@@ -393,13 +393,13 @@ EOL;
 				(5, 'Iris fixated'),
 				(13, 'Other');
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
 		DROP TABLE IF EXISTS tmp_complication_type;
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
@@ -408,7 +408,7 @@ EOL;
 			`name` VARCHAR(100)
 		);
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
@@ -440,11 +440,11 @@ EOL;
 			(25, 'Not recorded'),
 			(999, 'other');
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
                         DROP TEMPORARY TABLE IF EXISTS tmp_complication;
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
@@ -455,7 +455,7 @@ EOL;
                                 `nod_desc` VARCHAR(100)
                         );
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
@@ -476,13 +476,13 @@ EOL;
                         (13, 'Other', 12, 'Other');
                         -- (0, '', 99, 'Not recorded');
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
                         DROP TABLE IF EXISTS tmp_biometry_formula;
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
                         CREATE TABLE tmp_biometry_formula (
@@ -490,7 +490,7 @@ EOL;
                                 `desc` VARCHAR(100)
                         );
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
@@ -512,7 +512,7 @@ EOL;
                            `rco_condition_id` INT(10) UNSIGNED NOT NULL
                         );
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
                         INSERT INTO tmp_episode_diagnosis (`oe_subspecialty_name`, `rco_condition_name`, `oe_subspecialty_id`, `rco_condition_id`)
                         VALUES
@@ -532,14 +532,14 @@ EOL;
                         ('Paediatrics', 'Strabismus & Paediatric', 11, 18),
                         ('Vitreoretinal', 'Vitreoretinal', 16, 19);
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
 
                     DROP TABLE IF EXISTS tmp_episode_medication_route;
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 
@@ -554,7 +554,7 @@ EOL;
                         KEY `tmp_episode_mediation_route_oe_route_id` (`oe_route_id`)
                     );
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
                     INSERT INTO `tmp_episode_medication_route` ( `oe_route_id`, `oe_route_name`, `oe_option_id`, `oe_option_name`, `nod_id`, `nod_name` )
                         VALUES
@@ -633,7 +633,7 @@ EOL;
                         (88, 'Peribulbar ocular', NULL, "", 99, 'Other'),
                         (89, 'Infiltration', NULL, "", 99, 'Other');
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
 
         return '';
     }
@@ -822,45 +822,45 @@ EOL;
     {
 
         $query = $this->populateTmpRcoNodMainEventEpisodes();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeOperation();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodPatients();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodePreOpAssessment();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodPatientCVIStatus();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeRefraction();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeDrug();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeIOP();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeBiometry();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeDiabeticDiagnosis();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodPostOpComplication();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeOperationCoPathology();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeTreatment();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeTreatmentCataract();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeOperationAnaesthesia();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeOperationIndication();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeOperationComplication();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeDiagnosis();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodEpisodeVisualAcuity();
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = $this->populateTmpRcoNodSurgeon();  // Depends on earlier tables being populated.
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
 
         return $query;
     }
@@ -904,7 +904,7 @@ EOL;
 
 EOL;
 
-        Yii::app()->db->createCommand($cleanQuery)->execute();
+        Yii::app()->cbdb->createCommand($cleanQuery)->execute();
     }
 
 
@@ -964,7 +964,7 @@ EOL;
                            SELECT ConsultantId FROM tmp_rco_nod_EpisodeOperation_{$this->extractIdentifier} WHERE ConsultantId IS NOT NULL
                          );
 EOL;
-        #Yii::app()->db->createCommand($query)->execute();
+        #Yii::app()->cbdb->createCommand($query)->execute();
         return $query;
     }
 
@@ -1343,7 +1343,7 @@ EOL;
 
 AND ev.deleted = 0
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 #Load main control table with ALL OTHER operation note events (using previously identified patients in control table)
@@ -1376,7 +1376,7 @@ AND ev.id NOT IN (SELECT c.oe_event_id FROM tmp_rco_nod_main_event_episodes_{$th
 AND et.class_name = 'OphTrOperationnote'
 AND ev.deleted = 0
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
         $query = <<<EOL
 
 #Load main control table with ALL examination events (using previously identified patients in control table)
@@ -1408,7 +1408,7 @@ WHERE ep.patient_id IN (SELECT c.patient_id FROM tmp_rco_nod_main_event_episodes
 AND et.class_name IN ('OphCiExamination', 'OphInBiometry', 'OphDrPrescription')
 AND ev.deleted = 0
 EOL;
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
 
         return "describe event";
     }

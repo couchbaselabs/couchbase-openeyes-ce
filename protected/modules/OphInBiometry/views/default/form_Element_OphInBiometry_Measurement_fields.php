@@ -1,4 +1,5 @@
 <div class="data-group">
+<?php $is_auto_biometry = isset($this->is_auto) ? $this->is_auto : false; ?>
     <table class="cols-11 last-left">
         <colgroup>
             <col class="cols-3">
@@ -24,7 +25,7 @@
             <td><?php echo $element->getAttributeLabel('AL') ?></td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     echo '<span class="readonly-box">' . $element->{"axial_length_$side"} . '</span><span class="field-info">&nbsp;mm</span>';
                 } else {
                     ?>
@@ -44,7 +45,7 @@
             <td>SNR</td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     if (!$element->{"al_modified_$side"}) {
                         if ($this->getAutoBiometryEventData($this->event->id)[0]->is700()) {
                             echo '<span class="field-value">N/A</span>';
@@ -71,7 +72,7 @@
             <td>K1:</td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     echo '<span class="readonly-box">' . $element->{"k1_$side"} . '</span><span class="field-info">D</span>';
                 } else {
                     ?>
@@ -97,7 +98,7 @@
             </td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     if (!$element->{"k_modified_$side"}) {
                         echo '<span class="readonly-box">' . $element->{"k1_axis_$side"} . '</span>&nbsp;&deg;';
                     } else {
@@ -118,7 +119,7 @@
             <td>&Delta;K:</td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     echo '<span class="readonly-box">';
                     if (($element->{'delta_k_' . $side}) > 0) {
                         echo '+';
@@ -152,7 +153,7 @@
             </td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     if (!$element->{"k_modified_$side"}) {
                         echo '<span class="readonly-box">' . $element->{"delta_k_axis_$side"} . '</span>&nbsp;&deg;';
                     } else {
@@ -178,7 +179,7 @@
             <td>K2</td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     echo '<span class="readonly-box">' . $element->{"k2_$side"} . '</span><span class="field-info">D</span>';
                 } else { ?>
                     <input type="text" id="Element_OphInBiometry_Measurement_k2_<?php echo $side; ?>"
@@ -199,7 +200,7 @@
             </td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     if (!$element->{"k_modified_$side"}) {
                         echo '<span class="readonly-box">' . $element->{"k2_axis_$side"} . '</span>&nbsp;&deg;';
                     } else {
@@ -220,7 +221,7 @@
             <td>ACD:</td>
             <td>
                 <?php
-                if ($this->is_auto) {
+                if ($is_auto_biometry) {
                     echo '<span class="readonly-box">' . $element->{"acd_$side"} . '</span><span class="field-info">&nbsp;mm</span>';
                 } else {
                     ?>
@@ -253,7 +254,7 @@
             </td>
             <td>
             <?php
-            if ($this->is_auto) {
+            if ($is_auto_biometry) {
                 if ($element->{"lvc_$side"} != "") {
                     $lvc = $element->{"lvc_$side"};
                 } else {
@@ -274,7 +275,7 @@
             </td>
             <td>
             <?php
-            if ($this->is_auto) {
+            if ($is_auto_biometry) {
                 if ($element->{"lvc_mode_$side"} != "") {
                     $lvc_mode = $element->{"lvc_mode_$side"};
                 } else {
@@ -306,7 +307,7 @@
         </td>
         <td>
             <?php
-            if ($this->is_auto) {
+            if ($is_auto_biometry) {
                 echo '<div class="readonly-box">' . Eye_Status::model()->findByPk($element->{"eye_status_$side"})->name . '</div>';
             } else {
                 ?>

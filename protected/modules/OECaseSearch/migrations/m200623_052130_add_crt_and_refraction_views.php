@@ -4,7 +4,8 @@ class m200623_052130_add_crt_and_refraction_views extends CDbMigration
 {
     public function up()
     {
-        $this->execute("CREATE OR REPLACE
+        if ($this->tablesExist(['et_ophciexamination_oct', 'ophciexamination_oct_method', 'v_patient_events'])) {
+            $this->execute("CREATE OR REPLACE
         ALGORITHM = UNDEFINED VIEW `v_patient_crt` AS
         select
             `e`.`patient_id` AS `patient_id`,
@@ -38,8 +39,12 @@ class m200623_052130_add_crt_and_refraction_views extends CDbMigration
         order by
             1,
             3");
+        } else {
+            echo "Skipping v_patient_crt view creation - required tables missing.\n";
+        }
 
-        $this->execute("CREATE OR REPLACE
+        if ($this->tablesExist(['et_ophciexamination_refraction', 'ophciexamination_refraction_reading', 'ophciexamination_refraction_type', 'v_patient_events'])) {
+            $this->execute("CREATE OR REPLACE
         ALGORITHM = UNDEFINED VIEW `v_patient_refraction` AS
         select
             `e`.`patient_id` AS `patient_id`,
@@ -97,11 +102,29 @@ class m200623_052130_add_crt_and_refraction_views extends CDbMigration
         order by
             1,
             3");
+        } else {
+            echo "Skipping v_patient_refraction view creation - required tables missing.\n";
+        }
     }
 
     public function down()
     {
-        $this->execute('DROP VIEW v_patient_refraction');
-        $this->execute('DROP VIEW v_patient_crt');
+        if ($this->getDbConnection()->schema->getTable('v_patient_refraction', true)) {
+            $this->execute('DROP VIEW v_patient_refraction');
+        }
+        if ($this->getDbConnection()->schema->getTable('v_patient_crt', true)) {
+            $this->execute('DROP VIEW v_patient_crt');
+        }
+    }
+
+    private function tablesExist(array $tables): bool
+    {
+        foreach ($tables as $table) {
+            if ($this->getDbConnection()->schema->getTable($table, true) === null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

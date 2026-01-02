@@ -143,7 +143,7 @@ class SearchController extends BaseController
                 $whereParams[':genetics_patient_disorder_id'] = $_GET['genetics-patient-disorder-id'];
             }
 
-            $total_items = Yii::app()->db->createCommand()
+            $total_items = Yii::app()->cbdb->createCommand()
                 ->select('count(gt.id) as count')
                 ->from('et_ophingeneticresults_test gt')
                 ->join('event e', 'gt.event_id = e.id')
@@ -207,7 +207,7 @@ class SearchController extends BaseController
 
             $test_ids = array();
 
-            foreach (Yii::app()->db->createCommand()
+            foreach (Yii::app()->cbdb->createCommand()
                          ->select('gt.id')
                          ->from('et_ophingeneticresults_test gt')
                          ->join('event e', 'gt.event_id = e.id')

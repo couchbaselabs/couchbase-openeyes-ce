@@ -361,8 +361,8 @@ abstract class BaseResource
      */
     protected function startTransaction()
     {
-        return \Yii::app()->db->getCurrentTransaction() === null
-            ? \Yii::app()->db->beginTransaction()
+        return \Yii::app()->cbdb->getCurrentTransaction() === null
+            ? \Yii::app()->cbdb->beginTransaction()
             : null;
     }
 

@@ -1,4 +1,6 @@
 <div class="data-group js-<?= $manual_override ? 'manual-override' : 'auto-values'?> <?= $disable ? "js-disable-data-group" : ""?>"
+<?php $is_auto_biometry = isset($this->is_auto) ? $this->is_auto : false; ?>
+<div class="data-group biometry_selection <?=$manual_override ? "js-manual-override-data" : ""?>"
     style="display:<?=$disable ? "none;" : "block"?>">
     <table class="cols-11 last-left">
         <colgroup>
@@ -7,7 +9,7 @@
         </colgroup>
         <tbody>
         <?php
-        if ($this->is_auto) {
+        if ($is_auto_biometry) {
             $post = Yii::app()->request->getPost('Element_OphInBiometry_Selection');
 
             if ($element->isNewRecord && empty($post)) {
@@ -125,7 +127,7 @@
             </tr>
             <?php
         }
-        if (!$this->is_auto || $manual_override) {
+        if (!$is_auto_biometry || $manual_override) {
             ?>
             <tr>
                 <td>
@@ -137,7 +139,7 @@
             </tr>
             <?php
         }
-        if ($this->is_auto && !$manual_override) {
+        if ($is_auto_biometry && !$manual_override) {
             echo $form->hiddenField($element, 'predicted_refraction_' . $side, array('value' => $element->{"predicted_refraction_$side"}));
             ?>
             <?php
@@ -326,7 +328,7 @@
         }
         ?>
         <?php
-        if (!$this->is_auto || $manual_override) {
+        if (!$is_auto_biometry || $manual_override) {
             //$element->iol_power_left = null;
             ?>
             <tr>
@@ -334,7 +336,7 @@
                     IOL Power
                 </td>
                 <td>
-                    <?php echo $form->textField($element, 'iol_power_' . $side, ($this->is_auto &&  !$manual_override) ? array('readonly' => true) : array('placeholder' => '0.00', 'nowrapper' => true), null, array('label' => 4, 'field' => 2)); ?>
+                    <?php echo $form->textField($element, 'iol_power_' . $side, ($is_auto_biometry &&  !$manual_override) ? array('readonly' => true) : array('placeholder' => '0.00', 'nowrapper' => true), null, array('label' => 4, 'field' => 2)); ?>
                 </td>
             </tr>
             <tr>
@@ -342,7 +344,7 @@
                     Predicted Refraction:
                 </td>
                 <td>
-                    <?php echo $form->textField($element, 'predicted_refraction_' . $side, ($this->is_auto &&  !$manual_override) ? array('readonly' => true) : array('placeholder' => '0.00', 'nowrapper' => true), null, array('label' => 4, 'field' => 2)); ?>
+                    <?php echo $form->textField($element, 'predicted_refraction_' . $side, ($is_auto_biometry &&  !$manual_override) ? array('readonly' => true) : array('placeholder' => '0.00', 'nowrapper' => true), null, array('label' => 4, 'field' => 2)); ?>
                 </td>
             </tr>
         <?php }

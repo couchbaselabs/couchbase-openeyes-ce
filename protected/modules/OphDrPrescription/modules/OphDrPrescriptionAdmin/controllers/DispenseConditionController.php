@@ -73,7 +73,7 @@ class DispenseConditionController extends BaseAdminController
 
         $ids = Yii::app()->request->getPost('select');
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
         try {
@@ -98,7 +98,7 @@ class DispenseConditionController extends BaseAdminController
         $level = ReferenceData::LEVEL_INSTITUTION;
 
         $ids = Yii::app()->request->getPost('select');
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
         try {
@@ -127,7 +127,7 @@ class DispenseConditionController extends BaseAdminController
         $dci_data = Yii::app()->request->getParam('OphDrPrescription_DispenseCondition_Institution', array());
         $dci_associated_dli_ids = array_key_exists('dispense_location_institutions', $dci_data) && $dci_data['dispense_location_institutions'] ? $dci_data['dispense_location_institutions'] : array();
         $errors = array();
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
         foreach ($model->dispense_condition_institutions as $dci) {
             if (intval($dci->institution_id) !== intval($institution_id)) {
                 continue;

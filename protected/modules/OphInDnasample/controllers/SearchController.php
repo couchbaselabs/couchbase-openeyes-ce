@@ -108,7 +108,7 @@ class SearchController extends BaseController
             $results = $search_command->queryAll();
 
             foreach ($results as $key=>$row) {
-                $subquery = Yii::app()->db->createCommand()
+                $subquery = Yii::app()->cbdb->createCommand()
                     ->select('term')
                     ->from('disorder')
                     ->where('id IN (SELECT disorder_id FROM genetics_patient_diagnosis WHERE patient_id = :patient_id)', array(':patient_id'=>$row['genetics_patient_id']))
@@ -145,7 +145,7 @@ class SearchController extends BaseController
         $genetics_patient_id = @$_GET['genetics_patient_id'];
         $maiden_name = @$_GET['maiden_name'];
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select($select)
             ->from('et_ophindnasample_sample')
             ->leftJoin('event', 'et_ophindnasample_sample.event_id = event.id')

@@ -151,7 +151,7 @@ class GpController extends BaseController
                         if (!empty($_POST['ContactPracticeAssociate']['provider_no'])) {
                             $contactPracticeAssociate->provider_no = $_POST['ContactPracticeAssociate']['provider_no'];
 
-                            $query = Yii::app()->db->createCommand()
+                            $query = Yii::app()->cbdb->createCommand()
                                                    ->select('cpa.id')
                                                    ->from('contact_practice_associate cpa')
                                                    ->where(
@@ -283,7 +283,7 @@ class GpController extends BaseController
 
             if ($contact->validate() && $valid) {
                 foreach ($cpas as $cpa) {
-                    $update = Yii::app()->db->createCommand()
+                    $update = Yii::app()->cbdb->createCommand()
                         ->update('contact_practice_associate', array('provider_no' => !empty($cpa->provider_no) ? $cpa->provider_no : null), 'id=:id', array(':id' => $cpa->id));
                 }
                 list($contact, $model) = $this->performGpSave($contact, $model);
@@ -327,7 +327,7 @@ class GpController extends BaseController
      */
     public function actionGpList($term)
     {
-        $labels = Yii::app()->db->createCommand()
+        $labels = Yii::app()->cbdb->createCommand()
             ->select('g.id, c.first_name, c.last_name, cl.name as role')
             ->from('gp g')
             ->join('contact c', 'c.id = g.contact_id')
@@ -390,7 +390,7 @@ class GpController extends BaseController
     public function performGpSave(Contact $contact, Gp $gp, $isAjax = false)
     {
         $action = $gp->isNewRecord ? 'add' : 'edit';
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             if ($contact->save()) {

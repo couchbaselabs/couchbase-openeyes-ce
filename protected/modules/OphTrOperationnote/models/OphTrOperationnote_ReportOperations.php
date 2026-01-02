@@ -238,7 +238,7 @@ class OphTrOperationnote_ReportOperations extends BaseReport
         $filter_procedures_method = 'OR';
         $filter_complications_method = 'OR';
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 'e.id, c.first_name, c.last_name, e.event_date, su.surgeon_id, su.assistant_id, su.supervising_surgeon_id, p.id as pid, p.gender, p.dob, pl.id as plid, cat.id as cat_id, eye.name AS eye'
             )

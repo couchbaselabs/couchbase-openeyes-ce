@@ -1,0 +1,28 @@
+[DRY RUN] Would verify: MedicationAllergyAssignment
+Prompt:
+Verify Couchbase functionality for model: MedicationAllergyAssignment
+File: protected/models/MedicationAllergyAssignment.php
+Table: medication_allergy_assignment
+
+## Verification Steps:
+
+1. **Read the model file** and check:
+   - Has CouchbaseModelBridge trait? 
+   - Has afterSave() calling saveToCouchbase()?
+   - Has afterDelete() calling deleteFromCouchbase()?
+   - Has couchbaseScope() method?
+   - Has couchbaseCollection() method?
+
+2. **Check CouchbaseAdapter scope mapping**:
+   - Is 'medication_allergy_assignment' in the scopeMapping array?
+   - What scope is it mapped to?
+
+3. **Check Couchbase collection exists**:
+   Run: curl -s "http://localhost:8093/query/service" -u Administrator:password -d "statement=SELECT COUNT(*) FROM \`openeyes\`.\`<scope>\`.\`medication_allergy_assignment\` LIMIT 1"
+
+4. **Report findings**:
+   - STATUS: PASS / FAIL / INCOMPLETE
+   - Missing: List any missing hooks/methods
+   - Action: What needs to be fixed
+
+Be concise. Focus on Couchbase integration only.

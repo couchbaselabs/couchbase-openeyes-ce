@@ -274,7 +274,7 @@ class Medication extends BaseActiveRecordVersioned
 
     public function getSiteSubspecialtyMedications($site_id, $subspecialty_id)
     {
-        $common_oph_id = Yii::app()->db->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => 'COMMON_OPH'])->queryScalar();
+        $common_oph_id = Yii::app()->cbdb->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => 'COMMON_OPH'])->queryScalar();
         $criteria = new CDbCriteria();
         $criteria->condition = "id IN (SELECT medication_id FROM medication_set_item WHERE medication_set_id IN
                                         (SELECT medication_set_id FROM medication_set_rule WHERE usage_code_id = :usage_code_id
@@ -291,7 +291,7 @@ class Medication extends BaseActiveRecordVersioned
      */
     public function getSetsByUsageCode($usage_code)
     {
-        $usage_code_id = Yii::app()->db->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => $usage_code])->queryScalar();
+        $usage_code_id = Yii::app()->cbdb->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => $usage_code])->queryScalar();
         $criteria = new CDbCriteria();
         $criteria->condition = "id IN (SELECT medication_set_id FROM medication_set_item WHERE medication_id = :medication_id
                                             AND medication_set_id IN (SELECT medication_set_id FROM medication_set_rule WHERE usage_code_id = :usage_code_id))";
@@ -518,7 +518,7 @@ class Medication extends BaseActiveRecordVersioned
                                 AND TABLE_NAME = 'medication_set_item'
                                 ";
 
-            $debounce_val = Yii::app()->db->createCommand($dependency_sql)->queryScalar();
+            $debounce_val = Yii::app()->cbdb->createCommand($dependency_sql)->queryScalar();
             // add a debounce of a few seconds before poling for the setting cache dependency, to avoid a DB query for every run.
             Yii::app()->cache->set('MedicationSetItemDebounce', $debounce_val, 7);
         };
@@ -636,7 +636,7 @@ class Medication extends BaseActiveRecordVersioned
                 FROM `medication`
                 WHERE preferred_code LIKE :unmapped_string";
 
-        $number = \Yii::app()->db->createCommand($sql)
+        $number = \Yii::app()->cbdb->createCommand($sql)
             ->bindValue(':start_at_position', $start_at_position)
             ->bindValue(':unmapped_string_length', $unmapped_string_length)
             ->bindValue(':unmapped_string', "%{$unmapped_string}%")

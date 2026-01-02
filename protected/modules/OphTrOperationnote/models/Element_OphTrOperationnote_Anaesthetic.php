@@ -253,8 +253,8 @@ class Element_OphTrOperationnote_Anaesthetic extends Element_OpNote
      */
     public function getHidden()
     {
-        $ga = Yii::app()->db->createCommand()->select('id')->from('anaesthetic_type')->where('code=:code', array(':code' => 'GA'))->queryScalar();
-        $no_anaesthetic = Yii::app()->db->createCommand()
+        $ga = Yii::app()->cbdb->createCommand()->select('id')->from('anaesthetic_type')->where('code=:code', array(':code' => 'GA'))->queryScalar();
+        $no_anaesthetic = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('anaesthetic_type')
             ->where('code=:code', array(':code' => 'NoA'))
@@ -655,27 +655,27 @@ class Element_OphTrOperationnote_Anaesthetic extends Element_OpNote
         $this->anaesthetic_type_assignments = $type_assessments;
         $this->anaesthetic_type = $anaesthetic_types;
 
-        $anaesthetic_GA_id = Yii::app()->db->createCommand()
+        $anaesthetic_GA_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('anaesthetic_type')
             ->where('name=:name', array(':name' => 'GA'))
             ->queryScalar();
         if (count($this->anaesthetic_type_assignments) == 1 && $this->anaesthetic_type_assignments[0]->anaesthetic_type_id == $anaesthetic_GA_id) {
             $data['AnaestheticDelivery'] = array(
-                Yii::app()->db->createCommand()
+                Yii::app()->cbdb->createCommand()
                     ->select('id')
                     ->from('anaesthetic_delivery')
                     ->where('name=:name', array(':name' => 'Other'))
                     ->queryScalar()
             );
-            $this->anaesthetist_id = Yii::app()->db->createCommand()
+            $this->anaesthetist_id = Yii::app()->cbdb->createCommand()
                 ->select('id')
                 ->from('anaesthetist')
                 ->where('name=:name', array(':name' => 'Anaesthetist'))
                 ->queryScalar();
         }
 
-        $anaesthetic_NoA_id = Yii::app()->db->createCommand()
+        $anaesthetic_NoA_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('anaesthetic_type')
             ->where('code=:code', array(':code' => 'NoA'))

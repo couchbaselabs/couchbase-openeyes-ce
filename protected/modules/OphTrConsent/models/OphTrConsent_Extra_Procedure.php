@@ -128,7 +128,7 @@ class OphTrConsent_Extra_Procedure extends BaseActiveRecordVersioned
         $search = "%{$term}%";
         $where = '(term like :search or short_format like :search or snomed_term like :search or snomed_code = :term or aliases like :search)';
 
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select('ophtrconsent_procedure_extra.term as label,ophtrconsent_procedure_extra.id')
             ->from('ophtrconsent_procedure_extra')
             ->where($where, array(
@@ -153,7 +153,7 @@ class OphTrConsent_Extra_Procedure extends BaseActiveRecordVersioned
         } elseif ($restrict == 'booked') {
             $where = ' and unbooked = 0';
         }
-        $procedures = Yii::app()->db->createCommand()
+        $procedures = Yii::app()->cbdb->createCommand()
             ->select('ophtrconsent_procedure_extra.id, ophtrconsent_procedure_extra.term')
             ->from('ophtrconsent_procedure_extra')
             ->join('proc_subspecialty_assignment psa', 'psa.ophtrconsent_procedure_extra_id = ophtrconsent_procedure_extra.id')

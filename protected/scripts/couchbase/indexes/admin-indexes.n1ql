@@ -1,0 +1,178 @@
+-- =====================================================
+-- Phase 12: Administrative & Settings N1QL Indexes
+-- =====================================================
+-- These indexes optimize queries for audit logs, settings,
+-- authentication, and authorization tables
+-- =====================================================
+
+-- =========================
+-- Audit Indexes
+-- =========================
+-- Time-series optimized for audit log queries
+
+-- Primary date range index for audit log viewing
+CREATE INDEX idx_audit_date 
+ON `openeyes`.`admin`.`audit`(created_date_only DESC, created_timestamp DESC);
+
+-- User activity tracking
+CREATE INDEX idx_audit_user 
+ON `openeyes`.`admin`.`audit`(user_id, created_date DESC)
+WHERE user_id IS NOT NULL;
+
+-- Patient access audit trail
+CREATE INDEX idx_audit_patient 
+ON `openeyes`.`admin`.`audit`(patient_id, created_date DESC) 
+WHERE patient_id IS NOT NULL;
+
+-- Filter by action type
+CREATE INDEX idx_audit_action 
+ON `openeyes`.`admin`.`audit`(action.name, created_date_only);
+
+-- Filter by audit type
+CREATE INDEX idx_audit_type 
+ON `openeyes`.`admin`.`audit`(type.name, created_date_only);
+
+-- Event-specific audit trail
+CREATE INDEX idx_audit_event 
+ON `openeyes`.`admin`.`audit`(event_id, created_timestamp DESC) 
+WHERE event_id IS NOT NULL;
+
+-- Episode audit trail
+CREATE INDEX idx_audit_episode 
+ON `openeyes`.`admin`.`audit`(episode_id, created_timestamp DESC)
+WHERE episode_id IS NOT NULL;
+
+-- Site-specific audit reporting
+CREATE INDEX idx_audit_site 
+ON `openeyes`.`admin`.`audit`(site_id, created_date_only)
+WHERE site_id IS NOT NULL;
+
+-- Institution-specific audit reporting
+CREATE INDEX idx_audit_institution 
+ON `openeyes`.`admin`.`audit`(institution_id, created_date_only)
+WHERE institution_id IS NOT NULL;
+
+-- Year-month partitioning for large audit tables
+CREATE INDEX idx_audit_year_month 
+ON `openeyes`.`admin`.`audit`(created_year_month, created_timestamp DESC);
+
+-- =========================
+-- Settings Indexes
+-- =========================
+
+-- Primary key lookup for settings metadata
+CREATE INDEX idx_setting_metadata_key 
+ON `openeyes`.`admin`.`setting_metadata`(`key`);
+
+-- Group by settings group
+CREATE INDEX idx_setting_metadata_group 
+ON `openeyes`.`admin`.`setting_metadata`(group_id, display_order);
+
+-- Element-specific settings
+CREATE INDEX idx_setting_metadata_element 
+ON `openeyes`.`admin`.`setting_metadata`(element_type_id, `key`)
+WHERE element_type_id IS NOT NULL;
+
+-- Installation-level settings lookup
+CREATE INDEX idx_setting_installation_key 
+ON `openeyes`.`admin`.`setting_installation`(`key`);
+
+-- Institution-level settings
+CREATE INDEX idx_setting_institution_key 
+ON `openeyes`.`admin`.`setting_institution`(institution_id, `key`);
+
+-- Site-level settings
+CREATE INDEX idx_setting_site_key 
+ON `openeyes`.`admin`.`setting_site`(site_id, `key`);
+
+-- Firm-level settings
+CREATE INDEX idx_setting_firm_key 
+ON `openeyes`.`admin`.`setting_firm`(firm_id, `key`);
+
+-- User-level settings
+CREATE INDEX idx_setting_user_key 
+ON `openeyes`.`admin`.`setting_user`(user_id, `key`);
+
+-- Settings field type lookup
+CREATE PRIMARY INDEX idx_setting_field_type_primary 
+ON `openeyes`.`admin`.`setting_field_type`;
+
+-- Settings group lookup
+CREATE PRIMARY INDEX idx_setting_group_primary 
+ON `openeyes`.`admin`.`setting_group`;
+
+-- =========================
+-- Authentication Indexes
+-- =========================
+
+-- User authentication by user
+CREATE INDEX idx_user_auth_user 
+ON `openeyes`.`admin`.`user_authentication`(user_id);
+
+-- User authentication by institution
+CREATE INDEX idx_user_auth_institution 
+ON `openeyes`.`admin`.`user_authentication`(institution_id);
+
+-- User authentication by username (for login)
+CREATE INDEX idx_user_auth_username 
+ON `openeyes`.`admin`.`user_authentication`(username);
+
+-- User authentication by method
+CREATE INDEX idx_user_auth_method 
+ON `openeyes`.`admin`.`user_authentication`(user_authentication_method_id);
+
+-- Institution authentication by institution
+CREATE INDEX idx_institution_auth_institution 
+ON `openeyes`.`admin`.`institution_authentication`(institution_id);
+
+-- User authentication method lookup
+CREATE PRIMARY INDEX idx_user_auth_method_primary 
+ON `openeyes`.`admin`.`user_authentication_method`;
+
+-- =========================
+-- Authorization Indexes
+-- =========================
+
+-- Auth item by type (role, operation, task)
+CREATE INDEX idx_auth_item_type 
+ON `openeyes`.`admin`.`auth_item`(type);
+
+-- Auth item by name
+CREATE INDEX idx_auth_item_name 
+ON `openeyes`.`admin`.`auth_item`(name);
+
+-- User role assignments by user
+CREATE INDEX idx_auth_assignment_user 
+ON `openeyes`.`admin`.`auth_assignment`(userid);
+
+-- Role assignments by item/role name
+CREATE INDEX idx_auth_assignment_item 
+ON `openeyes`.`admin`.`auth_assignment`(itemname);
+
+-- Composite for user-role lookups
+CREATE INDEX idx_auth_assignment_composite 
+ON `openeyes`.`admin`.`auth_assignment`(userid, itemname);
+
+-- =========================
+-- Audit Action/Type Lookups
+-- =========================
+
+-- Simple primary indexes for small lookup tables
+CREATE PRIMARY INDEX idx_audit_action_primary 
+ON `openeyes`.`admin`.`audit_action`;
+
+CREATE PRIMARY INDEX idx_audit_type_primary 
+ON `openeyes`.`admin`.`audit_type`;
+
+-- =====================================================
+-- Index Creation Notes:
+-- =====================================================
+-- 1. These indexes are optimized for common query patterns
+-- 2. WHERE clauses on indexes reduce index size for sparse data
+-- 3. Descending indexes on timestamps optimize recent-first queries
+-- 4. Composite indexes support multi-field lookups
+-- 5. Primary indexes on small tables are acceptable for performance
+-- 
+-- Total Indexes: 30+
+-- Estimated Index Build Time: 5-15 minutes (depending on data size)
+-- =====================================================

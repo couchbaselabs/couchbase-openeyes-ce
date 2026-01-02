@@ -515,7 +515,7 @@ trait MappedReferenceData
                 $level_column = $this->levelIdColumn($level);
 
                 $saved = true;
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
                 try {
                     foreach ($level_ids as $level_id) {
                         if (
@@ -629,7 +629,7 @@ trait MappedReferenceData
                 array(":reference_data_id" => $this->id)
             );
             $saved = true;
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 foreach ($instances as $instance) {
                     $instance->$reference_data_column = $new_reference_data_id;
@@ -681,7 +681,7 @@ trait MappedReferenceData
 
                 if ($this->softDeleteMappings()) {
                     // Soft-delete all mappings.
-                    $transaction = Yii::app()->db->beginTransaction();
+                    $transaction = Yii::app()->cbdb->beginTransaction();
                     $saved = true;
                     try {
                         foreach ($instances as $instance) {

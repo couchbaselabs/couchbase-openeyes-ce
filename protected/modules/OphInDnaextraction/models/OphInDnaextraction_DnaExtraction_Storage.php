@@ -91,7 +91,7 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
      */
     public function availabeStorage($attribute, $params)
     {
-        $availabeStorage = Yii::app()->db->createCommand()
+        $availabeStorage = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('ophindnaextraction_storage_address')
             ->where('box_id =:box_id and letter =:letter and number =:number', array(':box_id' => $this->box_id, ':letter' => $this->letter, ':number' => $this->number))
@@ -192,7 +192,7 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
 
     public function getAllLetterNumberToBox($boxid)
     {
-         $boxes = Yii::app()->db->createCommand()
+         $boxes = Yii::app()->cbdb->createCommand()
             ->select('box_id, letter, number')
             ->from('ophindnaextraction_storage_address')
             ->where('box_id =:box_id', array(':box_id' => $boxid))
@@ -207,7 +207,7 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
     {
         //if id not exits, it means event is create, so we need only available box - letter - number combinations
         if ( $id == null) {
-            $getAvailableBoxes = Yii::app()->db->createCommand()
+            $getAvailableBoxes = Yii::app()->cbdb->createCommand()
                 ->select("opaddress.id, CONCAT(opbox.value,' - ',opaddress.letter,' - ',opaddress.number ) AS value")
                 ->from('ophindnaextraction_storage_address opaddress')
                 ->join('ophindnaextraction_dnaextraction_box opbox', 'opaddress.box_id = opbox.id')
@@ -216,7 +216,7 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
                 ->queryAll();
         } else {
             //We need available boxes - letters - numbers combinations and the stored row
-            $getAvailableBoxes = Yii::app()->db->createCommand()
+            $getAvailableBoxes = Yii::app()->cbdb->createCommand()
                 ->select("opaddress.id, CONCAT(opbox.value,' - ',opaddress.letter,' - ',opaddress.number ) AS value")
                 ->from('ophindnaextraction_storage_address opaddress')
                 ->join('ophindnaextraction_dnaextraction_box opbox', 'opaddress.box_id = opbox.id')

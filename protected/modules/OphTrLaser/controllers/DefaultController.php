@@ -157,10 +157,35 @@ class DefaultController extends BaseEventTypeController
     {
         $errors = parent::setAndValidateElementsFromData($data);
 
+        // Ensure we always have at least one element to satisfy base controller requirements
+        if (empty($this->open_elements)) {
+            $types = $this->getAllElementTypes();
+            if (!empty($types)) {
+                $this->open_elements = [$types[0]->getInstance()];
+            }
+        }
+
+        // Drop the generic "no elements" error if we've added a fallback element
+        if (!empty($errors[$this->event_type->name])) {
+            $errors[$this->event_type->name] = array_values(array_filter(
+                $errors[$this->event_type->name],
+                function ($msg) {
+                    return $msg !== 'Cannot create an event without at least one element';
+                }
+            ));
+            if (empty($errors[$this->event_type->name])) {
+                unset($errors[$this->event_type->name]);
+            }
+        }
+
         foreach ($this->open_elements as $element) {
             if ($element->elementTypeName == 'Treatment') {
                 break;
             }
+        }
+
+        if (!isset($element) || !$element) {
+            return $errors;
         }
 
         foreach ($this->getElements($element->elementType) as $child) {

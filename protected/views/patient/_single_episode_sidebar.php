@@ -47,9 +47,10 @@ $user_id = Yii::app()->user->id;
 // Cache the sidebar for each patient. Refresh whenever a new event is created for the patient
 // Currently doesn't filter out change-tracker events, as that would likely add additional time to the SQL query
 $epsidebarkey = "_single_episode_sidebar_patient:" . $this->patient->id . "display_deleted:" . $display_deleted_in . "user_id:" . $user_id;
-
-if (
-    $this->beginCache(
+$useCache = Yii::app()->db instanceof OEDbConnection && Yii::app()->db->isConnectionAvailable();
+$cacheActive = false;
+if ($useCache) {
+    $cacheActive = $this->beginCache(
         $epsidebarkey,
         array(
         'dependency' => array(
@@ -67,8 +68,10 @@ if (
                     ) AS cache_dates'
             )
         )
-    )
-) {?>
+    );
+}
+
+if ($cacheActive || !$useCache) {?>
 <div class="sidebar-eventlist">
     <?php
     if (is_array($ordered_episodes)) {
@@ -156,7 +159,9 @@ if (
 
     <?php
 
-    $this->endCache($epsidebarkey);
+    if ($cacheActive) {
+        $this->endCache($epsidebarkey);
+    }
 }
 ?>
 

@@ -42,16 +42,22 @@ class PathstepObserver
         $criteria = new CDbCriteria();
         if (!$worklist_patient) {
             // Assuming the latest date maps to the active worklist/visit for the patient.
-            $latest_date = Yii::app()->db->createCommand()
-                ->select('MAX(`when`)')
-                ->from('worklist_patient p')
-                ->where('p.patient_id = :id', [':id' => $patient_id])
-                ->queryScalar();
+            // Use N1QL for Couchbase compatibility
+            try {
+                $restClient = \Yii::app()->couchbaseRest;
+                $n1ql = "SELECT RAW MAX(wp.`when`) FROM `openeyes`.`reference`.`worklist_patient` wp WHERE wp.patient_id = \$patient_id";
+                $rows = $restClient->query($n1ql, ['patient_id' => $patient_id]);
+                $latest_date = !empty($rows) ? $rows[0] : null;
+            } catch (\Exception $e) {
+                $latest_date = null;
+            }
 
-            $worklist_patient = WorklistPatient::model()->find(
-                'patient_id = :id AND `when` = :when',
-                [':id' => $patient_id, ':when' => $latest_date]
-            );
+            if ($latest_date) {
+                $worklist_patient = WorklistPatient::model()->find(
+                    'patient_id = :id AND `when` = :when',
+                    [':id' => $patient_id, ':when' => $latest_date]
+                );
+            }
         }
 
         $status_list = $include_active_steps ? '0, 1' : '0';

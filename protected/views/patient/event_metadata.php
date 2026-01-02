@@ -44,7 +44,7 @@ WHERE DATE(last_modified_date) != DATE(prev_date) OR last_modified_user_id != pr
 <div id="js-event-audit-trail" class="oe-popup-event-audit-trail" style="display: none;">
   <table>
     <tbody>
-    <?php if ($this->event->firm_id) : ?>
+    <?php if ($this->event->firm_id && $this->event->firm) : ?>
         <tr>
             <td class="title">Created under</td>
             <td></td>
@@ -56,7 +56,7 @@ WHERE DATE(last_modified_date) != DATE(prev_date) OR last_modified_user_id != pr
             <td></td>
         </tr>
     <?php endif; ?>
-    <?php if (!@$hide_created) { ?>
+    <?php if (!@$hide_created && $event->user) { ?>
       <tr>
         <td class="title">Created by</td>
         <td></td>
@@ -76,6 +76,7 @@ WHERE DATE(last_modified_date) != DATE(prev_date) OR last_modified_user_id != pr
       </tr>
         <?php foreach ($modifications as $modification) : ?>
             <?php $modified_user = \User::model()->findByPk($modification['last_modified_user_id']); ?>
+            <?php if (!$modified_user) { continue; } ?>
         <tr>
           <td><?php echo $modified_user->getFullNameAndTitle(); ?></td>
           <td><?php echo Helper::convertMySQL2NHS($modification['last_modified_date']) ?></td>

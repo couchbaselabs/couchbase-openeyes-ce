@@ -41,7 +41,10 @@ class m200323_090054_setup_strab_history extends OEMigration
 
     public function safeUp()
     {
-        $this->initialise();
+        if (!$this->initialise()) {
+            $this->migrationEcho("**NOTICE** Skipping Strabismus history setup due to missing element type or subspecialty data.\n");
+            return true;
+        }
 
         $this->createOETable('ophciexamination_attribute_option_exclude', [
             'id' => 'pk',
@@ -97,7 +100,9 @@ class m200323_090054_setup_strab_history extends OEMigration
 
     public function safeDown()
     {
-        $this->initialise();
+        if (!$this->initialise()) {
+            return true;
+        }
         $all_subspecialty_ids = [$this->subspecialty_id_for_strabismus, $this->subspecialty_id_for_paediatrics];
         $option_ids_to_delete = [];
 
@@ -149,9 +154,7 @@ class m200323_090054_setup_strab_history extends OEMigration
         $this->subspecialty_id_for_strabismus = $this->getIdOfSubspecialtyByName('Strabismus');
         $this->subspecialty_id_for_paediatrics = $this->getIdOfSubspecialtyByName('Paediatrics');
 
-        if (!$this->element_type_id_for_history || !$this->subspecialty_id_for_strabismus || !$this->subspecialty_id_for_paediatrics) {
-            throw new Exception('cannot migrate with missing referential data');
-        }
+        return ($this->element_type_id_for_history && $this->subspecialty_id_for_strabismus && $this->subspecialty_id_for_paediatrics);
     }
 
     protected function getAttributeIdForName($name)

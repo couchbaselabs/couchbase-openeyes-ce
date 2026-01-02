@@ -239,17 +239,31 @@ class Element_OphCoMessaging_Message extends \BaseEventTypeElement
      */
     public function getSenders()
     {
-        $senders = \Yii::app()->db->createCommand()
-            ->selectDistinct('sender_mailbox.id, sender_mailbox.name')
-            ->from('et_ophcomessaging_message msg')
-            ->join('mailbox sender_mailbox', 'sender_mailbox.id = msg.sender_mailbox_id')
-            ->join('ophcomessaging_message_recipient msgr', 'msgr.element_id = msg.id')
-            ->leftJoin('mailbox_user mu', 'mu.mailbox_id = msgr.mailbox_id')
-            ->leftJoin('mailbox_team mt', 'mt.mailbox_id = msgr.mailbox_id')
-            ->leftJoin('team_user_assign tua', 'tua.team_id = mt.team_id')
-            ->where('mu.user_id = :id OR tua.user_id = :id')
-            ->bindValues([':id' => \Yii::app()->user->id])
-            ->queryAll();
+        // Couchbase-only fallback: return empty if DB features unavailable
+        try {
+            $db = \Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return [];
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        try {
+            $senders = \Yii::app()->cbdb->createCommand()
+                ->selectDistinct('sender_mailbox.id, sender_mailbox.name')
+                ->from('et_ophcomessaging_message msg')
+                ->join('mailbox sender_mailbox', 'sender_mailbox.id = msg.sender_mailbox_id')
+                ->join('ophcomessaging_message_recipient msgr', 'msgr.element_id = msg.id')
+                ->leftJoin('mailbox_user mu', 'mu.mailbox_id = msgr.mailbox_id')
+                ->leftJoin('mailbox_team mt', 'mt.mailbox_id = msgr.mailbox_id')
+                ->leftJoin('team_user_assign tua', 'tua.team_id = mt.team_id')
+                ->where('mu.user_id = :id OR tua.user_id = :id')
+                ->bindValues([':id' => \Yii::app()->user->id])
+                ->queryAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
 
         $sender_names = [];
 

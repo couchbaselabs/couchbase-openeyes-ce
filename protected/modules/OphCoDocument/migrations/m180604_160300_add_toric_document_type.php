@@ -6,10 +6,10 @@ class m180604_160300_add_toric_document_type extends OEMigration
     {
 
         # Check that these values do not already exist
-        $isTypeExist = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Toric IOL Calculation'))->queryRow();
+        $isTypeExist = $this->dbConnection->createCommand()->select('id')->from('ophcodocument_sub_types')->where('name = :name', array(':name' => 'Toric IOL Calculation'))->queryScalar();
 
         # Insert values if they don't already exist
-        if ($isTypeExist['id'] == '') {
+        if (!$isTypeExist) {
             $this->insert('ophcodocument_sub_types', array(
                           'name' => 'Toric IOL Calculation',
                           'display_order' => '20',

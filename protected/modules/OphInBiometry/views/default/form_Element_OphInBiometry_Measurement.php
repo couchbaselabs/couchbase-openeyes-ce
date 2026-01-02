@@ -45,7 +45,7 @@ if ($element->event != null && $element->event->id > 0) {
                          data-side="<?= $eye_side ?>">
                         <div class="active-form" style="<?= $element->hasEye($eye_side) ? '' : 'display: none;' ?>">
                             <a class="remove-side"><i class="oe-i remove-circle small"></i></a>
-                            <?php $this->renderPartial('form_Element_OphInBiometry_Measurement_fields', array(
+                            <?php $this->renderPartial('application.modules.OphInBiometry.views.default.form_Element_OphInBiometry_Measurement_fields', array(
                                 'side' => $eye_side,
                                 'element' => $element,
                                 'form' => $form,

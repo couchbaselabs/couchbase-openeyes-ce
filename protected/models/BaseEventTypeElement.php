@@ -75,7 +75,8 @@ class BaseEventTypeElement extends BaseElement
      */
     public function getElementTypeName()
     {
-        return $this->getElementType()->name;
+        $et = $this->getElementType();
+        return $et ? $et->name : 'Unknown Element';
     }
 
     /**

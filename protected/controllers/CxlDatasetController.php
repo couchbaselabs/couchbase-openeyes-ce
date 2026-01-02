@@ -142,7 +142,7 @@ class CxlDatasetController extends BaseController
         $query .= $this->populateAllTempTables();
 
         // Execute all statements to create and populate working tables
-        Yii::app()->db->createCommand($query)->execute();
+        Yii::app()->cbdb->createCommand($query)->execute();
 
         // Extract results from tables into csv files
         $this->getPatients();
@@ -175,7 +175,7 @@ class CxlDatasetController extends BaseController
 
         while (true) {
             $runQuery = $dataQuery['query'] . " LIMIT " . $chunk . " OFFSET " . $offset . ";";
-            $dataCmd = Yii::app()->db->createCommand($runQuery);
+            $dataCmd = Yii::app()->cbdb->createCommand($runQuery);
 
             $data = $dataCmd->queryAll();
             $data = $this->setPatientIdentifiers($data);
@@ -240,7 +240,7 @@ class CxlDatasetController extends BaseController
                 DROP TABLE IF EXISTS tmp_cxl_surgery_{$this->extractIdentifier};
 EOL;
 
-        Yii::app()->db->createCommand($cleanQuery)->execute();
+        Yii::app()->cbdb->createCommand($cleanQuery)->execute();
     }
 
     /********** Surgeon **********/
@@ -288,7 +288,7 @@ EOL;
             FROM user
             WHERE is_surgeon = 1 AND active = 1;
 EOL;
-        #Yii::app()->db->createCommand($query)->execute();
+        #Yii::app()->cbdb->createCommand($query)->execute();
         return $query;
     }
 

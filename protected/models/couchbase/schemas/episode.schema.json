@@ -1,0 +1,91 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://openeyes.org/schemas/episode.schema.json",
+    "title": "Episode Document",
+    "description": "Couchbase document schema for clinical episodes",
+    "type": "object",
+    "required": ["_type", "_id", "patient_id", "start_date"],
+    "properties": {
+        "_type": {
+            "type": "string",
+            "const": "episode"
+        },
+        "_id": {
+            "type": "string"
+        },
+        "_mysql_id": {
+            "type": "integer"
+        },
+        "_created": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "_modified": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "_version": {
+            "type": "integer",
+            "default": 1
+        },
+        "patient_id": {
+            "type": "integer",
+            "description": "Reference to patient document"
+        },
+        "firm_id": {
+            "type": ["integer", "null"],
+            "description": "Reference to firm (clinical team)"
+        },
+        "start_date": {
+            "type": "string",
+            "format": "date"
+        },
+        "end_date": {
+            "type": ["string", "null"],
+            "format": "date"
+        },
+        "episode_status_id": {
+            "type": ["integer", "null"],
+            "description": "Reference to episode_status lookup"
+        },
+        "subspecialty_id": {
+            "type": ["integer", "null"]
+        },
+        "support_services": {
+            "type": "boolean",
+            "default": false
+        },
+        "disorder_id": {
+            "type": ["integer", "null"],
+            "description": "Principal diagnosis (SNOMED code reference)"
+        },
+        "disorder_date": {
+            "type": ["string", "null"],
+            "format": "date"
+        },
+        "eye_id": {
+            "type": ["integer", "null"],
+            "description": "Eye: 1=Left, 2=Right, 3=Both"
+        },
+        "deleted": {
+            "type": "boolean",
+            "default": false
+        },
+        "change_tracker": {
+            "type": ["object", "null"],
+            "description": "Tracks which user last changed specific fields",
+            "additionalProperties": {
+                "type": "object",
+                "properties": {
+                    "user_id": {"type": "integer"},
+                    "date": {"type": "string", "format": "date-time"}
+                }
+            }
+        },
+        "created_user_id": {"type": "integer"},
+        "created_date": {"type": "string", "format": "date-time"},
+        "last_modified_user_id": {"type": "integer"},
+        "last_modified_date": {"type": "string", "format": "date-time"}
+    },
+    "additionalProperties": false
+}

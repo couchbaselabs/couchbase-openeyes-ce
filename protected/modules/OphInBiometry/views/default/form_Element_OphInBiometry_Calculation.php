@@ -34,7 +34,7 @@
            data-side="<?php echo $eye_side ?>" style="display: <?=$this->action->id === "create" ? "none" : "" ?>">
         <div class="active-form" style="<?= !$element->hasEye($eye_side) ? 'display: none;' : '' ?>">
             <?php $this->renderPartial(
-                'form_Element_OphInBiometry_Calculation_fields',
+                'application.modules.OphInBiometry.views.default.form_Element_OphInBiometry_Calculation_fields',
                 array('side' => $eye_side, 'element' => $element, 'form' => $form, 'data' => $data)
             ); ?>
         </div>
@@ -75,7 +75,8 @@
 <div id="comments" style="background-color: inherit">
     <span class="field-info large-12" style="display: <?=$this->action->id === "create" ? "none" : "" ?>">
         <?php
-        if ($this->is_auto) {
+        $is_auto = isset($this->is_auto) ? $this->is_auto : false;
+        if ($is_auto && method_exists($this, 'getAutoBiometryEventData')) {
             if (!$this->getAutoBiometryEventData($this->event->id)[0]->is700() || $element->{'comments'}) {
                 echo 'Device Comments:';
                 echo '<div class="readonly-box">' . $element->{'comments'} . '<br></div>';

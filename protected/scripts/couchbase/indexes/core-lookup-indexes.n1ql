@@ -1,0 +1,108 @@
+-- =====================================================
+-- Phase 10: Core Lookup Tables Indexes
+-- =====================================================
+
+-- Event Type Indexes
+CREATE INDEX idx_event_type_class_name 
+ON `openeyes`.`reference`.`event_type`(class_name);
+
+CREATE INDEX idx_event_type_group 
+ON `openeyes`.`reference`.`event_type`(event_group_id) 
+WHERE disabled = false;
+
+CREATE INDEX idx_event_type_name 
+ON `openeyes`.`reference`.`event_type`(LOWER(name));
+
+CREATE PRIMARY INDEX idx_event_type_primary 
+ON `openeyes`.`reference`.`event_type`;
+
+-- Element Type Indexes
+CREATE INDEX idx_element_type_event 
+ON `openeyes`.`reference`.`element_type`(event_type_id, display_order);
+
+CREATE INDEX idx_element_type_class 
+ON `openeyes`.`reference`.`element_type`(class_name);
+
+CREATE INDEX idx_element_type_group 
+ON `openeyes`.`reference`.`element_type`(element_group_id);
+
+-- Element Group Indexes
+CREATE INDEX idx_element_group_event 
+ON `openeyes`.`reference`.`element_group`(event_type_id, display_order);
+
+-- Site Indexes
+CREATE INDEX idx_site_institution 
+ON `openeyes`.`core`.`site`(institution_id) 
+WHERE active = true;
+
+CREATE INDEX idx_site_name 
+ON `openeyes`.`core`.`site`(LOWER(name)) 
+WHERE active = true;
+
+CREATE INDEX idx_site_remote_id 
+ON `openeyes`.`core`.`site`(remote_id);
+
+-- Institution Indexes
+CREATE INDEX idx_institution_name 
+ON `openeyes`.`core`.`institution`(LOWER(name));
+
+CREATE INDEX idx_institution_remote_id 
+ON `openeyes`.`core`.`institution`(remote_id);
+
+-- Firm Indexes
+CREATE INDEX idx_firm_subspecialty 
+ON `openeyes`.`core`.`firm`(service_subspecialty_assignment_id) 
+WHERE active = true;
+
+CREATE INDEX idx_firm_consultant 
+ON `openeyes`.`core`.`firm`(consultant_id) 
+WHERE active = true;
+
+CREATE INDEX idx_firm_name 
+ON `openeyes`.`core`.`firm`(LOWER(name)) 
+WHERE active = true;
+
+-- Contact Indexes
+CREATE INDEX idx_contact_name 
+ON `openeyes`.`core`.`contact`(full_name_lower);
+
+CREATE INDEX idx_contact_email 
+ON `openeyes`.`core`.`contact`(email) 
+WHERE email IS NOT NULL;
+
+CREATE INDEX idx_contact_label 
+ON `openeyes`.`core`.`contact`(contact_label_id);
+
+CREATE INDEX idx_contact_phone 
+ON `openeyes`.`core`.`contact`(primary_phone) 
+WHERE primary_phone IS NOT NULL;
+
+-- Address Indexes
+CREATE INDEX idx_address_contact 
+ON `openeyes`.`core`.`address`(contact_id);
+
+CREATE INDEX idx_address_postcode 
+ON `openeyes`.`core`.`address`(postcode);
+
+-- Specialty/Subspecialty Indexes
+CREATE INDEX idx_subspecialty_specialty 
+ON `openeyes`.`reference`.`subspecialty`(specialty_id);
+
+CREATE INDEX idx_subspecialty_ref_spec 
+ON `openeyes`.`reference`.`subspecialty`(ref_spec);
+
+-- Simple Lookup Indexes
+CREATE PRIMARY INDEX idx_eye_primary 
+ON `openeyes`.`reference`.`eye`;
+
+CREATE PRIMARY INDEX idx_gender_primary 
+ON `openeyes`.`reference`.`gender`;
+
+CREATE PRIMARY INDEX idx_ethnic_group_primary 
+ON `openeyes`.`reference`.`ethnic_group`;
+
+CREATE PRIMARY INDEX idx_specialty_primary 
+ON `openeyes`.`reference`.`specialty`;
+
+CREATE PRIMARY INDEX idx_event_group_primary 
+ON `openeyes`.`reference`.`event_group`;

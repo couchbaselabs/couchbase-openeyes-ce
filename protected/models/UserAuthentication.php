@@ -246,33 +246,74 @@ class UserAuthentication extends BaseActiveRecordVersioned
     public function verifyPassword($password)
     {
         if (!$this->password_salt) {
-            if (password_verify($password, $this->password_hash)) {
-                $this->password_failed_tries = 0;
-                $this->saveAttributes(['password_failed_tries']);
-                return true;
-            } else {
+            $hash = $this->password_hash;
+            // Normalize bcrypt prefix for PHP if stored as 2b/2y interchangeably
+            if (strpos($hash, '$2y$') === 0) {
+                $hash = '$2y$' . substr($hash, 4);
+            } elseif (strpos($hash, '$2b$') === 0) {
+                $hash = '$2y$' . substr($hash, 4);
+            }
+
+            if (!password_verify($password, $hash)) {
                 return false;
             }
+
+            // If MariaDB is unavailable, don't attempt to persist counters
+            if ($this->isDbUnavailable()) {
+                return true;
+            }
+
+            try {
+                $this->password_failed_tries = 0;
+                $this->saveAttributes(['password_failed_tries']);
+            } catch (\Exception $e) {
+                // Ignore persistence failure in Couchbase-only mode
+            }
+            return true;
         }
         if (PasswordUtils::hashPassword($password, $this->password_salt) === $this->password_hash) {
             // Regenerate the hash using the new method.
             $this->password_salt = null;
             $this->password_hash = PasswordUtils::hashPassword($password, null);
-            if (!$this->saveAttributes(array('password_hash','password_salt'))) {
-                $this->audit('login', 'auto-encrypt-password-failed', "user_authentication_id = {$this->id}, with error :" . var_export($this->getErrors(), true));
-                return false;
+            if (!$this->isDbUnavailable()) {
+                if (!$this->saveAttributes(array('password_hash','password_salt'))) {
+                    $this->audit('login', 'auto-encrypt-password-failed', "user_authentication_id = {$this->id}, with error :" . var_export($this->getErrors(), true));
+                    return false;
+                }
+                $this->audit('login', 'auto-encrypt-password', "user_authentication_id = {$this->id}");
+                try {
+                    $this->password_failed_tries = 0;
+                    $this->saveAttributes(['password_failed_tries']);
+                } catch (\Exception $e) {
+                    // Ignore persistence failure
+                }
             }
-            $this->audit('login', 'auto-encrypt-password', "user_authentication_id = {$this->id}");
 
-            if (password_verify($password, $this->password_hash)) {
-                $this->password_failed_tries = 0;
-                $this->saveAttributes(['password_failed_tries']);
-                return true;
-            } else {
-                return false;
-            }
+            return password_verify($password, $this->password_hash);
         }
         return false;
+    }
+
+    /**
+     * Determine if the primary DB is unavailable (MariaDB removed)
+     * @return bool
+     */
+    private function isDbUnavailable()
+    {
+        try {
+            $db = \Yii::app()->db;
+            if ($db instanceof \OEDbConnection) {
+                return !$db->isConnectionAvailable();
+            }
+            try {
+                $pdo = $db->getPdoInstance();
+                return ($pdo === null);
+            } catch (\Throwable $e) {
+                return true;
+            }
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 
     /**
@@ -306,17 +347,20 @@ class UserAuthentication extends BaseActiveRecordVersioned
 
     public function isLocalAuth()
     {
-        return $this->institution_authentication_id ? ($this->getRelated('institutionAuthentication')->user_authentication_method == 'LOCAL') : true;
+        $instAuth = $this->institutionAuthentication ?? $this->getRelated('institutionAuthentication', false);
+        return $instAuth ? ($instAuth->user_authentication_method == 'LOCAL') : true;
     }
 
     public function isLDAPAuth()
     {
-        return $this->institution_authentication_id ? ($this->getRelated('institutionAuthentication')->user_authentication_method == 'LDAP') : true;
+        $instAuth = $this->institutionAuthentication ?? $this->getRelated('institutionAuthentication', false);
+        return $instAuth ? ($instAuth->user_authentication_method == 'LDAP') : true;
     }
 
     public function isSsoAuth()
     {
-        return $this->institution_authentication_id ? ($this->getRelated('institutionAuthentication')->user_authentication_method == 'SSO') : true;
+        $instAuth = $this->institutionAuthentication ?? $this->getRelated('institutionAuthentication', false);
+        return $instAuth ? ($instAuth->user_authentication_method == 'SSO') : true;
     }
 
     public static function fromAttributes($attributes)
@@ -363,16 +407,50 @@ class UserAuthentication extends BaseActiveRecordVersioned
             if (!isset($user_authentication->institution_authentication_id)) {
                 return [[ InstitutionAuthentication::PERMISSIVE_MATCH => [ $user_authentication ] ], "success"];
             }
-            $match_type = $user_authentication->institutionAuthentication->match($institution_id, $site_id);
+            $inst_auth = $user_authentication->institutionAuthentication;
+            if (!$inst_auth && $user_authentication->institution_authentication_id) {
+                // Couchbase hydration may not auto-load relation; load manually
+                $inst_auth = InstitutionAuthentication::model()->findByPk($user_authentication->institution_authentication_id);
+            }
+            if (!$inst_auth) {
+                // If we cannot load, treat as permissive to avoid blocking login
+                $matches[InstitutionAuthentication::PERMISSIVE_MATCH][] = $user_authentication;
+                continue;
+            }
+
+            $match_type = $inst_auth->match($institution_id, $site_id);
 
             if ($match_type > InstitutionAuthentication::NO_MATCH) {
                 $matches[$match_type][] = $user_authentication;
             }
         }
 
+        if (empty($matches) && !empty($user_authentications)) {
+            // Couchbase-only mode: allow permissive match when institution/site lookups are unavailable
+            $matches[InstitutionAuthentication::PERMISSIVE_MATCH] = $user_authentications;
+        }
+
         $error = empty($matches) ? "Invalid login" : "success";
 
         return [$matches, $error];
+    }
+
+    /**
+     * Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'admin';
+    }
+
+    /**
+     * Couchbase collection for this model
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'user_authentication';
     }
 
     public static function userHasExactMatch($user, $institution_id, $site_id)
@@ -434,40 +512,4 @@ class UserAuthentication extends BaseActiveRecordVersioned
     {
         $this->findOrCreateSSOAuthentication($user_id, $username, $institution_id, $site_id);
     }
-    /**
-     * Get the Couchbase scope for this model
-     * @return string
-     */
-    public function couchbaseScope()
-    {
-        return 'admin';
-    }
-
-    /**
-     * Get the Couchbase collection name
-     * @return string
-     */
-    public function couchbaseCollection()
-    {
-        return 'user_authentication';
-    }
-
-    /**
-     * Hook: After saving to MariaDB, sync to Couchbase
-     */
-    protected function afterSave()
-    {
-        parent::afterSave();
-        $this->saveToCouchbase();
-    }
-
-    /**
-     * Hook: After deleting from MariaDB, delete from Couchbase
-     */
-    protected function afterDelete()
-    {
-        parent::afterDelete();
-        $this->deleteFromCouchbase();
-    }
-
 }

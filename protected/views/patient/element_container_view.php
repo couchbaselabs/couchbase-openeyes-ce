@@ -29,12 +29,13 @@
 } else {
     echo 'full priority';
 } ?>
-            <?= CHtml::modelName($element->elementType->class_name) ?>"
-           data-element-type-id="<?php echo $element->elementType->id ?>"
-           data-element-type-class="<?php echo $element->elementType->class_name ?>"
-           data-element-type-name="<?php echo $element->elementType->name ?>"
-           data-element-display-order="<?php echo $element->elementType->display_order ?>">
-        <?php if (!preg_match('/\[\-(.*)\-\]/', $element->elementType->name)) { ?>
+            <?php $et = $element->elementType ?? null; ?>
+            <?= CHtml::modelName($et ? $et->class_name : 'UnknownElement') ?>"
+           data-element-type-id="<?php echo $et->id ?? '' ?>"
+           data-element-type-class="<?php echo $et->class_name ?? '' ?>"
+           data-element-type-name="<?php echo $et->name ?? '' ?>"
+           data-element-display-order="<?php echo $et->display_order ?? '' ?>">
+        <?php if (!preg_match('/\[\-(.*)\-\]/', $et->name ?? '')) { ?>
         <header class=" element-header">
           <h3 class="element-title"><?php echo $element->getViewTitle() ?></h3>
       </header>

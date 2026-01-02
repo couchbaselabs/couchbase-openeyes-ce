@@ -73,9 +73,21 @@ class PuppeteerBrowser extends CApplicationComponent
             ['read_timeout' => $this->readTimeout, 'log_browser_console' => $this->logBrowserConsole]
         );
 
-        $this->browser = $puppeteer->launch(
-            array('headless' => true, 'args' => array('--no-sandbox', '--window-size=1280,720'))
+        $executablePath = getenv('PUPPETEER_EXECUTABLE_PATH');
+        if (!$executablePath && file_exists('/usr/bin/chromium')) {
+            $executablePath = '/usr/bin/chromium';
+        }
+
+        $launchOptions = array(
+            'headless' => true,
+            'args' => array('--no-sandbox', '--window-size=1280,720'),
         );
+
+        if ($executablePath) {
+            $launchOptions['executablePath'] = $executablePath;
+        }
+
+        $this->browser = $puppeteer->launch($launchOptions);
     }
 
     /**
@@ -446,7 +458,7 @@ class PuppeteerBrowser extends CApplicationComponent
         }
 
         if (getenv("RTF_HOSTNAME") != null) {
-            Yii::app()->db->createCommand()->update('document_instance', array('footer'=>$options['footerTemplate']), 'correspondence_event_id=:event_id', [':event_id'=>$event_id]);
+            Yii::app()->cbdb->createCommand()->update('document_instance', array('footer'=>$options['footerTemplate']), 'correspondence_event_id=:event_id', [':event_id'=>$event_id]);
         }
 
         return true;

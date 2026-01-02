@@ -114,7 +114,7 @@ class ClinicOutcomeRolesController extends \ModuleAdminController
     public function actionDelete()
     {
         $delete_ids = isset($_POST['select']) ? $_POST['select'] : [];
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $success = true;
         try {
             foreach ($delete_ids as $role_id) {

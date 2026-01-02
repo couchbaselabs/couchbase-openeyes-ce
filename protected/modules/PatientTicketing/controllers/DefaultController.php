@@ -232,7 +232,7 @@ class DefaultController extends \BaseModuleController
 
         $queue_ids = [];
         if ($closed_tickets === '0') {
-            $rows = Yii::app()->db->createCommand()
+            $rows = Yii::app()->cbdb->createCommand()
                 ->select('patientticketing_queue.id, COUNT(oc.id) oc_ct')
                 ->from('patientticketing_queue')
                 ->leftJoin('patientticketing_queueoutcome oc', 'patientticketing_queue.id = oc.queue_id')
@@ -527,7 +527,7 @@ class DefaultController extends \BaseModuleController
             Yii::app()->end();
         }
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             if (isset($this->event)) {

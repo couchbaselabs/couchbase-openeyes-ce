@@ -25,7 +25,7 @@ class PendingApplications
      */
     protected function getPendingApplications($institution_id)
     {
-        $command = Yii::app()->db->createCommand()->select('patient.id as pid,
+        $command = Yii::app()->cbdb->createCommand()->select('patient.id as pid,
                             event.id as EventID,
                             firm.name as FirmName,
                             CONCAT_WS(" ", user.first_name, user.last_name) as Username,

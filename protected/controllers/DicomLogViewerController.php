@@ -151,7 +151,7 @@ class DicomLogViewerController extends BaseController
         $search = "%{$term}%";
         $where = '(pi.value like :search)';
         //$where = '';
-        $cvis = \Yii::app()->db->createCommand()
+        $cvis = \Yii::app()->cbdb->createCommand()
             ->select('uc.code AS unique_id, DATE_FORMAT(e.event_date, "%d %b %Y") as label, DATE_FORMAT(e.event_date, "%d %b %Y") as value, ps.id AS element_id, pi.value AS hos_num, CONCAT(first_name," ", last_name) AS patient_name, e.id AS event_id')
             ->from('event e')
             ->join('episode ep', 'e.episode_id = ep.id')
@@ -331,7 +331,7 @@ class DicomLogViewerController extends BaseController
 
     protected function getDicomFiles($page, $sc = 'entry_date_time', $so = 'desc')
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('df.id, df.filename, df.processor_id, dil.id as did, dil.import_datetime, dil.study_datetime, dil.study_instance_id, dil.station_id, dil.study_location, dil.report_type, dil.patient_number, dil.status, dil.comment,
             dil.raw_importer_output,dil.machine_manufacturer,dil.machine_model, dil.machine_software_version
             ')
@@ -394,7 +394,7 @@ class DicomLogViewerController extends BaseController
     {
         //select * from dicom_file_log where dicom_file_id=1;
 
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select('dfl.*')
             ->from('dicom_file_log as dfl')
             ->where('dfl.dicom_file_id=:fid', array(':fid' => $file_id))
@@ -410,7 +410,7 @@ class DicomLogViewerController extends BaseController
             $request = Yii::app()->getRequest();
             $filename = $request->getQuery('filename');
             if ($filename != '') {
-                Yii::app()->db->createCommand("update dicom_file_queue set status_id=1 where filename = '".$filename."'")->execute();
+                Yii::app()->cbdb->createCommand("update dicom_file_queue set status_id=1 where filename = '".$filename."'")->execute();
             }
         }
     }

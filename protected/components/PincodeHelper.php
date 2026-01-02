@@ -20,7 +20,7 @@ class PincodeHelper
 
     private static function isPreviouslyUsed($pin)
     {
-        $pincodes = Yii::app()->db->createCommand()
+        $pincodes = Yii::app()->cbdb->createCommand()
             ->select('*')
             ->from('v_unavailable_pincodes')
             ->where('pincode = :pincode', array(':pincode' => $pin))

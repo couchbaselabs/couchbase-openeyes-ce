@@ -131,7 +131,7 @@ class OphTrConsent_AdditionalRisk extends BaseActiveRecordVersioned
 
     public function saveAdditionalRiskSubspecialtyAssignments($subspecialties)
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             \OphTrConsent_AdditionalRiskSubspecialtyAssignment::model()->deleteAll('additional_risk_id=:id', [':id'=>$this->id]);
             foreach ($subspecialties as $subspecialty) {

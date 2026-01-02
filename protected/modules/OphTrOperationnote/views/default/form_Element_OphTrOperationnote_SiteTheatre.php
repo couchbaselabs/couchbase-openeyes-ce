@@ -59,7 +59,7 @@
                     Yii::app()->modules
                 ) && in_array(
                     'ophtroperationbooking_operation_theatre',
-                    Yii::app()->db->getSchema()->getTableNames()
+                    Yii::app()->cbdb->getSchema()->getTableNames()
                 )
             ) {
                 $siteId = ($element->site_id) ? $element->site_id : Yii::app()->session['selected_site_id'];

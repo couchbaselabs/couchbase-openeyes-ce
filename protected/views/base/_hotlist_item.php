@@ -25,17 +25,22 @@
 
 ?>
 <?php
-$primary_identifier = PatientIdentifierHelper::getIdentifierForPatient($display_primary_number_usage_code, $hotlistItem->patient->id, $institution_id, $site_id);
+$patient = $hotlistItem->patient;
+if (!$patient) {
+    return;
+}
+
+$primary_identifier = PatientIdentifierHelper::getIdentifierForPatient($display_primary_number_usage_code, $patient->id, $institution_id, $site_id);
 ?>
 
 <tr class="js-hotlist-<?= $hotlistItem->is_open ? 'open' : 'closed' ?>-patient"
     data-id="<?= $hotlistItem->id ?>"
     data-test="hotlist-patient"
-    data-patient-href="<?= $core_api->generatePatientLandingPageLink($hotlistItem->patient) ?>"
+    data-patient-href="<?= $core_api->generatePatientLandingPageLink($patient) ?>"
 >
     <td><?= CHtml::encode(PatientIdentifierHelper::getIdentifierValue($primary_identifier)) ?></td>
     <td>
-        <?= CHtml::encode($hotlistItem->patient->getHSCICName()) ?>
+        <?= CHtml::encode($patient->getHSCICName()) ?>
     </td>
     <td>
         <div class="js-hotlist-comment-readonly">

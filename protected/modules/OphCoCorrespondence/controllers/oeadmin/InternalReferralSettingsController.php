@@ -72,7 +72,7 @@ class InternalReferralSettingsController extends ModuleAdminController
     {
         $locations_post = Yii::app()->request->getPost('OphCoCorrespondence_InternalReferral_ToLocation', array());
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             $is_ok = true;

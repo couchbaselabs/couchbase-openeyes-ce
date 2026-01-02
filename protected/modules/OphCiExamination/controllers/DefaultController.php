@@ -108,7 +108,10 @@ class DefaultController extends \BaseEventTypeController
     {
         $title = parent::getTitle();
         $current = $this->step ?: $this->getCurrentStep();
-        if (count($current->workflow->steps) > 1) {
+        $workflow = $current ? $current->workflow : null;
+        $steps = $workflow ? ($workflow->steps ?? []) : [];
+
+        if (count($steps) > 1) {
             $title .= ' (' . $current->name . ')';
         }
         return $title;
@@ -205,6 +208,35 @@ class DefaultController extends \BaseEventTypeController
     {
         parent::initActionCreate();
         $this->initEdit();
+
+        // If no elements are posted yet (fresh create), seed a minimal element to avoid "no elements" validation
+        if ($this->event && $this->event->isNewRecord && empty($_POST)) {
+            $this->seedDefaultElementIfEmpty();
+        }
+    }
+
+    /**
+     * Seed a minimal default element when none are provided to satisfy base validation.
+     */
+    private function seedDefaultElementIfEmpty(): void
+    {
+        $elementTypes = $this->getAllElementTypes();
+        if (empty($elementTypes)) {
+            return;
+        }
+
+        $chosen = null;
+        foreach ($elementTypes as $et) {
+            if (stripos($et->class_name, 'History') !== false) {
+                $chosen = $et;
+                break;
+            }
+        }
+        $chosen = $chosen ?: reset($elementTypes);
+
+        $element = $chosen->getInstance();
+        $element->event_id = null;
+        $this->open_elements = [$element];
     }
 
     /**
@@ -354,7 +386,7 @@ class DefaultController extends \BaseEventTypeController
         $cvi_api = Yii::app()->moduleAPI->get('OphCoCvi');
 
         // Render the CVI alert above all the other elements
-        if ($cvi_api) {
+        if ($cvi_api && $this->patient) {
             $visual_acuities = array_filter($elements, function ($element) {
                 return get_class($element) === models\Element_OphCiExamination_VisualAcuity::class;
             });
@@ -713,6 +745,13 @@ class DefaultController extends \BaseEventTypeController
             $elements = $this->getElementsByWorkflow($this->set, $this->episode);
         } else {
             $elements = $this->getSortedElements();
+
+            // If the persisted event has no elements (e.g. legacy data or failed Couchbase sync),
+            // fall back to the default workflow-defined set so the UI always renders at least one element.
+            if (empty($elements)) {
+                $elements = $this->getElementsByWorkflow($this->set, $this->episode);
+            }
+
             if ($this->step) {
                 $elements = $this->mergeNextStep($elements);
             }

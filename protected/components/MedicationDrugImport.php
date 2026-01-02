@@ -44,7 +44,7 @@ class MedicationDrugImport
         $external_source && $this->external_source = $external_source;
         $import_size && $this->import_size = $import_size;
 
-        $connection = Yii::app()->db;
+        $connection = Yii::app()->cbdb;
         $cmd = $connection->createCommand('ALTER TABLE medication_drug DISABLE KEYS;');
         $cmd->execute();
 
@@ -117,7 +117,7 @@ class MedicationDrugImport
     protected function importMD(&$rows)
     {
         $vals = implode('),(', $rows);
-        $connection = Yii::app()->db;
+        $connection = Yii::app()->cbdb;
         $cmd = $connection->createCommand('INSERT IGNORE INTO medication_drug (`name`,`external_code`,`external_source`) VALUES ('.$vals.')');
         $cmd->execute();
 

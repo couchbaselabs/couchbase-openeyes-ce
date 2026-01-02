@@ -89,7 +89,7 @@ class CommonSystemicDisorderGroupController extends BaseAdminController
 
     protected function updateCommonSystemicDisorderGroups($current_institution, $json)
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $display_orders = array_map(function ($entry) {
             return $entry['display_order'];

@@ -170,17 +170,30 @@ $allow_clinical = Yii::app()->user->checkAccess('OprnViewClinical');
             <?php }?>
             <table class="standard">
                 <tbody>
-                <?php foreach ($active_events as $event) :
-                    $event_path = Yii::app()->createUrl($event->eventType->class_name . '/default/view') . '/'; ?>
+                    <?php foreach ($active_events as $event) :
+                    $eventType = $event->eventType;
+                    $event_path = $eventType && $eventType->class_name
+                        ? Yii::app()->createUrl($eventType->class_name . '/default/view') . '/'
+                        : null;
+                    $modified_by = null;
+                    if (isset($event->usermodified) && $event->usermodified) {
+                        $modified_by = trim(($event->usermodified->title ?? '') . ' ' . ($event->usermodified->first_name ?? '') . ' ' . ($event->usermodified->last_name ?? ''));
+                        $modified_by = trim($modified_by);
+                    }
+                    ?>
                     <tr>
                         <td>
                             <?= $event->getEventIcon() ?>
                         </td>
                         <td>
-                            <a href="<?php echo $event_path . $event->id ?>"
-                               data-id="<?php echo $event->id ?>"><?php echo $event->getEventName() ?></a>
+                            <?php if ($event_path) { ?>
+                                <a href="<?php echo $event_path . $event->id ?>"
+                                   data-id="<?php echo $event->id ?>"><?php echo $event->getEventName() ?></a>
+                            <?php } else { ?>
+                                <span><?php echo $event->getEventName() ?></span>
+                            <?php } ?>
                         </td>
-                        <td><?= $event->usermodified->title . " " . $event->usermodified->first_name . " " . $event->usermodified->last_name ?></td>
+                        <td><?= $modified_by ?: 'Unknown user' ?></td>
                         <td>
                             <small class="fade oe-date">
                                 <?php if ($event->created_date !== $event->last_modified_date) {

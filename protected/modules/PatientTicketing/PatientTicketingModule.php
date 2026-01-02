@@ -26,7 +26,10 @@ class PatientTicketingModule extends \BaseModule
     {
         // import the module-level components
         $this->setImport(['PatientTicketing.components.*']);
-        \Yii::app()->authManager->registerRuleset('PatientTicketing', new components\PatientTicketing_AuthRules());
+        // If authManager does not support registerRuleset (Couchbase-only), skip
+        if (method_exists(\Yii::app()->authManager, 'registerRuleset')) {
+            \Yii::app()->authManager->registerRuleset('PatientTicketing', new components\PatientTicketing_AuthRules());
+        }
 
         $this->setModules(['PatientTicketingAdmin']);
         parent::init();

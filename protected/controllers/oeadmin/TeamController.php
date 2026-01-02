@@ -150,7 +150,7 @@ class TeamController extends BaseAdminController
         $team->temp_child_team_ids = $child_teams;
         $team->attributes = $team_attributes;
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             if ($team->save()) {

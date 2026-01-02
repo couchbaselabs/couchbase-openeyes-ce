@@ -80,7 +80,7 @@ class SubspecialtySubsectionAssignmentController extends BaseAdminController
     public function actionDelete()
     {
         $delete_ids = Yii::app()->request->getPost('select', []);
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $success = true;
 
         try {

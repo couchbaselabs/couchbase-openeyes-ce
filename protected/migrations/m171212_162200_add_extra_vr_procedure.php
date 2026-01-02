@@ -9,7 +9,7 @@ class m171212_162200_add_extra_vr_procedure extends OEMigration
         $is410564006 = $this->dbConnection->createCommand()->select('id')->from('proc')->where('snomed_code = :snomed', array(':snomed' => '410564006'))->queryRow();
 
         # Insert values if they don't already exist
-        if ($is410564006['id'] == '') {
+        if (!$is410564006 || $is410564006['id'] == '') {
             $this->insert('proc', array(
                           'term' => 'Posterior subtenon steroid injection',
                           'short_format' => 'Subtenon Injection.',

@@ -86,7 +86,7 @@ class EventImage extends BaseActiveRecord
      */
     public function getNextEventsToImage($event_count = 1, $debug = null)
     {
-        $cmd = Yii::app()->db->createCommand()
+        $cmd = Yii::app()->cbdb->createCommand()
             ->select('event.id')
             ->from('event')
             ->leftJoin('event_image', 'event_image.event_id = event.id')

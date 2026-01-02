@@ -121,7 +121,7 @@ class AdminController extends ModuleAdminController
         if (!$laser_procedure) {
             throw new Exception("Unable to find laser procedure item with id $id");
         }
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             if (Yii::app()->user->checkAccess('admin')) {
                 // Only admins can delete instance at installation level
@@ -207,13 +207,13 @@ class AdminController extends ModuleAdminController
 
     public function setJSVars()
     {
-        $laser_procs = Yii::app()->db->createCommand()
+        $laser_procs = Yii::app()->cbdb->createCommand()
             ->select('ol.id, ol.procedure_id, p.term')
             ->from('ophtrlaser_laserprocedure ol')
             ->join('proc p', 'p.id = ol.procedure_id')
             ->order('p.term')
             ->queryAll();
-        $all_procs = Yii::app()->db->createCommand()
+        $all_procs = Yii::app()->cbdb->createCommand()
             ->select('p.id procedure_id, p.term')
             ->from('proc p')
             ->leftJoin('ophtrlaser_laserprocedure ol', 'p.id = ol.procedure_id')

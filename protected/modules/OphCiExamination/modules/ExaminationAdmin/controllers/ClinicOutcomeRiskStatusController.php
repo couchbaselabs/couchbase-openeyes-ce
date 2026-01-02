@@ -13,7 +13,7 @@ class ClinicOutcomeRiskStatusController extends \ModuleAdminController
         $error_msg = array();
         $is_list_changed = false;
         if ($post_data) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             foreach ($risk_status_entries as $risk_entry) {
                 if (!$post_data[$risk_entry->id]) {
                     continue;

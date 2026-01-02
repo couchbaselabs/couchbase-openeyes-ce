@@ -43,6 +43,12 @@ class m180510_093824_prescription_events_import extends OEMigration
 
     private function runPrescriptionImport()
     {
+        $commentsColumn = 'NULL';
+        $prescriptionItemTable = $this->dbConnection->schema->getTable('ophdrprescription_item', true);
+        if ($prescriptionItemTable && isset($prescriptionItemTable->columns['comments'])) {
+            $commentsColumn = 'presc_item.comments';
+        }
+
         $this->execute("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION,NO_AUTO_CREATE_USER';");
         $this->execute(
         "
@@ -78,7 +84,7 @@ class m180510_093824_prescription_events_import extends OEMigration
             presc_item.dispense_condition_id AS dispense_condition_id,
             SUBSTRING(REPLACE(presc_item.created_date, '-', ''), 1,8) AS start_date,
             presc_item.id AS temp_prescription_item_id,
-            presc_item.comments AS comments
+            {$commentsColumn} AS comments
         FROM event 
         JOIN event_type                                 AS et               ON event.event_type_id = et.id
         LEFT JOIN et_ophdrprescription_details          AS prescDetails     ON event.id = prescDetails.event_id

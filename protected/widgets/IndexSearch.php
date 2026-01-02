@@ -21,7 +21,7 @@ class IndexSearch extends BaseCWidget
     protected function getDb()
     {
         // TODO: stop using the static Yii call here
-        return Yii::app()->db;
+        return Yii::app()->cbdb;
     }
 
     public function run()

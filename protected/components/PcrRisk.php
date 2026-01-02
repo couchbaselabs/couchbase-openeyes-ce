@@ -190,7 +190,7 @@ class PcrRisk
      */
     protected function getCannotLieFlat($patient_id)
     {
-        $cnt = Yii::app()->db->createCommand()
+        $cnt = Yii::app()->cbdb->createCommand()
             ->select('count(*) as cnt')
             ->from('patient_risk_assignment as prs')
             ->join('risk as r', 'r.id = prs.risk_id')
@@ -215,7 +215,7 @@ class PcrRisk
     {
         $surgeon_id = 0;
 
-        $surgeon = Yii::app()->db->createCommand()
+        $surgeon = Yii::app()->cbdb->createCommand()
             ->select('as.*')
             ->from('episode as ep')
             ->join('event as e', 'e.episode_id = ep.id')
@@ -282,7 +282,7 @@ class PcrRisk
         $as['pupil_size'] = (!is_null($storedValues->pupil_size)) ? $storedValues->pupil_size : 'Large';
         $as['brunescent_white_cataract'] = (!is_null($storedValues->brunescent_white_cataract)) ? $storedValues->brunescent_white_cataract : 'NK';
         $as['pxf_phako_nk'] = 0;
-        $anteriorsegment = Yii::app()->db->createCommand()
+        $anteriorsegment = Yii::app()->cbdb->createCommand()
             ->select('as.*')
             ->from('episode as ep')
             ->join('event as e', 'e.episode_id = ep.id')
@@ -334,11 +334,11 @@ class PcrRisk
      */
     public function getAxialLength($patientId, $side)
     {
-        if (Yii::app()->db->schema->getTable('et_ophinbiometry_measurement', true) === null) {
+        if (Yii::app()->cbdb->schema->getTable('et_ophinbiometry_measurement', true) === null) {
             $axial_length_group = 'N';
         } else {
             $axial_length_group = 'N';
-            $biometry_measurement = Yii::app()->db->createCommand()
+            $biometry_measurement = Yii::app()->cbdb->createCommand()
                 ->select('om.*')
                 ->from('episode as ep')
                 ->join('event as e', 'e.episode_id = ep.id')

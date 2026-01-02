@@ -137,4 +137,41 @@ class OphCiExaminationAllergy extends \BaseActiveRecordVersioned
     {
         return $this->name;
     }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name
+     * Maps ophciexamination_allergy table to 'allergy' collection
+     * @return string
+     */
+    public function couchbaseCollection()
+    {
+        return 'ophciexamination_allergy';
+    }
+
+    /**
+     * Hook: After saving to MariaDB, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * Hook: After deleting from MariaDB, delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

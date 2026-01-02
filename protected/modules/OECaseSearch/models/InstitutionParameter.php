@@ -48,7 +48,7 @@ class InstitutionParameter extends CaseSearchParameter implements DBProviderInte
     public static function getCommonItemsForTerm(string $term) : array
     {
         // Add customisation here
-        $matches = Yii::app()->db->createCommand()
+        $matches = Yii::app()->cbdb->createCommand()
             ->select('id, name')
             ->from('institution')
             ->where("LOWER(name) LIKE LOWER(CONCAT(:name, '%'))")

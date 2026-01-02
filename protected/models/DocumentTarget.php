@@ -116,7 +116,7 @@ class DocumentTarget extends BaseActiveRecord
     {
         $option_array = [];
 
-        $result = Yii::app()->db->createCommand('SHOW COLUMNS FROM document_target LIKE "contact_type"')->queryRow();
+        $result = Yii::app()->cbdb->createCommand('SHOW COLUMNS FROM document_target LIKE "contact_type"')->queryRow();
         if ($result['Type']) {
             $option_array = explode("','", preg_replace("/(enum)\('(.+?)'\)/", "$2", $result['Type']));
         }

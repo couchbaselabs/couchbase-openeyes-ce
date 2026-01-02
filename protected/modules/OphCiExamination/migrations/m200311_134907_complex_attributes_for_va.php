@@ -177,10 +177,21 @@ class m200311_134907_complex_attributes_for_va extends OEMigration
         foreach ([Element_OphCiExamination_VisualAcuity::class, Element_OphCiExamination_NearVisualAcuity::class] as $va_cls) {
             // setting for default record mode
             $element_type_id = $this->getIdOfElementTypeByClassName($va_cls);
+            if (!$element_type_id) {
+                $this->migrationEcho("**NOTICE** Skipping record mode setting for {$va_cls} because the element type does not exist.\n");
+                continue;
+            }
+
+            $field_type_id = $this->dbConnection->createCommand('SELECT id FROM setting_field_type WHERE name = "Dropdown list"')
+                ->queryScalar();
+            if (!$field_type_id) {
+                $this->migrationEcho("**NOTICE** Unable to resolve field type 'Dropdown list' for {$va_cls}; skipping record mode setting.\n");
+                continue;
+            }
+
             $this->insert('setting_metadata', [
                 'element_type_id' => $element_type_id,
-                'field_type_id' => $this->dbConnection->createCommand('SELECT id FROM setting_field_type WHERE name = "Dropdown list"')
-                    ->queryScalar(),
+                'field_type_id' => $field_type_id,
                 'key' => 'record_mode',
                 'data' => serialize(array(
                     'simple' => 'Standard VA without BEO',
@@ -192,6 +203,10 @@ class m200311_134907_complex_attributes_for_va extends OEMigration
 
             foreach (['Strabismus', 'Paediatrics'] as $subspecialty_name) {
                 $subspecialty_id = $this->getIdOfSubspecialtyByName($subspecialty_name);
+                if (!$subspecialty_id) {
+                    $this->migrationEcho("**NOTICE** Skipping subspecialty {$subspecialty_name} override for {$va_cls} because the subspecialty does not exist.\n");
+                    continue;
+                }
                 $this->insert('setting_subspecialty', [
                     'element_type_id' => $element_type_id,
                     'subspecialty_id' => $subspecialty_id,

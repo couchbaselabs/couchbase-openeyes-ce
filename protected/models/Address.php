@@ -61,6 +61,88 @@ class Address extends BaseActiveRecordVersioned
         return $this->tableName();
     }
 
+    public function __get($name)
+    {
+        if ($name === 'country') {
+            return $this->resolveCountryRelation();
+        }
+
+        return parent::__get($name);
+    }
+
+    /**
+     * Ensure country is loaded from Couchbase when SQL relations are unavailable.
+     * @return Country|null
+     */
+    protected function resolveCountryRelation()
+    {
+        $related = $this->getRelated('country', false);
+        if ($related !== null) {
+            return $related;
+        }
+
+        // Handle embedded country arrays from Couchbase
+        $embedded = $this->getAttribute('country');
+        if (is_array($embedded)) {
+            $country = new Country();
+            $country->setAttributes($embedded, false);
+            if (isset($embedded['id'])) {
+                $country->id = $embedded['id'];
+            }
+            $this->country = $country;
+            $this->addRelatedRecord('country', $country, false);
+            return $country;
+        }
+
+        if (!$this->country_id) {
+            return null;
+        }
+
+        $country = Country::model()->findByPk($this->country_id);
+        if ($country) {
+            $this->country = $country;
+            $this->addRelatedRecord('country', $country, false);
+        }
+
+        return $country;
+    }
+
+    /**
+     * Normalize and load country relation.
+     * @return Country|null
+     */
+    public function ensureCountryLoaded()
+    {
+        if (property_exists($this, 'country') && is_array($this->country)) {
+            $country = new Country();
+            $country->setAttributes($this->country, false);
+            if (isset($this->country['id'])) {
+                $country->id = $this->country['id'];
+            }
+            $this->country = $country;
+            $this->addRelatedRecord('country', $country, false);
+            return $country;
+        }
+
+        return $this->resolveCountryRelation();
+    }
+
+    protected function afterFind()
+    {
+        // Normalize embedded country data into a Country model
+        if (isset($this->country) && is_array($this->country)) {
+            $country = new Country();
+            $country->setAttributes($this->country, false);
+            if (isset($this->country['id'])) {
+                $country->id = $this->country['id'];
+            }
+            $this->country = $country;
+            $this->addRelatedRecord('country', $country, false);
+        }
+
+        return parent::afterFind();
+    }
+
     /**
      * Get embedded relations for Couchbase document
      * @return array
@@ -342,7 +424,16 @@ class Address extends BaseActiveRecordVersioned
     public function getDefaultCountryId()
     {
         $default_country_setting = SettingMetadata::model()->getSetting('default_country');
-        return Country::model()->find('name = ?', [$default_country_setting])->id;
+        if (empty($default_country_setting)) {
+            return null;
+        }
+
+        $country = Country::model()->find('name = :name OR code = :code', [
+            ':name' => $default_country_setting,
+            ':code' => $default_country_setting,
+        ]);
+
+        return $country ? $country->id : null;
     }
 
     public function beforeValidate()

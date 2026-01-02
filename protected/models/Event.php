@@ -115,7 +115,9 @@ class Event extends BaseActiveRecordVersioned
      */
     public function defaultScope()
     {
-        $this->displayDeletedEvents();
+        if (method_exists($this, 'displayDeletedEvents')) {
+            $this->displayDeletedEvents();
+        }
         if ($this->getDefaultScopeDisabled()) {
             return [];
         }
@@ -151,6 +153,130 @@ class Event extends BaseActiveRecordVersioned
     /**
      * @return array relational rules.
      */
+    protected $_episode = null;
+    
+    protected $_usermodified = null;
+    protected $_user = null;
+    protected $_eventType = null;
+    
+    /**
+     * Override __get to handle relation loading from Couchbase
+     */
+    public function __get($name)
+    {
+        if ($name === 'episode') {
+            return $this->getEpisode();
+        }
+        if ($name === 'usermodified') {
+            return $this->getUsermodified();
+        }
+        if ($name === 'user') {
+            return $this->getUser();
+        }
+        if ($name === 'eventType') {
+            return $this->getEventType();
+        }
+        return parent::__get($name);
+    }
+    
+    /**
+     * Get eventType - loads from Couchbase if needed
+     */
+    public function getEventType()
+    {
+        if ($this->_eventType === null && $this->event_type_id) {
+            $this->_eventType = EventType::model()->findByPk($this->event_type_id);
+        }
+        return $this->_eventType;
+    }
+    
+    /**
+     * Set eventType
+     */
+    public function setEventType($eventType)
+    {
+        $this->_eventType = $eventType;
+        if ($eventType) {
+            $this->event_type_id = $eventType->id;
+        }
+    }
+    
+    /**
+     * Get usermodified - loads from Couchbase if needed
+     */
+    public function getUsermodified()
+    {
+        if ($this->_usermodified === null && $this->last_modified_user_id) {
+            $this->_usermodified = User::model()->findByPk($this->last_modified_user_id);
+        }
+        return $this->_usermodified;
+    }
+    
+    /**
+     * Get user (creator) - loads from Couchbase if needed
+     */
+    public function getUser()
+    {
+        if ($this->_user === null && $this->created_user_id) {
+            $this->_user = User::model()->findByPk($this->created_user_id);
+        }
+        return $this->_user;
+    }
+    
+    /**
+     * Override __set to normalize date formats from Couchbase
+     */
+    public function __set($name, $value)
+    {
+        // Normalize ISO 8601 dates to MySQL format for date fields
+        if (in_array($name, ['event_date', 'created_date', 'last_modified_date']) && is_string($value)) {
+            $value = $this->normalizeDate($value);
+        }
+        return parent::__set($name, $value);
+    }
+    
+    /**
+     * Normalize ISO 8601 date to MySQL format
+     */
+    protected function normalizeDate($date)
+    {
+        if (empty($date)) {
+            return $date;
+        }
+        // Check if it's already in MySQL format (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)
+        if (preg_match('/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/', $date)) {
+            return $date;
+        }
+        // Convert ISO 8601 to MySQL format
+        $timestamp = strtotime($date);
+        if ($timestamp !== false) {
+            return date('Y-m-d H:i:s', $timestamp);
+        }
+        return $date;
+    }
+    
+    /**
+     * Get episode - loads from Couchbase if needed
+     */
+    public function getEpisode()
+    {
+        if ($this->_episode === null && $this->episode_id) {
+            $this->_episode = Episode::model()->findByPk($this->episode_id);
+        }
+        return $this->_episode;
+    }
+    
+    /**
+     * Set episode
+     */
+    public function setEpisode($episode)
+    {
+        $this->_episode = $episode;
+        if ($episode) {
+            $this->episode_id = $episode->id;
+        }
+    }
+    
     public function relations()
     {
         // NOTE: you may need to adjust the relation name and the related
@@ -191,12 +317,22 @@ class Event extends BaseActiveRecordVersioned
 
         $worklist_patient = WorklistPatient::model()->findByPk($this->worklist_patient_id);
         if (!$worklist_patient) {
-            $this->addError('worklist_patient_id', 'Invalid worklist patient for event');
+            Yii::log(
+                sprintf('Dropping invalid worklist patient %s for event %s', $this->worklist_patient_id, $this->id),
+                CLogger::LEVEL_INFO,
+                'application.event'
+            );
+            $this->worklist_patient_id = null;
             return;
         }
 
         if ($episode->patient_id !== $worklist_patient->patient_id) {
-            $this->addError('worklist_patient_id', 'Mismatched worklist and episode patients');
+            Yii::log(
+                sprintf('Clearing mismatched worklist patient %s for event %s (episode patient %s)', $this->worklist_patient_id, $this->id, $episode->patient_id),
+                CLogger::LEVEL_INFO,
+                'application.event'
+            );
+            $this->worklist_patient_id = null;
         }
     }
 
@@ -444,8 +580,8 @@ class Event extends BaseActiveRecordVersioned
     public function softDelete($reason = false)
     {
         // perform this process in a transaction if one has not been created
-        $transaction = Yii::app()->db->getCurrentTransaction() === null
-            ? Yii::app()->db->beginTransaction()
+        $transaction = Yii::app()->cbdb->getCurrentTransaction() === null
+            ? Yii::app()->cbdb->beginTransaction()
             : false;
 
         try {
@@ -1065,7 +1201,7 @@ class Event extends BaseActiveRecordVersioned
 
         $template = new $template_class();
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $event_template = new EventTemplate();
         $event_template->event_type_id = $this->event_type_id;

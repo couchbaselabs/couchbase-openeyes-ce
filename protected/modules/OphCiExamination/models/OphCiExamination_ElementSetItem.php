@@ -34,6 +34,13 @@ class OphCiExamination_ElementSetItem extends \BaseActiveRecordVersioned
     use HasFactory;
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    protected $_element_type = null;
+
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *
@@ -42,6 +49,31 @@ class OphCiExamination_ElementSetItem extends \BaseActiveRecordVersioned
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
+    }
+
+    /**
+     * Set the element type (used when loading via N1QL)
+     */
+    public function setElementType($elementType)
+    {
+        $this->_element_type = $elementType;
+    }
+
+    /**
+     * Get the element type
+     */
+    public function getElementType()
+    {
+        if ($this->_element_type !== null) {
+            return $this->_element_type;
+        }
+        
+        // Try to load from Couchbase if we have an element_type_id
+        if ($this->element_type_id) {
+            $this->_element_type = \ElementType::model()->findByPk($this->element_type_id);
+        }
+        
+        return $this->_element_type;
     }
 
     /**

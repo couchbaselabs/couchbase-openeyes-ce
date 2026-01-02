@@ -61,18 +61,75 @@ class LoginForm extends CFormModel
         );
     }
 
+    private function normaliseId($value)
+    {
+        if ($value === '' || $value === 'undefined' || $value === 'null') {
+            return null;
+        }
+
+        return $value;
+    }
+
     private function getDefaultInstitution()
     {
-        return \Institution::model()->findByAttributes([ 'remote_id' => Yii::app()->params['institution_code'] ]);
+        $institutionCode = Yii::app()->params['institution_code'] ?? null;
+
+        if ($institutionCode !== null && $institutionCode !== '') {
+            $institution = \Institution::model()->findByAttributes(['remote_id' => $institutionCode]);
+            if ($institution) {
+                return $institution;
+            }
+        }
+
+        return \Institution::model()->find();
+    }
+
+    private function getDefaultSiteForInstitution($institution)
+    {
+        if (!$institution) {
+            return null;
+        }
+
+        if (!empty($institution->first_used_site_id)) {
+            $site = \Site::model()->findByPk($institution->first_used_site_id);
+            if ($site) {
+                return $site;
+            }
+
+        if (empty($this->site_id)) {
+            $anySite = \Site::model()->find();
+            if ($anySite) {
+                $this->site_id = $anySite->id;
+                if (empty($this->institution_id)) {
+                    $this->institution_id = $anySite->institution_id;
+                }
+            }
+        }
+        }
+
+        if (isset($institution->sites) && !empty($institution->sites)) {
+            return $institution->sites[0];
+        }
+
+        $criteria = new CDbCriteria();
+        $criteria->compare('institution_id', $institution->id);
+        $criteria->order = 'id asc';
+
+        return \Site::model()->find($criteria);
     }
 
     public function beforeValidate()
     {
-        if (empty($this->institution_id) && SettingMetadata::model()->getSetting('institution_required') == 'off' && isset(Yii::app()->params['institution_code'])) {
+        $this->institution_id = $this->normaliseId($this->institution_id);
+        $this->site_id = $this->normaliseId($this->site_id);
+
+        if (empty($this->institution_id)) {
             $institution = $this->getDefaultInstitution();
-            if (isset($institution)) {
+            if ($institution) {
                 $this->institution_id = $institution->id;
             }
+        } else {
+            $institution = \Institution::model()->findByPk($this->institution_id);
         }
         if ($this->username === Yii::app()->params['docman_user']) {
             if (empty($this->institution_id)) {
@@ -84,7 +141,35 @@ class LoginForm extends CFormModel
             }
             if (empty($this->site_id)) {
                 $institution = \Institution::model()->findByPk($this->institution_id);
-                $this->site_id = $institution->first_used_site_id ?? $institution->sites[0]->id;
+                $default_site = $this->getDefaultSiteForInstitution($institution);
+                if ($default_site) {
+                    $this->site_id = $default_site->id;
+                }
+            }
+        }
+
+        if (empty($this->site_id) && isset($institution)) {
+            $default_site = $this->getDefaultSiteForInstitution($institution);
+            if ($default_site) {
+                $this->site_id = $default_site->id;
+            }
+        }
+
+        if (empty($this->site_id) && !isset($institution)) {
+            $institution = $this->getDefaultInstitution();
+            if ($institution) {
+                $this->institution_id = $institution->id;
+                $default_site = $this->getDefaultSiteForInstitution($institution);
+                if ($default_site) {
+                    $this->site_id = $default_site->id;
+                }
+            }
+        }
+
+        if (empty($this->site_id) && !empty($this->institution_id)) {
+            $institution = \Institution::model()->findByPk($this->institution_id);
+            if ($institution) {
+                $this->site_id = $institution->first_used_site_id ?? ($institution->sites[0]->id ?? null);
             }
         }
         return parent::beforeValidate();

@@ -96,7 +96,7 @@ class LensTypeAdminController extends BaseAdminController
             $ids = Yii::app()->request->getPost('select');
             $saved = true;
 
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             $lens_type_list = OphInBiometry_LensType_Lens::model()->findAllByPk($ids);
 
@@ -130,7 +130,7 @@ class LensTypeAdminController extends BaseAdminController
     public function actionAddInstitutionMapping()
     {
         $ids = Yii::app()->request->getPost('select');
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $institution_id = Institution::model()->getCurrent()->id;
         $lens_types = OphInBiometry_LensType_Lens::model()->findAllByPk($ids);
@@ -156,7 +156,7 @@ class LensTypeAdminController extends BaseAdminController
     public function actionDeleteInstitutionMapping()
     {
         $ids = Yii::app()->request->getPost('select');
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $institution_id = Institution::model()->getCurrent()->id;
         $lens_types = OphInBiometry_LensType_Lens::model()->findAllByPk($ids);

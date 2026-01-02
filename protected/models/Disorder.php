@@ -183,7 +183,7 @@ class Disorder extends BaseActiveRecordVersioned
      */
     public static function getDisorderOptions($term)
     {
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select('term')
             ->from('disorder')
             ->where('term LIKE :term and active = 1', array(':term' => "%{$term}%"))
@@ -214,7 +214,7 @@ class Disorder extends BaseActiveRecordVersioned
 
     public function checkDisorderExists($attribute) {
         $query = "SELECT id FROM disorder where id='$this->id'";
-        $command = Yii::app()->db->createCommand($query);
+        $command = Yii::app()->cbdb->createCommand($query);
         $command->prepare();
         $result = $command->queryColumn();
         if (sizeof($result) > 0 && $this->isNewRecord === true) {

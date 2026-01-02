@@ -362,6 +362,9 @@ class OEMigration extends CDbMigration
     {
         $event_type_id = $this->getIdOfEventTypeByClassName($event_type);
 
+        $elementTypeSchema = $this->dbConnection->schema->getTable('element_type', true);
+        $hasGroupTitleColumn = $elementTypeSchema && array_key_exists('group_title', $elementTypeSchema->columns);
+
         $row = array(
             'name' => $name,
             'class_name' => $params['class_name'] ?? "Element_{$event_type}_" . str_replace(
@@ -373,13 +376,15 @@ class OEMigration extends CDbMigration
             'display_order' => isset($params['display_order']) ? $params['display_order'] : 1,
             'default' => isset($params['default']) ? $params['default'] : 0,
             'required' => isset($params['required']) ? $params['required'] : 0,
-            'group_title' => isset($params['group_title']) ? $params['group_title'] : '',
         );
+
+        if ($hasGroupTitleColumn) {
+            $row['group_title'] = isset($params['group_title']) ? $params['group_title'] : '';
+        }
 
         if (isset($params['group_name'])) {
             $row['element_group_id'] = $this->getIdOfElementGroupByName($params['group_name'], $event_type_id);
-
-            if (!isset($params['group_title'])) {
+            if ($hasGroupTitleColumn && !isset($params['group_title'])) {
                 $row['group_title'] = $params['group_name'];
             }
         }

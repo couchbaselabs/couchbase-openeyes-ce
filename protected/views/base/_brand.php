@@ -20,7 +20,8 @@
 
 $logoUrl = Yii::app()->assetManager->getPublishedUrl(Yii::getPathOfAlias('application.assets.newblue'), true) . '/dist/svg/oe-logo.svg';
 $settings = new SettingMetadata();
-$default_tech_support_provider = SettingMetadata::model()->find("`key` = 'tech_support_provider'")->default_value;
+$techSupportSetting = SettingMetadata::model()->find("`key` = 'tech_support_provider'");
+$default_tech_support_provider = $techSupportSetting ? $techSupportSetting->default_value : 'OpenEyes';
 $tech_support_provider = Yii::App()->params['tech_support_provider'] ? htmlspecialchars(Yii::App()->params['tech_support_provider']) : htmlspecialchars($settings->getSetting('tech_support_provider'));
 $tech_support_url = Yii::App()->params['tech_support_url'] ? htmlspecialchars(Yii::App()->params['tech_support_url']) : htmlspecialchars($settings->getSetting('tech_support_url'));
 $training_hub_text = Yii::App()->params['training_hub_text'] ? htmlspecialchars(Yii::App()->params['training_hub_text']) : htmlspecialchars($settings->getSetting('training_hub_text'));

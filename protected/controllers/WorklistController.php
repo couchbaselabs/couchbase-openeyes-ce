@@ -307,7 +307,7 @@ class WorklistController extends BaseController
             $type_step = PathwayTypeStep::model()->findByPk($type_step_id);
 
             if ($type_step) {
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
                 $pathway_steps = $type_step->pathway_type->instancePathway($visit);
                 $step = $pathway_steps[$type_step_id] ?? null;
                 if (!$step) {
@@ -318,7 +318,7 @@ class WorklistController extends BaseController
                 throw new CHttpException(404, 'Unable to retrieve step for processing.');
             }
         } else {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
         }
 
         if ($step) {
@@ -547,7 +547,7 @@ class WorklistController extends BaseController
             }
         }
         if ($step) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 Yii::app()->event->dispatch('step_deleted', ['step' => $step]);
 
@@ -1665,7 +1665,7 @@ class WorklistController extends BaseController
         if ($filter) {
             $counts = $filter->getPatientStatusCountsQuery($worklists)->queryAll();
         } else {
-            $counts = Yii::app()->db->createCommand('SELECT `status`, COUNT(`id`) AS `count` FROM `pathway` GROUP BY `status`')->queryAll();
+            $counts = Yii::app()->cbdb->createCommand('SELECT `status`, COUNT(`id`) AS `count` FROM `pathway` GROUP BY `status`')->queryAll();
         }
 
         $results = array(
@@ -1902,7 +1902,7 @@ class WorklistController extends BaseController
      */
     public function actionGetAssignees($term)
     {
-        $users = Yii::app()->db->createCommand()
+        $users = Yii::app()->cbdb->createCommand()
             ->select('u.id, CONCAT(c.first_name, \' \', c.last_name) AS label')
             ->from('user u')
             ->join('contact c', 'c.id = u.contact_id')

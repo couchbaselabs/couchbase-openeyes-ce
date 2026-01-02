@@ -30,6 +30,12 @@
 class DoctorGrade extends BaseActiveRecordVersioned
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
+
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *

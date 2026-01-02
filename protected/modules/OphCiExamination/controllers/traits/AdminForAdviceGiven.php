@@ -155,7 +155,7 @@ trait AdminForAdviceGiven
     {
         $category_id = @$_POST['category_id'];
         $subspecialty_id = @$_POST['subspecialty_id'];
-        $display_order = \Yii::app()->db->createCommand()
+        $display_order = \Yii::app()->cbdb->createCommand()
             ->select('MAX(display_order)')
             ->from('ophciexamination_advice_leaflet_category_subspecialty')
             ->where('subspecialty_id = :id')

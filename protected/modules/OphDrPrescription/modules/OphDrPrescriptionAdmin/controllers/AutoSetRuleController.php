@@ -355,7 +355,7 @@ class AutoSetRuleController extends BaseAdminController
         $ids = Yii::app()->request->getParam("delete-ids", []);
         foreach ($ids as $id) {
             $set = MedicationSet::model()->findByPk($id);
-            $trans = Yii::app()->db->beginTransaction();
+            $trans = Yii::app()->cbdb->beginTransaction();
             try {
                 $set->delete();
             } catch (Exception $e) {

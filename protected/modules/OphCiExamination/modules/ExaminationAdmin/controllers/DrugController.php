@@ -82,7 +82,7 @@ class DrugController extends \ModuleAdminController
     {
 
         $delete_ids = Yii::app()->request->getPost('select', []);
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $success = true;
         try {
             foreach ($delete_ids as $drug_id) {

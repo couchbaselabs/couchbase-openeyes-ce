@@ -22,7 +22,7 @@ class PSDObserver
             }
 
             $errors = array();
-            $transaction = Yii::app()->db->beginInternalTransaction();
+            $transaction = Yii::app()->cbdb->beginInternalTransaction();
             $assignment = new OphDrPGDPSD_Assignment();
             $assignment->confirmed = 1;
             $assignment->patient_id = $pathway->worklist_patient->patient_id;
@@ -59,7 +59,7 @@ class PSDObserver
         if ($data['step']->getState('action_type') === 'manage_psd') {
             $assignment = OphDrPGDPSD_Assignment::model()->findByPk($data['step']->getState('assignment_id'));
             if ($assignment && (int)$assignment->status === $assignment::STATUS_TODO) {
-                $transaction = \Yii::app()->db->beginInternalTransaction();
+                $transaction = \Yii::app()->cbdb->beginInternalTransaction();
                 $assignment->delete();
 
                 if ($assignment->getErrors()) {
@@ -138,7 +138,7 @@ class PSDObserver
                     }
                 }
             }
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $has_administered = false;
             foreach ($entries as $key => &$entry) {
                 $entry['administered'] = isset($entry['administered']) && $entry['administered']

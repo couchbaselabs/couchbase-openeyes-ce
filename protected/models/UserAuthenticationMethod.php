@@ -35,6 +35,15 @@ class UserAuthenticationMethod extends BaseActiveRecordVersioned
     {
         return 'user_authentication_method';
     }
+    
+    /**
+     * @return string the primary key column name
+     * This table uses 'code' as primary key, not 'id'
+     */
+    public function primaryKey()
+    {
+        return 'code';
+    }
 
     /**
      * @return array validation rules for model attributes.

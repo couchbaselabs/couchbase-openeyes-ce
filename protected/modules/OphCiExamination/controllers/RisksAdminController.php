@@ -138,14 +138,14 @@ class RisksAdminController extends \ModuleAdminController
         }
 
         /** @var CDbTransaction $trans */
-        $trans = \Yii::app()->db->beginTransaction();
+        $trans = \Yii::app()->cbdb->beginTransaction();
 
         if ($model->save(false)) {
-            \Yii::app()->db->createCommand("DELETE FROM ophciexamination_risk_tag WHERE risk_id = {$model->id}")->execute();
+            \Yii::app()->cbdb->createCommand("DELETE FROM ophciexamination_risk_tag WHERE risk_id = {$model->id}")->execute();
             if (array_key_exists('medicationSets', $data) && !empty($data['medicationSets'])) {
                 foreach ($data['medicationSets'] as $id) {
                     $id = filter_var($id, FILTER_SANITIZE_NUMBER_INT);
-                    \Yii::app()->db->createCommand("INSERT INTO ophciexamination_risk_tag (risk_id, medication_set_id) VALUES ({$model->id}, $id)")->execute();
+                    \Yii::app()->cbdb->createCommand("INSERT INTO ophciexamination_risk_tag (risk_id, medication_set_id) VALUES ({$model->id}, $id)")->execute();
                 }
             }
 

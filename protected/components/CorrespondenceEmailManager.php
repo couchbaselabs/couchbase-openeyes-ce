@@ -31,7 +31,7 @@ class CorrespondenceEmailManager
 
     public function getEmailRecipients($eventId) {
         try {
-            $recipients = Yii::app()->db->createCommand()
+            $recipients = Yii::app()->cbdb->createCommand()
                 ->select('do.id')
                 ->from('document_instance di')
                 ->join('document_target dt', 'dt.document_instance_id = di.id')
@@ -50,7 +50,7 @@ class CorrespondenceEmailManager
 
     public function getDelayedEmailRecipients() {
         try {
-            $recipients = Yii::app()->db->createCommand()
+            $recipients = Yii::app()->cbdb->createCommand()
                 ->select('do.id')
                 ->from('et_ophcocorrespondence_letter eol')
                 ->join('document_instance di','eol.event_id = di.correspondence_event_id')
@@ -71,7 +71,7 @@ class CorrespondenceEmailManager
 
     public function getRecipientsDataDocumentOutputId($recipientsDocumentOutputId) {
         try {
-            $recipients = Yii::app()->db->createCommand()
+            $recipients = Yii::app()->cbdb->createCommand()
                 ->select('di.correspondence_event_id, dt.id document_target_id, dt.contact_type, dt.contact_id, dt.email, do.id document_output_id, do.output_type, do.output_status')
                 ->from('document_instance di')
                 ->join('document_target dt', 'dt.document_instance_id = di.id')
@@ -232,7 +232,7 @@ class CorrespondenceEmailManager
     }
 
     private function getEmailTemplateForRecipient($recipient, $institutionId, $siteId) {
-        $command = Yii::app()->db->createCommand();
+        $command = Yii::app()->cbdb->createCommand();
 
         // Check if there is any template that exists for the institution, the site and the recipient type.
         $query = $command

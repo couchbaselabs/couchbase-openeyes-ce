@@ -88,7 +88,7 @@ class ReportDiagnoses extends BaseReport
 
     public function getDbCommand()
     {
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->from('patient p')
             ->join('contact c', 'p.contact_id = c.id');
     }

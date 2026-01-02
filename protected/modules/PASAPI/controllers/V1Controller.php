@@ -304,7 +304,7 @@ class V1Controller extends \CController
                 }
             }
 
-            $transaction = \Yii::app()->db->beginTransaction();
+            $transaction = \Yii::app()->cbdb->beginTransaction();
 
             //@ TODO: Test for PatientAppointment
             // this is \PASAPI\resources\Patient

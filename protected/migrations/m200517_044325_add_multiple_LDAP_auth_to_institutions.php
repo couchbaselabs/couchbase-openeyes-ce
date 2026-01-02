@@ -194,13 +194,39 @@ class m200517_044325_add_multiple_LDAP_auth_to_institutions extends OEMigration
         }
 
         // REMOVE LEGACY FIELDS - Uncomment when usages have been removed.
-        $this->execute('ALTER TABLE `user` DROP COLUMN `username` , DROP COLUMN `password` , DROP COLUMN `salt` , DROP COLUMN `password_last_changed_date` , DROP COLUMN `password_failed_tries` , DROP COLUMN `password_status`, DROP COLUMN `password_softlocked_until`, DROP COLUMN `active`;');
-        $this->execute('ALTER TABLE `user_version` DROP COLUMN `username` , DROP COLUMN `password` , DROP COLUMN `salt` , DROP COLUMN `password_last_changed_date` , DROP COLUMN `password_failed_tries` , DROP COLUMN `password_status`, DROP COLUMN `password_softlocked_until`, DROP COLUMN `active`;');
+        $this->dropLegacyUserColumns();
     }
 
     public function down()
     {
         echo "m200517_044325_add_multiple_LDAP_auth_to_institutions does not support migration down.\n";
         return false;
+    }
+
+    private function dropLegacyUserColumns(): void
+    {
+        $columns = [
+            'username',
+            'password',
+            'salt',
+            'password_last_changed_date',
+            'password_failed_tries',
+            'password_status',
+            'password_softlocked_until',
+            'active',
+        ];
+
+        foreach (['user', 'user_version'] as $table) {
+            $schema = $this->dbConnection->schema->getTable($table, true);
+            if (!$schema) {
+                continue;
+            }
+
+            foreach ($columns as $column) {
+                if ($schema->getColumn($column)) {
+                    $this->dropColumn($table, $column);
+                }
+            }
+        }
     }
 }

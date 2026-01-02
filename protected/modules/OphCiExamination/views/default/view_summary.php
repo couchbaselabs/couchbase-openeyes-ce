@@ -52,8 +52,9 @@ if ($historyElement) {
 <div class="element-tile-group" id="tile-group-exam-eyes" data-collapse="expanded">
     <?php $this->renderElement($diagnosesElement, $action, $form, $data) ?>
     <?php $this->renderElement($pastSurgeryElement, $action, $form, $data) ?>
-
-    <section class="element view-Eye-Medications tile" data-element-type-id="<?php echo $medicationsElement->elementType->id ?>" data-element-type-class="<?php echo $medicationsElement->elementType->class_name ?>" data-element-type-name="Eye Medications" data-element-display-order="<?php echo $medicationsElement->elementType->display_order ?>">
+    <?php $met = $medicationsElement->elementType ?? null; ?>
+    <?php if ($met) { ?>
+    <section class="element view-Eye-Medications tile" data-element-type-id="<?php echo $met->id ?>" data-element-type-class="<?php echo $met->class_name ?>" data-element-type-name="Eye Medications" data-element-display-order="<?php echo $met->display_order ?>">
         <header class=" element-header">
             <h3 class="element-title">Eye Medications</h3>
         </header>
@@ -190,6 +191,7 @@ if ($historyElement) {
             <?php } ?>
         </div>
     </section>
+    <?php } ?>
 
     <div class="collapse-tile-group">
         <i class="oe-i medium reduce-height js-tiles-collapse-btn" data-group="tile-group-exam-eyes"></i>
@@ -202,11 +204,13 @@ if ($historyElement) {
 
     <?php $this->renderElement($systemicSurgeryElement, $action, $form, $data) ?>
 
+    <?php $smet = $medicationsElement->elementType ?? null; ?>
+    <?php if ($smet) { ?>
     <section class="element view-Systemic-Medications tile"
-             data-element-type-id="<?php echo $medicationsElement->elementType->id ?>"
-             data-element-type-class="<?php echo $medicationsElement->elementType->class_name ?>"
+             data-element-type-id="<?php echo $smet->id ?>"
+             data-element-type-class="<?php echo $smet->class_name ?>"
              data-element-type-name="Systemic Medications"
-             data-element-display-order="<?php echo $medicationsElement->elementType->display_order + 1 ?>">
+             data-element-display-order="<?php echo ($smet->display_order ?? 0) + 1 ?>">
         <header class=" element-header">
             <h3 class="element-title">Systemic Medications</h3>
         </header>
@@ -355,6 +359,7 @@ if ($historyElement) {
             </div>
         </div>
     </section>
+    <?php } ?>
 
     <div class="collapse-tile-group">
         <i class="oe-i medium reduce-height js-tiles-collapse-btn" data-group="tile-group-exam-eyes"></i>

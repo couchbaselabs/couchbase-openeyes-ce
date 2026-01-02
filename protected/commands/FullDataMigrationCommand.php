@@ -62,8 +62,8 @@ class FullDataMigrationCommand extends CConsoleCommand
         ],
         4 => [
             'name' => 'Module Elements',
-            'command' => 'moduledata',
-            'args' => 'migrate --module=all',
+            'command' => 'modulemigration',
+            'args' => 'migrate --module=all --batch=100',
         ],
         5 => [
             'name' => 'Administrative',

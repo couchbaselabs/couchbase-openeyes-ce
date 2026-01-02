@@ -181,7 +181,7 @@ class RefMedicationAdminController extends BaseAdminController
 
     protected function _getSourceTypes()
     {
-        $values = Yii::app()->db->createCommand("SELECT DISTINCT source_type FROM " . Medication::model()->tableName())->queryColumn();
+        $values = Yii::app()->cbdb->createCommand("SELECT DISTINCT source_type FROM " . Medication::model()->tableName())->queryColumn();
         $ret_array = array();
         foreach ($values as $value) {
             $ret_array[$value] = $value;
@@ -191,7 +191,7 @@ class RefMedicationAdminController extends BaseAdminController
 
     protected function _getSourceSubtypes()
     {
-        $values = Yii::app()->db->createCommand("SELECT DISTINCT source_subtype FROM " . Medication::model()->tableName())->queryColumn();
+        $values = Yii::app()->cbdb->createCommand("SELECT DISTINCT source_subtype FROM " . Medication::model()->tableName())->queryColumn();
         $ret_array = array();
         foreach ($values as $value) {
             $ret_array[$value] = $value;
@@ -213,7 +213,7 @@ class RefMedicationAdminController extends BaseAdminController
         }
 
         /** @var CDbTransaction $trans */
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         /** @var Medication $model */
 

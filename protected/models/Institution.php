@@ -205,11 +205,26 @@ class Institution extends BaseActiveRecordVersioned
      */
     public function getCurrent()
     {
-        $institution = Yii::app()->session->getSelectedInstitution();
-        if (!$institution) {
-            throw new RuntimeException('Institution is not set for application session');
+        // In Couchbase-only mode, session may not implement getSelectedInstitution; fallback to default
+        $session = Yii::app()->session;
+        if (method_exists($session, 'getSelectedInstitution')) {
+            $institution = $session->getSelectedInstitution();
+            if ($institution) {
+                return $institution;
+            }
         }
-        return $institution;
+
+        // Fallback: return first institution or configured default
+        $inst = self::model()->findByPk(1);
+        if ($inst) {
+            return $inst;
+        }
+        $inst = self::model()->find();
+        if ($inst) {
+            return $inst;
+        }
+
+        throw new RuntimeException('Institution is not set for application session');
     }
 
     public function getList($current_institution_only = true)
@@ -263,21 +278,58 @@ class Institution extends BaseActiveRecordVersioned
             $current_institution = $this->getCurrent();
             $result[$current_institution->id] = $current_institution->name;
         } else {
-            $cmd = Yii::app()->db->createCommand()
-                ->selectDistinct('i.id, i.name')
-                ->from('institution i')
-                ->join('institution_authentication ia', 'ia.institution_id = i.id');
+            $rows = [];
 
-            if ($user_must_be_member) {
-                $cmd->join('user_authentication ua', 'ua.institution_authentication_id = ia.id');
-                $cmd->where('ua.user_id = :user_id', [':user_id' => \Yii::app()->user->id]);
+            // Primary: MariaDB if available
+            try {
+                $cmd = Yii::app()->db->createCommand()
+                    ->selectDistinct('i.id, i.name')
+                    ->from('institution i')
+                    ->join('institution_authentication ia', 'ia.institution_id = i.id');
+
+                if ($user_must_be_member) {
+                    $cmd->join('user_authentication ua', 'ua.institution_authentication_id = ia.id');
+                    $cmd->where('ua.user_id = :user_id', [':user_id' => \Yii::app()->user->id]);
+                }
+
+                $rows = $cmd->order('i.name')->queryAll();
+            } catch (Exception $e) {
+                Yii::log('Falling back to Couchbase for institution list: ' . $e->getMessage(), CLogger::LEVEL_WARNING, 'application.institution');
+            }
+
+            // Fallback: Couchbase N1QL if MariaDB unavailable or empty
+            if ((empty($rows)) && (Yii::app()->params['enable_couchbase_read'] ?? false)) {
+                try {
+                    $adapter = \OE\Database\DatabaseAdapterFactory::getAdapter(\OE\Database\DatabaseAdapterFactory::ADAPTER_COUCHBASE);
+                    $bucket = Yii::app()->couchbase->config['bucket'];
+                    $scope = 'core';
+
+                    $n1ql = "SELECT DISTINCT i.id, i.name FROM `{$bucket}`.`{$scope}`.`institution` i";
+                    if ($user_must_be_member) {
+                        $userId = (int)Yii::app()->user->id;
+                        $n1ql .= " JOIN `{$bucket}`.`{$scope}`.`institution_authentication` ia ON ia.institution_id = i.id";
+                        $n1ql .= " JOIN `{$bucket}`.`{$scope}`.`user_authentication` ua ON ua.institution_authentication_id = ia.id";
+                        $n1ql .= " WHERE ua.user_id = {$userId}";
+                    }
+                    $n1ql .= " ORDER BY i.name";
+
+                    $rows = $adapter->query($n1ql, []);
+                } catch (Exception $e) {
+                    Yii::log('Couchbase institution list query failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING, 'application.institution');
+                    $rows = [];
+                }
             }
 
             if ($return_as_json_array) {
-                $result = $cmd->order('i.name')->queryAll();
+                $result = $rows;
             } else {
-                foreach ($cmd->queryAll() as $institution) {
-                    $result[$institution['id']] = $institution['name'];
+                foreach ($rows as $institution) {
+                    // Rows may be associative arrays or objects depending on adapter
+                    $id = is_array($institution) ? ($institution['id'] ?? null) : ($institution->id ?? null);
+                    $name = is_array($institution) ? ($institution['name'] ?? null) : ($institution->name ?? null);
+                    if ($id !== null && $name !== null) {
+                        $result[$id] = $name;
+                    }
                 }
                 natcasesort($result);
             }

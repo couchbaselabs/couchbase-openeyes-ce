@@ -1,0 +1,46 @@
+-- Essential indexes for E2E tests
+-- Run with: cbq -u Administrator -p password -f test-indexes.n1ql
+
+-- Institution authentication indexes
+CREATE INDEX idx_institution_auth_inst IF NOT EXISTS ON `openeyes`.`admin`.`institution_authentication`(institution_id);
+CREATE INDEX idx_institution_auth_method IF NOT EXISTS ON `openeyes`.`admin`.`institution_authentication`(user_authentication_method);
+CREATE INDEX idx_institution_auth_active IF NOT EXISTS ON `openeyes`.`admin`.`institution_authentication`(active);
+
+-- User authentication indexes
+CREATE INDEX idx_user_auth_inst IF NOT EXISTS ON `openeyes`.`admin`.`user_authentication`(institution_authentication_id);
+CREATE INDEX idx_user_auth_user IF NOT EXISTS ON `openeyes`.`admin`.`user_authentication`(user_id);
+CREATE INDEX idx_user_auth_username IF NOT EXISTS ON `openeyes`.`admin`.`user_authentication`(username);
+
+-- User indexes
+CREATE INDEX idx_user_active IF NOT EXISTS ON `openeyes`.`admin`.`user`(active);
+CREATE INDEX idx_user_username IF NOT EXISTS ON `openeyes`.`admin`.`user`(username);
+
+-- Disorder indexes (for seeder queries)
+CREATE INDEX idx_disorder_specialty IF NOT EXISTS ON `openeyes`.`reference`.`disorder`(specialty_id);
+CREATE INDEX idx_disorder_active IF NOT EXISTS ON `openeyes`.`reference`.`disorder`(active);
+CREATE INDEX idx_disorder_term IF NOT EXISTS ON `openeyes`.`reference`.`disorder`(term);
+
+-- Institution indexes
+CREATE INDEX idx_institution_active IF NOT EXISTS ON `openeyes`.`core`.`institution`(active);
+CREATE INDEX idx_institution_remote IF NOT EXISTS ON `openeyes`.`core`.`institution`(remote_id);
+
+-- Common reference data indexes
+CREATE INDEX idx_firm_active IF NOT EXISTS ON `openeyes`.`core`.`firm`(active);
+CREATE INDEX idx_site_active IF NOT EXISTS ON `openeyes`.`core`.`site`(active);
+CREATE INDEX idx_site_institution IF NOT EXISTS ON `openeyes`.`core`.`site`(institution_id);
+
+-- Patient indexes
+CREATE INDEX idx_patient_deleted IF NOT EXISTS ON `openeyes`.`core`.`patient`(deleted);
+
+-- Event indexes
+CREATE INDEX idx_event_episode IF NOT EXISTS ON `openeyes`.`core`.`event`(episode_id);
+CREATE INDEX idx_event_type IF NOT EXISTS ON `openeyes`.`core`.`event`(event_type_id);
+
+-- Episode indexes
+CREATE INDEX idx_episode_patient IF NOT EXISTS ON `openeyes`.`core`.`episode`(patient_id);
+CREATE INDEX idx_episode_firm IF NOT EXISTS ON `openeyes`.`core`.`episode`(firm_id);
+
+-- Auth item indexes
+CREATE INDEX idx_auth_item_type IF NOT EXISTS ON `openeyes`.`admin`.`auth_item`(type);
+CREATE INDEX idx_auth_assignment_item IF NOT EXISTS ON `openeyes`.`admin`.`auth_assignment`(itemname);
+CREATE INDEX idx_auth_assignment_user IF NOT EXISTS ON `openeyes`.`admin`.`auth_assignment`(userid);

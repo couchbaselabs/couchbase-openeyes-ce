@@ -159,16 +159,61 @@ class EventType extends BaseActiveRecordVersioned
     public function getEventTypeModules()
     {
         $legacy_events = EventGroup::model()->find('code=?', array('Le'));
+        $legacy_id = $legacy_events ? $legacy_events->id : 0;
+        $module_names = array_keys(Yii::app()->getModules());
 
         $criteria = new CDbCriteria();
-        $criteria->addInCondition("class_name", array_keys(Yii::app()->getModules()));
+        $criteria->addInCondition("class_name", $module_names);
         $criteria->addCondition('event_group_id != :legacy_event_group_id');
         $criteria->order = 'name asc';
         $criteria->addCondition('parent_id is null');
         $criteria->addCondition('can_be_created_manually = 1');
-        $criteria->params[':legacy_event_group_id'] = $legacy_events->id;
+        $criteria->params[':legacy_event_group_id'] = $legacy_id;
 
-        return self::model()->findAll($criteria);
+        $eventTypes = self::model()->findAll($criteria);
+
+        // Couchbase fallback: if MariaDB is gone and criteria-based query returned nothing,
+        // fetch directly via N1QL to avoid any ActiveRecord criteria quirks
+        if (empty($eventTypes) && Yii::app()->db instanceof OEDbConnection && !Yii::app()->db->isConnectionAvailable()) {
+            // guard: no modules means nothing to show
+            if (empty($module_names)) {
+                return array();
+            }
+
+            try {
+                $modulesPlaceholder = '$modules';
+                $n1ql = "SELECT `event_type`.* FROM `openeyes`.`reference`.`event_type` "
+                    . "WHERE can_be_created_manually = true "
+                    . "AND parent_id IS NULL "
+                    . "AND event_group_id != $legacy_id "
+                    . "AND class_name IN $modulesPlaceholder "
+                    . "ORDER BY name";
+
+                $rows = Yii::app()->couchbaseRest->query($n1ql, ['modules' => $module_names]);
+
+                $eventTypes = array();
+                foreach ($rows as $row) {
+                    $et = new self(null);
+                    $et->setIsNewRecord(false);
+                    foreach ($row as $attr => $value) {
+                        if (strpos($attr, '_') === 0) {
+                            continue; // skip metadata
+                        }
+                        if ($et->hasAttribute($attr)) {
+                            $et->$attr = $value;
+                        }
+                    }
+                    if (isset($row['id'])) {
+                        $et->setPrimaryKey($row['id']);
+                    }
+                    $eventTypes[] = $et;
+                }
+            } catch (Exception $e) {
+                Yii::log('EventType Couchbase fallback failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+            }
+        }
+
+        return $eventTypes;
     }
 
     /**
@@ -243,7 +288,7 @@ class EventType extends BaseActiveRecordVersioned
      */
     public function getEventTypeInUseList()
     {
-        $event_types = Yii::app()->db
+        $event_types = Yii::app()->cbdb
             ->createCommand('SELECT id, name FROM event_type et INNER JOIN (SELECT DISTINCT event_type_id FROM event) e on e.event_type_id = et.id')
             ->queryAll();
 

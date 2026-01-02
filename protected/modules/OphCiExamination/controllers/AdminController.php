@@ -484,17 +484,45 @@ class AdminController extends \ModuleAdminController
             $institution = \Institution::model()->findByPk($institution_id);
         }
 
-        if ($institution === null) {
-            $workflows = models\OphCiExamination_Workflow::model()->findAllAtLevels(
-                \ReferenceData::LEVEL_INSTALLATION,
-                ['order' => 'name asc']
-            );
-        } else {
-            $workflows = models\OphCiExamination_Workflow::model()->findAllAtLevels(
-                \ReferenceData::LEVEL_INSTITUTION,
-                ['order' => 'name asc'],
-                $institution
-            );
+        $levelMask = \ReferenceData::LEVEL_INSTALLATION | \ReferenceData::LEVEL_INSTITUTION;
+        $workflows = [];
+        try {
+            $adapter = \OE\Database\DatabaseAdapterFactory::getAdapter(\OE\Database\DatabaseAdapterFactory::ADAPTER_COUCHBASE);
+            $bucket = \Yii::app()->couchbase->config['bucket'];
+            $scope = 'reference';
+            $conditions = [];
+            $params = [];
+
+            // Installation-level
+            if ($levelMask & \ReferenceData::LEVEL_INSTALLATION) {
+                $conditions[] = '(w.institution_id IS MISSING OR w.institution_id IS NULL)';
+            }
+            // Institution-level
+            if ($levelMask & \ReferenceData::LEVEL_INSTITUTION) {
+                if ($institution) {
+                    $conditions[] = 'w.institution_id = $instId';
+                    $params['instId'] = (int)$institution->id;
+                }
+            }
+            if (!$conditions) {
+                $conditions[] = '1=1';
+            }
+            $where = 'WHERE ' . implode(' OR ', $conditions);
+            $n1ql = "SELECT w.* FROM `{$bucket}`.`{$scope}`.`ophciexamination_workflow` AS w {$where} ORDER BY w.name";
+
+            $rows = $adapter->query($n1ql, $params);
+            foreach ($rows as $row) {
+                $wf = new models\OphCiExamination_Workflow();
+                $wf->setIsNewRecord(false);
+                foreach ((array)$row as $k => $v) {
+                    if ($wf->hasAttribute($k)) {
+                        $wf->$k = $v;
+                    }
+                }
+                $workflows[] = $wf;
+            }
+        } catch (\Exception $e) {
+            \Yii::log('Couchbase workflow list query failed: ' . $e->getMessage(), \CLogger::LEVEL_WARNING, __METHOD__);
         }
 
         $this->render('list_OphCiExamination_Workflow', array(
@@ -578,7 +606,7 @@ class AdminController extends \ModuleAdminController
             echo 0;
         }
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $default_types = \ElementType::model()->findAll();
         foreach ($default_types as $type) {
@@ -807,28 +835,104 @@ class AdminController extends \ModuleAdminController
             $institution = \Institution::model()->findByPk($institution_id);
         }
 
-        $workflows_criteria = models\OphCiExamination_Workflow::model()->getCriteriaForLevels(
-            $institution ? \ReferenceData::LEVEL_INSTITUTION : \ReferenceData::LEVEL_INSTALLATION,
-            null,
-            $institution
-        );
+        // Use direct N1QL query for Couchbase-only workflow rules
+        $model_list = [];
+        $workflows = [];
+        try {
+            $adapter = \OE\Database\DatabaseAdapterFactory::getAdapter(\OE\Database\DatabaseAdapterFactory::ADAPTER_COUCHBASE);
+            $bucket = 'openeyes';
+            $scope = 'reference';
+            $collection = 'ophciexamination_workflow_rule';
+            
+            $n1ql = "SELECT META().id AS _key, r.* FROM `{$bucket}`.`{$scope}`.`{$collection}` AS r ORDER BY r.id";
+            $rows = $adapter->query($n1ql);
+            
+            // Pre-load workflows to avoid lazy loading failures
+            $workflowIds = array_filter(array_map(function($row) {
+                $data = isset($row['r']) ? $row['r'] : $row;
+                return $data['workflow_id'] ?? null;
+            }, $rows));
+            
+            $workflows = [];
+            if (!empty($workflowIds)) {
+                $wfN1ql = "SELECT META().id AS _key, w.* FROM `{$bucket}`.`{$scope}`.`ophciexamination_workflow` AS w WHERE w.id IN [" . implode(',', array_unique($workflowIds)) . "]";
+                $wfRows = $adapter->query($wfN1ql);
+                foreach ($wfRows as $wfRow) {
+                    $wfData = isset($wfRow['w']) ? $wfRow['w'] : $wfRow;
+                    $wf = new models\OphCiExamination_Workflow();
+                    $wf->setAttributes($wfData, false);
+                    
+                    // Extract ID from document key if not set
+                    if (empty($wf->id) && isset($wfRow['_key'])) {
+                        $parts = explode('::', $wfRow['_key']);
+                        $wf->id = end($parts);
+                    }
+                    
+                    $wf->setIsNewRecord(false);
+                    if ($wf->id) {
+                        $workflows[$wf->id] = $wf;
+                    }
+                }
+            }
+            
+            foreach ($rows as $row) {
+                $model = new models\OphCiExamination_Workflow_Rule();
+                $data = isset($row['r']) ? $row['r'] : $row;
+                $model->setAttributes($data, false);
+                
+                // Extract ID from document key if not set
+                if (empty($model->id) && isset($row['_key'])) {
+                    $parts = explode('::', $row['_key']);
+                    $model->id = end($parts);
+                }
+                
+                $model->setIsNewRecord(false);
+                
+                // Attach pre-loaded workflow
+                if (isset($data['workflow_id']) && isset($workflows[$data['workflow_id']])) {
+                    $model->addRelatedRecord('workflow', $workflows[$data['workflow_id']], false);
+                }
+                
+                $model_list[] = $model;
+            }
+        } catch (\Exception $e) {
+            \Yii::log('Couchbase workflow rules query failed: ' . $e->getMessage(), \CLogger::LEVEL_ERROR);
+        }
 
+        // Pre-load reference data for display (subspecialties, firms, episode statuses)
+        $subspecialties = \Subspecialty::model()->findAll();
+        $subspecialtyMap = [];
+        foreach ($subspecialties as $s) {
+            $subspecialtyMap[$s->id] = $s->name;
+        }
+        
+        $firms = \Firm::model()->findAll();
+        $firmMap = [];
+        foreach ($firms as $f) {
+            $firmMap[$f->id] = $f->name;
+        }
+        
+        $episodeStatuses = \EpisodeStatus::model()->findAll();
+        $episodeStatusMap = [];
+        foreach ($episodeStatuses as $es) {
+            $episodeStatusMap[$es->id] = $es->name;
+        }
+        
         $this->render('list_OphCiExamination_Workflow_Rules', array(
                 'model_class' => 'OphCiExamination_Workflow_Rule',
-                'model_list' => models\OphCiExamination_Workflow_Rule::model()->findAll(
-                    [
-                        'with' => ['workflow' => $workflows_criteria->toArray()],
-                        'order' => 't.id asc',
-                    ]
-                ),
+                'model_list' => $model_list,
                 'title' => 'Workflow rules',
                 'institution_id' => $institution->id ?? '',
+                'workflows' => $workflows,
+                'subspecialtyMap' => $subspecialtyMap,
+                'firmMap' => $firmMap,
+                'episodeStatusMap' => $episodeStatusMap,
         ));
     }
 
     public function actionGetInstitutionFirms($id = null)
     {
-        $firms = Yii::app()->db->createCommand()
+        $firms = Yii::app()->cbdb->createCommand()
             ->select('id, name')
             ->from('firm')
             ->where('institution_id = :id', [':id' => $id])
@@ -1151,7 +1255,7 @@ class AdminController extends \ModuleAdminController
         $institution_id = Yii::app()->request->getParam('institution_id', array());
         $subspecialty_id = Yii::app()->request->getParam('subspecialty_id', null);
 
-        $tx = Yii::app()->db->beginTransaction();
+        $tx = Yii::app()->cbdb->beginTransaction();
         try {
             models\OphCiExamination_PostOpComplications::model()->assign($complication_ids, $institution_id, $subspecialty_id);
         } catch (\Exception $e) {
@@ -1422,7 +1526,7 @@ class AdminController extends \ModuleAdminController
             $model->setScenario('installationAdminSave');
         }
 
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
 
         try {
             if ($model->save()) {

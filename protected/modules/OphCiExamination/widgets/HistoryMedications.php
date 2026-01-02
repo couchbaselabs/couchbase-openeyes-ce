@@ -96,7 +96,12 @@ class HistoryMedications extends BaseMedicationWidget
     private function getEntriesFromPreviousManagement()
     {
         $entries = [];
-        $element = $this->element->getModuleApi()->getLatestElement(MedicationManagementElement::class, $this->patient);
+        $api = $this->element->getModuleApi();
+        if (!$api) {
+            return $entries;
+        }
+
+        $element = $api->getLatestElement(MedicationManagementElement::class, $this->patient);
         if (!is_null($element)) {
             /** @var MedicationManagementElement $element */
             foreach ($element->entries as $entry) {
@@ -118,7 +123,12 @@ class HistoryMedications extends BaseMedicationWidget
     public function getEntriesFromPreviousHistory()
     {
         $entries = [];
-        $element = $this->element->getModuleApi()->getLatestElement(HistoryMedicationsElement::class, $this->patient);
+        $api = $this->element->getModuleApi();
+        if (!$api) {
+            return $entries;
+        }
+
+        $element = $api->getLatestElement(HistoryMedicationsElement::class, $this->patient);
         if (!is_null($element)) {
             /** @var HistoryMedicationsElement $element*/
             $entries = $element->entries;

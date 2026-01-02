@@ -8,7 +8,7 @@ class SetupPathwayStepPickerBehavior extends CBehavior
             Yii::app()->session['selected_institution_id'],
             null
         );
-        $custom_booking_step_sql = Yii::app()->db->createCommand()
+        $custom_booking_step_sql = Yii::app()->cbdb->createCommand()
             ->select('pstpa.custom_pathway_step_type_id, pstpa.site_id, pstpa.subspecialty_id, pstpa.firm_id, pstpa.preset_id')
             ->from('pathway_step_type_preset_assignment pstpa')
             ->join('pathway_step_type pst', 'pst.id = pstpa.custom_pathway_step_type_id')
@@ -104,37 +104,37 @@ class SetupPathwayStepPickerBehavior extends CBehavior
     }
 
     public function getPathwayStepTypesRequirePicker(){
-        $psd_step_type_id = Yii::app()->db->createCommand()
+        $psd_step_type_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'drug admin\' AND user_can_create = 1')
             ->queryScalar();
-        $exam_step_type_id = Yii::app()->db->createCommand()
+        $exam_step_type_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'Exam\' AND user_can_create = 1')
             ->queryScalar();
-        $vf_step_type_id = Yii::app()->db->createCommand()
+        $vf_step_type_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'Fields\' AND user_can_create = 1')
             ->queryScalar();
-        $letter_step_type_id = Yii::app()->db->createCommand()
+        $letter_step_type_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'Letter\' AND user_can_create = 1')
             ->queryScalar();
-        $generic_step_type_id = Yii::app()->db->createCommand()
+        $generic_step_type_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'Task\' AND user_can_create = 1')
             ->queryScalar();
-        $onhold_step_type_id = Yii::app()->db->createCommand()
+        $onhold_step_type_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'onhold\' AND user_can_create = 1')
             ->queryScalar();
-        $booking_step_type_id = Yii::app()->db->createCommand()
+        $booking_step_type_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'Book Apt.\' AND user_can_create = 1')

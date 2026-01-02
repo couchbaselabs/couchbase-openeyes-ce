@@ -118,7 +118,7 @@ class PracticeController extends BaseController
 
             if ($contact->validate(array('first_name')) and $practice->validate(array('phone')) and $address->validate(array('address1', 'city', 'postcode', 'country'))) {
                 // If there is no validation error, check for the duplicate practice based on practice name, phone, address1, city, postcode and country.
-                $duplicateCheckOutput = Yii::app()->db->createCommand()
+                $duplicateCheckOutput = Yii::app()->cbdb->createCommand()
                     ->select('c1.first_name, p.phone, a.address1, a.city, a.postcode, a.country_id')
                     ->from('practice p')
                     ->join('contact c1', 'c1.id = p.contact_id')
@@ -191,7 +191,7 @@ class PracticeController extends BaseController
                 $contact->contact_label_id = $_POST['Contact']['contact_label_id'];
 
                 // If there is no validation error, check for the duplicate practice based on practice name, phone, address1, city, postcode and country.
-                $dataProvider = Yii::app()->db->createCommand()
+                $dataProvider = Yii::app()->cbdb->createCommand()
                     ->select('c1.first_name, p.phone, a.address1, a.city, a.postcode, a.country_id')
                     ->from('practice p')
                     ->join('contact c1', 'c1.id = p.contact_id')
@@ -239,7 +239,7 @@ class PracticeController extends BaseController
     public function performGpSave(Contact $contact, Gp $gp, $isAjax = false)
     {
         $action = $gp->isNewRecord ? 'add' : 'edit';
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             if ($contact->save()) {
@@ -295,7 +295,7 @@ class PracticeController extends BaseController
     public function performPracticeSave(Contact $contact, Practice $practice, Address $address, $gpIdProviderNoList, $isAjax = false)
     {
         $action = $practice->isNewRecord ? 'add' : 'edit';
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             // Contact validation must be done before calling performPracticeSave
             if ($contact->save(false)) {
@@ -447,7 +447,7 @@ class PracticeController extends BaseController
 
             if ($contact->validate(array('first_name')) and $model->validate(array('phone')) and $address->validate(array('address1', 'city', 'postcode', 'country'))) {
                 // If there is no validation error, check for the duplicate practice based on practice name, phone, address1, city, postcode and country.
-                $duplicateCheckOutput = Yii::app()->db->createCommand()
+                $duplicateCheckOutput = Yii::app()->cbdb->createCommand()
                     ->select('c1.first_name, p.phone, a.address1, a.city, a.postcode, a.country_id')
                     ->from('practice p')
                     ->join('contact c1', 'c1.id = p.contact_id')

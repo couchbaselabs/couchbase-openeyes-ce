@@ -107,7 +107,7 @@ class AdminController extends ModuleAdminController
                 $query .= ' WHERE parent_id = '.$parent->id;
             }
 
-            $val = Yii::app()->db->createCommand($query)->queryRow();
+            $val = Yii::app()->cbdb->createCommand($query)->queryRow();
             $therapy_disorder->display_order = $val['maxdisplay'] + 1;
             if (!$therapy_disorder->save()) {
                 throw new Exception('Unable to save new therapy disorder '.print_r($therapy_disorder->getErrors(), true));
@@ -132,7 +132,7 @@ class AdminController extends ModuleAdminController
             $criteria = new CDbCriteria();
             $criteria->condition = 'parent_id = :pid';
             $criteria->params = array(':pid' => $diagnosis->id);
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 if ($children = OphCoTherapyapplication_TherapyDisorder::model()->findAll($criteria)) {
                     foreach ($children as $child) {

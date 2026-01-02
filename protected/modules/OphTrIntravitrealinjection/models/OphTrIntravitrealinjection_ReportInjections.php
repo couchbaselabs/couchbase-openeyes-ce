@@ -166,7 +166,7 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
     {
         $patient_data = array();
         $where = '';
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 'p.id as patient_id, treat.left_drug_id, treat.right_drug_id, treat.left_number, treat.right_number, e.id,
 						e.event_date, c.first_name, c.last_name, e.created_date, p.gender, p.dob, eye.name AS eye, site.name as site_name'
@@ -258,7 +258,7 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
     {
         $where = 'e.deleted = 0 and ep.deleted = 0 and e.event_date >= :from_date and e.event_date < (:to_date + interval 1 day)';
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 'p.id as patient_id, treat.left_drug_id, treat.right_drug_id, treat.left_number, treat.right_number, e.id,
                 e.event_date, c.first_name, c.last_name, p.gender, p.dob, eye.name AS eye, site.name as site_name,
@@ -405,7 +405,7 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
 
     protected function getDiagnosisDataFromEvent($patient_id, $close_to_date, $event_type_id, $model)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('e.id')
             ->from('event e')
             ->join('episode ep', 'e.episode_id = ep.id')
@@ -617,7 +617,7 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
     {
         if ($patient_id != $this->_current_patient_id) {
             $this->_current_patient_id = $patient_id;
-            $command = Yii::app()->db->createCommand()
+            $command = Yii::app()->cbdb->createCommand()
                 ->select('e.id')
                 ->from('event e')
                 ->join('episode ep', 'e.episode_id = ep.id')

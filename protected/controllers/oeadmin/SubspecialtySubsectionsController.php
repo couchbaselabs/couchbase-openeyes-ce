@@ -109,7 +109,7 @@ class SubspecialtySubsectionsController extends BaseAdminController
     public function actionDelete()
     {
         $delete_id = Yii::app()->request->getParam('id');
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $subspecialty_id = Yii::app()->request->getParam('subspecialty_id');
         $success = true;
 

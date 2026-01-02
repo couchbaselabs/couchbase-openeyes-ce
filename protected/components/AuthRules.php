@@ -81,6 +81,9 @@ class AuthRules
      */
     public function canEditEvent($data, Event $event)
     {
+        if (!$event || !$event->episode || !$event->episode->patient) {
+            return false;
+        }
         if ($event->delete_pending) {
             return false;
         }

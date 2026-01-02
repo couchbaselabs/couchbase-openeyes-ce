@@ -32,7 +32,7 @@ class PSDController extends DefaultController
         $assignment_id = \Yii::app()->request->getParam('assignment_id', null);
         $assignment = OphDrPGDPSD_Assignment::model()->findByPk($assignment_id);
         if ($assignment && intval($assignment->status) === $assignment::STATUS_TODO) {
-            $transaction = \Yii::app()->db->beginTransaction();
+            $transaction = \Yii::app()->cbdb->beginTransaction();
             $assignment->active = 0;
             $assignment->save();
         }

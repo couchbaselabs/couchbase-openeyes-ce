@@ -23,7 +23,7 @@
            data-side="<?= $eye_side ?>">
         <div class="active-form flex-layout"
              style="<?= !$element->hasEye($eye_side) ? 'display: none;' : '' ?>">
-            <?php $this->renderPartial('form_Element_OphInBiometry_BiometryData_fields', array(
+            <?php $this->renderPartial('application.modules.OphInBiometry.views.default.form_Element_OphInBiometry_BiometryData_fields', array(
                 'side' => $eye_side,
                 'element' => $element,
                 'form' => $form,

@@ -546,9 +546,19 @@ class Patient extends BaseActiveRecordVersioned
             }
         }
 
+        // Ensure contact relation is available for embedding/sync
+        if (!$this->contact && $this->contact_id) {
+            $this->contact = Contact::model()->findByPk($this->contact_id);
+        }
+
         //FIXME : this should be done with application.behaviors.OeDateFormat
         foreach (array('dob', 'date_of_death') as $date_column) {
             $date = $this->{$date_column};
+            if ($date === null || $date === '') {
+                $this->{$date_column} = null;
+                continue;
+            }
+
             if (strtotime($date) !== false) {
                 $this->{$date_column} = date('Y-m-d', strtotime($date));
             } else {
@@ -618,8 +628,13 @@ class Patient extends BaseActiveRecordVersioned
             $this->is_deceased = 1;
         }
 
-        $this->dob = str_replace('/', '-', $this->dob);
-        $this->date_of_death = str_replace('/', '-', $this->date_of_death);
+        if ($this->dob !== null) {
+            $this->dob = str_replace('/', '-', $this->dob);
+        }
+
+        if ($this->date_of_death !== null) {
+            $this->date_of_death = str_replace('/', '-', $this->date_of_death);
+        }
 
         return true;
     }
@@ -655,17 +670,25 @@ class Patient extends BaseActiveRecordVersioned
     {
         if (!isset($this->_orderedepisodes)) {
             $episodes = $this->episodes;
+
+            // Couchbase fallback when AR relation fetch returns empty (alias/ON clauses not supported)
+            if (empty($episodes)) {
+                $episodes = $this->fetchEpisodesFromCouchbase();
+            }
             $by_specialty = array();
 
             // group
             foreach ($episodes as $ep) {
                 if ($ep->firm) {
-                    if ($ssa = $ep->firm->serviceSubspecialtyAssignment) {
-                        $specialty = $ssa->subspecialty->specialty;
+                    $ssa = $ep->firm->serviceSubspecialtyAssignment;
+                    $subspecialty = $ssa ? $ssa->subspecialty : null;
+                    $specialty = $subspecialty ? $subspecialty->specialty : null;
+                    if ($specialty) {
                         $specialty_name = $specialty->name;
                         $specialty_code = $specialty->code;
                     } else {
-                        continue;
+                        $specialty_name = 'Unknown Specialty';
+                        $specialty_code = 'UNK';
                     }
                 } else {
                     $specialty_name = 'Support Services';
@@ -701,6 +724,75 @@ class Patient extends BaseActiveRecordVersioned
         }
 
         return $this->_orderedepisodes;
+    }
+
+    /**
+     * Reset ordered episodes cache for this patient
+     */
+    public function resetOrderedEpisodesCache(): void
+    {
+        $this->_orderedepisodes = null;
+    }
+
+    /**
+     * Couchbase direct episode fetch for this patient when AR relations return empty.
+     * @return Episode[]
+     */
+    public function fetchEpisodesFromCouchbase(): array
+    {
+        $episodes = [];
+        try {
+            $pid = (int)$this->id;
+            $n1ql = "SELECT e.* FROM `openeyes`.`core`.`episode` AS e "
+                . "WHERE e.patient_id = $pid "
+                . "ORDER BY e.start_date";
+            $rows = Yii::app()->couchbaseRest->query($n1ql);
+            foreach ($rows as $row) {
+                if (!isset($row['id'])) {
+                    continue; // skip malformed rows with no primary key
+                }
+                $ep = new Episode(null);
+                $ep->setIsNewRecord(false);
+                foreach ($row as $attr => $value) {
+                    if ($ep->hasAttribute($attr)) {
+                        $ep->$attr = $value;
+                    }
+                }
+                $ep->setPrimaryKey($row['id']);
+                $episodes[] = $ep;
+            }
+        } catch (Exception $e) {
+            Yii::log('Patient episodes Couchbase fetch failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+        }
+
+        // If still empty, derive by joining events to episodes to recover episode ids
+        if (empty($episodes)) {
+            try {
+                $pid = (int)$this->id;
+                $n1ql = "SELECT DISTINCT ep.* FROM `openeyes`.`core`.`event` AS e "
+                    . "JOIN `openeyes`.`core`.`episode` AS ep ON ep.id = e.episode_id "
+                    . "WHERE ep.patient_id = $pid";
+                $rows = Yii::app()->couchbaseRest->query($n1ql);
+                foreach ($rows as $row) {
+                    if (!isset($row['id'])) {
+                        continue;
+                    }
+                    $ep = new Episode(null);
+                    $ep->setIsNewRecord(false);
+                    foreach ($row as $attr => $value) {
+                        if ($ep->hasAttribute($attr)) {
+                            $ep->$attr = $value;
+                        }
+                    }
+                    $ep->setPrimaryKey($row['id']);
+                    $episodes[] = $ep;
+                }
+            } catch (Exception $e) {
+                Yii::log('Patient episodes (event-join) Couchbase fetch failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+            }
+        }
+
+        return $episodes;
     }
 
     /**
@@ -1219,34 +1311,139 @@ class Patient extends BaseActiveRecordVersioned
         }
     }
 
+    private function getContactModel(): ?Contact
+    {
+        $contact = $this->contact;
+        if ($contact instanceof Contact) {
+            return $contact;
+        }
+
+        // If relation is an array (e.g. Couchbase decoded doc), hydrate a lightweight Contact model
+        if (is_array($contact)) {
+            $model = new Contact();
+            $model->setIsNewRecord(false);
+            foreach ($contact as $attr => $value) {
+                if ($model->hasAttribute($attr)) {
+                    $model->$attr = $value;
+                }
+            }
+            if (isset($contact['id'])) {
+                $model->setPrimaryKey($contact['id']);
+            }
+            return $model;
+        }
+
+        // If relation is a scalar or other type, attempt to resolve via lookup
+        if (!is_object($contact)) {
+            return $this->resolveContactRelation();
+        }
+
+        return $this->resolveContactRelation();
+    }
+
     public function getTitle()
     {
-        return $this->contact->title;
+        $contact = $this->getContactModel();
+        return $contact ? $contact->title : null;
     }
 
     public function getFirst_name()
     {
-        return $this->contact->first_name;
+        $contact = $this->getContactModel();
+        return $contact ? $contact->first_name : null;
     }
 
     public function getLast_name()
     {
-        return $this->contact->last_name;
+        $contact = $this->getContactModel();
+        return $contact ? $contact->last_name : null;
     }
 
     public function getNick_name()
     {
-        return $this->contact->nick_name;
+        $contact = $this->getContactModel();
+        return $contact ? $contact->nick_name : null;
     }
 
     public function getPrimary_phone()
     {
-        return $this->contact->primary_phone;
+        $contact = $this->getContactModel();
+        return $contact ? $contact->primary_phone : null;
+    }
+
+    /**
+     * Ensure contact is loaded from Couchbase when relations fall back to SQL.
+     * @return Contact|null
+     */
+    private function resolveContactRelation()
+    {
+        // If relation already populated, return it
+        $related = $this->getRelated('contact', false);
+        if ($related !== null) {
+            return $related;
+        }
+
+        if (!$this->contact_id) {
+            return null;
+        }
+
+        // Fetch directly via Couchbase-backed AR
+        $contact = Contact::model()->findByPk($this->contact_id);
+        if ($contact) {
+            // Preload addresses to avoid SQL-based relations
+            $addresses = Address::model()->findAllByAttributes(['contact_id' => $contact->id], ['order' => 'date_start DESC']);
+            $contact->addresses = $addresses;
+            if ($addresses) {
+                $contact->address = $addresses[0];
+            }
+
+            $this->addRelatedRecord('contact', $contact, $this->contact_id);
+        }
+
+        return $contact;
     }
 
     public function getSummaryAddress($delimiter = '<br/>')
     {
-        return $this->contact->address ? $this->getLetterAddress(array('delimiter' => $delimiter)) : 'Unknown';
+        $contact = $this->getContactModel();
+        return $contact && $contact->address ? $this->getLetterAddress(array('delimiter' => $delimiter)) : 'Unknown';
+    }
+
+    /**
+     * Build a simple letter address string from the contact's primary address.
+     * @param array $options
+     * @return string
+     */
+    public function getLetterAddress($options = array())
+    {
+        $delimiter = $options['delimiter'] ?? ', ';
+        $contact = $this->getContactModel();
+        if (!$contact) {
+            return '';
+        }
+
+        // Prefer primary address from relation
+        $addr = null;
+        if ($contact->address) {
+            $addr = $contact->address;
+        } elseif (!empty($contact->addresses)) {
+            $addr = $contact->addresses[0];
+        }
+
+        if (!$addr) {
+            return '';
+        }
+
+        $parts = array_filter([
+            $addr->address1 ?? null,
+            $addr->address2 ?? null,
+            $addr->city ?? null,
+            $addr->county ?? null,
+            $addr->postcode ?? null,
+            $addr->country ? $addr->country->name : null,
+        ]);
+
+        return implode($delimiter, $parts);
     }
 
     /**
@@ -1256,7 +1453,8 @@ class Patient extends BaseActiveRecordVersioned
      */
     public function getEmail()
     {
-        return $this->contact ? $this->contact->email : '';
+        $contact = $this->getContactModel();
+        return $contact ? $contact->email : '';
     }
 
     /**
@@ -1315,7 +1513,7 @@ class Patient extends BaseActiveRecordVersioned
         }
 
         if ($startTransaction) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
         }
         try {
             $paa = new PatientAllergyAssignment();
@@ -1422,7 +1620,7 @@ class Patient extends BaseActiveRecordVersioned
             throw new Exception("Patient is already assigned risk '{$risk->name}'");
         }
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             $pra = new PatientRiskAssignment();
             $pra->patient_id = $this->id;
@@ -2014,6 +2212,16 @@ class Patient extends BaseActiveRecordVersioned
      */
     public function getWarnings($clinical = true)
     {
+        // If relational DB is unavailable, skip warning lookups that rely on SQL tables
+        try {
+            $db = Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return $clinical ? [] : ($this->_nonclinical_warnings ?? []);
+            }
+        } catch (\Throwable $e) {
+            return $clinical ? [] : ($this->_nonclinical_warnings ?? []);
+        }
+
         // At the moment, we only warn for diabetes, so this is quite lightweight and hard coded
         // but this should serve as a wrapper function for configuring warnings (i.e. a system setting could
         // define what should be warned on, and then we return a structure that is determined from this)
@@ -2067,6 +2275,89 @@ class Patient extends BaseActiveRecordVersioned
     }
 
     /**
+     * Safe accessor for allergy assignments when DB may be unavailable.
+     * @return array
+     */
+    public function getAllergyAssignments()
+    {
+        try {
+            $db = Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return [];
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        try {
+            return $this->getRelated('allergyAssignments', false);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    // Compatibility with __get override which looks for get_<prop>
+    public function get_allergyAssignments()
+    {
+        return $this->getAllergyAssignments();
+    }
+
+    /**
+     * Safe accessor for risks when DB may be unavailable.
+     * @return array
+     */
+    public function getRisks()
+    {
+        try {
+            $db = Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return [];
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        try {
+            return $this->getRelated('risks', false);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    // Compatibility with __get override
+    public function get_risks()
+    {
+        return $this->getRisks();
+    }
+
+    /**
+     * Safe accessor for allergies when DB may be unavailable.
+     * @return array
+     */
+    public function getAllergies()
+    {
+        try {
+            $db = Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return [];
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        try {
+            return $this->getRelated('allergies', false);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public function get_allergies()
+    {
+        return $this->getAllergies();
+    }
+
+    /**
      * get the patient disorders that are of the type in the list of disorder ids provided.
      *
      * @param int[] $snomeds - disorder ids to check for
@@ -2113,6 +2404,10 @@ class Patient extends BaseActiveRecordVersioned
         $method = 'get_' . $prop;
         if (method_exists($this, $method)) {
             return $this->$method();
+        }
+
+        if ($prop === 'contact') {
+            return $this->resolveContactRelation();
         }
 
         return parent::__get($prop);
@@ -2329,6 +2624,15 @@ class Patient extends BaseActiveRecordVersioned
      */
     public function getCviSummary()
     {
+        try {
+            $db = Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return array('', null);
+            }
+        } catch (\Throwable $e) {
+            return array('', null);
+        }
+
         $cvi_api = Yii::app()->moduleAPI->get('OphCoCvi');
         $examination_api = Yii::app()->moduleAPI->get('OphCiExamination');
         if ($examination_api) {
@@ -2344,15 +2648,18 @@ class Patient extends BaseActiveRecordVersioned
             if ($examination_cvi->element_date <= $CoCvi_cvi->examination_date) {
                 return array($CoCvi_cvi->getDisplayConsideredBlind(), $CoCvi_cvi->examination_date);
             } else {
-                return array($examination_cvi->cviStatus->name, $examination_cvi->element_date);
+                return array($examination_cvi->cviStatus->name ?? '', $examination_cvi->element_date ?? null);
             }
         } elseif (isset($examination_cvi)) {
-            return array($examination_cvi->cviStatus->name, $examination_cvi->element_date);
+            return array($examination_cvi->cviStatus->name ?? '', $examination_cvi->element_date ?? null);
         } elseif (isset($CoCvi_cvi)) {
-            return array($CoCvi_cvi->getDisplayConsideredBlind(), $CoCvi_cvi->examination_date);
+            return array($CoCvi_cvi->getDisplayConsideredBlind(), $CoCvi_cvi->examination_date ?? null);
         } else {
             $ophInfo = $this->getOphInfo();
-            return array($ophInfo->cvi_status->name, $ophInfo->cvi_status_date);
+            if (!$ophInfo || !$ophInfo->cvi_status) {
+                return array('', null);
+            }
+            return array($ophInfo->cvi_status->name ?? '', $ophInfo->cvi_status_date ?? null);
         }
     }
 
@@ -2605,16 +2912,18 @@ class Patient extends BaseActiveRecordVersioned
                 ['order' => 'date_start DESC']
             );
             foreach ($addresses as $i => $addr) {
+                $country = $addr->country_id ? Country::model()->findByPk($addr->country_id) : null;
+                $addressType = $addr->address_type_id ? AddressType::model()->findByPk($addr->address_type_id) : null;
                 $doc['addresses'][] = [
                     'address_type_id' => $addr->address_type_id,
-                    'address_type' => $addr->type ? $addr->type->name : null,
+                    'address_type' => $addressType ? $addressType->name : null,
                     'address1' => $addr->address1,
                     'address2' => $addr->address2,
                     'city' => $addr->city,
                     'postcode' => $addr->postcode,
                     'county' => $addr->county,
                     'country_id' => $addr->country_id,
-                    'country' => $addr->country ? $addr->country->name : null,
+                    'country' => $country ? $country->name : null,
                     'date_start' => $addr->date_start,
                     'date_end' => $addr->date_end,
                     'is_primary' => ($i === 0),
@@ -2644,9 +2953,6 @@ class Patient extends BaseActiveRecordVersioned
         // Add computed fields
         $doc['is_deceased'] = !empty($this->date_of_death);
         $doc['full_name'] = trim($this->first_name . ' ' . $this->last_name);
-        
-        // Remove contact_id since we're embedding
-        unset($doc['contact_id']);
         
         return $doc;
     }

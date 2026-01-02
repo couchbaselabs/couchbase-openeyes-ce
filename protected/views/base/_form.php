@@ -74,10 +74,18 @@ if (!Yii::app()->user->isGuest) {
                     <a href="<?= Yii::app()->createUrl('/profile'); ?>" data-test="user-profile-link">profile</a>
                 <?php } ?>
             </li>
+            <?php
+                $site = Site::model()->findByPk($this->selectedSiteId);
+                $institution = Institution::model()->findByPk($this->selectedInstitutionId);
+                $firm = Firm::model()->findByPk($this->selectedFirmId);
+                $siteLabel = $site ? $site->short_name : 'Site';
+                $institutionLabel = $institution ? $institution->short_name : 'Institution';
+                $firmLabel = $firm ? $firm->getNameAndSubspecialty() : 'Firm';
+            ?>
             <li id="user-profile-site-institution" data-test="user-profile-site-institution">
-                <?= Site::model()->findByPk($this->selectedSiteId)->short_name . ' (' . Institution::model()->findByPk($this->selectedInstitutionId)->short_name . ')' ?></li>
+                <?= $siteLabel . ' (' . $institutionLabel . ')' ?></li>
             <li data-test="user-profile-firm">
-                <?= Firm::model()->findByPk($this->selectedFirmId)->getNameAndSubspecialty() ?>
+                <?= $firmLabel ?>
                 <a id="change-firm" href="#" data-window-title="Select a new Site and/or <?= Firm::contextLabel() ?>" data-test="change-firm">change</a>
             </li>
         </ul>

@@ -116,7 +116,7 @@ class InternalReferralSiteFirmMapping extends BaseActiveRecord
      */
     public static function findInternalReferralFirms($site_id, $subspecialty_id = null, $only_service_firms = false)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
                                  ->selectDistinct('f.id, f.name, s.name AS subspecialty')
                                  ->from('firm f')
                                  ->join('ophcocorrespondence_internal_referral_site_firm_mapping sfm', 'sfm.firm_id = f.id')

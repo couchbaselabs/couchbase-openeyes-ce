@@ -4,14 +4,31 @@ class m131104_101736_event_type_OphInDnaextraction extends CDbMigration
 {
     public function up()
     {
-        if (!$parent_event = $this->dbConnection->createCommand()->select('id')->from('event_type')->where('class_name = :class_name', array(':class_name' => 'OphInDnasample'))->queryRow()) {
-            throw new Exception("Parent event type 'OphInDnasample' not found, please install the parent module first.");
+        $eventTypeSchema = $this->dbConnection->schema->getTable('event_type', true);
+        $hasParentColumn = $eventTypeSchema && array_key_exists('parent_id', $eventTypeSchema->columns);
+
+        $parent_id = null;
+        if ($hasParentColumn) {
+            $parent_event = $this->dbConnection->createCommand()
+                ->select('id')
+                ->from('event_type')
+                ->where('class_name = :class_name', array(':class_name' => 'OphInDnasample'))
+                ->queryRow();
+
+            if ($parent_event) {
+                $parent_id = $parent_event['id'];
+            } else {
+                echo "Parent event type 'OphInDnasample' not found, creating OphInDnaextraction without parent.\n";
+            }
         }
-        $parent_id = $parent_event['id'];
 
         if (!$this->dbConnection->createCommand()->select('id')->from('event_type')->where('class_name=:class_name', array(':class_name' => 'OphInDnaextraction'))->queryRow()) {
             $group = $this->dbConnection->createCommand()->select('id')->from('event_group')->where('name=:name', array(':name' => 'Investigation events'))->queryRow();
-            $this->insert('event_type', array('class_name' => 'OphInDnaextraction', 'name' => 'DNA extraction', 'event_group_id' => $group['id'], 'parent_id' => $parent_id));
+            $eventTypeData = array('class_name' => 'OphInDnaextraction', 'name' => 'DNA extraction', 'event_group_id' => $group['id']);
+            if ($hasParentColumn) {
+                $eventTypeData['parent_id'] = $parent_id;
+            }
+            $this->insert('event_type', $eventTypeData);
         }
         $event_type = $this->dbConnection->createCommand()
             ->select('id')

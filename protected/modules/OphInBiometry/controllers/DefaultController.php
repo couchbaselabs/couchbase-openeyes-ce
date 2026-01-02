@@ -23,7 +23,7 @@ class DefaultController extends BaseEventTypeController
      */
     private function updateImportedEvent(Event $unlinkedEvent, OphInBiometry_Imported_Events $importedEvent)
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             $unlinkedEvent->setScenario('allowFutureEvent');
             $unlinkedEvent->episode_id = $this->episode->id;
@@ -380,7 +380,7 @@ class DefaultController extends BaseEventTypeController
      */
     protected function mergedView()
     {
-        Yii::app()->db->createCommand()
+        Yii::app()->cbdb->createCommand()
             ->update(
                 'ophinbiometry_imported_events',
                 array('is_merged' => 0),

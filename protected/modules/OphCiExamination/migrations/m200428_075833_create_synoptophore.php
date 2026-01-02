@@ -22,12 +22,14 @@ class m200428_075833_create_synoptophore extends OEMigration
     {
 
         // if an old version of synoptaphore exists (i.e, from MEH), archive it first
-        $exists = $this->dbConnection->createCommand("SELECT Count(*)
-                                                        FROM information_schema.tables 
-                                                        WHERE table_schema = DATABASE()
-                                                            AND table_type = 'BASE TABLE'
-                                                            AND table_name = 'et_ophciexamination_synoptophore';'")->queryScalar();
-
+        $sql = <<<SQL
+SELECT COUNT(*)
+FROM information_schema.tables 
+WHERE table_schema = DATABASE()
+    AND table_type = 'BASE TABLE'
+    AND table_name = 'et_ophciexamination_synoptophore'
+SQL;
+        $exists = $this->dbConnection->createCommand($sql)->queryScalar();
         if ($exists >= 1) {
             // remove foreign keys
             $this->dbConnection->createCommand("ALTER TABLE `et_ophciexamination_synoptophore` DROP FOREIGN KEY `fk_et_ophciexamination_synoptophore_event`")->execute();

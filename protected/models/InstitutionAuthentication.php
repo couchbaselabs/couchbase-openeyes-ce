@@ -146,8 +146,9 @@ class InstitutionAuthentication extends BaseActiveRecordVersioned
 
     public function getFullyQualifiedDescription()
     {
-        return $this->description . " [Institution: {$this->institution->short_name}]" .
-            ($this->site ? "[Site: {$this->site->short_name}]" : "");
+        $inst_short = $this->institution ? $this->institution->short_name : 'Institution';
+        $site_short = ($this->site && $this->site->short_name) ? "[Site: {$this->site->short_name}]" : "";
+        return $this->description . " [Institution: {$inst_short}]" . $site_short;
     }
 
     /**

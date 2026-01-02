@@ -125,10 +125,14 @@ EOSQL;
         $rows_to_insert = $this->dbConnection->createCommand($select)
             ->queryAll();
 
-        $this->insertMultiple(
-            'ophcomessaging_message_recipient',
-            $rows_to_insert
-        );
+        if (!empty($rows_to_insert)) {
+            $this->insertMultiple(
+                'ophcomessaging_message_recipient',
+                $rows_to_insert
+            );
+        } else {
+            $this->migrationEcho('No message recipients found for conversion, skipping insertMultiple.');
+        }
 
         $this->dropOEColumn('et_ophcomessaging_message', 'marked_as_read', true);
         $this->dropForeignKey(

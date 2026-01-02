@@ -47,19 +47,19 @@ class DataContext
     private function getCurrentFirm()
     {
         // Cache the firm from the database
-        $dependency_sql = "SELECT UPDATE_TIME 
-                           FROM   information_schema.tables
-                           WHERE  TABLE_SCHEMA = DATABASE()
-                           AND TABLE_NAME = 'firm'";
-        $dependency = new CDbCacheDependency($dependency_sql);
+        // Couchbase-only: avoid dependency on information_schema; allow fallback firm
+        $selectedFirmId = $this->app->session['selected_firm_id'] ?? null;
+        if (!$selectedFirmId) {
+            return Firm::model()->find('active = 1');
+        }
+
         return Firm::model()
-            ->cache(10000, $dependency, 3)
             ->with(array(
                 'serviceSubspecialtyAssignment' => array(
                     'subspecialty'
                 )
             ))
-            ->findByPk($this->app->session['selected_firm_id']);
+            ->findByPk($selectedFirmId);
 
     }
 

@@ -73,7 +73,7 @@ class DispenseLocationController extends BaseAdminController
 
         $ids = Yii::app()->request->getPost('select');
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
         try {
@@ -98,7 +98,7 @@ class DispenseLocationController extends BaseAdminController
         $level = ReferenceData::LEVEL_INSTITUTION;
 
         $ids = Yii::app()->request->getPost('select');
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
         try {

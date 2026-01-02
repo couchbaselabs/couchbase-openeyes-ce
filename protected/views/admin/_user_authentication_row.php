@@ -17,9 +17,8 @@
 ?>
 <tr data-key="<?= $key ?>">
     <?php
-    $not_local = $user_authentication->institution_authentication_id ?
-        $user_authentication->institutionAuthentication->user_authentication_method == 'LDAP' :
-        false;
+    $instAuth = $user_authentication->institutionAuthentication ?? null;
+    $not_local = $instAuth ? ($instAuth->user_authentication_method == 'LDAP') : false;
 
     $institution_authentication_id = $user_authentication->institution_authentication_id ?? 0;
     ?>
@@ -28,7 +27,7 @@
     <td>
         <?php
         $criteria = new CDbCriteria();
-        $criteria->condition = 'active = 1 OR id = :institution_authentication_id';
+        $criteria->condition = '(active = 1 OR active = true OR id = :institution_authentication_id)';
         $criteria->params = [':institution_authentication_id' => $institution_authentication_id];
         ?>
         <?= \CHtml::activeDropDownList(

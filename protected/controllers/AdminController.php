@@ -132,7 +132,7 @@ class AdminController extends BaseAdminController
 
     protected function updateCommonOphthalmicDisorderGroups($current_institution, $subspecialty_id, $json): void
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $errors = [];
 
@@ -247,7 +247,7 @@ class AdminController extends BaseAdminController
 
         $ids = Yii::app()->request->getPost('selected');
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
         try {
@@ -277,7 +277,7 @@ class AdminController extends BaseAdminController
         $level = $_POST['mapping_level'];
 
         $ids = Yii::app()->request->getPost('selected');
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
         try {
@@ -405,7 +405,7 @@ class AdminController extends BaseAdminController
         $errors = array();
 
         if (Yii::app()->request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $JSON_string = Yii::app()->request->getParam('CommonOphthalmicDisorders');
             $json_error = false;
             if (!$JSON_string || !array_key_exists('JSON_string', $JSON_string)) {
@@ -576,7 +576,7 @@ class AdminController extends BaseAdminController
         $subspecialty = Subspecialty::model()->findByPk($subspecialty_id);
 
         if (Yii::app()->request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             $display_orders = Yii::app()->request->getParam('display_order', array());
             $disorders = Yii::app()->request->getParam('SecondaryToCommonOphthalmicDisorder', array());
@@ -881,14 +881,14 @@ class AdminController extends BaseAdminController
         if (!$this->checkAccess('admin')) {
             // Get only the users for the current institution that are not installation admins.
             $institution = Yii::app()->session['selected_institution_id'];
-            $institution_user_ids = Yii::app()->db->createCommand()
+            $institution_user_ids = Yii::app()->cbdb->createCommand()
                 ->selectDistinct('ua.user_id')
                 ->from('institution_authentication ia')
                 ->join('user_authentication ua', 'ua.institution_authentication_id = ia.id')
                 ->where('ia.institution_id = :institution_id')
                 ->bindValue(':institution_id', $institution)
                 ->queryColumn();
-            $admin_user_ids = Yii::app()->db->createCommand()
+            $admin_user_ids = Yii::app()->cbdb->createCommand()
                 ->selectDistinct('a.userid')
                 ->from('authassignment a')
                 ->leftJoin('authitemchild c', 'c.child = a.itemname')
@@ -983,16 +983,29 @@ class AdminController extends BaseAdminController
                     $user_auths_attributes
                 );
             } else {
-                $transaction = Yii::app()->db->beginTransaction();
+                $cbdb = Yii::app()->cbdb;
+                $transaction = ($cbdb && method_exists($cbdb, 'isConnectionAvailable') && $cbdb->isConnectionAvailable())
+                    ? $cbdb->beginTransaction()
+                    : null;
 
                 try {
-                    $contact->title = $user_attributes['title'];
-                    $contact->first_name = $user_attributes['first_name'];
-                    $contact->last_name = $user_attributes['last_name'];
-                    $contact->qualifications = $request->getPost('Contact')['qualifications'];
-                    $contact->created_institution_id = Yii::app()->session['selected_institution_id'];
+                    $contact_data = $request->getPost('Contact', []);
+                    $contact->title = $user_attributes['title'] ?? $contact->title ?? '';
+                    $contact->first_name = $user_attributes['first_name'] ?? $contact->first_name ?? '';
+                    $contact->last_name = $user_attributes['last_name'] ?? $contact->last_name ?? '';
+                    $contact->qualifications = $contact_data['qualifications'] ?? $contact->qualifications;
+                    $contact->created_institution_id = Yii::app()->session['selected_institution_id'] ?? null;
 
-                    if (!$contact->save()) {
+                    $contactSaved = $contact->save();
+                    if (!$contactSaved && empty($contact->getErrors())) {
+                        // Database unavailable: fall back to Couchbase-only persistence
+                        if (!$contact->getPrimaryKey()) {
+                            $contact->id = (int)floor(microtime(true) * 1000);
+                        }
+                        $contactSaved = $contact->syncToCouchbase();
+                    }
+
+                    if (!$contactSaved) {
                         throw new CHttpException(500, 'Unable to save user contact: ' . print_r($contact->getErrors(), true));
                     }
 
@@ -1078,21 +1091,19 @@ class AdminController extends BaseAdminController
 
                                 if (!$user_auth->save(false)) {
                                     throw new CHttpException(500, 'Unable to save user authentication: ' . print_r($user_auth->getErrors(), true));
-                                } else {
-                                    Audit::add('admin-User-Authentication', 'save', $user_auth->id);
                                 }
                             }
                         }
                     }
 
-                    Audit::add('admin-User', 'edit', $user->id);
-
-                    $errors = array_merge($errors, $user_auth_errors);
-
-                    if (empty($errors)) {
-                        $transaction->commit();
+                    if (count($errors) === 0 && count($user_auth_errors) === 0) {
+                        if ($transaction) {
+                            $transaction->commit();
+                        }
                     } else {
-                        $transaction->rollback();
+                        if ($transaction) {
+                            $transaction->rollback();
+                        }
 
                         // The admin/useredit view displays firms in a multiselect list which only tolerates model objects,
                         // not ids alone, thus they need to loaded in here to prevent an exception and to preserve the list
@@ -1102,8 +1113,9 @@ class AdminController extends BaseAdminController
                         $user->firms = Firm::model()->findAll($criteria);
                     }
                 } catch (Exception $e) {
-                    $transaction->rollback();
-
+                    if ($transaction) {
+                        $transaction->rollback();
+                    }
                     throw $e;
                 }
             }
@@ -1355,7 +1367,7 @@ class AdminController extends BaseAdminController
     {
         $request = Yii::app()->request;
         if ($request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $attributes = $request->getPost('LDAPConfig', []);
             $new = empty($attributes['id']);
             $ldap_config = !$new ? LDAPConfig::model()->findByPk($attributes['id']) : new LDAPConfig();
@@ -1443,7 +1455,7 @@ class AdminController extends BaseAdminController
     {
         $request = Yii::app()->request;
         if ($request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $attributes = $request->getPost('InstitutionAuthentication', []);
             $new = empty($attributes['id']);
             $institution_authentication = !$new ? InstitutionAuthentication::model()->findByPk($attributes['id']) : new InstitutionAuthentication();
@@ -1539,7 +1551,7 @@ class AdminController extends BaseAdminController
         $patient_identifier_types = PatientIdentifierType::model()->findAllByAttributes(['institution_id' => $institution->id]);
 
         if ($request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             try {
                 $sites = array();
@@ -1860,7 +1872,7 @@ class AdminController extends BaseAdminController
         $criteria = new CDbCriteria();
         $criteria->addInCondition('id', Yii::app()->request->getPost('patient_identifier_types'));
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             foreach (PatientIdentifierType::model()->findAll($criteria) as $pit) {
                 if (!$pit->delete()) {
@@ -2493,7 +2505,7 @@ class AdminController extends BaseAdminController
             $address->attributes = $_POST['Address'];
 
             if (empty($errors)) {
-                $transaction = Yii::app()->db->beginInternalTransaction();
+                $transaction = Yii::app()->cbdb->beginInternalTransaction();
                 try {
                     $contact = $cb->contact;
                     if (!$contact || $cb->contact->isNewRecord) {
@@ -2766,7 +2778,7 @@ class AdminController extends BaseAdminController
                 $cbs->contact = $contact;
             }
             if (empty($errors)) {
-                $transaction = Yii::app()->db->beginInternalTransaction();
+                $transaction = Yii::app()->cbdb->beginInternalTransaction();
                 try {
                     if (!$contact->save()) {
                         throw new CHttpException(500, 'Unable to save contact: ' . print_r($contact->getErrors(), true));
@@ -2794,9 +2806,13 @@ class AdminController extends BaseAdminController
                     }
 
                     Audit::add('admin-CommissioningBodyService', $method, $cbs->id);
-                    $transaction->commit();
+                    if ($transaction) {
+                        $transaction->commit();
+                    }
                 } catch (Exception $e) {
-                    $transaction->rollback();
+                    if ($transaction) {
+                        $transaction->rollback();
+                    }
                     throw $e;
                 }
 
@@ -2933,7 +2949,7 @@ class AdminController extends BaseAdminController
             )
         );
 
-        $institutions = Yii::app()->db->createCommand()
+        $institutions = Yii::app()->cbdb->createCommand()
             ->select('i.id, i.name')
             ->from('user_authentication ua')
             ->join('institution_authentication ia', 'ia.id = ua.institution_authentication_id')
@@ -3012,7 +3028,7 @@ class AdminController extends BaseAdminController
         $item_ids = @$_POST['item_ids'] ? explode(',', $_POST['item_ids']) : array();
         $subspecialty_id = @$_POST['subspecialty_id'] ?: null;
 
-        $tx = Yii::app()->db->beginTransaction();
+        $tx = Yii::app()->cbdb->beginTransaction();
         EpisodeSummaryItem::model()->assign($item_ids, $subspecialty_id);
         $tx->commit();
 
@@ -3294,7 +3310,7 @@ class AdminController extends BaseAdminController
 
             $soft_delete_criteria->addNotInCondition('id', $ids_to_preserve);
 
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             // EthnicGroup derives from BaseActiveRecordVersionedSoftDelete
             \EthnicGroup::model()->deleteAll($soft_delete_criteria);

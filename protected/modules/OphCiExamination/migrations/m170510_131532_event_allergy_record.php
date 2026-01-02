@@ -20,6 +20,13 @@ class m170510_131532_event_allergy_record extends OEMigration
 
     public function up()
     {
+        $schema = $this->dbConnection->schema;
+        $archiveAllergyExisted = ($this->dbConnection->schema->getTable(static::$archive_prefix . 'allergy', true) !== null);
+        if ($archiveAllergyExisted) {
+            $this->dropArchiveAllergyForeignKeys();
+            $this->dropTable(static::$archive_prefix . 'allergy');
+        }
+
         $original_allergies_element_id = $this->getIdOfElementTypeByClassName(
             'OEModule\OphCiExamination\models\Element_OphCiExamination_Allergy'
         );
@@ -41,55 +48,92 @@ class m170510_131532_event_allergy_record extends OEMigration
             'parent_class' => 'OEModule\OphCiExamination\models\Element_OphCiExamination_History'
         ));
 
-        $this->createOETable('et_ophciexamination_allergies', array(
-            'id' => 'pk',
-            'event_id' => 'int(10) unsigned',
-            'no_allergies_date' => 'datetime'
-        ), true);
+        if (!$schema->getTable('et_ophciexamination_allergies', true)) {
+            $this->createOETable('et_ophciexamination_allergies', array(
+                'id' => 'pk',
+                'event_id' => 'int(10) unsigned',
+                'no_allergies_date' => 'datetime'
+            ), true);
+        }
 
-        $this->addForeignKey(
-            'et_ophciexamination_allergies_ev_fk',
-            'et_ophciexamination_allergies',
-            'event_id',
-            'event',
-            'id'
-        );
+        if (!$this->foreignKeyExists('et_ophciexamination_allergies_ev_fk')) {
+            $this->addForeignKey(
+                'et_ophciexamination_allergies_ev_fk',
+                'et_ophciexamination_allergies',
+                'event_id',
+                'event',
+                'id'
+            );
+        }
 
-        $this->duplicateTable(
-            'allergy',
-            'ophciexamination_allergy',
-            array(
-                'name' => 'varchar(40)',
-                'display_order' => 'tinyint(3)'
-            )
-        );
+        if (!$schema->getTable('ophciexamination_allergy', true)) {
+            $this->duplicateTable(
+                'allergy',
+                'ophciexamination_allergy',
+                array(
+                    'name' => 'varchar(40)',
+                    'display_order' => 'tinyint(3)'
+                )
+            );
+        }
 
-        $this->createOETable('ophciexamination_allergy_entry', array(
-            'id' => 'pk',
-            'element_id' => 'int(11)',
-            'allergy_id' => 'int(11)',
-            'other' => 'varchar(255)',
-            'comments' => 'varchar(255)'
-        ), true);
+        if (!$schema->getTable('ophciexamination_allergy_entry', true)) {
+            $this->createOETable('ophciexamination_allergy_entry', array(
+                'id' => 'pk',
+                'element_id' => 'int(11)',
+                'allergy_id' => 'int(11)',
+                'other' => 'varchar(255)',
+                'comments' => 'varchar(255)'
+            ), true);
+        }
 
-        $this->addForeignKey(
-            'ophciexamination_allergy_entry_el_fk',
-            'ophciexamination_allergy_entry',
-            'element_id',
-            'et_ophciexamination_allergies',
-            'id'
-        );
-        $this->addForeignKey(
-            'ophciexamination_allergy_entry_al_fk',
-            'ophciexamination_allergy_entry',
-            'allergy_id',
-            'ophciexamination_allergy',
-            'id'
-        );
+        if (!$this->foreignKeyExists('ophciexamination_allergy_entry_el_fk')) {
+            $this->addForeignKey(
+                'ophciexamination_allergy_entry_el_fk',
+                'ophciexamination_allergy_entry',
+                'element_id',
+                'et_ophciexamination_allergies',
+                'id'
+            );
+        }
+        if (!$this->foreignKeyExists('ophciexamination_allergy_entry_al_fk')) {
+            $this->addForeignKey(
+                'ophciexamination_allergy_entry_al_fk',
+                'ophciexamination_allergy_entry',
+                'allergy_id',
+                'ophciexamination_allergy',
+                'id'
+            );
+        }
 
         foreach (static::$archive_tables as $table) {
-            $this->renameTable($table, static::$archive_prefix . $table);
-            $this->renameTable($table . '_version', static::$archive_prefix . $table . '_version');
+            if ($this->dbConnection->schema->getTable($table, true)) {
+                $this->renameTable($table, static::$archive_prefix . $table);
+            }
+            if ($this->dbConnection->schema->getTable($table . '_version', true)) {
+                $this->renameTable($table . '_version', static::$archive_prefix . $table . '_version');
+            }
+        }
+
+        if ($archiveAllergyExisted) {
+            if (!$this->foreignKeyExists('ophtrintravitinjection_antiseptic_allergy_assign_allergyi_fk')) {
+                $this->addForeignKey(
+                    'ophtrintravitinjection_antiseptic_allergy_assign_allergyi_fk',
+                    'ophtrintravitinjection_antiseptic_allergy_assignment',
+                    'allergy_id',
+                    static::$archive_prefix . 'allergy',
+                    'id'
+                );
+            }
+            if (!$this->foreignKeyExists('ophtrintravitinjection_skindrug_allergy_assign_allergyi_fk')) {
+                $this->addForeignKey(
+                    'ophtrintravitinjection_skindrug_allergy_assign_allergyi_fk',
+                    'ophtrintravitinjection_skindrug_allergy_assignment',
+                    'allergy_id',
+                    static::$archive_prefix . 'allergy',
+                    'id'
+                );
+            }
         }
 
         $this->renameColumn('patient', 'no_allergies_date', static::$archive_prefix . 'no_allergies_date');
@@ -174,4 +218,36 @@ EOSQL
     {
     }
     */
+
+    private function dropArchiveAllergyForeignKeys()
+    {
+        $this->dropForeignKeyIfExists(
+            'ophtrintravitinjection_antiseptic_allergy_assign_allergyi_fk',
+            'ophtrintravitinjection_antiseptic_allergy_assignment'
+        );
+        $this->dropForeignKeyIfExists(
+            'ophtrintravitinjection_skindrug_allergy_assign_allergyi_fk',
+            'ophtrintravitinjection_skindrug_allergy_assignment'
+        );
+    }
+
+    private function dropForeignKeyIfExists($name, $table)
+    {
+        $constraint = $this->dbConnection->createCommand(
+            'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND CONSTRAINT_NAME = :name'
+        )->queryScalar(array(':table' => $table, ':name' => $name));
+
+        if ($constraint) {
+            $this->dropForeignKey($name, $table);
+        }
+    }
+
+    private function foreignKeyExists($name)
+    {
+        $constraint = $this->dbConnection->createCommand(
+            'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND CONSTRAINT_NAME = :name'
+        )->queryScalar(array(':name' => $name));
+
+        return (bool) $constraint;
+    }
 }

@@ -31,7 +31,7 @@ class OETrial_ReportTrialCohort extends BaseReport
      */
     public function getDbCommand()
     {
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->from('trial t')
             ->join('trial_patient t_p', 't.id = t_p.trial_id')
             ->join('patient p', 'p.id = t_p.patient_id')

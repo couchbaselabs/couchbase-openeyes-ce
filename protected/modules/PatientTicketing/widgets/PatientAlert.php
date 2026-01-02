@@ -41,6 +41,11 @@ class PatientAlert extends \PatientAlertWidget
     {
         $t_svc = Yii::app()->service->getService('PatientTicketing_Ticket');
 
+        if (!$this->patient) {
+            Yii::log('Skipping patient ticket alert because patient is missing', \CLogger::LEVEL_INFO);
+            return;
+        }
+
         $tickets = $t_svc->getTicketsForPatient($this->patient);
         $match = false;
 

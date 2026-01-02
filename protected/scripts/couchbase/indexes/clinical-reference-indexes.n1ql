@@ -1,0 +1,141 @@
+-- =====================================================
+-- Phase 11: Clinical Reference Data Indexes
+-- =====================================================
+
+-- Disorder Indexes
+CREATE INDEX idx_disorder_snomed 
+ON `openeyes`.`reference`.`disorder`(snomed_code)
+WHERE snomed_code IS NOT NULL;
+
+CREATE INDEX idx_disorder_term 
+ON `openeyes`.`reference`.`disorder`(term_lower) 
+WHERE active = true;
+
+CREATE INDEX idx_disorder_specialty 
+ON `openeyes`.`reference`.`disorder`(specialty_id) 
+WHERE active = true AND specialty_id IS NOT NULL;
+
+CREATE INDEX idx_disorder_common 
+ON `openeyes`.`reference`.`disorder`(is_common_ophthalmic) 
+WHERE is_common_ophthalmic = true AND active = true;
+
+CREATE INDEX idx_disorder_systemic 
+ON `openeyes`.`reference`.`disorder`(is_systemic) 
+WHERE is_systemic = true;
+
+-- Full-text search index for disorder (requires FTS service)
+-- Note: Uncomment and run separately if FTS is configured
+-- CREATE INDEX idx_disorder_fts ON `openeyes`.`reference`.`disorder`
+-- USING FTS WITH {"type": "fulltext-index", "sourceType": "couchbase", 
+--   "sourceName": "openeyes", "mapping": {"types": {"disorder": {
+--     "properties": {"term": {"enabled": true}, "aliases": {"enabled": true}}
+--   }}}}
+
+-- Medication Indexes
+CREATE INDEX idx_medication_term 
+ON `openeyes`.`reference`.`medication`(preferred_term_lower) 
+WHERE (active = true OR active IS MISSING) AND (deleted_date IS NULL OR deleted_date IS MISSING);
+
+CREATE INDEX idx_medication_code 
+ON `openeyes`.`reference`.`medication`(preferred_code)
+WHERE preferred_code IS NOT NULL;
+
+CREATE INDEX idx_medication_vtm 
+ON `openeyes`.`reference`.`medication`(vtm_code) 
+WHERE vtm_code IS NOT NULL;
+
+CREATE INDEX idx_medication_vmp 
+ON `openeyes`.`reference`.`medication`(vmp_code) 
+WHERE vmp_code IS NOT NULL;
+
+CREATE INDEX idx_medication_amp 
+ON `openeyes`.`reference`.`medication`(amp_code) 
+WHERE amp_code IS NOT NULL;
+
+CREATE INDEX idx_medication_route 
+ON `openeyes`.`reference`.`medication`(default_route_id) 
+WHERE (active = true OR active IS MISSING) AND default_route_id IS NOT NULL;
+
+CREATE INDEX idx_medication_form 
+ON `openeyes`.`reference`.`medication`(default_form_id) 
+WHERE (active = true OR active IS MISSING) AND default_form_id IS NOT NULL;
+
+-- Array index for allergy warnings
+CREATE INDEX idx_medication_allergy_warnings 
+ON `openeyes`.`reference`.`medication`(
+    DISTINCT ARRAY w.allergy_id FOR w IN allergy_warnings END
+) WHERE (active = true OR active IS MISSING);
+
+-- Drug Indexes
+CREATE INDEX idx_drug_name 
+ON `openeyes`.`reference`.`drug`(name_lower)
+WHERE active = true OR active IS MISSING;
+
+CREATE INDEX idx_drug_tallman 
+ON `openeyes`.`reference`.`drug`(tallman);
+
+-- Procedure Indexes
+CREATE INDEX idx_procedure_term 
+ON `openeyes`.`reference`.`procedure`(term_lower) 
+WHERE active = true OR active IS MISSING;
+
+CREATE INDEX idx_procedure_snomed 
+ON `openeyes`.`reference`.`procedure`(snomed_code)
+WHERE snomed_code IS NOT NULL;
+
+-- Array index for OPCS codes
+CREATE INDEX idx_procedure_opcs 
+ON `openeyes`.`reference`.`procedure`(
+    DISTINCT ARRAY o.code FOR o IN opcs_codes END
+);
+
+-- Array index for subspecialties
+CREATE INDEX idx_procedure_subspecialty 
+ON `openeyes`.`reference`.`procedure`(
+    DISTINCT ARRAY s.id FOR s IN subspecialties END
+) WHERE (active = true OR active IS MISSING);
+
+-- Allergy Indexes
+CREATE PRIMARY INDEX idx_allergy_primary 
+ON `openeyes`.`reference`.`allergy`;
+
+CREATE INDEX idx_allergy_name 
+ON `openeyes`.`reference`.`allergy`(LOWER(name));
+
+-- Medication Route Indexes
+CREATE INDEX idx_med_route_term 
+ON `openeyes`.`reference`.`medication_route`(LOWER(term));
+
+-- Medication Form Indexes
+CREATE INDEX idx_med_form_term 
+ON `openeyes`.`reference`.`medication_form`(LOWER(term));
+
+-- Medication Frequency Indexes
+CREATE INDEX idx_med_frequency_term 
+ON `openeyes`.`reference`.`medication_frequency`(LOWER(term));
+
+-- Medication Duration Indexes  
+CREATE INDEX idx_med_duration_term 
+ON `openeyes`.`reference`.`medication_duration`(LOWER(name));
+
+-- Benefit Indexes
+CREATE INDEX idx_benefit_name 
+ON `openeyes`.`reference`.`benefit`(LOWER(name));
+
+-- Complication Indexes
+CREATE INDEX idx_complication_name 
+ON `openeyes`.`reference`.`complication`(LOWER(name));
+
+-- Common Ophthalmic Disorder Indexes
+CREATE INDEX idx_common_disorder_subspecialty 
+ON `openeyes`.`reference`.`common_ophthalmic_disorder`(subspecialty_id);
+
+CREATE INDEX idx_common_disorder_disorder 
+ON `openeyes`.`reference`.`common_ophthalmic_disorder`(disorder_id);
+
+-- OPCS Code Indexes  
+CREATE INDEX idx_opcs_code 
+ON `openeyes`.`reference`.`opcs_code`(code);
+
+CREATE INDEX idx_opcs_name 
+ON `openeyes`.`reference`.`opcs_code`(LOWER(name));

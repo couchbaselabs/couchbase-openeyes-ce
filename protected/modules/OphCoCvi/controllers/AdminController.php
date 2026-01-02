@@ -145,7 +145,7 @@ class AdminController extends \ModuleAdminController
      */
     public function actionCilinicalDisorderAutocomplete($term)
     {
-        $disorders = \Yii::app()->db->createCommand()
+        $disorders = \Yii::app()->cbdb->createCommand()
             ->select('id, term AS value, term AS label')
             ->from('disorder')
             ->where('((LOWER(term) LIKE LOWER(:search) OR id LIKE :search) AND active = 1)', [
@@ -492,7 +492,7 @@ class AdminController extends \ModuleAdminController
     {
         $res = array();
         if (\Yii::app()->request->isAjaxRequest && !empty($term)) {
-            $command = Yii::app()->db->createCommand()
+            $command = Yii::app()->cbdb->createCommand()
                 ->select('f.id, f.name, s.name AS subspecialty')
                 ->from('firm f')
                 ->join('service_subspecialty_assignment ssa', 'f.service_subspecialty_assignment_id = ssa.id')

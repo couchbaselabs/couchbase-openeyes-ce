@@ -252,8 +252,8 @@ class PatientTicketing_API extends \BaseAPI
      */
     public function createTicketForPatient(\Patient $patient, Queue $initial_queue, $user_id, \Firm $firm, $data, \Event $event, $automatically_created = false)
     {
-        $transaction = Yii::app()->db->getCurrentTransaction() === null
-                ? Yii::app()->db->beginTransaction()
+        $transaction = Yii::app()->cbdb->getCurrentTransaction() === null
+                ? Yii::app()->cbdb->beginTransaction()
                 : false;
 
         try {

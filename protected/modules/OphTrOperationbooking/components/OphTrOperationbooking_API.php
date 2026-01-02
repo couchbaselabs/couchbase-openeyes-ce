@@ -77,7 +77,7 @@ class OphTrOperationbooking_API extends BaseAPI
     public function getIncompleteOperationsForEpisode($patient, $use_context = false)
     {
         $criteria = new CDbCriteria();
-        $criteria->addInCondition('status_id', Yii::app()->db->createCommand()->select('id')
+        $criteria->addInCondition('status_id', Yii::app()->cbdb->createCommand()->select('id')
             ->from('ophtroperationbooking_operation_status')
             ->where(['not in','name', ['Completed', 'On-Hold']])->queryColumn());
 
@@ -126,7 +126,7 @@ class OphTrOperationbooking_API extends BaseAPI
     public function getScheduledOpenOperations($patient, $use_context = false)
     {
         $criteria = new CDbCriteria();
-                $criteria->addInCondition('status_id', Yii::app()->db->createCommand()->select('id')
+                $criteria->addInCondition('status_id', Yii::app()->cbdb->createCommand()->select('id')
                     ->from('ophtroperationbooking_operation_status')
                     ->where(['in','name', ['Scheduled', 'Rescheduled', ]])->queryColumn());
 
@@ -150,7 +150,7 @@ class OphTrOperationbooking_API extends BaseAPI
     public function getOpenOperations(Patient $patient, $use_context = false)
     {
         $criteria = new CDbCriteria();
-                $criteria->addNotInCondition('status_id', Yii::app()->db->createCommand()->select('id')
+                $criteria->addNotInCondition('status_id', Yii::app()->cbdb->createCommand()->select('id')
                     ->from('ophtroperationbooking_operation_status')
                     ->where(['in','name', ['Cancelled', 'Completed', ]])->queryColumn());
 
@@ -196,7 +196,7 @@ class OphTrOperationbooking_API extends BaseAPI
         }
 
         if ($operation->status_id != $status->id) {
-            $operation_statuses = Yii::app()->db->createCommand()
+            $operation_statuses = Yii::app()->cbdb->createCommand()
                 ->select('id, name')
                 ->from('ophtroperationbooking_operation_status')
                 ->where(['in','name', ['Completed','Scheduled','Rescheduled']])
@@ -631,7 +631,7 @@ class OphTrOperationbooking_API extends BaseAPI
             $schedule_options = Element_OphTrOperationbooking_ScheduleOperation::model()->find('event_id = ?', array($operation->event->id));
 
             if ($session) {
-                $transaction = Yii::app()->db->beginInternalTransaction();
+                $transaction = Yii::app()->cbdb->beginInternalTransaction();
 
                 try {
                     $ward = OphTrOperationbooking_Operation_Ward::model()->find('site_id = ?', array($operation->site->id));
@@ -726,7 +726,7 @@ class OphTrOperationbooking_API extends BaseAPI
     public function getLastNonCompleteStatus($event_id)
     {
         $element = new Element_OphTrOperationbooking_Operation();
-        $status_id = Yii::app()->db->createCommand()
+        $status_id = Yii::app()->cbdb->createCommand()
             ->select('status_id')
             ->from($element->getVersionTableSchema()->name. ' t')
             ->join('ophtroperationbooking_operation_status ops', 'ops.id = status_id')
@@ -735,7 +735,7 @@ class OphTrOperationbooking_API extends BaseAPI
             ->limit(1)
             ->queryScalar();
 
-        return $status_id !== false ? $status_id : Yii::app()->db->createCommand()->select('id')
+        return $status_id !== false ? $status_id : Yii::app()->cbdb->createCommand()->select('id')
                     ->from('ophtroperationbooking_operation_status')
                     ->where('name=:name', [':name' => 'Scheduled'])->queryScalar();
     }

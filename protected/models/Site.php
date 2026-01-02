@@ -50,7 +50,7 @@ class Site extends BaseActiveRecordVersioned
      */
     public function couchbaseScope()
     {
-        return 'reference';
+        return 'core';
     }
 
     /**

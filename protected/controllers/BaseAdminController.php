@@ -167,7 +167,7 @@ class BaseAdminController extends BaseController
         } else {
             if ($options['filters_ready']) {
                 if (Yii::app()->request->isPostRequest) {
-                    $tx = Yii::app()->db->beginTransaction();
+                    $tx = Yii::app()->cbdb->beginTransaction();
                     $j = 0;
 
                     foreach ((array) @$_POST['id'] as $i => $id) {

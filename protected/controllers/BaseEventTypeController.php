@@ -127,6 +127,9 @@ class BaseEventTypeController extends BaseModuleController
     public $pdf_print_html = null;
     public $attachment_print_title = null;
     public $print_args = null;
+    
+    // Default property for cross-module rendering compatibility (e.g., OphInBiometry views)
+    public $is_auto = false;
 
     protected ?EventSubType $event_subtype = null;
 
@@ -363,6 +366,10 @@ class BaseEventTypeController extends BaseModuleController
      */
     protected function getAllElementTypes()
     {
+        if (!$this->event_type) {
+            return array();
+        }
+
         return $this->event_type->getAllElementTypes();
     }
 
@@ -372,6 +379,9 @@ class BaseEventTypeController extends BaseModuleController
      */
     public function getElementTree($remove_list = array())
     {
+        if (!$this->event_type) {
+            return json_encode([]);
+        }
         $element_types_tree = array();
         foreach ($this->event_type->getAllElementGroups() as $element_group) {
             $struct = array(
@@ -521,7 +531,27 @@ class BaseEventTypeController extends BaseModuleController
      */
     protected function redirectToPatientLandingPage()
     {
-        $this->redirect((new CoreAPI())->generatePatientLandingPageLink($this->patient));
+        if ($this->patient) {
+            $this->redirect((new CoreAPI())->generatePatientLandingPageLink($this->patient));
+            return;
+        }
+
+        // Missing patient in offline/static mode: do not redirect; allow action to proceed after logging
+        $patientId = null;
+        if ($this->event && $this->event->episode && $this->event->episode->patient_id) {
+            $patientId = (int)$this->event->episode->patient_id;
+        }
+
+        if ($patientId && !$this->patient) {
+            $stub = new Patient();
+            $stub->setIsNewRecord(false);
+            $stub->id = $patientId;
+            $this->patient = $stub;
+            Yii::log('Patient missing during redirect; stubbed patient to continue without redirect', CLogger::LEVEL_WARNING);
+            return;
+        }
+
+        Yii::log('Patient missing when redirecting to landing page; continuing without redirect', CLogger::LEVEL_WARNING);
     }
 
     /**
@@ -754,12 +784,56 @@ class BaseEventTypeController extends BaseModuleController
     // returns drafts indexed by pk
     protected function getExistingEventDraftsForCreate()
     {
+        $useCouchbase = Yii::app()->params['enable_couchbase_read'] ?? false;
+
+        if ($useCouchbase) {
+            try {
+                $adapter = \OE\Database\DatabaseAdapterFactory::getAdapter(
+                    \OE\Database\DatabaseAdapterFactory::ADAPTER_COUCHBASE
+                );
+
+                $bucket = Yii::app()->couchbase->config['bucket'];
+                $query = "SELECT meta(d).id AS _key, d.* FROM `{$bucket}`.`core`.`event_draft` d " .
+                         "WHERE d.event_type_id = \$event_type_id AND d.patient_id = \$patient_id AND (d.event_id IS NULL OR d.event_id IS MISSING) " .
+                         "AND d.last_modified_user_id = \$user_id ORDER BY COALESCE(d.last_modified_date, d._migrated) DESC";
+
+                $rows = $adapter->query($query, [
+                    'event_type_id' => $this->event_type->id,
+                    'patient_id' => $this->patient->id,
+                    'user_id' => Yii::app()->user->id,
+                ]);
+
+                $drafts = [];
+                foreach ($rows as $row) {
+                    $draft = new EventDraft();
+                    $draft->setIsNewRecord(false);
+                    $draft->id = $row['_mysql_id'] ?? $row['id'] ?? null;
+                    foreach ([
+                        'is_auto_save', 'institution_id', 'site_id', 'episode_id', 'event_type_id', 'event_id',
+                        'originating_url', 'event_action', 'data', 'last_modified_user_id', 'last_modified_date',
+                        'created_user_id', 'created_date'
+                    ] as $field) {
+                        if (isset($row[$field])) {
+                            $draft->{$field} = $row[$field];
+                        }
+                    }
+                    $drafts[$draft->id] = $draft;
+                }
+
+                if ($drafts) {
+                    return $drafts;
+                }
+            } catch (\Exception $e) {
+                Yii::log('Couchbase draft fetch failed, falling back to MariaDB: ' . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application.draft');
+            }
+        }
+
         $criteria = new \CDbCriteria();
         $criteria->index = 'id';
         $criteria->with = ['episode'];
         $criteria->condition = 't.event_type_id = :event_type AND episode.patient_id = :patient AND t.last_modified_user_id = :user AND t.event_id IS NULL';
         $criteria->params = [':event_type' => $this->event_type->id, ':patient' => $this->patient->id, ':user' => Yii::app()->user->id];
-        $criteria->order = 't.last_modified_date DESC'; // Ensure the most recent draft is the first entry.
+        $criteria->order = 't.last_modified_date DESC';
 
         return EventDraft::model()->findAll($criteria);
     }
@@ -773,16 +847,178 @@ class BaseEventTypeController extends BaseModuleController
      */
     protected function initWithEventId($id)
     {
+        // Couchbase-first: load event by PK and hydrate event_type/patient/episode
+        if ($id) {
+            $ev = Event::model()->findByPk($id);
+            if ($ev) {
+                // Determine event type and hydrate relation (controller property is read-only via getter)
+                $et = $this->event_type ?: ($ev->event_type_id ? EventType::model()->findByPk($ev->event_type_id) : null);
+                if ($et) {
+                    $ev->addRelatedRecord('eventType', $et, false);
+                }
+
+                $this->event = $ev;
+                if ($ev->episode) {
+                    $this->episode = $ev->episode;
+                    $this->patient = $ev->episode->patient;
+                }
+                $this->successUri = $this->successUri . $ev->id;
+                return;
+            }
+        }
+
         $criteria = new CDbCriteria();
-        $criteria->addCondition('event_type_id = ?');
-        $criteria->params = array($this->event_type->id);
-        if (!$id || !$this->event = Event::model()->findByPk($id, $criteria)) {
+        if ($this->event_type) {
+            $criteria->addCondition('event_type_id = ?');
+            $criteria->params = array($this->event_type->id);
+        }
+
+        // MariaDB path first
+        if ($id && $this->event = Event::model()->findByPk($id, $criteria)) {
+            $this->patient = $this->event->episode->patient;
+            $this->episode = $this->event->episode;
+            $this->successUri = $this->successUri . $this->event->id;
+            return;
+        }
+
+        // Couchbase path
+        if (!(Yii::app()->params['enable_couchbase_read'] ?? false)) {
             throw new CHttpException(404, 'Invalid event id.');
         }
 
-        $this->patient = $this->event->episode->patient;
-        $this->episode = $this->event->episode;
-        $this->successUri = $this->successUri . $this->event->id;
+        try {
+            $adapter = \OE\Database\DatabaseAdapterFactory::getAdapter(\OE\Database\DatabaseAdapterFactory::ADAPTER_COUCHBASE);
+            $bucket = Yii::app()->couchbase->config['bucket'];
+            $scope = 'core';
+            $eventId = (int)$id;
+            $eventKey = 'event::' . $eventId;
+
+            // Try direct get by key first
+            $doc = null;
+            try {
+                $doc = $adapter->findByPk('event', (int)$id);
+            } catch (\Exception $e) {
+                $doc = null;
+            }
+
+            if (!$doc) {
+                // Fallback query by _mysql_id using named parameters
+                $rows = $adapter->query(
+                    "SELECT d.* FROM `{$bucket}`.`{$scope}`.`event` d WHERE d._mysql_id = $eventId LIMIT 1",
+                    []
+                );
+                $doc = $rows[0] ?? null;
+            }
+
+            if (!$doc && $id) {
+                // Try meta().id match in case key was string-based
+                $rows = $adapter->query(
+                    "SELECT d.* FROM `{$bucket}`.`{$scope}`.`event` d WHERE meta(d).id = '$eventKey' LIMIT 1",
+                    []
+                );
+                $doc = $rows[0] ?? null;
+            }
+
+            if (!$doc && $id) {
+                // Try default scope (in case document landed there)
+                $rows = $adapter->query(
+                    "SELECT d.* FROM `{$bucket}`.`_default`.`event` d WHERE meta(d).id = '$eventKey' LIMIT 1",
+                    []
+                );
+                $doc = $rows[0] ?? null;
+            }
+
+            if (!$doc) {
+                throw new CHttpException(404, 'Invalid event id.');
+            }
+
+            $event = new Event();
+            $event->setIsNewRecord(false);
+            $event->id = (int)$id;
+            foreach ($doc as $k => $v) {
+                if ($event->hasAttribute($k)) {
+                    $event->$k = $v;
+                }
+            }
+            $this->event = $event;
+
+            // Episode from Couchbase
+            $episode = null;
+            if (!empty($doc['episode_id'])) {
+                $epDoc = $adapter->findByPk('episode', (int)$doc['episode_id']);
+                if ($epDoc) {
+                    $episode = new Episode();
+                    $episode->setIsNewRecord(false);
+                    $episode->id = (int)$doc['episode_id'];
+                    foreach ($epDoc as $k => $v) {
+                        if ($episode->hasAttribute($k)) {
+                            $episode->$k = $v;
+                        }
+                    }
+                }
+            }
+
+            // Patient from Couchbase
+            if ($episode && !empty($episode->patient_id)) {
+                $ptDoc = $adapter->findByPk('patient', (int)$episode->patient_id);
+                if ($ptDoc) {
+                    $patient = new Patient();
+                    $patient->setIsNewRecord(false);
+                    $patient->id = (int)$episode->patient_id;
+                    foreach ($ptDoc as $k => $v) {
+                        if ($patient->hasAttribute($k)) {
+                            $patient->$k = $v;
+                        }
+                    }
+                    if (isset($ptDoc['contact']) && is_array($ptDoc['contact'])) {
+                        $contact = $patient->contact ?: new Contact();
+                        $contact->setIsNewRecord(false);
+                        foreach ($ptDoc['contact'] as $ck => $cv) {
+                            if ($contact->hasAttribute($ck)) {
+                                $contact->$ck = $cv;
+                            }
+                        }
+                        $patient->contact = $contact;
+                    }
+                    $this->patient = $patient;
+                }
+            }
+
+            $this->episode = $episode;
+            $this->successUri = $this->successUri . $this->event->id;
+
+            // Fallback: if patient is still missing but event carries patient_id, resolve it
+            if (!$this->patient && $this->event && $this->event->patient_id) {
+                $patient = Patient::model()->findByPk($this->event->patient_id);
+
+                if (!$patient && ($useCouchbase ?? (Yii::app()->params['enable_couchbase_read'] ?? false))) {
+                    try {
+                        $ptDoc = $adapter->findByPk('patient', (int)$this->event->patient_id);
+                        if ($ptDoc) {
+                            $patient = new Patient();
+                            $patient->setIsNewRecord(false);
+                            foreach ($ptDoc as $k => $v) {
+                                if ($patient->hasAttribute($k)) {
+                                    $patient->$k = $v;
+                                }
+                            }
+                            $patient->setPrimaryKey((int)$this->event->patient_id);
+                        }
+                    } catch (\Exception $e) {
+                        Yii::log('Couchbase patient fetch fallback failed: ' . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application.event');
+                    }
+                }
+
+                if ($patient) {
+                    $this->patient = $patient;
+                }
+            }
+        } catch (\CHttpException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            \Yii::log('Couchbase event fetch failed: ' . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application.event');
+            throw new CHttpException(404, 'Invalid event id.');
+        }
     }
 
     /**
@@ -883,6 +1119,9 @@ class BaseEventTypeController extends BaseModuleController
      */
     public function checkEditAccess()
     {
+        if (!$this->event) {
+            return false;
+        }
         return $this->checkAccess('OprnEditEvent', $this->event);
     }
 
@@ -942,7 +1181,7 @@ class BaseEventTypeController extends BaseModuleController
 
             // creation
             if (empty($errors)) {
-                $transaction = Yii::app()->db->beginInternalTransaction();
+                $transaction = Yii::app()->cbdb->beginInternalTransaction();
 
                 try {
                     $success = $this->saveEvent($_POST);
@@ -1152,6 +1391,118 @@ class BaseEventTypeController extends BaseModuleController
         // Clean up any worklist session data that might be lingering around.
         $this->resetActiveWorklistSessionState();
 
+        // Ensure event is hydrated before proceeding (Couchbase path)
+        if (!$this->event && $id) {
+            $ev = Event::model()->findByPk($id);
+
+            // Couchbase REST fallback if AR lookup failed
+            if (!$ev) {
+                try {
+                    $bucket = Yii::app()->couchbase->config['bucket'];
+                    $eventId = (int)$id;
+                    $n1ql = "SELECT e.* FROM `{$bucket}`.`core`.`event` e WHERE e.id = $eventId OR e._mysql_id = $eventId LIMIT 1";
+                    $rows = Yii::app()->couchbaseRest->query($n1ql);
+                    if (!empty($rows)) {
+                        $row = $rows[0];
+                        $ev = new Event(null);
+                        $ev->setIsNewRecord(false);
+                        foreach ($row as $attr => $value) {
+                            if ($ev->hasAttribute($attr)) {
+                                $ev->$attr = $value;
+                            }
+                        }
+                        if (isset($row['id'])) {
+                            $ev->setPrimaryKey($row['id']);
+                        }
+                        if (isset($row['event_type_id'])) {
+                            $et = EventType::model()->findByPk($row['event_type_id']);
+                            if ($et) {
+                                $ev->addRelatedRecord('eventType', $et, false);
+                                if (!$this->event_type) {
+                                    $this->event_type = $et;
+                                }
+                            }
+                        }
+                        if (isset($row['episode_id'])) {
+                            $ep = Episode::model()->findByPk($row['episode_id']);
+                            if ($ep) {
+                                $ev->addRelatedRecord('episode', $ep, false);
+                            } else {
+                                $ep = new Episode(null);
+                                $ep->setIsNewRecord(false);
+                                $ep->id = $row['episode_id'];
+                                $ev->addRelatedRecord('episode', $ep, false);
+                            }
+                        }
+                        if (isset($row['patient_id'])) {
+                            $pat = Patient::model()->findByPk($row['patient_id']);
+                            if ($pat) {
+                                $ev->addRelatedRecord('patient', $pat, false);
+                            }
+                        }
+                    }
+                } catch (Exception $e) {
+                    Yii::log('Couchbase event fetch failed in actionView: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+                }
+            }
+
+            if ($ev) {
+                $et = $this->event_type ?: ($ev->event_type_id ? EventType::model()->findByPk($ev->event_type_id) : null);
+                if ($et) {
+                    $ev->addRelatedRecord('eventType', $et, false);
+                }
+                $this->event = $ev;
+                if ($ev->episode) {
+                    $this->episode = $ev->episode;
+                    $this->patient = $ev->episode->patient ?: ($ev->patient ?? null);
+                }
+            }
+        }
+
+        // Ensure episode and patient are hydrated for auth rules and rendering
+        if ($this->event) {
+            $episode = $this->event->episode;
+            if (!$episode && $this->event->episode_id) {
+                $episode = Episode::model()->findByPk($this->event->episode_id);
+                if ($episode) {
+                    $this->event->addRelatedRecord('episode', $episode, false);
+                }
+            }
+
+            if ($episode) {
+                $this->episode = $episode;
+                $patient = $episode->patient;
+                $patientId = $episode->patient_id ?? $this->event->patient_id ?? null;
+                if (!$patient && $patientId) {
+                    $patient = Patient::model()->findByPk($patientId);
+                    if ($patient) {
+                        $episode->addRelatedRecord('patient', $patient, false);
+                    }
+                }
+                if ($patient) {
+                    $this->patient = $patient;
+                } elseif ($patientId) {
+                    // Create minimal stub to keep UI logic functioning in offline/static mode
+                    $stub = new Patient();
+                    $stub->setIsNewRecord(false);
+                    $stub->id = (int)$patientId;
+                    $this->patient = $stub;
+                }
+            }
+
+            // If still no episode but event has episode_id, create a minimal stub episode to avoid nulls in view/auth
+            if (!$this->episode && $this->event->episode_id) {
+                $stubEp = new Episode();
+                $stubEp->setIsNewRecord(false);
+                $stubEp->id = (int)$this->event->episode_id;
+                $this->episode = $stubEp;
+            }
+        }
+
+        if (!$this->event) {
+            throw new CHttpException(404, 'Event not found');
+        }
+
         $this->setOpenElementsFromCurrentEvent('view');
         // Decide whether to display the 'edit' button in the template
         if ($this->editable) {
@@ -1238,7 +1589,7 @@ class BaseEventTypeController extends BaseModuleController
 
             // update the event
             if (empty($errors)) {
-                $transaction = Yii::app()->db->beginInternalTransaction();
+                $transaction = Yii::app()->cbdb->beginInternalTransaction();
 
                 try {
                     //TODO: should all the auditing be moved into the saving of the event
@@ -1574,7 +1925,7 @@ class BaseEventTypeController extends BaseModuleController
         $structured_form_data = null;
         parse_str($form_data, $structured_form_data);
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $draft = !empty($draft_id) ? \EventDraft::model()->findByPk($draft_id) : new \EventDraft();
 
@@ -1608,7 +1959,7 @@ class BaseEventTypeController extends BaseModuleController
 
             $draft->refresh();
 
-            $newer_patient_record_edits = Yii::app()->db->createCommand()
+            $newer_patient_record_edits = Yii::app()->cbdb->createCommand()
                 ->select('COUNT(*)')
                 ->from('event ev')
                 ->join('episode ep', 'ev.episode_id = ep.id')
@@ -1648,7 +1999,7 @@ class BaseEventTypeController extends BaseModuleController
         ];
         $drafts = EventDraft::model()->with('episode')->findAll($criteria);
         $deleted_draft_ids = array();
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         foreach ($drafts as $draft) {
             $deleted_draft_ids[] = $draft->id;
             if (!$draft->delete()) {
@@ -1787,11 +2138,29 @@ class BaseEventTypeController extends BaseModuleController
      */
     protected function setEventDate($event_date)
     {
-        $event_date = Helper::convertNHS2MySQL($event_date);
+        $converted = Helper::convertNHS2MySQL($event_date);
+
+        if (!$converted && is_string($event_date)) {
+            $dt = DateTime::createFromFormat(DATE_ATOM, $event_date);
+            if (!$dt) {
+                $ts = strtotime($event_date);
+                if ($ts !== false) {
+                    $dt = (new DateTime())->setTimestamp($ts);
+                }
+            }
+            if ($dt) {
+                $converted = $dt->format('Y-m-d H:i:s');
+            }
+        }
+
+        if (!$converted) {
+            return;
+        }
+
         $current_event_date = substr($this->event->event_date, 0, 10);
 
-        if ($event_date !== $current_event_date) {
-            $this->event->event_date = $event_date;
+        if (substr($converted, 0, 10) !== $current_event_date) {
+            $this->event->event_date = $converted;
         }
     }
 
@@ -1832,18 +2201,22 @@ class BaseEventTypeController extends BaseModuleController
         }
 
         // only process data for elements that are part of the element type set for the controller event type
-        foreach ($this->getAllElementTypes() as $element_type) {
+        $eventTypeName = $this->event_type ? $this->event_type->name : 'Event';
+
+        $elementTypes = $this->getAllElementTypes();
+
+        foreach ($elementTypes as $element_type) {
             $from_data = $this->getElementsForElementType($element_type, $data);
 
             if (count($from_data) > 0) {
                 $elements = array_merge($elements, $from_data);
             } elseif ($element_type->required) {
-                $errors[$this->event_type->name][] = $element_type->name . ' is required';
+                $errors[$eventTypeName][] = $element_type->name . ' is required';
                 $elements[] = $element_type->getInstance();
             }
         }
-        if (!count($elements)) {
-            $errors[$this->event_type->name][] = 'Cannot create an event without at least one element';
+        if (!count($elements) && count($elementTypes)) {
+            $errors[$eventTypeName][] = 'Cannot create an event without at least one element';
         }
 
         // if has conflict
@@ -1891,9 +2264,10 @@ class BaseEventTypeController extends BaseModuleController
                 $event->parent_id = $data['Event']['parent_id'];
             }
             if (!$event->validate()) {
+                $eventTypeName = $this->event_type ? $this->event_type->name : 'Event';
                 foreach ($event->getErrors() as $errormsgs) {
                     foreach ($errormsgs as $error) {
-                        $errors[$this->event_type->name][] = $error;
+                        $errors[$eventTypeName][] = $error;
                     }
                 }
             }
@@ -2047,6 +2421,18 @@ class BaseEventTypeController extends BaseModuleController
             $ns_parts = explode('\\', $r->getNamespaceName());
 
             return implode('.', array_slice($ns_parts, 0, count($ns_parts) - 1));
+        }
+
+        // For non-namespaced elements, try to extract module from class name
+        // e.g., Element_OphInBiometry_Calculation -> OphInBiometry
+        $className = $r->getShortName();
+        if (preg_match('/^Element_([A-Za-z]+)_/', $className, $matches)) {
+            $moduleName = $matches[1];
+            // Check if this module exists
+            $modulePath = Yii::getPathOfAlias('application.modules.' . $moduleName);
+            if ($modulePath && is_dir($modulePath)) {
+                return 'application.modules.' . $moduleName;
+            }
         }
 
         return $this->modulePathAlias;
@@ -2401,6 +2787,9 @@ class BaseEventTypeController extends BaseModuleController
     public function getEpisodes()
     {
         if (empty($this->episodes)) {
+            if (!$this->patient) {
+                return ['ordered_episodes' => [], 'legacyepisodes' => [], 'supportserviceepisodes' => []];
+            }
             $this->episodes = array(
                 'ordered_episodes' => $this->patient->getOrderedEpisodes(),
                 'legacyepisodes' => $this->patient->legacyepisodes,
@@ -2713,7 +3102,7 @@ class BaseEventTypeController extends BaseModuleController
             if (Yii::app()->request->getPost('delete_reason', '') === '') {
                 $errors = array('Reason for deletion' => array('Please enter a reason for deleting this event'));
             } else {
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
                 try {
                     $this->event->softDelete(Yii::app()->request->getPost('delete_reason', ''));
 
@@ -3100,8 +3489,12 @@ class BaseEventTypeController extends BaseModuleController
         return null;
     }
 
-    protected function updateHotlistItem(Patient $patient)
+    protected function updateHotlistItem(?Patient $patient)
     {
+        if (!$patient) {
+            Yii::log('Skipped hotlist update because patient is missing', CLogger::LEVEL_INFO);
+            return;
+        }
         $user = Yii::app()->user;
         $hotlistItem = UserHotlistItem::model()->find(
             'created_user_id = :user_id AND patient_id = :patient_id

@@ -375,7 +375,7 @@ class Element_OphCiExamination_PostOpComplications extends \SplitEventTypeElemen
 
     public function getFullComplicationList($eye_id)
     {
-        $list = \Yii::app()->db->createCommand()
+        $list = \Yii::app()->cbdb->createCommand()
             ->selectDistinct('c.name, etc.other')
             ->from('et_ophciexamination_postop_complications t')
             ->join('ophciexamination_postop_et_complications etc', 't.id = etc.element_id')

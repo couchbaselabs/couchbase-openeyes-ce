@@ -68,18 +68,28 @@ $form = $this->beginWidget(
             <tr>
                 <td><?php echo $contact->getAttributeLabel("qualifications"); ?></td>
                 <td>
-                    <?= \CHtml::activeTextField(
-                        $contact,
-                        "qualifications",
-                        [
-                            'autocomplete' => SettingMetadata::model()->getSetting('html_autocomplete'),
-                            'class' => 'cols-full'
-                        ]
-                    ); ?>
-                </td>
-            </tr>
-            <tr>
-                <td>Grade</td>
+                    <?php
+                        $grades = DoctorGrade::model()->findAll(array('order' => 'display_order'));
+                        if (!$grades || !count($grades)) {
+                            $fallback_grades = array(
+                                ['id' => 1, 'grade' => 'Consultant'],
+                                ['id' => 2, 'grade' => 'Registrar'],
+                                ['id' => 3, 'grade' => 'Specialist'],
+                            );
+                            $grades = array_map(function ($g) {
+                                $o = new stdClass();
+                                $o->id = $g['id'];
+                                $o->grade = $g['grade'];
+                                return $o;
+                            }, $fallback_grades);
+                        }
+                    ?>
+                    <?= \CHtml::activeDropDownList(
+                        $user,
+                        'doctor_grade_id',
+                        \CHtml::listData($grades, 'id', 'grade'),
+                        ['class' => 'cols-full', 'empty' => '- Select Grade -']
+                    ); ?></td>
                 <td>
                     <?= \CHtml::activeDropDownList(
                         $user,
@@ -172,7 +182,7 @@ $form = $this->beginWidget(
                         'roles',
                         'name',
                         CHtml::listData(
-                            Yii::app()->authManager->getAssignableRoles(Yii::app()->session->getSelectedUser()->id),
+                            Yii::app()->authManager->getAssignableRoles($user->id ?: Yii::app()->user->id),
                             'name',
                             'name'
                         ),

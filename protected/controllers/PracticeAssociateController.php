@@ -70,7 +70,7 @@ class PracticeAssociateController extends BaseController
                 if ((int)$gpDetails->gpId !== -1) {
                     // Use the existing gp id and look for duplicates.
                     // check for duplicate
-                    $query = Yii::app()->db->createCommand()
+                    $query = Yii::app()->cbdb->createCommand()
                         ->select('cpa.id')
                         ->from('contact_practice_associate cpa')
                         ->where(
@@ -146,7 +146,7 @@ class PracticeAssociateController extends BaseController
     public function performGpSave(Contact $contact, Gp $gp, $isAjax = false)
     {
         $action = $gp->isNewRecord ? 'add' : 'edit';
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             if ($contact->save()) {

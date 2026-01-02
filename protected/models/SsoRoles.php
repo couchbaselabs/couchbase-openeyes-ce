@@ -66,7 +66,7 @@ class SsoRoles extends BaseActiveRecordVersioned
 
     public function saveRolesAuthAssignment($ssoName, $ssoAttributes = array(), $id = null)
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         $this->name = $ssoName;
 

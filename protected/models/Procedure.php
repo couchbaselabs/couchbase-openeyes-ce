@@ -168,7 +168,7 @@ class Procedure extends BaseActiveRecordVersioned
 
         $where .= ' and proc.active = 1';
 
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select('proc.term as label,proc.id')
             ->from('proc')
             ->where($where, array(
@@ -201,7 +201,7 @@ class Procedure extends BaseActiveRecordVersioned
 
     protected function addOpNoteElementRelation()
     {
-        if (isset(Yii::app()->modules['OphTrOperationnote']) && Yii::app()->db->schema->getTable('ophtroperationnote_procedure_element')) {
+        if (isset(Yii::app()->modules['OphTrOperationnote']) && Yii::app()->cbdb->schema->getTable('ophtroperationnote_procedure_element')) {
             $this->metaData->addRelation(
                 'operationNotes',
                 array(
@@ -227,7 +227,7 @@ class Procedure extends BaseActiveRecordVersioned
         } elseif ($restrict == 'booked') {
             $where = ' and unbooked = 0';
         }
-        $procedures = Yii::app()->db->createCommand()
+        $procedures = Yii::app()->cbdb->createCommand()
             ->select('proc.id, proc.term')
             ->from('proc')
             ->join('proc_subspecialty_assignment psa', 'psa.proc_id = proc.id')
@@ -272,7 +272,7 @@ class Procedure extends BaseActiveRecordVersioned
     {
         $data = array();
         if (isset($this->operationNotes)) {
-            $procedures = Yii::app()->db->createCommand()
+            $procedures = Yii::app()->cbdb->createCommand()
                 ->select('proc.id, proc.term')
                 ->from('proc')
                 ->join('ophtroperationnote_procedure_element opnote', 'opnote.procedure_id = proc.id')

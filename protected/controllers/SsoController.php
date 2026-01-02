@@ -274,7 +274,7 @@ class SsoController extends BaseAdminController
 
     public function actiondeleteSSORoles($id = null)
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             SsoRolesAuthAssignment::model()->deleteAll('sso_role_id = :id', [':id' => $id]);

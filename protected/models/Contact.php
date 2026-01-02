@@ -156,6 +156,9 @@ class Contact extends BaseActiveRecordVersioned
             array('email', 'required', 'on' => array('self_register')),
             array('title, first_name, last_name, nick_name, primary_phone, mobile_phone, qualifications, maiden_name,
                     national_code, fax, email', 'filter', 'filter' => function ($value) {
+                if ($value === null) {
+                    return $value;
+                }
                 return strip_tags($value);
             }),
         );
@@ -232,6 +235,24 @@ class Contact extends BaseActiveRecordVersioned
         );
     }
 
+    public function __get($name)
+    {
+        if ($name === 'addresses') {
+            return $this->getAddresses();
+        }
+        if ($name === 'address') {
+            return $this->getAddress();
+        }
+        if ($name === 'homeAddress') {
+            return $this->getHomeAddress();
+        }
+        if ($name === 'correspondAddress') {
+            return $this->getCorrespondAddress();
+        }
+
+        return parent::__get($name);
+    }
+
     /**
      * @return array customized attribute labels (name=>label)
      */
@@ -249,6 +270,68 @@ class Contact extends BaseActiveRecordVersioned
             'contact_label_id' => 'Label',
             'email' => 'Email',
         );
+    }
+
+    /**
+     * Lazy-load addresses from Couchbase when SQL relations are unavailable.
+     * @return Address[]
+     */
+    public function getAddresses()
+    {
+        if (($related = $this->getRelated('addresses', false)) !== null) {
+            return $related;
+        }
+
+        if (!$this->id) {
+            return [];
+        }
+
+        $addresses = Address::model()->findAllByAttributes(['contact_id' => $this->id], ['order' => 'date_start DESC']);
+        foreach ($addresses as $addr) {
+            if ($addr instanceof Address) {
+                $addr->ensureCountryLoaded();
+            }
+        }
+        $this->addresses = $addresses;
+        return $addresses;
+    }
+
+    /**
+     * Pick an address, preferring a given type when available.
+     * @param int|null $preferredType
+     * @return Address|null
+     */
+    private function getPreferredAddress(?int $preferredType)
+    {
+        $addresses = $this->getAddresses();
+        if (!$addresses) {
+            return null;
+        }
+
+        if ($preferredType !== null) {
+            foreach ($addresses as $addr) {
+                if ((int)$addr->address_type_id === $preferredType) {
+                    return $addr;
+                }
+            }
+        }
+
+        return $addresses[0];
+    }
+
+    public function getAddress()
+    {
+        return $this->getPreferredAddress(AddressType::HOME);
+    }
+
+    public function getHomeAddress()
+    {
+        return $this->getPreferredAddress(AddressType::HOME);
+    }
+
+    public function getCorrespondAddress()
+    {
+        return $this->getPreferredAddress(AddressType::CORRESPOND);
     }
 
     /**

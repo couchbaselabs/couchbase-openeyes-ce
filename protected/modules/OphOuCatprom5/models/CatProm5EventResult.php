@@ -72,7 +72,7 @@ class CatProm5EventResult extends \BaseEventTypeElement
 
     public function rowScoreToRaschMeasure($rawScore)
     {
-        $row = Yii::app()->db->createCommand('select rasch_measure from cat_prom5_score_map where raw_score=:raw_score')
+        $row = Yii::app()->cbdb->createCommand('select rasch_measure from cat_prom5_score_map where raw_score=:raw_score')
             ->bindValue('raw_score', $rawScore)->queryRow();
         return $row['rasch_measure'];
     }

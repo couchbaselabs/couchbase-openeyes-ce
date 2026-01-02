@@ -53,7 +53,8 @@ if (is_a(Yii::app()->getController(), 'DefaultController')) {
         </thead>
         <tbody>
           <?php
-            $unit_options = MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'")->medicationAttributeOptions;
+            $unitOfMeasureAttr = MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'");
+            $unit_options = $unitOfMeasureAttr ? $unitOfMeasureAttr->medicationAttributeOptions : [];
             foreach ($element->items as $key => $item) {
                 $this->renderPartial(
                     'form_Element_OphDrPrescription_Details_Item',

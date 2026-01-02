@@ -209,7 +209,7 @@ class Pathway extends BaseActiveRecordVersioned
     {
         if ((int)$step->status === PathwayStep::STEP_REQUESTED) {
             if (!$step->todo_order) {
-                $end_position = Yii::app()->db->createCommand()
+                $end_position = Yii::app()->cbdb->createCommand()
                     ->select('MAX(todo_order)')
                     ->from('pathway_step')
                     ->where('pathway_id = :id AND status = :status')
@@ -222,7 +222,7 @@ class Pathway extends BaseActiveRecordVersioned
             }
             return $this->dequeue($step);
         } elseif (!$step->todo_order) {
-            $end_position = Yii::app()->db->createCommand()
+            $end_position = Yii::app()->cbdb->createCommand()
                 ->select('MAX(todo_order)')
                 ->from('pathway_step')
                 ->where('pathway_id = :id AND status = :status')
@@ -232,7 +232,7 @@ class Pathway extends BaseActiveRecordVersioned
             $step->todo_order = $end_position + 1;
             $step->queue_order = $step->todo_order;
         }
-        $end_position = Yii::app()->db->createCommand()
+        $end_position = Yii::app()->cbdb->createCommand()
             ->select('MAX(queue_order)')
             ->from('pathway_step')
             ->where('pathway_id = :id AND status = :status')
@@ -392,7 +392,7 @@ class Pathway extends BaseActiveRecordVersioned
      */
     public function removeIncompleteSteps(): int
     {
-        $step_ids = Yii::app()->db->createCommand()
+        $step_ids = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step')
             ->where('pathway_id = :id AND status != :status')
@@ -636,7 +636,7 @@ class Pathway extends BaseActiveRecordVersioned
     public function startPathway(): bool
     {
         // Search for a check-in step. If one exists, mark it as completed.
-        $checkin_step_id = Yii::app()->db->createCommand()
+        $checkin_step_id = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('pathway_step_type')
             ->where('short_name = \'checkin\'')

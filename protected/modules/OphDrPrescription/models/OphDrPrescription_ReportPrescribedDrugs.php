@@ -56,7 +56,7 @@ class OphDrPrescription_ReportPrescribedDrugs extends BaseReport
         $user_id = Yii::app()->user->id;
         $this->setInstitutionAndSite($user_id);
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 '
                 patient.id

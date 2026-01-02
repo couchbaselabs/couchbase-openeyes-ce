@@ -68,7 +68,7 @@ class DBProvider extends SearchProvider
         /// Here we flatten the 2-dimensional grouped binds array into a 1-dimensional bind array that MySQL will recognise.
         $bindValues = array_merge([], ...$groupedBinds);
 
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->selectDistinct('p.id')
             ->from('patient p')
             ->where($queryStr)
@@ -93,7 +93,7 @@ class DBProvider extends SearchProvider
         $data = array();
         if ($variable instanceof DBProviderInterface) {
             $variable->csv_mode = $mode;
-            $data = Yii::app()->db->createCommand($variable->query())
+            $data = Yii::app()->cbdb->createCommand($variable->query())
                 ->andWhere('p.deleted != 1')
                 ->bindValues(
                     array_merge(

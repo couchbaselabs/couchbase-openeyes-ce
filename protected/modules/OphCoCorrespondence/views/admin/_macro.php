@@ -43,8 +43,8 @@ $label_options = [];
 if (isset($macro->letter_type) && $macro->letter_type->name === 'Internal Referral') {
     $none_option[0] = 'Internal Referral';
 
-    $letter_type_gp_id = \Yii::app()->db->createCommand()->select('id')->from('ophcocorrespondence_letter_recipient')->where('name=:name', array(':name' => 'GP'))->queryScalar();
-    $letter_type_patient_id = \Yii::app()->db->createCommand()->select('id')->from('ophcocorrespondence_letter_recipient')->where('name=:name', array(':name' => 'Patient'))->queryScalar();
+    $letter_type_gp_id = \Yii::app()->cbdb->createCommand()->select('id')->from('ophcocorrespondence_letter_recipient')->where('name=:name', array(':name' => 'GP'))->queryScalar();
+    $letter_type_patient_id = \Yii::app()->cbdb->createCommand()->select('id')->from('ophcocorrespondence_letter_recipient')->where('name=:name', array(':name' => 'Patient'))->queryScalar();
 
     $label_options = [
         $letter_type_gp_id => 'display:none',

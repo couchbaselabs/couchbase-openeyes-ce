@@ -1,0 +1,94 @@
+FROM php:8.1-apache
+
+ENV APACHE_DOCUMENT_ROOT=/var/www/openeyes \
+    PATH="/var/www/openeyes/vendor/bin:${PATH}"
+
+# System dependencies + PHP extensions required by OpenEyes
+RUN set -eux; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        git \
+        unzip \
+        libzip-dev \
+        libicu-dev \
+        libxml2-dev \
+        libpng-dev \
+        libjpeg-dev \
+        libfreetype6-dev \
+        libonig-dev \
+        libxslt1-dev \
+        libcurl4-openssl-dev \
+        libgmp-dev \
+        libssl-dev \
+        zlib1g-dev; \
+    docker-php-ext-configure gd --with-freetype --with-jpeg; \
+    docker-php-ext-configure zip; \
+    docker-php-ext-install -j"$(nproc)" \
+        intl \
+        mysqli \
+        pdo_mysql \
+        gd \
+        zip \
+        bcmath \
+        soap \
+        exif \
+        opcache \
+        sockets; \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Couchbase PHP SDK 4.4 (compatible with Couchbase Server 8.0)
+# PHP 8.1+ allows direct PECL install without building libcouchbase from source
+RUN set -eux; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        wget \
+        cmake \
+        build-essential \
+        libssl-dev \
+        libevent-dev \
+        libev-dev; \
+    cd /tmp; \
+    wget https://packages.couchbase.com/clients/c/libcouchbase-3.3.12.tar.gz; \
+    tar xzf libcouchbase-3.3.12.tar.gz; \
+    cd libcouchbase-3.3.12; \
+    mkdir build && cd build; \
+    cmake -DCMAKE_BUILD_TYPE=Release -DLCB_NO_TESTS=1 ..; \
+    make && make install; \
+    ldconfig; \
+    pecl install couchbase-4.2.2; \
+    docker-php-ext-enable couchbase; \
+    cd / && rm -rf /tmp/libcouchbase-*; \
+    apt-get purge -y --auto-remove cmake wget; \
+    rm -rf /var/lib/apt/lists/*
+
+# Install tools required for event image generation (Node/Puppeteer + Imagick + Chromium)
+RUN set -eux; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        nodejs \
+        npm \
+        chromium \
+        libmagickwand-dev \
+        imagemagick; \
+    printf "\n" | pecl install imagick; \
+    docker-php-ext-enable imagick; \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Apache + Composer setup
+RUN set -eux; \
+    a2enmod rewrite headers ssl; \
+    sed -ri "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/000-default.conf; \
+    sed -ri "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/default-ssl.conf; \
+    cat <<EOF > /etc/apache2/conf-available/openeyes.conf
+<Directory ${APACHE_DOCUMENT_ROOT}>
+    AllowOverride All
+    Require all granted
+</Directory>
+EOF
+RUN a2enconf openeyes
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/openeyes

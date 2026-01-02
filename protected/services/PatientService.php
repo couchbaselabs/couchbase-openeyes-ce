@@ -15,7 +15,9 @@
 
 namespace services;
 
-class PatientService extends ModelService
+use OE\Reports\CouchbasePatientSearch;
+
+class PatientService extends DatabaseAgnosticService
 {
     protected static $operations = array(self::OP_READ, self::OP_UPDATE, self::OP_CREATE, self::OP_SEARCH);
 
@@ -27,6 +29,222 @@ class PatientService extends ModelService
     );
 
     protected static $primary_model = 'Patient';
+    protected $collection = 'patient';
+
+    /**
+     * Read patient by ID (Couchbase-enabled)
+     * @param string $id Patient ID
+     * @return array|null Patient data or null
+     */
+    public function readPatient($id)
+    {
+        if ($this->enforceCouchbaseOnly()) {
+            $result = $this->readFromCouchbase($id);
+            if ($result === null) {
+                \Yii::log('Couchbase-only patient read requested but document not found; skipping MariaDB fallback', \CLogger::LEVEL_WARNING, 'application.services');
+            }
+            return $result;
+        }
+
+        // Prefer Couchbase, fall back to MariaDB if missing or on error
+        try {
+            $result = $this->readFromCouchbase($id);
+            if ($result !== null) {
+                return $result;
+            }
+        } catch (\Exception $e) {
+            \Yii::log(
+                "Couchbase operation failed, falling back to MariaDB: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.services'
+            );
+        }
+
+        return $this->readFromMariaDB($id);
+    }
+
+    /**
+     * Read patient from Couchbase
+     */
+    private function readFromCouchbase($id)
+    {
+        if (!$this->canUsePatientDocument()) {
+            return null;
+        }
+        $doc = \PatientDocument::findByPk($id);
+        return $doc ? $doc->getAttributes() : null;
+    }
+
+    /**
+     * Read patient from MariaDB
+     */
+    private function readFromMariaDB($id)
+    {
+        $patient = \Patient::model()->findByPk($id);
+        return $this->normalizeResult($patient);
+    }
+
+    /**
+     * Find patient by hospital number
+     * @param string $hosNum Hospital number
+     * @return array|null Patient data or null
+     */
+    public function findByHosNum($hosNum)
+    {
+        $couchbaseOp = function() use ($hosNum) {
+            if (!$this->canUsePatientDocument()) {
+                return null;
+            }
+            $doc = \PatientDocument::findByHosNum($hosNum);
+            return $doc ? $doc->getAttributes() : null;
+        };
+
+        if ($this->enforceCouchbaseOnly()) {
+            $result = $couchbaseOp();
+            if ($result === null) {
+                \Yii::log('Couchbase-only patient lookup by hos_num and document not found; skipping MariaDB fallback', \CLogger::LEVEL_WARNING, 'application.services');
+            }
+            return $result;
+        }
+
+        try {
+            $result = $couchbaseOp();
+            if ($result !== null) {
+                return $result;
+            }
+        } catch (\Exception $e) {
+            \Yii::log(
+                "Couchbase operation failed, falling back to MariaDB: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.services'
+            );
+        }
+
+        $patient = \Patient::model()->findByAttributes(['hos_num' => $hosNum]);
+        return $this->normalizeResult($patient);
+    }
+
+    /**
+     * Find patient by NHS number
+     * @param string $nhsNum NHS number
+     * @return array|null Patient data or null
+     */
+    public function findByNhsNum($nhsNum)
+    {
+        $couchbaseOp = function() use ($nhsNum) {
+            if (!$this->canUsePatientDocument()) {
+                return null;
+            }
+            $doc = \PatientDocument::findByNhsNum($nhsNum);
+            return $doc ? $doc->getAttributes() : null;
+        };
+
+        if ($this->enforceCouchbaseOnly()) {
+            $result = $couchbaseOp();
+            if ($result === null) {
+                \Yii::log('Couchbase-only patient lookup by nhs_num and document not found; skipping MariaDB fallback', \CLogger::LEVEL_WARNING, 'application.services');
+            }
+            return $result;
+        }
+
+        try {
+            $result = $couchbaseOp();
+            if ($result !== null) {
+                return $result;
+            }
+        } catch (\Exception $e) {
+            \Yii::log(
+                "Couchbase operation failed, falling back to MariaDB: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.services'
+            );
+        }
+
+        $patient = \Patient::model()->findByAttributes(['nhs_num' => $nhsNum]);
+        return $this->normalizeResult($patient);
+    }
+
+    /**
+     * Whether to enforce Couchbase-only patient reads (no MariaDB fallback).
+     * @return bool
+     */
+    private function enforceCouchbaseOnly(): bool
+    {
+        $require = \Yii::app()->params['require_couchbase_patient_reads'] ?? false;
+        return $require && $this->useCouchbase && $this->canUsePatientDocument();
+    }
+
+    /**
+     * Ensure the Couchbase PatientDocument class is available without triggering fatal autoload errors.
+     * @return bool
+     */
+    private function canUsePatientDocument(): bool
+    {
+        if (class_exists('PatientDocument', false)) {
+            return true;
+        }
+        try {
+            \Yii::import('application.models.couchbase.PatientDocument');
+        } catch (\Exception $e) {
+            return false;
+        }
+        return class_exists('PatientDocument', false);
+    }
+
+    /**
+     * Get patient's episodes
+     * @param string $patientId Patient ID
+     * @return array Episodes
+     */
+    public function getEpisodes($patientId)
+    {
+        return $this->executeWithFallback(
+            function() use ($patientId) {
+                if (!class_exists('EpisodeDocument')) {
+                    return [];
+                }
+                $episodes = \EpisodeDocument::findByPatientId($patientId);
+                return array_map(function($ep) { return $ep->getAttributes(); }, $episodes);
+            },
+            function() use ($patientId) {
+                $episodes = \Episode::model()->findAllByAttributes(
+                    ['patient_id' => $patientId],
+                    ['order' => 'start_date DESC']
+                );
+                return $this->normalizeResults($episodes);
+            }
+        );
+    }
+
+    /**
+     * Get patient's events
+     * @param string $patientId Patient ID
+     * @param int $limit Maximum events to return
+     * @return array Events
+     */
+    public function getEvents($patientId, $limit = 50)
+    {
+        return $this->executeWithFallback(
+            function() use ($patientId, $limit) {
+                if (!class_exists('EventDocument')) {
+                    return [];
+                }
+                $events = \EventDocument::findByPatientId($patientId, $limit);
+                return array_map(function($ev) { return $ev->getAttributes(); }, $events);
+            },
+            function() use ($patientId, $limit) {
+                $criteria = new \CDbCriteria();
+                $criteria->with = ['episode'];
+                $criteria->addCondition('episode.patient_id = :patientId');
+                $criteria->params[':patientId'] = $patientId;
+                $criteria->order = 't.event_date DESC';
+                $criteria->limit = $limit;
+                
+                $events = \Event::model()->findAll($criteria);
+                return $this->normalizeResults($events);
+            }
+        );
+    }
 
     public function search(array $params)
     {
@@ -55,7 +273,13 @@ class PatientService extends ModelService
             }
         }
 
-        $searchParams = array('pageSize' => 5);
+        $searchParams = array(
+            'pageSize' => 5,
+            'first_name' => null,
+            'last_name' => null,
+            'dob' => null,
+            'sortBy' => 'last_name',
+        );
         if (isset($params['family'])) {
             $searchParams['last_name'] = $params['family'];
         }
@@ -69,16 +293,22 @@ class PatientService extends ModelService
     public function modelToResource($patient)
     {
         $res = parent::modelToResource($patient);
-        $res->nhs_num = $patient->nhs_num;
-        $res->hos_num = $patient->hos_num;
-        $res->title = $patient->contact->title;
-        $res->family_name = $patient->contact->last_name;
-        $res->given_name = $patient->contact->first_name;
-        $res->gender = $patient->gender;
-        $res->birth_date = $patient->dob;
-        $res->date_of_death = $patient->date_of_death;
-        $res->primary_phone = $patient->contact->primary_phone;
-        $res->addresses = array_map(array('services\PatientAddress', 'fromModel'), $patient->contact->addresses);
+
+        $hasAttr = method_exists($patient, 'hasAttribute');
+        $res->nhs_num = ($hasAttr && $patient->hasAttribute('nhs_num')) ? $patient->nhs_num : null;
+        $res->hos_num = ($hasAttr && $patient->hasAttribute('hos_num')) ? $patient->hos_num : null;
+        $res->gender = ($hasAttr && $patient->hasAttribute('gender')) ? $patient->gender : null;
+        $res->birth_date = ($hasAttr && $patient->hasAttribute('dob')) ? $patient->dob : null;
+        $res->date_of_death = ($hasAttr && $patient->hasAttribute('date_of_death')) ? $patient->date_of_death : null;
+
+        $contact = $patient->contact ?? null;
+        $res->title = $contact->title ?? null;
+        $res->family_name = $contact->last_name ?? null;
+        $res->given_name = $contact->first_name ?? null;
+        $res->primary_phone = $contact->primary_phone ?? null;
+        $res->addresses = $contact && isset($contact->addresses)
+            ? array_map(array('services\PatientAddress', 'fromModel'), $contact->addresses)
+            : [];
 
         if ($patient->gp_id) {
             $res->gp_ref = new InternalReference('Gp', $patient->gp_id);
@@ -96,25 +326,49 @@ class PatientService extends ModelService
 
     public function resourceToModel($res, $patient)
     {
-        $patient->nhs_num = $res->nhs_num;
-        $patient->hos_num = $res->hos_num;
-        $patient->gender = $res->gender;
-        $patient->dob = $res->birth_date;
-        $patient->date_of_death = $res->date_of_death;
+        if (method_exists($patient, 'hasAttribute')) {
+            if ($patient->hasAttribute('nhs_num')) {
+                $patient->nhs_num = $res->nhs_num;
+            }
+            if ($patient->hasAttribute('hos_num')) {
+                $patient->hos_num = $res->hos_num;
+            }
+            if ($patient->hasAttribute('gender')) {
+                $patient->gender = $res->gender;
+            }
+            if ($patient->hasAttribute('dob')) {
+                $patient->dob = $res->birth_date;
+            }
+            if ($patient->hasAttribute('date_of_death')) {
+                $patient->date_of_death = $res->date_of_death;
+            }
+        }
         $patient->gp_id = $res->gp_ref ? $res->gp_ref->getId() : null;
         $patient->practice_id = $res->prac_ref ? $res->prac_ref->getId() : null;
         $this->saveModel($patient);
 
         $contact = $patient->contact;
-        $contact->title = $res->title;
-        $contact->last_name = $res->family_name;
-        $contact->first_name = $res->given_name;
-        $contact->primary_phone = $res->primary_phone;
-        $this->saveModel($contact);
+        if ($contact) {
+            if (property_exists($contact, 'title')) {
+                $contact->title = $res->title;
+            }
+            if (property_exists($contact, 'last_name')) {
+                $contact->last_name = $res->family_name;
+            }
+            if (property_exists($contact, 'first_name')) {
+                $contact->first_name = $res->given_name;
+            }
+            if (property_exists($contact, 'primary_phone')) {
+                $contact->primary_phone = $res->primary_phone;
+            }
+            $this->saveModel($contact);
+        }
 
         $cur_addrs = array();
-        foreach ($contact->addresses as $addr) {
-            $cur_addrs[$addr->id] = PatientAddress::fromModel($addr);
+        if ($contact && isset($contact->addresses)) {
+            foreach ($contact->addresses as $addr) {
+                $cur_addrs[$addr->id] = PatientAddress::fromModel($addr);
+            }
         }
 
         $add_addrs = array();
@@ -135,15 +389,17 @@ class PatientService extends ModelService
             }
         }
 
-        $crit = new \CDbCriteria();
-        $crit->compare('contact_id', $contact->id)->addNotInCondition('id', $matched_ids);
-        \Address::model()->deleteAll($crit);
+        if ($contact) {
+            $crit = new \CDbCriteria();
+            $crit->compare('contact_id', $contact->id)->addNotInCondition('id', $matched_ids);
+            \Address::model()->deleteAll($crit);
 
-        foreach ($add_addrs as $add_addr) {
-            $addr = new \Address();
-            $addr->contact_id = $contact->id;
-            $add_addr->toModel($addr);
-            $this->saveModel($addr);
+            foreach ($add_addrs as $add_addr) {
+                $addr = new \Address();
+                $addr->contact_id = $contact->id;
+                $add_addr->toModel($addr);
+                $this->saveModel($addr);
+            }
         }
 
         $cur_cb_ids = array();

@@ -1,0 +1,98 @@
+-- ============================================================================
+-- Medication Set and Medication Set Item N1QL Indexes
+-- ============================================================================
+-- These indexes support efficient querying of medication sets and their items
+-- from Couchbase for prescription UI and medication lookups.
+-- ============================================================================
+
+-- Medication Set indexes
+-- ============================================================================
+
+-- Index by medication set name for lookups
+CREATE INDEX idx_medication_set_name 
+ON `openeyes`.`reference`.`medication_set`(name) 
+WHERE type = 'medication_set';
+
+-- Index by hidden flag to filter visible sets
+CREATE INDEX idx_medication_set_hidden 
+ON `openeyes`.`reference`.`medication_set`(hidden) 
+WHERE type = 'medication_set';
+
+-- Index by automatic flag for auto-set filtering
+CREATE INDEX idx_medication_set_automatic 
+ON `openeyes`.`reference`.`medication_set`(automatic) 
+WHERE type = 'medication_set';
+
+-- Composite index for usage code queries
+CREATE INDEX idx_medication_set_rules_usage 
+ON `openeyes`.`reference`.`medication_set`(
+    DISTINCT ARRAY r.usage_code FOR r IN rules END,
+    hidden
+) 
+WHERE type = 'medication_set' AND rules IS NOT NULL;
+
+
+-- Medication Set Item indexes
+-- ============================================================================
+
+-- Index by medication ID for finding all sets containing a medication
+CREATE INDEX idx_medication_set_item_medication_id 
+ON `openeyes`.`reference`.`medication_set_item`(medication.id) 
+WHERE type = 'medication_set_item';
+
+-- Index by medication set ID for finding all medications in a set
+CREATE INDEX idx_medication_set_item_set_id 
+ON `openeyes`.`reference`.`medication_set_item`(medication_set.id) 
+WHERE type = 'medication_set_item';
+
+-- Composite index for medication-set combinations (unique lookups)
+CREATE INDEX idx_medication_set_item_combo 
+ON `openeyes`.`reference`.`medication_set_item`(medication.id, medication_set.id) 
+WHERE type = 'medication_set_item';
+
+-- Index for searching by set name and medication term
+CREATE INDEX idx_medication_set_item_set_name_med_term 
+ON `openeyes`.`reference`.`medication_set_item`(
+    medication_set.name, 
+    medication.preferred_term,
+    medication_set.hidden
+) 
+WHERE type = 'medication_set_item';
+
+-- Index for prescribable medication lookups by set
+CREATE INDEX idx_medication_set_item_prescribable 
+ON `openeyes`.`reference`.`medication_set_item`(
+    medication_set.id,
+    medication.source_type,
+    medication.preferred_term
+) 
+WHERE type = 'medication_set_item' AND medication_set.hidden = false;
+
+-- ============================================================================
+-- Example Queries
+-- ============================================================================
+-- These queries demonstrate how to use the indexes above
+
+-- Query 1: Get all medications in a specific set
+-- SELECT m.medication.preferred_term, m.default_dose, m.default_route.term
+-- FROM openeyes.reference.medication_set_item m
+-- WHERE m.medication_set.id = 123
+-- AND m.medication_set.hidden = false
+-- ORDER BY m.medication.preferred_term;
+
+-- Query 2: Find all sets containing a specific medication
+-- SELECT m.medication_set.name, m.default_dose
+-- FROM openeyes.reference.medication_set_item m
+-- WHERE m.medication.id = 456;
+
+-- Query 3: Get prescribable drugs from a named set
+-- SELECT m.*
+-- FROM openeyes.reference.medication_set_item m
+-- WHERE m.medication_set.name = 'Prescribable Drugs'
+-- AND m.medication.source_type = 'DM+D'
+-- AND m.medication_set.hidden = false;
+
+-- Query 4: Get all medication sets with a specific usage code
+-- SELECT s.name, s.hidden, s.automatic
+-- FROM openeyes.reference.medication_set s
+-- WHERE ANY r IN s.rules SATISFIES r.usage_code = 'PRESCRIBABLE_DRUGS' END;

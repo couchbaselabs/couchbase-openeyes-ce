@@ -123,7 +123,7 @@ class SharedMailboxSettingsController extends \ModuleAdminController
         $mailbox->users = $user_ids;
         $mailbox->teams = $team_ids;
 
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
         $errors = [];
 
         try {

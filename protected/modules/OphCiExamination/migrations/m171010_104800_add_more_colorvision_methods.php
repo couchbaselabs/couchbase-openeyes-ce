@@ -7,20 +7,19 @@ class m171010_104800_add_more_colorvision_methods extends OEMigration
         //$unit = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_visual_acuity_unit')->where('name = :name', array(':name' => 'Snellen Metre'))->queryRow();
 
         # Check that these values do not already exist
-        $is13 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /13'))->queryRow();
-            $is17 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /17'))->queryRow();
-        $is24 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /24'))->queryRow();
+        $is13 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /13'))->queryScalar();
+        $is17 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /17'))->queryScalar();
+        $is24 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /24'))->queryScalar();
 
         # Insert values if they don't already exist
-        if ($is13['id'] == '') {
+        if (!$is13) {
             $this->insert('ophciexamination_colourvision_method', array(
                           'name' => 'Ishihara /13',
                           'active' => '1',
                           'display_order' => '1',
                   ));
         # Add values
-            $is13 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /13'))->queryRow();
-            $method_id = $is13['id'];
+            $method_id = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /13'))->queryScalar();
 
             for ($i=0; $i<14; $i++) {
                 $this->insert('ophciexamination_colourvision_value', array(
@@ -32,7 +31,7 @@ class m171010_104800_add_more_colorvision_methods extends OEMigration
             }
         }
 
-        if ($is17['id'] == '') {
+        if (!$is17) {
             $this->insert('ophciexamination_colourvision_method', array(
                           'name' => 'Ishihara /17',
                           'active' => '1',
@@ -40,8 +39,7 @@ class m171010_104800_add_more_colorvision_methods extends OEMigration
                   ));
 
             # Add values
-            $is17 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /17'))->queryRow();
-            $method_id = $is17['id'];
+            $method_id = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /17'))->queryScalar();
             for ($i=0; $i < 18; $i++) {
                 $this->insert('ophciexamination_colourvision_value', array(
                             'name' => $i . '/17',
@@ -52,7 +50,7 @@ class m171010_104800_add_more_colorvision_methods extends OEMigration
             }
         }
 
-        if ($is24['id'] == '') {
+        if (!$is24) {
             $this->insert('ophciexamination_colourvision_method', array(
                           'name' => 'Ishihara /24',
                           'active' => '1',
@@ -60,8 +58,7 @@ class m171010_104800_add_more_colorvision_methods extends OEMigration
                   ));
 
             # Add values
-            $is24 = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /24'))->queryRow();
-            $method_id = $is24['id'];
+            $method_id = $this->dbConnection->createCommand()->select('id')->from('ophciexamination_colourvision_method')->where('name = :name', array(':name' => 'Ishihara /24'))->queryScalar();
             for ($i=0; $i < 25; $i++) {
                 $this->insert('ophciexamination_colourvision_value', array(
                             'name' => $i . '/24',

@@ -65,7 +65,7 @@ class CreateEventsAfterEventSavedBehavior extends CBehavior
         $set_id = \Yii::app()->request->getParam('auto_generate_prescription_after_' . strtolower($this->owner->event->eventType->class_name) . "_set_id");
 
         if ($create_prescription) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             $result = $this->createPrescriptionEvent($set_id);
             if ($result['success'] === true) {
@@ -88,7 +88,7 @@ class CreateEventsAfterEventSavedBehavior extends CBehavior
         if ($create_correspondence) {
             if ($this->owner->patient->gp_id && $this->owner->patient->practice_id) {
                 $macro_name = \SettingMetadata::model()->getSetting('default_letter_' . $event_type_string);
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
 
                 $result = $this->createCorrespondenceEvent($macro_name);
                 if ($result['success'] === true) {
@@ -114,7 +114,7 @@ class CreateEventsAfterEventSavedBehavior extends CBehavior
 
         if ($create_optom_correspondence) {
             $macro_name = \SettingMetadata::model()->getSetting('default_optom_letter_' . $event_type_string);
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             $result = $this->createCorrespondenceEvent($macro_name);
             if ($result['success'] === true) {

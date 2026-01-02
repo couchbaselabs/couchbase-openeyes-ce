@@ -97,7 +97,7 @@ class PatientIdentifierTypeController extends BaseAdminController
         $criteria = new CDbCriteria();
         $criteria->addInCondition('id', Yii::app()->request->getPost('patient_identifier_types'));
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             foreach (PatientIdentifierType::model()->findAll($criteria) as $pit) {
                 if (!$pit->delete()) {

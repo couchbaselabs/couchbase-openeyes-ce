@@ -122,7 +122,7 @@ class AnalyticsController extends BaseController
     {
         $va_cmd = $this->queryCustomData($this->filters['specialty'], null, 'VA', $ti, false);
 
-        $va_left_join_other = Yii::app()->db->createCommand()
+        $va_left_join_other = Yii::app()->cbdb->createCommand()
             ->select(
                 "
             va.patient_id,
@@ -138,7 +138,7 @@ class AnalyticsController extends BaseController
                 "va.patient_id = other.patient_id AND IF(va.time_interval < 0, 'pre', va.time_interval) = IF(other.time_interval < 0, 'pre', other.time_interval)"
             );
 
-        $va_right_join_other = Yii::app()->db->createCommand()
+        $va_right_join_other = Yii::app()->cbdb->createCommand()
             ->select(
                 "
             IF(va.patient_id IS NULL, other.patient_id, va.patient_id) patient_id,
@@ -329,7 +329,7 @@ class AnalyticsController extends BaseController
             $query_conditions[] = "UNIX_TIMESTAMP(reading.event_date) <= $date_to";
         }
 
-        $patient_va = Yii::app()->db->createCommand()
+        $patient_va = Yii::app()->cbdb->createCommand()
             ->select(
                 "
             diag.full_name,
@@ -344,7 +344,7 @@ class AnalyticsController extends BaseController
             ->join("($va_reading_cmd) reading", 'diag.episode_id = reading.episode_id')
             ->where($query_conditions)
             ->text;
-        $patient_other = Yii::app()->db->createCommand()
+        $patient_other = Yii::app()->cbdb->createCommand()
             ->select(
                 "
             diag.full_name,
@@ -360,7 +360,7 @@ class AnalyticsController extends BaseController
             ->where($query_conditions)
             ->text;
 
-        $patient_va_left_join_other = Yii::app()->db->createCommand()
+        $patient_va_left_join_other = Yii::app()->cbdb->createCommand()
             ->select(
                 "
             va.full_name,
@@ -378,7 +378,7 @@ class AnalyticsController extends BaseController
                 'va.patient_id = other.patient_id and va.event_date = other.event_date and va.side = other.eye_id'
             );
 
-        $patient_va_right_join_other = Yii::app()->db->createCommand()
+        $patient_va_right_join_other = Yii::app()->cbdb->createCommand()
             ->select(
                 "
             IF(va.full_name IS NULL, other.full_name, va.full_name) full_name,
@@ -569,7 +569,7 @@ class AnalyticsController extends BaseController
                 $query_conditions[] = "LOWER(term) LIKE '$proc'";
             }
         }
-        $query_procs = Yii::app()->db->createCommand()
+        $query_procs = Yii::app()->cbdb->createCommand()
             ->select('
                 id,
                 term
@@ -585,7 +585,7 @@ class AnalyticsController extends BaseController
         $query_conditions[] = 'active = 1';
         $query_conditions[] = "name IN ('ETDRS Letters', 'Snellen Metre', 'logMAR 1dp', 'logMAR 2dp')";
 
-        $query_va_units = Yii::app()->db->createCommand()
+        $query_va_units = Yii::app()->cbdb->createCommand()
             ->select('
                 id,
                 name
@@ -689,7 +689,7 @@ class AnalyticsController extends BaseController
     {
         $bindValues = array();
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 "p.id AS id,
                 CONCAT(c.first_name, ' ', c.last_name) AS name,
@@ -1053,7 +1053,7 @@ class AnalyticsController extends BaseController
             t.patient_id
         '
             );
-        $patient_list_command = Yii::app()->db->createCommand()
+        $patient_list_command = Yii::app()->cbdb->createCommand()
             ->from('patient p')
             ->leftJoin('contact c', 'p.contact_id = c.id')
             ->leftJoin('episode e', 'p.id = e.patient_id')
@@ -1177,7 +1177,7 @@ class AnalyticsController extends BaseController
     private function getEventDate()
     {
         if (isset(Yii::app()->modules['OphOuCatprom5'])) {
-            $event_date_command = Yii::app()->db->createCommand()
+            $event_date_command = Yii::app()->cbdb->createCommand()
                 ->select('MAX(t.date_to) as date_to, MIN(t.date_from) as date_from')
                 ->from(
                     '
@@ -1196,7 +1196,7 @@ class AnalyticsController extends BaseController
                 ) t'
                 );
         } else {
-            $event_date_command = Yii::app()->db->createCommand()
+            $event_date_command = Yii::app()->cbdb->createCommand()
                 ->select('MAX(e.event_date) as date_to, MIN(e.event_date) as date_from')
                 ->from('et_ophtroperationnote_cataract eoc')
                 ->join('event e', 'e.id = eoc.event_id');
@@ -1247,7 +1247,7 @@ class AnalyticsController extends BaseController
         if (isset($this->filters['procedure'])) {
             $query_conditions[] = 'eot.drug_id ' . $this->filters['procedure'];
         }
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select(
                 '
             ep.patient_id patient_id,
@@ -1293,7 +1293,7 @@ class AnalyticsController extends BaseController
             return null;
         }
 
-        $command = Yii::app()->db
+        $command = Yii::app()->cbdb
                  ->createCommand()
                  ->select('p.id')
                  ->from('patient p');
@@ -1375,7 +1375,7 @@ class AnalyticsController extends BaseController
         if ($this->filters['procedure']) {
             $query_conditions[] = 'ops.procedure_id ' . $this->filters['procedure'];
         }
-        $op_proc = Yii::app()->db->createCommand()
+        $op_proc = Yii::app()->cbdb->createCommand()
             ->select(
                 '
             ep.patient_id patient_id,
@@ -1390,7 +1390,7 @@ class AnalyticsController extends BaseController
             ->join('event e', 'eop.event_id = e.id')
             ->join('episode ep', 'e.episode_id = ep.id')
             ->join('patient p', 'p.id = ep.patient_id');
-        $laser_proc = Yii::app()->db->createCommand()
+        $laser_proc = Yii::app()->cbdb->createCommand()
             ->select(
                 '
             ep.patient_id patient_id,
@@ -1406,7 +1406,7 @@ class AnalyticsController extends BaseController
             ->join('event e', 'eot.event_id = e.id')
             ->join('episode ep', 'e.episode_id = ep.id')
             ->join('patient p', 'p.id = ep.patient_id');
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select(
                 '
             ops.patient_id patient_id,
@@ -1436,7 +1436,7 @@ class AnalyticsController extends BaseController
         if ($this->filters['procedure']) {
             $query_conditions[] = 'ops.procedure_id ' . $this->filters['procedure'];
         }
-        $op_proc = Yii::app()->db->createCommand()
+        $op_proc = Yii::app()->cbdb->createCommand()
             ->select(
                 '
             ep.patient_id patient_id,
@@ -1451,7 +1451,7 @@ class AnalyticsController extends BaseController
             ->join('event e', 'eop.event_id = e.id')
             ->join('episode ep', 'e.episode_id = ep.id')
             ->join('patient p', 'p.id = ep.patient_id');
-        $laser_proc = Yii::app()->db->createCommand()
+        $laser_proc = Yii::app()->cbdb->createCommand()
             ->select(
                 '
             ep.patient_id patient_id,
@@ -1467,7 +1467,7 @@ class AnalyticsController extends BaseController
             ->join('event e', 'eot.event_id = e.id')
             ->join('episode ep', 'e.episode_id = ep.id')
             ->join('patient p', 'p.id = ep.patient_id');
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select(
                 'ops.patient_id patient_id,
                 MAX(ops.event_date) event_date,
@@ -1501,7 +1501,7 @@ class AnalyticsController extends BaseController
             $query_conditions[] = "p.age >= $age_min AND p.age <= $age_max";
             $query_conditions[] = "p.is_deceased = 0";
         }
-        $patient_episode_diagnoses = Yii::app()->db->createCommand()
+        $patient_episode_diagnoses = Yii::app()->cbdb->createCommand()
             ->select(
                 '
             ep.patient_id patient_id,
@@ -1518,7 +1518,7 @@ class AnalyticsController extends BaseController
             ->leftJoin('disorder d', 'ep.disorder_id = d.id')
             ->where($query_conditions);
 
-        $patient_secondary_diagnosis = Yii::app()->db->createCommand()
+        $patient_secondary_diagnosis = Yii::app()->cbdb->createCommand()
             ->select(
                 '
             sd.patient_id patient_id,
@@ -1557,7 +1557,7 @@ class AnalyticsController extends BaseController
             $va_unit = $this->filters['va_unit'];
             $query_conditions[] = "reading.unit_id = $va_unit";
         }
-        $best_reading = Yii::app()->db->createCommand()
+        $best_reading = Yii::app()->cbdb->createCommand()
             ->select('
                 e.id event_id,
                 reading.side eye_id,
@@ -1607,7 +1607,7 @@ class AnalyticsController extends BaseController
             $query_conditions[] = 'IF(oiv.eye_id = 2, 0, oiv.eye_id) = :side';
         }
         $query_conditions[] = 'e.deleted = 0';
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select(
                 '
             e.id event_id,
@@ -1637,7 +1637,7 @@ class AnalyticsController extends BaseController
         }
         $query_conditions[] = 'e.deleted = 0';
         $query_conditions[] = 'crt.value IS NOT NULL';
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select(
                 '
             e.id event_id,
@@ -1722,7 +1722,7 @@ class AnalyticsController extends BaseController
         $time_interval_unit = $time_interval['unit'];
         $time_interval_num = $time_interval['num'];
 
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->select(
                 "
             diag.patient_id patient_id,
@@ -1875,7 +1875,7 @@ class AnalyticsController extends BaseController
      */
     public function queryCataractEventList($params = null)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 '
                 eoc.event_id as event_id,
@@ -1976,7 +1976,7 @@ class AnalyticsController extends BaseController
         }
 
         if ($only_name) {
-            $common_ophthalmic_disorders_command = Yii::app()->db->createCommand()
+            $common_ophthalmic_disorders_command = Yii::app()->cbdb->createCommand()
                 ->select('d.id, d.term', 'DISTINCT')
                 ->from('common_ophthalmic_disorder cod')
                 ->leftJoin('disorder d', 'd.id = cod.disorder_id')
@@ -2003,7 +2003,7 @@ class AnalyticsController extends BaseController
      */
     public function getPatientsListByDiagnosisSurgeon($surgeon_id = null, $subspecialty = null)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('e2.patient_id as patient_id')
             ->from('et_ophciexamination_diagnoses eod')
             ->leftJoin('event e', 'e.id = eod.event_id')
@@ -2027,7 +2027,7 @@ class AnalyticsController extends BaseController
 
     public function queryDiagnosis($subspecialty_id = null, $surgeon_id = null, $start_date = null, $end_date = null)
     {
-        $command_principal = Yii::app()->db->createCommand()
+        $command_principal = Yii::app()->cbdb->createCommand()
             ->select(
                 '
                 e.patient_id patient_id,
@@ -2045,7 +2045,7 @@ class AnalyticsController extends BaseController
             ->where('e.disorder_id IS NOT NULL')
             ->andWhere('e.deleted = 0');
 
-        $command_secondary = Yii::app()->db->createCommand()
+        $command_secondary = Yii::app()->cbdb->createCommand()
             ->select(
                 '
                 sd.patient_id patient_id,
@@ -2078,7 +2078,7 @@ class AnalyticsController extends BaseController
             $command_principal->andWhere('UNIX_TIMESTAMP(e.created_date) < ' . $end_date);
             $command_secondary->andWhere('UNIX_TIMESTAMP(sd.created_date) < ' . $end_date);
         }
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->from(
                 '(' . $command_principal->getText() .
                 ' UNION ALL ' . $command_secondary->getText() . ') t'
@@ -2089,7 +2089,7 @@ class AnalyticsController extends BaseController
     {
         $queryConditions = array('and');
         $outterQueryConditions = array('and');
-        $secondary_diagnosis_command = Yii::app()->db->createCommand()
+        $secondary_diagnosis_command = Yii::app()->cbdb->createCommand()
             ->select(
                 '
                 sd.patient_id,
@@ -2103,7 +2103,7 @@ class AnalyticsController extends BaseController
             ->leftJoin('episode ep', 'ep.patient_id = sd.patient_id')
             ->leftJoin('firm f', 'ep.firm_id = f.id')
             ->leftJoin('service_subspecialty_assignment ssa', 'ssa.id = f.service_subspecialty_assignment_id');
-        $episode_diagnosis_command = Yii::app()->db->createCommand()
+        $episode_diagnosis_command = Yii::app()->cbdb->createCommand()
             ->select(
                 '
                 ep2.patient_id,
@@ -2125,7 +2125,7 @@ class AnalyticsController extends BaseController
             $queryConditions[] = 't.created_user_id = ' . $surgeon_id;
             $outterQueryConditions[] = 'ep3.created_user_id = ' . $surgeon_id;
         }
-        $patient_with_disorder_command = Yii::app()->db->createCommand()
+        $patient_with_disorder_command = Yii::app()->cbdb->createCommand()
             ->select(
                 '
                 patient_id,
@@ -2144,7 +2144,7 @@ class AnalyticsController extends BaseController
                 ') t'
             )
             ->where($queryConditions);
-        return Yii::app()->db->createCommand()
+        return Yii::app()->cbdb->createCommand()
             ->from('patient p')
             ->leftJoin('episode ep3', 'p.id = ep3.patient_id')
             ->leftJoin('firm f', 'ep3.firm_id = f.id')
@@ -2515,7 +2515,7 @@ class AnalyticsController extends BaseController
     private function queryDiagnosesFilteredPatientListCommand($eye_side, $caller = 'custom')
     {
         $diagnoses = isset($this->filters['diagnosis']) ? $this->filters['diagnosis'] : null;
-        $command_principal = Yii::app()->db->createCommand()
+        $command_principal = Yii::app()->cbdb->createCommand()
             ->select('e.patient_id as patient_id', 'DISTINCT')
             ->from('episode e')
             ->leftJoin('patient p', 'p.id = e.patient_id')
@@ -2523,7 +2523,7 @@ class AnalyticsController extends BaseController
             ->andWhere('e.deleted = 0')
             ->andWhere('p.deleted = 0');
 
-        $command_secondary = Yii::app()->db->createCommand()
+        $command_secondary = Yii::app()->cbdb->createCommand()
             ->select('sd.patient_id as patient_id', 'DISTINCT')
             ->from('secondary_diagnosis sd')
             ->leftJoin('patient p', 'p.id = sd.patient_id')
@@ -2579,7 +2579,7 @@ class AnalyticsController extends BaseController
         $diagnosis_text = null;
 
         if ($diagnosis) {
-            $command_filtered_patients_by_diagnosis = Yii::app()->db->createCommand()
+            $command_filtered_patients_by_diagnosis = Yii::app()->cbdb->createCommand()
                                                                     ->select('dp.patient_id', 'distinct')
                                                                     ->from('(' . $this->queryDiagnosesFilteredPatientListCommand(null, 'followup')->getText() . ') AS dp');
             $diagnosis_text = $command_filtered_patients_by_diagnosis->getText();
@@ -2647,7 +2647,7 @@ class AnalyticsController extends BaseController
      */
     protected function queryAllDiagnosisForPatient($patient_id)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('od.disorder_id AS disorder_id')
             ->from('episode e')
             ->leftJoin('event e2', 'e2.episode_id = e.id')
@@ -2673,7 +2673,7 @@ class AnalyticsController extends BaseController
      */
     protected function queryAllMdr($command_filtered_patients)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('ROUND(ps.gradient) AS mdr, ps.eye_id, COUNT(*) AS frequency')
             ->from('patient_statistic ps')
             ->where("ps.stat_type_mnem = 'md'")
@@ -2688,7 +2688,7 @@ class AnalyticsController extends BaseController
             || (isset($this->filters['date_to']) && $this->filters['date_to'])
         ) {
             $bindValues = array();
-            $command_event_filtered = Yii::app()->db->createCommand()
+            $command_event_filtered = Yii::app()->cbdb->createCommand()
                 ->select('psd.id')
                 ->from('patient_statistic_datapoint psd')
                 ->join('event e', 'e.id = psd.event_id')
@@ -2723,7 +2723,7 @@ class AnalyticsController extends BaseController
         $bindValues = array();
         $command_filtered_patients = $this->getCustomVf($this->filters['procedure'] ?? null);
 
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select(
                 "psd.patient_id,
     psd.stat_type_mnem,
@@ -2749,7 +2749,7 @@ class AnalyticsController extends BaseController
             (isset($this->filters['date_from']) && $this->filters['date_from'])
             || (isset($this->filters['date_to']) && $this->filters['date_to'])
         ) {
-            $command_event_filtered = Yii::app()->db->createCommand()
+            $command_event_filtered = Yii::app()->cbdb->createCommand()
                 ->select('psd.id')
                 ->from('patient_statistic_datapoint psd')
                 ->join('event e', 'e.id = psd.event_id')
@@ -2783,14 +2783,14 @@ class AnalyticsController extends BaseController
      */
     protected function queryAllMdForPatient($patient_id)
     {
-        $command = Yii::app()->db->createCommand()
+        $command = Yii::app()->cbdb->createCommand()
             ->select('psd.x_value AS age, psd.eye_id, psd.y_value AS md')
             ->from('patient_statistic_datapoint psd')
             ->leftJoin('event e', 'e.id = psd.event_id')
             ->where("stat_type_mnem = 'md' AND patient_id = :patient_id", array(':patient_id' => $patient_id))
             ->order('eye_id, age');
 
-        $command2 = Yii::app()->db->createCommand()
+        $command2 = Yii::app()->cbdb->createCommand()
             ->select(
                 "psd.patient_id,
     psd.eye_id,

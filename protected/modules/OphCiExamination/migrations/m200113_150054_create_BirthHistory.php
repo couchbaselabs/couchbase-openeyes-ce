@@ -21,63 +21,107 @@ class m200113_150054_create_BirthHistory extends OEMigration
     protected const ELEMENT_CLS_NAME = 'OEModule\OphCiExamination\models\BirthHistory';
     public function up()
     {
-        $this->createElementType('OphCiExamination', 'Birth History', [
-            'class_name' => self::ELEMENT_CLS_NAME,
-            'display_order' => 123, // after Social History
-            'group_name' => self::GROUP_NAME
-        ]);
+        $eventTypeId = $this->getIdOfEventTypeByClassName('OphCiExamination');
+        $elementTypeExists = $this->dbConnection->createCommand()
+            ->select('id')
+            ->from('element_type')
+            ->where('class_name = :class_name AND event_type_id = :event_type_id', [
+                ':class_name' => self::ELEMENT_CLS_NAME,
+                ':event_type_id' => $eventTypeId,
+            ])->queryScalar();
+        if (!$elementTypeExists) {
+            $this->createElementType('OphCiExamination', 'Birth History', [
+                'class_name' => self::ELEMENT_CLS_NAME,
+                'display_order' => 123, // after Social History
+                'group_name' => self::GROUP_NAME
+            ]);
+        }
 
-        $this->createOETable(
-            'ophciexamination_birthhistory_deliverytype',
-            [
-                'id' => 'pk',
-                'name' => 'varchar(63) not null',
-                'display_order' => 'tinyint not null',
-                'active' => 'boolean',
-            ], true);
+        if (!$this->verifyTableExists('ophciexamination_birthhistory_deliverytype')) {
+            $this->createOETable(
+                'ophciexamination_birthhistory_deliverytype',
+                [
+                    'id' => 'pk',
+                    'name' => 'varchar(63) not null',
+                    'display_order' => 'tinyint not null',
+                    'active' => 'boolean',
+                ], true);
+        }
 
-        $this->createOETable(
-            'et_ophciexamination_birthhistory',
-            [
-                'id' => 'pk',
-                'event_id' => 'int(10) unsigned not null',
-                'weight_recorded_units' => 'varchar(2)',
-                'weight_grams' => 'int',
-                'weight_ozs' => 'int',
-                'birth_history_delivery_type_id' => 'int(11)',
-                'gestation_weeks' => 'tinyint',
-                'had_neonatal_specialist_care' => 'tinyint',
-                'was_multiple_birth' => 'tinyint',
-                'comments' => 'text'
-            ], true );
+        if (!$this->verifyTableExists('et_ophciexamination_birthhistory')) {
+            $this->createOETable(
+                'et_ophciexamination_birthhistory',
+                [
+                    'id' => 'pk',
+                    'event_id' => 'int(10) unsigned not null',
+                    'weight_recorded_units' => 'varchar(2)',
+                    'weight_grams' => 'int',
+                    'weight_ozs' => 'int',
+                    'birth_history_delivery_type_id' => 'int(11)',
+                    'gestation_weeks' => 'tinyint',
+                    'had_neonatal_specialist_care' => 'tinyint',
+                    'was_multiple_birth' => 'tinyint',
+                    'comments' => 'text'
+                ], true );
+        }
 
-        $this->addForeignKey('et_ophciexamination_birthhistory_ev_fk',
-            'et_ophciexamination_birthhistory',
-            'event_id',
-            'event',
-            'id');
+        if (!$this->verifyForeignKeyExists('et_ophciexamination_birthhistory', 'et_ophciexamination_birthhistory_ev_fk')) {
+            $this->addForeignKey('et_ophciexamination_birthhistory_ev_fk',
+                'et_ophciexamination_birthhistory',
+                'event_id',
+                'event',
+                'id');
+        }
 
-        $this->addForeignKey('et_ophciexamination_birthhistory_dt_fk',
-            'et_ophciexamination_birthhistory',
-            'birth_history_delivery_type_id',
-            'ophciexamination_birthhistory_deliverytype',
-            'id');
+        if (!$this->verifyForeignKeyExists('et_ophciexamination_birthhistory', 'et_ophciexamination_birthhistory_dt_fk')) {
+            $this->addForeignKey('et_ophciexamination_birthhistory_dt_fk',
+                'et_ophciexamination_birthhistory',
+                'birth_history_delivery_type_id',
+                'ophciexamination_birthhistory_deliverytype',
+                'id');
+        }
 
-        $this->initialiseData(dirname(__FILE__));
+        $deliveryTypeCount = (int) $this->dbConnection->createCommand()
+            ->select('COUNT(*)')
+            ->from('ophciexamination_birthhistory_deliverytype')
+            ->queryScalar();
+        if ($deliveryTypeCount === 0) {
+            $this->initialiseData(dirname(__FILE__));
+        }
 
-        $examination_id = $this->getIdOfEventTypeByClassName('OphCiExamination');
-        $this->insert('index_search', [
-            'event_type_id' => $examination_id,
-            'primary_term' => 'Birth History',
-            'open_element_class_name' => self::ELEMENT_CLS_NAME,
-        ]);
+        if ($this->dbConnection->schema->getTable('index_search', true)) {
+            $exists = $this->dbConnection->createCommand()
+                ->select('id')
+                ->from('index_search')
+                ->where('open_element_class_name = :class', [':class' => self::ELEMENT_CLS_NAME])
+                ->queryScalar();
+            if (!$exists) {
+                $this->insert('index_search', [
+                    'event_type_id' => $eventTypeId,
+                    'primary_term' => 'Birth History',
+                    'open_element_class_name' => self::ELEMENT_CLS_NAME,
+                ]);
+            }
+        }
     }
 
     public function down()
     {
-        $this->delete('index_search', 'open_element_class_name = ? ', [self::ELEMENT_CLS_NAME]);
-        $this->dropOETable('et_ophciexamination_birthhistory', true);
-        $this->dropOETable('ophciexamination_birthhistory_deliverytype', true);
+        if ($this->dbConnection->schema->getTable('index_search', true)) {
+            $this->delete('index_search', 'open_element_class_name = ? ', [self::ELEMENT_CLS_NAME]);
+        }
+        if ($this->verifyTableExists('et_ophciexamination_birthhistory')) {
+            if ($this->verifyForeignKeyExists('et_ophciexamination_birthhistory', 'et_ophciexamination_birthhistory_ev_fk')) {
+                $this->dropForeignKey('et_ophciexamination_birthhistory_ev_fk', 'et_ophciexamination_birthhistory');
+            }
+            if ($this->verifyForeignKeyExists('et_ophciexamination_birthhistory', 'et_ophciexamination_birthhistory_dt_fk')) {
+                $this->dropForeignKey('et_ophciexamination_birthhistory_dt_fk', 'et_ophciexamination_birthhistory');
+            }
+            $this->dropOETable('et_ophciexamination_birthhistory', true);
+        }
+        if ($this->verifyTableExists('ophciexamination_birthhistory_deliverytype')) {
+            $this->dropOETable('ophciexamination_birthhistory_deliverytype', true);
+        }
 
         $event_type_id = $this->dbConnection->createCommand()
             ->select('id')

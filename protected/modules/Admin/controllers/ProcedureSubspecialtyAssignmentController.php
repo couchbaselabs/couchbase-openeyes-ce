@@ -54,7 +54,7 @@ class ProcedureSubspecialtyAssignmentController extends \BaseAdminController
         $this->jsVars['institution_options'] = $institution_options;
 
         if (Yii::app()->request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 $display_orders = Yii::app()->request->getParam('display_order', []);
                 $assignments = Yii::app()->request->getParam('ProcedureSubspecialtyAssignment', []);

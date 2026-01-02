@@ -38,6 +38,14 @@ class ServiceSubspecialtyAssignment extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * Couchbase scope for reference data
+     */
+    public function couchbaseScope()
+    {
+        return 'reference';
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return ServiceSubspecialtyAssignment the static model class
@@ -45,6 +53,50 @@ class ServiceSubspecialtyAssignment extends BaseActiveRecordVersioned
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
+    }
+
+    public function __get($name)
+    {
+        if ($name === 'service') {
+            return $this->resolveService();
+        }
+        if ($name === 'subspecialty') {
+            return $this->resolveSubspecialty();
+        }
+
+        return parent::__get($name);
+    }
+
+    private function resolveService()
+    {
+        $related = $this->getRelated('service', false);
+        if ($related !== null) {
+            return $related;
+        }
+        if (!$this->service_id) {
+            return null;
+        }
+        $service = Service::model()->findByPk($this->service_id);
+        if ($service) {
+            $this->addRelatedRecord('service', $service, false);
+        }
+        return $service;
+    }
+
+    private function resolveSubspecialty()
+    {
+        $related = $this->getRelated('subspecialty', false);
+        if ($related !== null) {
+            return $related;
+        }
+        if (!$this->subspecialty_id) {
+            return null;
+        }
+        $subspecialty = Subspecialty::model()->findByPk($this->subspecialty_id);
+        if ($subspecialty) {
+            $this->addRelatedRecord('subspecialty', $subspecialty, false);
+        }
+        return $subspecialty;
     }
 
     /**

@@ -23,6 +23,21 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
     public $version_date = null;
     /* Disable archiving on save() */
 
+    /**
+     * Determine if an underlying SQL connection is available.
+     */
+    protected function isSqlAvailable()
+    {
+        $conn = $this->getDbConnection();
+        if (!$conn) {
+            return false;
+        }
+        if (method_exists($conn, 'isConnectionAvailable') && !$conn->isConnectionAvailable()) {
+            return false;
+        }
+        return true;
+    }
+
     public function noVersion()
     {
         $this->enable_version = false;
@@ -142,6 +157,11 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
 
     public function updateByPk($pk, $attributes, $condition = '', $params = array())
     {
+        // If no SQL backend is available, skip DB update/versioning but report success so afterSave can run (Couchbase path).
+        if (!$this->isSqlAvailable()) {
+            return true;
+        }
+
         $transaction = $this->dbConnection->beginInternalTransaction();
         try {
             $this->versionToTable($this->commandBuilder->createPkCriteria($this->tableName(), $pk, $condition, $params));
@@ -221,7 +241,53 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
             throw new Exception('save() should not be called on versiond model instances.');
         }
 
-        return parent::save($runValidation, $attributes, $allow_overriding);
+        if ($this->isSqlAvailable()) {
+            return parent::save($runValidation, $attributes, $allow_overriding);
+        }
+
+        // Couchbase-only path
+        if ($runValidation && !$this->validate($attributes)) {
+            return false;
+        }
+
+        $user_id = $this->getChangeUserId();
+        if ($this->getIsNewRecord() || !isset($this->id)) {
+            if ($this->hasAttribute('created_user_id') && !$allow_overriding) {
+                $this->created_user_id = $user_id;
+            }
+            if ($this->hasAttribute('created_date') && (!$allow_overriding || $this->created_date == '1900-01-01 00:00:00')) {
+                $this->created_date = date('Y-m-d H:i:s');
+            }
+        }
+
+        if ($this->hasAttribute('last_modified_user_id') && !$allow_overriding) {
+            $this->last_modified_user_id = $user_id;
+        }
+        if ($this->hasAttribute('last_modified_date') && (!$allow_overriding || $this->last_modified_date == '1900-01-01 00:00:00')) {
+            $this->last_modified_date = date('Y-m-d H:i:s');
+        }
+
+        // Ensure we have a primary key for Couchbase document keying
+        // Only set auto-generated ID if model has 'id' column AND no primary key value yet
+        if (!$this->getPrimaryKey() && $this->hasAttribute('id')) {
+            $this->id = (int)floor(microtime(true) * 1000);
+        }
+
+        // Run lifecycle hooks
+        if (!$this->beforeSave()) {
+            return false;
+        }
+
+        if (method_exists($this, 'saveToCouchbase')) {
+            $this->saveToCouchbase();
+        } elseif (method_exists($this, 'syncToCouchbase')) {
+            $this->syncToCouchbase();
+        }
+
+        // Mark as persisted to align with AR expectations
+        $this->setIsNewRecord(false);
+        $this->afterSave();
+        return true;
     }
 
     public function resetScope($resetDefault = true)
@@ -234,7 +300,7 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
 
     protected function versionToTable(CDbCriteria $criteria)
     {
-        if ($this->enable_version) {
+        if ($this->enable_version && $this->isSqlAvailable()) {
             $this->getCommandBuilder()->createInsertFromTableCommand(
                 $this->getVersionTableSchema(),
                 $this->getTableSchema(),

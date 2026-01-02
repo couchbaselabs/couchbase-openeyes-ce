@@ -318,7 +318,7 @@ class AdminController extends \ModuleAdminController
             return null;
         }
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $result = true;
 
         try {
@@ -646,7 +646,7 @@ class AdminController extends \ModuleAdminController
     public function actionGetEmailBody($recipient_type)
     {
         if ($recipient_type != '') {
-            $email_body = \Yii::app()->db->createCommand()
+            $email_body = \Yii::app()->cbdb->createCommand()
                 ->select('email_body')
                 ->from('ophcocorrespondence_default_recipient_email_templates')
                 ->where('recipient_type=:recipient_type', array(':recipient_type' => $recipient_type))

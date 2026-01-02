@@ -322,8 +322,8 @@ class SiteController extends BaseController
     private function doVersionCheck()
     {
         $ammoniteURL = Yii::App()->params['ammonite_url'];
-        $lastCheckDate = \Yii::app()->db->createCommand()->select('last_version_check_date')->from('ammonite')->queryScalar();
-        $uuid = \Yii::app()->db->createCommand()->select('uuid')->from('ammonite')->queryScalar();
+        $lastCheckDate = \Yii::app()->cbdb->createCommand()->select('last_version_check_date')->from('ammonite')->queryScalar();
+        $uuid = \Yii::app()->cbdb->createCommand()->select('uuid')->from('ammonite')->queryScalar();
 
         if (empty($uuid)) {
             $apiInfo = $this->registerAPI($ammoniteURL);
@@ -331,7 +331,7 @@ class SiteController extends BaseController
                 return;
             } else {
                 Yii::app()->session['shown_version_reminder'] = false;
-                $db = Yii::app()->db;
+                $db = Yii::app()->cbdb;
                 $db->createCommand()->insert('ammonite', array(
                     'uuid' => $apiInfo->uuid,
                     'last_version_check_date' => null,
@@ -339,7 +339,7 @@ class SiteController extends BaseController
                 ));
             }
         } elseif ($this->versionExpired($lastCheckDate)) {
-            $uuid = \Yii::app()->db->createCommand()->select('uuid')->from('ammonite')->queryScalar();
+            $uuid = \Yii::app()->cbdb->createCommand()->select('uuid')->from('ammonite')->queryScalar();
             $this->sendVersionInfo($ammoniteURL, $uuid);
         } else {
             Yii::log("The version has been checked recently");
@@ -397,10 +397,10 @@ class SiteController extends BaseController
             $ipaddress = getenv('REMOTE_ADDR');
         }
 
-        $user_count = Yii::app()->db->createCommand('select count(id) from user')->queryScalar();
-        $event_count = Yii::app()->db->createCommand('select count(id) from event')->queryScalar();
-        $patient_count = Yii::app()->db->createCommand('select count(id) from patient')->queryScalar();
-        $install_date = Yii::app()->db->createCommand('select first_install_date from ammonite')->queryScalar();
+        $user_count = Yii::app()->cbdb->createCommand('select count(id) from user')->queryScalar();
+        $event_count = Yii::app()->cbdb->createCommand('select count(id) from event')->queryScalar();
+        $patient_count = Yii::app()->cbdb->createCommand('select count(id) from patient')->queryScalar();
+        $install_date = Yii::app()->cbdb->createCommand('select first_install_date from ammonite')->queryScalar();
         exec("apachectl -v", $webserver_version);
 
         $json_array = array(
@@ -459,7 +459,7 @@ class SiteController extends BaseController
             // log curl error message
             \Yii::log($error_msg);
         } else {
-            $db = Yii::app()->db;
+            $db = Yii::app()->cbdb;
             $db->createCommand()->update(
                 'ammonite',
                 array('last_version_check_date' => date('Y-m-d H:i:s'))

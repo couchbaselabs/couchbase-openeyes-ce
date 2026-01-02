@@ -42,10 +42,14 @@
         {{/dose_unit_term}}
         {{^dose_unit_term}}
             <?php
+                $unitOfMeasure = MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'");
+                $unitOptions = $unitOfMeasure && $unitOfMeasure->medicationAttributeOptions 
+                    ? CHtml::listData($unitOfMeasure->medicationAttributeOptions, 'description', 'description') 
+                    : [];
                 echo CHtml::dropDownList(
                     $field_prefix . '[dose_unit_term]',
                     $entry->dose_unit_term,
-                    CHtml::listData(MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'")->medicationAttributeOptions, 'description', 'description'),
+                    $unitOptions,
                     [
                         'empty' => '-Unit-',
                         'class' => 'js-unit-dropdown cols-5',

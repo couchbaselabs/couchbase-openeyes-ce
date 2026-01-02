@@ -84,7 +84,11 @@ if ($this instanceof BaseEventTypeController) {
                     <?php
                     foreach ($drafts_for_user as $draft) {
                         $draft_event = $draft->event;
-                        $draft_patient = $draft->episode->patient;
+                        $draft_episode = $draft->episode ?: Episode::model()->findByPk($draft->episode_id);
+                        if (!$draft_episode || !$draft_episode->patient) {
+                            continue; // skip malformed drafts
+                        }
+                        $draft_patient = $draft_episode->patient;
                         $draft_patient_primary_identifier = PatientIdentifierHelper::getIdentifierForPatient($display_primary_number_usage_code, $draft_patient->id, $institution_id, $site_id);
                         ?>
                         <tr

@@ -139,7 +139,7 @@ class CouchbaseMonitorController extends BaseController
         // Check MariaDB
         try {
             $start = microtime(true);
-            Yii::app()->db->createCommand("SELECT 1")->queryScalar();
+            Yii::app()->cbdb->createCommand("SELECT 1")->queryScalar();
             $latency = (microtime(true) - $start) * 1000;
             
             $status['mariadb'] = [

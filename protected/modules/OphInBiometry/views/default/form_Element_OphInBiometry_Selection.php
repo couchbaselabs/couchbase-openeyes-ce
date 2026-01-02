@@ -18,7 +18,10 @@
 ?>
 
 <div class="element-fields element-eyes">
-    <?php foreach (['left' => 'right', 'right' => 'left'] as $page_side => $eye_side) : ?>
+    <?php 
+$is_auto_biometry = isset($this->is_auto) ? $this->is_auto : false;
+?>
+<?php foreach (['left' => 'right', 'right' => 'left'] as $page_side => $eye_side) : ?>
         <?= $form->hiddenInput($element, 'eye_id', false, array('class' => 'sideField')); ?>
         <div id="<?= $eye_side ?>-eye-selection"
              class="js-element-eye <?= $eye_side ?>-eye <?= $page_side ?> <?php if (!$element->hasEye($eye_side)) {
@@ -27,7 +30,7 @@
              data-side="<?= $eye_side ?>" style="display: <?= $this->action->id === "create" ? "none" : "" ?>">
             <div class="active-form" style="<?= !$element->hasEye($eye_side) ? 'display: none;' : '' ?>">
                 <?= $form->hiddenInput($element, 'eye_id', false, array('class' => 'sideField')); ?>
-                <?php if ($this->is_auto) { ?>
+                <?php if ($is_auto_biometry) { ?>
                     <label class="inline highlight"
                            for="<?= Chtml::modelName($element) . '_manually_overriden_' . $eye_side ?>">
                         <?= \CHtml::activeCheckBox(
@@ -41,15 +44,15 @@
                 <?php $manually_overriden = $element->{'manually_overriden_' . $eye_side}; ?>
 
                 <?php $this->renderPartial(
-                    'form_Element_OphInBiometry_Selection_fields',
+                    'application.modules.OphInBiometry.views.default.form_Element_OphInBiometry_Selection_fields',
                     array('side' => $eye_side, 'element' => $element, 'form' => $form, 'data' => $data,
                         'manual_override' => false,
                         'disable' => $manually_overriden
                     )
                 ); ?>
-                <?php if ($this->is_auto) {
+                <?php if ($is_auto_biometry) {
                     $this->renderPartial(
-                        'form_Element_OphInBiometry_Selection_fields',
+                        'application.modules.OphInBiometry.views.default.form_Element_OphInBiometry_Selection_fields',
                         array('side' => $eye_side, 'element' => $element, 'form' => $form, 'data' => $data,
                             'manual_override' => true,
                         'disable' => !$manually_overriden)

@@ -473,6 +473,11 @@ class BaseActiveRecord extends CActiveRecord
      */
     private function afterSaveManyMany($name, $rel, $new_objs, $orig_objs)
     {
+        // Skip relation sync if no SQL backend is available (Couchbase-only mode)
+        if (method_exists($this, 'isSqlAvailable') && !$this->isSqlAvailable()) {
+            return;
+        }
+
         // get the table name and foreign keys
         $tbl_name = $rel->getJunctionTableName();
         $tbl_keys = $rel->getJunctionForeignKeys();
@@ -921,7 +926,7 @@ class BaseActiveRecord extends CActiveRecord
     public function getNextHighestDisplayOrder($increase_by = 10)
     {
         if ($this->hasAttribute('display_order')) {
-            return Yii::app()->db->createCommand()
+            return Yii::app()->cbdb->createCommand()
                     ->select('MAX(display_order)')
                     ->from($this->tableName())
                     ->queryScalar() + $increase_by;

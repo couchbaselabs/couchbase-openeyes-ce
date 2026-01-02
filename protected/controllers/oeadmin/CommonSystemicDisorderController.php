@@ -67,7 +67,7 @@ class CommonSystemicDisorderController extends BaseAdminController
                                     ? Institution::model()->find('id = ' . $this->request->getParam('institution_id'))
                                     : (!$this->checkAccess('admin') ? Institution::model()->getCurrent() : null);
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $JSON_string = Yii::app()->request->getPost('CommonSystemicDisorder');
 
         $json_error = false;

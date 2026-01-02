@@ -156,6 +156,8 @@ $primary_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPrompt
         ?>
         <?php foreach ($dataProvided as $i => $patient) { ?>
             <?php
+            $primary_identifier = null;
+            try {
                 $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(
                     \SettingMetadata::model()->getSetting('display_primary_number_usage_code'),
                     $patient->id,
@@ -163,46 +165,62 @@ $primary_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPrompt
                     $site_id
                 );
 
-            if (!$primary_identifier) {
-                $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(
-                    \SettingMetadata::model()->getSetting('display_secondary_number_usage_code'),
-                    $patient->id,
-                    $institution->id,
-                    $site_id
-                );
+                if (!$primary_identifier) {
+                    $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(
+                        \SettingMetadata::model()->getSetting('display_secondary_number_usage_code'),
+                        $patient->id,
+                        $institution->id,
+                        $site_id
+                    );
+                }
+            } catch (Exception $e) {
+                // Couchbase-only patients may not have identifier rows in MariaDB
+                $primary_identifier = null;
             }
+
+            // Fallback to Couchbase fields if no DB identifiers exist
+            $primary_value = $primary_identifier->value ?? ($patient->hos_num ?? $patient->nhs_num ?? '');
+            $local_identifier_value = $patient->localIdentifiers[0]->value ?? $patient->globalIdentifiers[0]->value ?? ($patient->hos_num ?? $patient->nhs_num ?? '');
             ?>
 
         <tr id="r<?php echo $patient->id ?>" class="clickable found-patient"
             data-link="<?php echo $core_api->generatePatientLandingPageLink($patient); ?>"
             <?php
-            // data-patient_identifier_value used when the object is unsaved - means it came from PAS
-            // PAS responsible for setting up this relation
-            // for already saved patient we don't care this value here, patient.id will be used to navigate the user
-            // to the patient summary page
-            echo "data-patient_identifier_value='" . ($patient->localIdentifiers[0]->value ?? $patient->globalIdentifiers[0]->value ?? '') . "'";
+            echo "data-patient_identifier_value='" . $local_identifier_value . "'";
             if ($patient->isNewRecord) {
                 echo " data-is_new_record='1'";
-                echo " data-patient_identifier_type_id=" . $patient->localIdentifiers[0]->patientIdentifierType->id ?? $patient->globalIdentifiers[0]->patientIdentifierType->id ?? '';
             }
             ?>
         >
-            <td><?= $primary_identifier->value ?? $patient->localIdentifiers[0]->value ?? ''; ?>
+            <td><?= CHtml::encode($primary_value); ?>
                 <span class="fade">
-                <?php $this->widget(
-                    'application.widgets.PatientIdentifiers',
-                    [
-                        'patient' => $patient,
-                        'show_all' => true
-                    ]
-                ); ?>
+                <?php
+                // Only render full identifier widget when identifiers are present in DB
+                if (!empty($patient->localIdentifiers) || !empty($patient->globalIdentifiers)) {
+                    $this->widget(
+                        'application.widgets.PatientIdentifiers',
+                        [
+                            'patient' => $patient,
+                            'show_all' => true
+                        ]
+                    );
+                }
+                ?>
                 <small><?= $patient->isNewRecord ? '| From PAS' : ''?><small></span>
             </td>
                   <td><?php echo $patient->title ?></td>
                   <td><?php echo $patient->first_name ?></td>
                   <td><?php echo $patient->last_name ?></td>
                   <td><?php echo $patient->dob ? (date('d/m/Y', strtotime($patient->dob))) : ''; ?></td>
-                  <td><?php echo $patient->getAge(); ?></td>
+                  <td>
+                      <?php
+                      if ($patient->dob) {
+                          $dob = new DateTime($patient->dob);
+                          $now = new DateTime();
+                          echo $dob->diff($now)->y;
+                      }
+                      ?>
+                  </td>
                   <td><?php echo $patient->gender ?></td>
                   <td>
                       <?php if ($patient->primary_institution) {

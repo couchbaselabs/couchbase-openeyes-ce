@@ -263,18 +263,39 @@ class m150511_161109_examinationAttributesData extends CDbMigration
                     echo 'Missing element type: '.$this->elementTypeData[$this->ophciexaminationAttributeElementData[$ophciexaminationAttributeOption['attribute_element_id']]['element_type_id']]['class_name']."\n";
                 } else {
                     // searching for attribute element id data
-                    $attributeElementData = $subspecialtyData = $this->dbConnection->createCommand()->select('*')->from('ophciexamination_attribute_element')->where(
+                    $attributeElementData = $this->dbConnection->createCommand()->select('*')->from('ophciexamination_attribute_element')->where(
                         'attribute_id = :attribute_id and element_type_id = :element_type_id',
                         array(':attribute_id' => $attributeData['id'],
                         ':element_type_id' => $elementData['id'],
                         )
                     )->queryRow();
 
-                    if ($ophciexaminationAttributeOption['subspecialty_id'] > 0) {
+                    if (!$attributeElementData) {
+                        echo "Missing attribute element for attribute {$attributeData['id']} and element {$elementData['id']}\n";
+                        continue;
+                    }
+
+                    $subspecialtyId = null;
+                    $rawSubspecialtyId = $ophciexaminationAttributeOption['subspecialty_id'];
+                    if (is_numeric($rawSubspecialtyId) && (int) $rawSubspecialtyId > 0) {
+                        $subspecialtyKey = (int) $rawSubspecialtyId;
+                        if (!isset($this->subspecialtyData[$subspecialtyKey])) {
+                            echo "Missing subspecialty mapping for id {$subspecialtyKey}\n";
+                            continue;
+                        }
+
+                        $subspecialtyName = $this->subspecialtyData[$subspecialtyKey]['name'];
                         $subspecialtyData = $this->dbConnection->createCommand()->select('*')->from('subspecialty')->where(
                             'name = :name',
-                            array(':name' => $this->subspecialtyData[$ophciexaminationAttributeOption['subspecialty_id']]['name'])
+                            array(':name' => $subspecialtyName)
                         )->queryRow();
+
+                        if (!$subspecialtyData) {
+                            echo "Missing subspecialty {$subspecialtyName}\n";
+                            continue;
+                        }
+
+                        $subspecialtyId = $subspecialtyData['id'];
 
                         $currentAttributeOption = $this->dbConnection->createCommand()->select('*')
                             ->from('ophciexamination_attribute_option')
@@ -282,12 +303,11 @@ class m150511_161109_examinationAttributesData extends CDbMigration
                                 'value = :value and subspecialty_id = :subspecialty_id and attribute_element_id = :attribute_element_id',
                                 array(
                                     ':value' => $ophciexaminationAttributeOption['value'],
-                                    ':subspecialty_id' => $subspecialtyData['id'],
+                                    ':subspecialty_id' => $subspecialtyId,
                                     ':attribute_element_id' => $attributeElementData['id'],
                                 )
                             )->queryRow();
                     } else {
-                        $subspecialtyData['id'] = null;
                         $currentAttributeOption = $this->dbConnection->createCommand()->select('*')
                             ->from('ophciexamination_attribute_option')
                             ->where(
@@ -302,7 +322,7 @@ class m150511_161109_examinationAttributesData extends CDbMigration
                     if (!$currentAttributeOption) {
                         $this->insert('ophciexamination_attribute_option', array('value' => $ophciexaminationAttributeOption['value'],
                                                                                     'delimiter' => $ophciexaminationAttributeOption['delimiter'],
-                                                                                    'subspecialty_id' => $subspecialtyData['id'],
+                                                                                    'subspecialty_id' => $subspecialtyId,
                                                                                     'attribute_element_id' => $attributeElementData['id'],
                                                                                     'display_order' => $ophciexaminationAttributeOption['display_order'],
                                                                                     ));

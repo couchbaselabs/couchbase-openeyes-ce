@@ -21,11 +21,21 @@ class ContactBehavior extends CActiveRecordBehavior
     {
         if (@$params['contact']) {
             $contactRelation = @$params['contact'];
-            $contact = $this->owner->$contactRelation;
+            $contact = isset($this->owner->$contactRelation) ? $this->owner->$contactRelation : null;
         } else {
             $contact = isset($this->owner->contact) ? $this->owner->contact : $this->owner;
         }
-        $address = isset($contact->correspondAddress) ? $contact->correspondAddress : $contact->address;
+
+        if (!$contact) {
+            return '';
+        }
+
+        $address = null;
+        if (isset($contact->correspondAddress)) {
+            $address = $contact->correspondAddress;
+        } elseif (isset($contact->address)) {
+            $address = $contact->address;
+        }
 
         return $this->formatLetterAddress($contact, $address, $params);
     }
@@ -39,7 +49,7 @@ class ContactBehavior extends CActiveRecordBehavior
                 $address = $address->getLetterArray(@$params['include_country']);
             }
 
-            if (@$params['include_label'] && $contact->label) {
+            if (@$params['include_label'] && isset($contact->label) && $contact->label) {
                 $address = array_merge(array($contact->label->name), $address);
             }
 
@@ -68,7 +78,7 @@ class ContactBehavior extends CActiveRecordBehavior
             }
 
             if (@$params['include_prefix']) {
-                if ($this->owner->prefix) {
+                if (isset($this->owner->prefix) && $this->owner->prefix) {
                     return $this->owner->prefix.': '.$address;
                 }
             }
@@ -76,7 +86,7 @@ class ContactBehavior extends CActiveRecordBehavior
             return $address;
         }
 
-        return false;
+        return '';
     }
 
     public function getLetterIntroduction($params = array())

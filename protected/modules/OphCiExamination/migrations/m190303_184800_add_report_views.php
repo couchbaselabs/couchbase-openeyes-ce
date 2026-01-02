@@ -4,6 +4,8 @@ class m190303_184800_add_report_views extends CDbMigration
 {
     public function safeUp()
     {
+        $this->ensurePatientEventsViewExists();
+
         $this->execute("CREATE OR REPLACE VIEW `v_patient_va` AS
     SELECT
         `pe`.`patient_id` AS `patient_id`,
@@ -105,5 +107,50 @@ class m190303_184800_add_report_views extends CDbMigration
     {
         $this->execute("DROP VIEW v_patient_va");
         $this->execute("DROP VIEW v_patient_va_converted");
+    }
+
+    private function ensurePatientEventsViewExists()
+    {
+        $viewExists = $this->dbConnection->createCommand(
+            "SELECT COUNT(*) FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'v_patient_events'"
+        )->queryScalar();
+
+        if ($viewExists) {
+            return;
+        }
+
+        $this->execute("CREATE OR REPLACE VIEW `v_patient_events` AS
+    SELECT
+        `p`.`id` AS `patient_id`,
+        `ev`.`id` AS `event_id`,
+        `ep`.`id` AS `episode_id`,
+        `ev`.`event_type_id` AS `event_type_id`,
+        `et`.`name` AS `event_name`,
+        `et`.`class_name` AS `event_class`,
+        `ev`.`event_date` AS `event_date`,
+        `ev`.`created_date` AS `event_created_date`,
+        `ev`.`last_modified_date` AS `event_last_modified_date`,
+        `p`.`hos_num` AS `hos_num`,
+        `p`.`nhs_num` AS `nhs_num`,
+        `c`.`title` AS `patient_title`,
+        `c`.`first_name` AS `patient_first_name`,
+        `c`.`last_name` AS `patient_last_name`,
+        `p`.`dob` AS `patient_dob`,
+        `f`.`name` AS `firm_name`,
+        `f`.`id` AS `firm_id`,
+        `s`.`id` AS `subspecialty_id`,
+        `s`.`name` AS `subspecialty`
+    FROM
+        (((((((`patient` `p`
+        JOIN `episode` `ep` ON ((`ep`.`patient_id` = `p`.`id`)))
+        JOIN `event` `ev` ON ((`ev`.`episode_id` = `ep`.`id`)))
+        JOIN `event_type` `et` ON ((`et`.`id` = `ev`.`event_type_id`)))
+        JOIN `contact` `c` ON ((`c`.`id` = `p`.`contact_id`)))
+        JOIN `firm` `f` ON ((`f`.`id` = `ep`.`firm_id`)))
+        JOIN `service_subspecialty_assignment` `ssa` ON ((`ssa`.`id` = `f`.`service_subspecialty_assignment_id`)))
+        JOIN `subspecialty` `s` ON ((`s`.`id` = `ssa`.`subspecialty_id`)))
+    WHERE
+        ((`ev`.`deleted` = 0)
+            AND (`ep`.`deleted` = 0));");
     }
 }

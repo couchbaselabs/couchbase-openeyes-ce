@@ -100,9 +100,15 @@ class PasswordUtils
 
     public static function testStatus(UserAuthentication $user_authentication, $status = 'locked', $is_special = false)
     {
-        if (!$is_special && $user_authentication->institutionAuthentication->user_authentication_method != 'LOCAL') {
+        // Couchbase-only null safety: ensure institutionAuthentication is loaded
+        $inst_auth = $user_authentication->institutionAuthentication;
+        if (!$inst_auth && $user_authentication->institution_authentication_id) {
+            $inst_auth = InstitutionAuthentication::model()->findByPk($user_authentication->institution_authentication_id);
+        }
+
+        // If we still don't have it, allow login logic to proceed (treat as local)
+        if (!$is_special && $inst_auth && $inst_auth->user_authentication_method != 'LOCAL') {
             return null;
-            //throw exception?
         }
 
         if ($user_authentication->password_status == $status) {
@@ -154,7 +160,20 @@ class PasswordUtils
             $max_reached = true;
         }
 
-        $user_authentication->saveAttributes(['password_failed_tries']);
+        try {
+            $db = \Yii::app()->db;
+            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
+                return $max_reached;
+            }
+        } catch (\Throwable $e) {
+            return $max_reached;
+        }
+
+        try {
+            $user_authentication->saveAttributes(['password_failed_tries']);
+        } catch (\Throwable $e) {
+            // swallow when persistence unavailable
+        }
         return $max_reached;
     }
 

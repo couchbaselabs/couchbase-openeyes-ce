@@ -175,14 +175,14 @@ class WorklistFilterQuery
         );
 
         // Cache subqueries for wait time sorting and risk filtering
-        $wait_time_command = Yii::app()->db->createCommand();
+        $wait_time_command = Yii::app()->cbdb->createCommand();
         $wait_time_command->select = 'pathway_id, SUM(status = ' . PathwayStep::STEP_STARTED . ') AS started_count, MIN(NOW() - end_time) AS step_wait';
         $wait_time_command->from = 'pathway_step';
         $wait_time_command->group = 'pathway_id';
 
         $this->wait_time_query = '(' . $wait_time_command->text . ') AS pswt';
 
-        $priority_command = Yii::app()->db->createCommand();
+        $priority_command = Yii::app()->cbdb->createCommand();
         $priority_command->select = 'patient_id, MAX(e.event_date) AS date';
         $priority_command->from = 'et_ophciexamination_triage tr';
 
@@ -195,7 +195,7 @@ class WorklistFilterQuery
 
         $discharge_status = \EpisodeStatus::model()->find('`key` = :key', array(':key' => 'discharged'));
 
-        $risk_command = Yii::app()->db->createCommand();
+        $risk_command = Yii::app()->cbdb->createCommand();
         $risk_command->select = 'patient_id, MAX(e.event_date) AS date';
         $risk_command->from = 'et_ophciexamination_clinicoutcome oc';
         $risk_command->join('event e', 'oc.event_id = e.id');
@@ -301,7 +301,7 @@ class WorklistFilterQuery
 
     public function getWorklistPatientsProvider($page_size, $worklist)
     {
-        $command = Yii::app()->db->createCommand();
+        $command = Yii::app()->cbdb->createCommand();
 
         $command->from('worklist_patient wp');
         $command->leftJoin('pathway', 'pathway.worklist_patient_id = wp.id');
@@ -354,7 +354,7 @@ class WorklistFilterQuery
 
     public function getPatientStatusCountsQuery($worklists)
     {
-        $command = Yii::app()->db->createCommand();
+        $command = Yii::app()->cbdb->createCommand();
 
         $command->from('worklist_patient wp');
         $command->select('pathway.status, COUNT(wp.id) AS count');
@@ -381,7 +381,7 @@ class WorklistFilterQuery
 
     public function getWaitingForListQuery($worklists)
     {
-        $command = Yii::app()->db->createCommand();
+        $command = Yii::app()->cbdb->createCommand();
 
         $command->from('pathway_step ps');
         $command->select('ps.long_name, COUNT(earlier.first) AS count');
@@ -416,7 +416,7 @@ class WorklistFilterQuery
 
     public function getAssignedToListQuery($worklists)
     {
-        $command = Yii::app()->db->createCommand();
+        $command = Yii::app()->cbdb->createCommand();
 
         $command->from('user u');
         $command->select('u.id, first_name, last_name, COUNT(pathway.id) AS count');

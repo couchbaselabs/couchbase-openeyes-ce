@@ -55,7 +55,7 @@ class ResultTypeController extends BaseAdminController
      */
     public function actionAddMapping()
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $result = [];
         $result['status'] = 1;
         $result['errors'] = [];
@@ -86,7 +86,7 @@ class ResultTypeController extends BaseAdminController
 
     public function actionDeleteMapping()
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $result = [];
         $result['status'] = 1;
         $result['errors'] = [];
@@ -125,7 +125,7 @@ class ResultTypeController extends BaseAdminController
         }
 
         if ($request->getPost('OphInLabResults_Type')) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $model->attributes = $request->getPost('OphInLabResults_Type');
             if (isset($elementType)) {
                 $model->result_element_id = $elementType->id;
@@ -207,7 +207,7 @@ class ResultTypeController extends BaseAdminController
      */
     public function actionDelete()
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         $result = [];
         $result['status'] = 1;
         $result['errors'] = [];

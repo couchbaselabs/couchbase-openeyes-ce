@@ -43,7 +43,7 @@ class ReportController extends BaseReportController
         $leftSummary = array('superior' => 0, 'inferior' => 0, 'neutral' => 0);
         $rightSummary = array('superior' => 0, 'inferior' => 0, 'neutral' => 0);
 
-        $dataValues = Yii::app()->db->createCommand("SELECT left_eyedraw, right_eyedraw
+        $dataValues = Yii::app()->cbdb->createCommand("SELECT left_eyedraw, right_eyedraw
 														FROM et_ophtrintravitinjection_anteriorseg eoa
 														JOIN event e ON e.id=eoa.event_id
 														WHERE e.event_date>='".$startDate."'

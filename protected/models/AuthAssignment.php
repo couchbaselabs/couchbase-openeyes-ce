@@ -112,7 +112,7 @@ class AuthAssignment extends BaseActiveRecord
      */
     public function couchbaseCollection()
     {
-        return 'auth_assignment';
+        return 'authassignment';
     }
 
     /**

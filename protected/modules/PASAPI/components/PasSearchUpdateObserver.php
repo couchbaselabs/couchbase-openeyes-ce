@@ -123,7 +123,7 @@ class PasSearchUpdateObserver extends PasApiObserver
 
         $success = true;
 
-        $transaction = \Yii::app()->db->beginTransaction();
+        $transaction = \Yii::app()->cbdb->beginTransaction();
         // deactivate all wrong identifiers
         foreach ($irrelevant_identifiers as $id) {
             $id->deleted = 1;

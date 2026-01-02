@@ -1,0 +1,110 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://openeyes.org/schemas/user.schema.json",
+    "title": "User Document",
+    "description": "Couchbase document schema for system users",
+    "type": "object",
+    "required": ["_type", "_id", "username", "first_name", "last_name"],
+    "properties": {
+        "_type": {
+            "type": "string",
+            "const": "user"
+        },
+        "_id": {
+            "type": "string"
+        },
+        "_mysql_id": {
+            "type": "integer"
+        },
+        "_created": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "_modified": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "_version": {
+            "type": "integer",
+            "default": 1
+        },
+        "username": {
+            "type": "string",
+            "maxLength": 40
+        },
+        "first_name": {
+            "type": "string",
+            "maxLength": 40
+        },
+        "last_name": {
+            "type": "string",
+            "maxLength": 40
+        },
+        "email": {
+            "type": ["string", "null"],
+            "format": "email",
+            "maxLength": 80
+        },
+        "title": {
+            "type": ["string", "null"],
+            "maxLength": 40
+        },
+        "qualifications": {
+            "type": ["string", "null"],
+            "maxLength": 200
+        },
+        "role": {
+            "type": ["string", "null"],
+            "maxLength": 200
+        },
+        "active": {
+            "type": "boolean",
+            "default": true
+        },
+        "global_firm_rights": {
+            "type": "boolean",
+            "default": false
+        },
+        "is_doctor": {
+            "type": "boolean",
+            "default": false
+        },
+        "is_surgeon": {
+            "type": "boolean",
+            "default": false
+        },
+        "is_clinical": {
+            "type": "boolean",
+            "default": false
+        },
+        "is_consultant": {
+            "type": "boolean",
+            "default": false
+        },
+        "doctor_grade_id": {
+            "type": ["integer", "null"]
+        },
+        "registration_code": {
+            "type": ["string", "null"]
+        },
+        "contact": {
+            "type": ["object", "null"],
+            "description": "Embedded contact information",
+            "properties": {
+                "title": {"type": ["string", "null"]},
+                "first_name": {"type": ["string", "null"]},
+                "last_name": {"type": ["string", "null"]},
+                "primary_phone": {"type": ["string", "null"]},
+                "email": {"type": ["string", "null"]}
+            }
+        },
+        "primary_institution_id": {
+            "type": ["integer", "null"]
+        },
+        "created_user_id": {"type": "integer"},
+        "created_date": {"type": "string", "format": "date-time"},
+        "last_modified_user_id": {"type": "integer"},
+        "last_modified_date": {"type": "string", "format": "date-time"}
+    },
+    "additionalProperties": false
+}

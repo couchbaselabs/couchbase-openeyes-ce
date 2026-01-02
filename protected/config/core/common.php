@@ -24,27 +24,23 @@ use OEModule\OESysEvent\events\ClinicalEventSoftDeletedSystemEvent;
 use OE\listeners\RemoveDraftEventAfterSoftDelete;
 use OEModule\OESysEvent\events\SessionSiteChangedSystemEvent;
 
-// If the old db.conf file (pre docker) exists, use it. Else read environment variable, else read docker secrets
-// Note, docker secrets are the recommended approach for docker environments
-
-if (file_exists('/etc/openeyes/db.conf')) {
-    $db = parse_ini_file('/etc/openeyes/db.conf');
-} else {
-    $db = array(
-        'host' => getenv('DATABASE_HOST') ? getenv('DATABASE_HOST') : 'localhost',
-        'port' => getenv('DATABASE_PORT') ? getenv('DATABASE_PORT') : '3306',
-        'dbname' => getenv('DATABASE_NAME') ? getenv('DATABASE_NAME') : 'openeyes',
-        'username' => rtrim(@file_get_contents("/run/secrets/DATABASE_USER")) ?: (getenv('DATABASE_USER') ? : 'openeyes'),
-        'password' => rtrim(@file_get_contents("/run/secrets/DATABASE_PASS")) ?: (getenv('DATABASE_PASS') ? : 'openeyes'),
-    );
-}
+// MariaDB has been REMOVED - Couchbase is now the only database
+// These dummy values are kept for backward compatibility with Yii framework
+// All actual data operations use Couchbase via REST API
+$db = array(
+    'host' => 'localhost',
+    'port' => '3306',
+    'dbname' => 'openeyes',
+    'username' => 'openeyes',
+    'password' => 'openeyes',
+);
 
 $db_test = array(
-    'host' => getenv('DATABASE_TEST_HOST') ?: (getenv('DATABASE_HOST') ?: 'localhost'),
-    'port' => getenv('DATABASE_TEST_PORT') ?: (getenv('DATABASE_PORT') ?: '3306'),
-    'dbname' => getenv('DATABASE_TEST_NAME') ?: (getenv('DATABASE_NAME') ?: 'openeyes_test'),
-    'username' => rtrim(@file_get_contents("/run/secrets/DATABASE_TEST_USER")) ?: (getenv('DATABASE_TEST_USER') ?: (rtrim(@file_get_contents("/run/secrets/DATABASE_USER")) ?: (getenv('DATABASE_USER') ?: 'openeyes'))),
-    'password' => rtrim(@file_get_contents("/run/secrets/DATABASE_TEST_PASS")) ?: (getenv('DATABASE_TEST_PASS') ?: (rtrim(@file_get_contents("/run/secrets/DATABASE_PASS")) ?: (getenv('DATABASE_PASS') ?: 'openeyes'))),
+    'host' => 'localhost',
+    'port' => '3306',
+    'dbname' => 'openeyes_test',
+    'username' => 'openeyes',
+    'password' => 'openeyes',
 );
 
 /** START SINGLE SIGN-ON OPTIONS */
@@ -130,8 +126,7 @@ $config = array(
             'linkAssets' => defined('YII_DEBUG') && YII_DEBUG,
         ),
         'authManager' => array(
-            'class' => 'AuthManager',
-            'connectionID' => 'db',
+            'class' => 'application.components.CouchbaseAuthManagerShim',
             'assignmentTable' => 'authassignment',
             'itemTable' => 'authitem',
             'itemChildTable' => 'authitemchild',
@@ -195,14 +190,26 @@ $config = array(
         'dataGenerator' => [
             'class' => DataGenerator::class
         ],
+        // DEPRECATED: MariaDB has been removed. This component uses static schema only.
+        // All data operations now use Couchbase via couchbaseRest component.
         'db' => array(
             'class' => 'OEDbConnection',
             'emulatePrepare' => true,
-            'connectionString' => "mysql:host={$db['host']};port={$db['port']};dbname={$db['dbname']}",
-            'username' => $db['username'],
-            'password' => $db['password'],
+            'connectionString' => '', // No database connection - MariaDB removed
+            'username' => '',
+            'password' => '',
             'charset' => 'utf8',
-            'schemaCachingDuration' => 300,
+            'schemaCachingDuration' => 3600,
+            'useStaticSchema' => true, // Uses static schema cache from schema-cache.php
+            'staticSchemaFile' => 'protected/config/schema-cache.php',
+            'autoConnect' => false, // Never connects - Couchbase is the only database
+        ),
+        // CouchbaseDbConnection - Use this instead of 'db' for application queries
+        // Provides SQL-to-N1QL conversion for gradual migration from MariaDB
+        'cbdb' => array(
+            'class' => 'CouchbaseDbConnection',
+            'bucketName' => 'openeyes',
+            'defaultScope' => 'reference',
         ),
         'eventBuilder' => array(
             'class' => 'EventBuilder',
@@ -210,18 +217,25 @@ $config = array(
         'eventDefaults' => array(
             'class' => 'EventDefaults',
         ),
+        // DEPRECATED: Test database - MariaDB removed
         'testdb' => array(
             'class' => 'OEDbConnection',
             'emulatePrepare' => true,
-            'connectionString' => "mysql:host={$db_test['host']};port={$db_test['port']};dbname={$db_test['dbname']}",
-            'username' => $db_test['username'],
-            'password' => $db_test['password'],
+            'connectionString' => '', // No connection - MariaDB removed
+            'username' => '',
+            'password' => '',
             'charset' => 'utf8',
             'schemaCachingDuration' => 300,
+            'autoConnect' => false,
         ),
         // Couchbase connection component (Phase 1 - Infrastructure)
         'couchbase' => array(
             'class' => 'application.components.CouchbaseConnection',
+            'config' => require(dirname(__FILE__) . '/../couchbase.php'),
+        ),
+        // Couchbase REST client - bypasses SDK for N1QL queries (avoids ARM64 crash)
+        'couchbaseRest' => array(
+            'class' => 'application.components.CouchbaseRestClient',
             'config' => require(dirname(__FILE__) . '/../couchbase.php'),
         ),
         'errorHandler' => array(
@@ -354,13 +368,9 @@ $config = array(
             ),
         ),
         'session' => array(
-            'class' => 'OESession',
-            'connectionID' => 'db',
-            'sessionTableName' => 'user_session',
-            'autoCreateSessionTable' => false,
-            /*'cookieParams' => array(
-                'lifetime' => 300,
-            ),*/
+            'class' => 'OEFileSession', // File-based session with OE helpers
+            'timeout' => 1440, // 24 minutes
+            'savePath' => dirname(__FILE__) . '/../../runtime/sessions',
         ),
         'urlManager' => array(
             'urlFormat' => 'path',
@@ -426,17 +436,21 @@ $config = array(
         'auth_source' => $authSource,
         
         // Database adapter configuration
-        'database_adapter' => getenv('OPENEYES_DATABASE_ADAPTER') ?: 'mariadb',
+        // DEPRECATED: MariaDB is no longer used - Couchbase is the only database
+        'database_adapter' => 'couchbase', // Always Couchbase
         
-        // Dual-write mode - writes to both MariaDB and Couchbase
-        'enable_dual_write' => filter_var(getenv('OPENEYES_ENABLE_DUAL_WRITE') ?: true, FILTER_VALIDATE_BOOLEAN),
+        // DEPRECATED: Dual-write is no longer needed - only Couchbase exists
+        'enable_dual_write' => false, // Deprecated - kept for backward compatibility
         
-        // Couchbase read mode - reads from Couchbase for migrated collections
-        'enable_couchbase_read' => true,
+        // DEPRECATED: Couchbase is now the only database
+        'enable_couchbase_read' => true, // Always true
 
-        // Enforce Couchbase as the authoritative store for patient data
+        // Couchbase is the authoritative store for all data
         'require_couchbase_patient_writes' => true,
         'require_couchbase_patient_reads' => true,
+        
+        // MariaDB removal status
+        'mariadb_deprecated' => true, // Flag indicating MariaDB is no longer used
         
         // Collections that have been fully migrated to Couchbase
         'couchbase_migrated_collections' => array(
@@ -487,6 +501,24 @@ $config = array(
             'user_authentication_method',
             'auth_item',
             'auth_assignment',
+            // Core infrastructure tables (Phase 18 - Full Couchbase migration)
+            'address_type',
+            'anaesthetist',
+            'authassignment',
+            'authitem',
+            'doctor_grade',
+            'finding',
+            'gp',
+            'icons',
+            'issue',
+            'language',
+            'person',
+            'practice',
+            'priority',
+            'period',
+            'risk',
+            'rtt',
+            'tag',
         ),
         // This is used in contact page
         /***

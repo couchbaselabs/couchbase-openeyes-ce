@@ -203,7 +203,7 @@ class CsvController extends BaseController
                 $createAction = self::$contexts[$context]['createAction'];
 
                 foreach ($table as $row) {
-                    $transaction = Yii::app()->db->beginTransaction();
+                    $transaction = Yii::app()->cbdb->beginTransaction();
                     $import = new Import();
                     $import->parent_log_id = $import_log->id;
                     $row_num++;
@@ -743,7 +743,7 @@ class CsvController extends BaseController
             $episode->patient_id = $new_patient->id;
 
             $found_disorder_ids =
-                Yii::app()->db->createCommand(
+                Yii::app()->cbdb->createCommand(
                     'SELECT id
 								FROM  disorder
 								WHERE REGEXP_REPLACE(term, \'[^A-Za-z0-9]\', \'\') =

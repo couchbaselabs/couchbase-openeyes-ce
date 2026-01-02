@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  couchbase:
+    image: couchbase:community-8.0.0
+    container_name: openeyes-couchbase
+    ports:
+      - "8091-8096:8091-8096"
+      - "11210:11210"
+      - "18091-18096:18091-18096"  # Secure management ports (8.0+)
+    volumes:
+      - couchbase-data:/opt/couchbase/var  # SAME VOLUME - preserves all data
+    environment:
+      - CLUSTER_NAME=openeyes-cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/ui/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  couchbase-data:  # Existing volume with all data preserved

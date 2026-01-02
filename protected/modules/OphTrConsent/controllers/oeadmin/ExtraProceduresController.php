@@ -204,7 +204,7 @@ class ExtraProceduresController extends BaseAdminController
         $subspecialty_id = Yii::app()->getRequest()->getParam('subspecialty_id', null);
 
         if (Yii::app()->request->isPostRequest) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 $display_orders = Yii::app()->request->getParam('display_order', []);
                 $assignments = Yii::app()->request->getParam('OphTrConsent_Extra_Procedure_subspecialty_assignment', []);

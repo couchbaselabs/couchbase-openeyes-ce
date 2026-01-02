@@ -196,7 +196,7 @@ class MedicationManagementEntry extends \EventMedicationUse
 
     public function beforeDelete()
     {
-        \Yii::app()->db->createCommand("DELETE FROM " . \OphDrPrescription_ItemTaper::model()->tableName() . " WHERE item_id = :item_id")->
+        \Yii::app()->cbdb->createCommand("DELETE FROM " . \OphDrPrescription_ItemTaper::model()->tableName() . " WHERE item_id = :item_id")->
         bindValues(array(":item_id" => $this->id))->execute();
 
         return parent::beforeDelete();

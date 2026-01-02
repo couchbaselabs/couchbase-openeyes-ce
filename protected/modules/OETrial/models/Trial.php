@@ -594,7 +594,7 @@ class Trial extends BaseActiveRecordVersioned
         /**
          * @var $transaction CDbTransaction
          */
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         foreach ($this->userAssignments as $permission) {
             if (!$permission->delete()) {

@@ -22,43 +22,66 @@ class m200109_180054_create_PostOpDiplopiaRisk extends OEMigration
         // this should place the group after Investigation
         $this->createElementGroupForEventType(self::GROUP_NAME,'OphCiExamination', 115);
 
-        $this->createElementType('OphCiExamination', 'Post-Op Diplopia Risk', [
-            'class_name' => self::ELEMENT_CLS_NAME,
-            'display_order' => 408,
-            'group_name' => self::GROUP_NAME
-        ]);
-
-        $this->createOETable(
-            'et_ophciexamination_postopdiplopiarisk',
-            [
-                'id' => 'pk',
-                'event_id' => 'int(10) unsigned',
-                'comments' => 'text',
-                'at_risk' => 'boolean',
-            ], true);
-
-        $this->addForeignKey('et_ophciexamination_postopdiplopiarisk_ev_fk',
-            'et_ophciexamination_postopdiplopiarisk',
-            'event_id',
-            'event',
-            'id');
-
         $examination_id = $this->getIdOfEventTypeByClassName('OphCiExamination');
-        $this->insert('index_search', [
-            'event_type_id' => $examination_id,
-            'primary_term' => 'Post-Op Diplopia Risk',
-            'secondary_term_list' => 'POPD',
-            'open_element_class_name' => self::ELEMENT_CLS_NAME,
-        ]);
+        $elementTypeExists = $this->dbConnection->createCommand()
+            ->select('id')
+            ->from('element_type')
+            ->where('class_name = :class_name AND event_type_id = :event_type_id', [
+                ':class_name' => self::ELEMENT_CLS_NAME,
+                ':event_type_id' => $examination_id,
+            ])
+            ->queryScalar();
+        if (!$elementTypeExists) {
+            $this->createElementType('OphCiExamination', 'Post-Op Diplopia Risk', [
+                'class_name' => self::ELEMENT_CLS_NAME,
+                'display_order' => 408,
+                'group_name' => self::GROUP_NAME
+            ]);
+        }
+
+        if (!$this->verifyTableExists('et_ophciexamination_postopdiplopiarisk')) {
+            $this->createOETable(
+                'et_ophciexamination_postopdiplopiarisk',
+                [
+                    'id' => 'pk',
+                    'event_id' => 'int(10) unsigned',
+                    'comments' => 'text',
+                    'at_risk' => 'boolean',
+                ], true);
+        }
+
+        if (!$this->verifyForeignKeyExists('et_ophciexamination_postopdiplopiarisk', 'et_ophciexamination_postopdiplopiarisk_ev_fk')) {
+            $this->addForeignKey('et_ophciexamination_postopdiplopiarisk_ev_fk',
+                'et_ophciexamination_postopdiplopiarisk',
+                'event_id',
+                'event',
+                'id');
+        }
+
+        $indexSearchTable = $this->dbConnection->schema->getTable('index_search', true);
+        if ($indexSearchTable) {
+            $this->insert('index_search', [
+                'event_type_id' => $examination_id,
+                'primary_term' => 'Post-Op Diplopia Risk',
+                'secondary_term_list' => 'POPD',
+                'open_element_class_name' => self::ELEMENT_CLS_NAME,
+            ]);
+        }
     }
 
     public function down()
     {
-        $this->delete('index_search', 'open_element_class_name = ? ', [self::ELEMENT_CLS_NAME]);
-        $this->dropForeignKey('et_ophciexamination_postopdiplopiarisk_ev_fk',
-            'et_ophciexamination_postopdiplopiarisk');
+        if ($this->dbConnection->schema->getTable('index_search', true)) {
+            $this->delete('index_search', 'open_element_class_name = ? ', [self::ELEMENT_CLS_NAME]);
+        }
+        if ($this->verifyForeignKeyExists('et_ophciexamination_postopdiplopiarisk', 'et_ophciexamination_postopdiplopiarisk_ev_fk')) {
+            $this->dropForeignKey('et_ophciexamination_postopdiplopiarisk_ev_fk',
+                'et_ophciexamination_postopdiplopiarisk');
+        }
 
-        $this->dropOETable('et_ophciexamination_postopdiplopiarisk', true);
+        if ($this->verifyTableExists('et_ophciexamination_postopdiplopiarisk')) {
+            $this->dropOETable('et_ophciexamination_postopdiplopiarisk', true);
+        }
 
         $this->deleteElementType('OphCiExamination', self::ELEMENT_CLS_NAME);
         $this->deleteElementGroupForEventType(self::GROUP_NAME, 'OphCiExamination');

@@ -21,7 +21,7 @@ $questions = OphTrOperationchecklists_Questions::model()->findAll(array('order' 
 $name_stub = CHtml::modelName($element) . '[checklistResults]';
 
 // Render the view
-$results = Yii::app()->db->createCommand()
+$results = Yii::app()->cbdb->createCommand()
     ->select('count(*) as count, set_id')
     ->from('ophtroperationchecklists_documentation_results')
     ->where('element_id = :element_id', array(':element_id' => $element->id))

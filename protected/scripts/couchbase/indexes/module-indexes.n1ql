@@ -1,0 +1,117 @@
+-- ============================================================================
+-- MODULE INDEXES FOR PHASE 5
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- EXAMINATION INDEXES (clinical.examination)
+-- ----------------------------------------------------------------------------
+
+-- Primary lookup indexes
+CREATE INDEX idx_exam_event ON `openeyes`.`clinical`.`examination`(event_id) USING GSI;
+CREATE INDEX idx_exam_patient ON `openeyes`.`clinical`.`examination`(patient_id) USING GSI;
+CREATE INDEX idx_exam_episode ON `openeyes`.`clinical`.`examination`(episode_id) USING GSI;
+
+-- Date-based indexes
+CREATE INDEX idx_exam_date ON `openeyes`.`clinical`.`examination`(event_date DESC) USING GSI;
+CREATE INDEX idx_exam_patient_date ON `openeyes`.`clinical`.`examination`(patient_id, event_date DESC) USING GSI;
+
+-- Element-specific indexes (for queries filtering by element presence)
+CREATE INDEX idx_exam_va ON `openeyes`.`clinical`.`examination`(patient_id) 
+    WHERE `elements`.`VisualAcuity` IS NOT NULL USING GSI;
+
+CREATE INDEX idx_exam_iop ON `openeyes`.`clinical`.`examination`(patient_id) 
+    WHERE `elements`.`IntraocularPressure` IS NOT NULL USING GSI;
+
+CREATE INDEX idx_exam_refraction ON `openeyes`.`clinical`.`examination`(patient_id) 
+    WHERE `elements`.`Refraction` IS NOT NULL USING GSI;
+
+-- Institution/Site indexes
+CREATE INDEX idx_exam_institution ON `openeyes`.`clinical`.`examination`(institution_id, event_date DESC) USING GSI;
+CREATE INDEX idx_exam_site ON `openeyes`.`clinical`.`examination`(site_id, event_date DESC) USING GSI;
+
+-- ----------------------------------------------------------------------------
+-- OPERATION BOOKING INDEXES (booking.operation)
+-- ----------------------------------------------------------------------------
+
+-- Primary lookup indexes
+CREATE INDEX idx_op_event ON `openeyes`.`booking`.`operation`(event_id) USING GSI;
+CREATE INDEX idx_op_patient ON `openeyes`.`booking`.`operation`(patient_id) USING GSI;
+CREATE INDEX idx_op_status ON `openeyes`.`booking`.`operation`(status_id, status_name) USING GSI;
+
+-- Decision date index (for waiting list)
+CREATE INDEX idx_op_decision_date ON `openeyes`.`booking`.`operation`(decision_date DESC) USING GSI;
+
+-- Pending operations (not yet booked)
+CREATE INDEX idx_op_pending ON `openeyes`.`booking`.`operation`(decision_date ASC) 
+    WHERE booking IS NULL AND status_name != 'Cancelled' USING GSI;
+
+-- Booked operations
+CREATE INDEX idx_op_booked ON `openeyes`.`booking`.`operation`(booking.session_date DESC) 
+    WHERE booking IS NOT NULL USING GSI;
+
+-- Priority-based index
+CREATE INDEX idx_op_priority ON `openeyes`.`booking`.`operation`(priority_id, decision_date) USING GSI;
+
+-- ----------------------------------------------------------------------------
+-- SESSION INDEXES (booking.session)
+-- ----------------------------------------------------------------------------
+
+CREATE INDEX idx_session_date ON `openeyes`.`booking`.`session`(date, start_time) USING GSI;
+CREATE INDEX idx_session_theatre ON `openeyes`.`booking`.`session`(theatre_id, date) USING GSI;
+CREATE INDEX idx_session_site ON `openeyes`.`booking`.`session`(site_id, date) USING GSI;
+
+-- Available sessions
+CREATE INDEX idx_session_available ON `openeyes`.`booking`.`session`(site_id, date) 
+    WHERE available = true USING GSI;
+
+-- ----------------------------------------------------------------------------
+-- CORRESPONDENCE INDEXES (correspondence.letter)
+-- ----------------------------------------------------------------------------
+
+-- Primary lookup indexes
+CREATE INDEX idx_letter_event ON `openeyes`.`correspondence`.`letter`(event_id) USING GSI;
+CREATE INDEX idx_letter_patient ON `openeyes`.`correspondence`.`letter`(patient_id) USING GSI;
+CREATE INDEX idx_letter_episode ON `openeyes`.`correspondence`.`letter`(episode_id) USING GSI;
+
+-- Date-based indexes
+CREATE INDEX idx_letter_date ON `openeyes`.`correspondence`.`letter`(date DESC) USING GSI;
+CREATE INDEX idx_letter_patient_date ON `openeyes`.`correspondence`.`letter`(patient_id, date DESC) USING GSI;
+
+-- Draft status index
+CREATE INDEX idx_letter_draft ON `openeyes`.`correspondence`.`letter`(patient_id, draft, date DESC) USING GSI;
+
+-- Letter type index
+CREATE INDEX idx_letter_type ON `openeyes`.`correspondence`.`letter`(letter_type_id, date DESC) USING GSI;
+
+-- ============================================================================
+-- COVERING INDEXES FOR COMMON QUERIES
+-- ============================================================================
+
+-- Cover examination list query (patient → examinations with date and site)
+CREATE INDEX idx_exam_list_cover ON `openeyes`.`clinical`.`examination`(
+    patient_id, event_date DESC, site_id, created_date
+) WHERE deleted = false USING GSI;
+
+-- Cover operation list query (patient → operations with status and priority)
+CREATE INDEX idx_op_list_cover ON `openeyes`.`booking`.`operation`(
+    patient_id, decision_date DESC, status_name, priority_name
+) USING GSI;
+
+-- Cover letter list query (patient → letters with type and draft status)
+CREATE INDEX idx_letter_list_cover ON `openeyes`.`correspondence`.`letter`(
+    patient_id, date DESC, letter_type, draft
+) USING GSI;
+
+-- ============================================================================
+-- ARRAY INDEXES (for nested data)
+-- ============================================================================
+
+-- Index procedures within operations
+CREATE INDEX idx_op_procedures ON `openeyes`.`booking`.`operation`(
+    DISTINCT ARRAY p.procedure_id FOR p IN procedures END
+) USING GSI;
+
+-- Index recipients within letters
+CREATE INDEX idx_letter_recipients ON `openeyes`.`correspondence`.`letter`(
+    DISTINCT ARRAY r.contact_id FOR r IN recipients END
+) USING GSI;

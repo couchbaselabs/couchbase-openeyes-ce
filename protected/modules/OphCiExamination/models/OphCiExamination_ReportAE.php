@@ -40,7 +40,7 @@ class OphCiExamination_ReportAE extends BaseReport
 
         $ae_subspecialty = \Subspecialty::model()->findByAttributes(['ref_spec' => 'AE']);
 
-        $cmd = Yii::app()->db->createCommand()
+        $cmd = Yii::app()->cbdb->createCommand()
             ->select('e.id,
             p.id as patient_id,
             e.event_date, 

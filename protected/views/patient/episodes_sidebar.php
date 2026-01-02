@@ -20,6 +20,9 @@
 ?>
 
 <?php
+if (!$this->patient) {
+    return;
+}
 extract($this->getEpisodes());
 $current_episode = @$this->current_episode;
 

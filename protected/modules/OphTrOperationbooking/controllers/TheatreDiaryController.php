@@ -456,7 +456,7 @@ class TheatreDiaryController extends BaseModuleController
         $errors = array();
         $bookings = array();
 
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
         try {
             foreach ($_POST as $key => $value) {
                 if (preg_match('/^admitTime_([0-9]+)$/', $key, $m)) {
@@ -724,7 +724,7 @@ class TheatreDiaryController extends BaseModuleController
 
                 return;
             case 'general_anaesthetic':
-                $anaesthetic_GA_id = Yii::app()->db->createCommand()->select('id')->from('anaesthetic_type')->where('code=:code', array(':code' => 'GA'))->queryScalar();
+                $anaesthetic_GA_id = Yii::app()->cbdb->createCommand()->select('id')->from('anaesthetic_type')->where('code=:code', array(':code' => 'GA'))->queryScalar();
 
                 $criteria = new CDbCriteria();
                 $criteria->addCondition('session.id = :sessionId AND booking.booking_cancellation_date IS NULL AND anaesthetic_type.id = :anaestheticType');

@@ -81,7 +81,7 @@ class RequestSaveHandler extends CModel
      */
     public function save()
     {
-        $transaction = Yii::app()->db->beginTransaction();
+        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
             $error = false;

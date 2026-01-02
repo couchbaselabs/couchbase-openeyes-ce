@@ -108,13 +108,22 @@ class NewEventDialogHelper
     {
         $subspecialties = array();
         foreach (Subspecialty::model()->findAll() as $subspecialty) {
-            $related_firms = Firm::model()
-                ->findAllAtLevels(ReferenceData::LEVEL_ALL, array(
-                    'condition' => 'serviceSubspecialtyAssignment.subspecialty_id = :ssid AND active = 1',
-                    'with' => 'serviceSubspecialtyAssignment',
-                    'params' => array(':ssid' => $subspecialty->id),
-                    'order' => 't.name asc'
-                ));
+            // Couchbase-native lookup to avoid SQL/criteria pitfalls
+            $n1ql = "SELECT id, name, runtime_selectable, can_own_an_episode FROM `openeyes`.`core`.`firm` WHERE service_subspecialty_assignment_id = $subspecialty->id AND active = true ORDER BY name";
+            $related_firms = [];
+            try {
+                $rows = Yii::app()->couchbaseRest->query($n1ql);
+                foreach ($rows as $row) {
+                    $firm = new Firm();
+                    $firm->id = $row['id'] ?? null;
+                    $firm->name = $row['name'] ?? '';
+                    $firm->runtime_selectable = (int)($row['runtime_selectable'] ?? 0);
+                    $firm->can_own_an_episode = (bool)($row['can_own_an_episode'] ?? false);
+                    $related_firms[] = $firm;
+                }
+            } catch (Exception $e) {
+                Yii::log('NewEventDialogHelper subspecialty lookup failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+            }
             if (count($related_firms)) {
                 $structure = static::structureSubspecialty($subspecialty);
                 $structure['services'] = array();

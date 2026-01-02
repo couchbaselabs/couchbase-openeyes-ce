@@ -133,7 +133,7 @@ WHERE (:p_type_{$this->id} IS NULL OR p.patient_identifier_type_id {$op} :p_type
 
     public static function getCommonItemsForTerm(string $term) : array
     {
-        $patients = Yii::app()->db->createCommand(
+        $patients = Yii::app()->cbdb->createCommand(
             "SELECT DISTINCT p.value FROM patient_identifier p
 WHERE p.value LIKE :term
 ORDER BY CAST(p.value AS unsigned), p.value LIMIT " . self::_AUTOCOMPLETE_LIMIT,

@@ -42,7 +42,7 @@ class OEScapeDataController extends \BaseController
 
     protected function queryData($patient, $side)
     {
-        $command = Yii::app()->db->createCommand()->select('event_date, oiv.eye_id, reading_time, value')
+        $command = Yii::app()->cbdb->createCommand()->select('event_date, oiv.eye_id, reading_time, value')
             ->from('episode ep')
             ->join('event ev', 'ev.episode_id = ep.id')
             ->join('et_ophciexamination_intraocularpressure eoi', 'eoi.event_id=ev.id')
@@ -58,7 +58,7 @@ class OEScapeDataController extends \BaseController
 
     protected function queryDataVA($patient, $side)
     {
-        $command = Yii::app()->db->createCommand()->select('event_date, ovauv.value as value')
+        $command = Yii::app()->cbdb->createCommand()->select('event_date, ovauv.value as value')
             ->from('ophciexamination_visualacuity_reading ovr')
             ->join('et_ophciexamination_visualacuity eov', 'eov.id=ovr.element_id')
             ->join('event ev', 'ev.id=eov.event_id')
@@ -74,7 +74,7 @@ class OEScapeDataController extends \BaseController
 
     protected function queryOperationData($patient)
     {
-        $command = Yii::app()->db->createCommand()->select('event_date, eye.name as eye, term, eopp.eye_id as eye_id')
+        $command = Yii::app()->cbdb->createCommand()->select('event_date, eye.name as eye, term, eopp.eye_id as eye_id')
             ->from('ophtroperationnote_procedurelist_procedure_assignment oppa')
             ->join('et_ophtroperationnote_procedurelist eopp', 'oppa.procedurelist_id = eopp.id')
             ->join('event e', 'eopp.event_id = e.id')
@@ -90,7 +90,7 @@ class OEScapeDataController extends \BaseController
 
     protected function queryDataMD($patient, $side)
     {
-        $command = Yii::app()->db->createCommand()->select('event_date, mean_deviation')
+        $command = Yii::app()->cbdb->createCommand()->select('event_date, mean_deviation')
             ->from('media_data md')
             ->where('patient_id = :patient', array('patient' => $patient))
             ->andWhere('mean_deviation is not null')
@@ -218,7 +218,7 @@ class OEScapeDataController extends \BaseController
     public function actionLoadImage($id, $eventDate, $side, $eventType, $mediaType)
     {
         // get the closest VF event and image based on the eventDate
-        $command = Yii::app()->db->createCommand()->select('max(id) as fileid')
+        $command = Yii::app()->cbdb->createCommand()->select('max(id) as fileid')
             ->from('media_data')
             ->where('patient_id = :patient', array('patient' => $id))
             ->andWhere('event_date <= :eventDate', array('eventDate' => $eventDate))
@@ -234,7 +234,7 @@ class OEScapeDataController extends \BaseController
 
     public function actionLoadAllImages($id, $eventType, $mediaType)
     {
-        $command = Yii::app()->db->createCommand()->select('md.id as fileid, eye_id, event_date, plot_values')
+        $command = Yii::app()->cbdb->createCommand()->select('md.id as fileid, eye_id, event_date, plot_values')
             ->from('media_data md')
             ->where('patient_id = :patient', array('patient' => $id))
             ->andWhere('event_type_id = (SELECT id FROM event_type WHERE class_name= :eventType)', array('eventType' => $eventType))

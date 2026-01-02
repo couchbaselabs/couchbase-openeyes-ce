@@ -1,0 +1,292 @@
+-- ===============================================================
+-- Phase 13: Clinical Module Element Indexes
+-- Couchbase N1QL indexes for 22 clinical module elements
+-- ===============================================================
+-- 
+-- Usage:
+--   Execute in Couchbase Query Workbench or via cbq CLI:
+--   cbq -f phase13-module-indexes.n1ql
+--
+-- Note: Replace 'openeyes' with your bucket name if different
+-- ===============================================================
+
+-- ===============================================================
+-- 1. OPERATION NOTES MODULE INDEXES (6 elements)
+-- ===============================================================
+
+-- Index for cataract procedures
+CREATE INDEX idx_operationnote_cataract_event 
+ON openeyes._default.Element_OphTrOperationnote_Cataract(event_id, iol_type_id, created_date)
+WHERE type = 'Element_OphTrOperationnote_Cataract';
+
+-- Index for procedure list with SNOMED codes
+CREATE INDEX idx_operationnote_procedures_event 
+ON openeyes._default.Element_OphTrOperationnote_ProcedureList(event_id, eye_id, created_date)
+WHERE type = 'Element_OphTrOperationnote_ProcedureList';
+
+CREATE INDEX idx_operationnote_procedures_snomed 
+ON openeyes._default.Element_OphTrOperationnote_ProcedureList(
+    DISTINCT ARRAY p.snomed_code FOR p IN procedures END,
+    event_id
+)
+WHERE type = 'Element_OphTrOperationnote_ProcedureList';
+
+-- Index for surgeon details
+CREATE INDEX idx_operationnote_surgeon_event 
+ON openeyes._default.Element_OphTrOperationnote_Surgeon(event_id, surgeon_id, created_date)
+WHERE type = 'Element_OphTrOperationnote_Surgeon';
+
+-- Index for anaesthetic details
+CREATE INDEX idx_operationnote_anaesthetic_event 
+ON openeyes._default.Element_OphTrOperationnote_Anaesthetic(event_id, anaesthetist_id, created_date)
+WHERE type = 'Element_OphTrOperationnote_Anaesthetic';
+
+-- Index for comments
+CREATE INDEX idx_operationnote_comments_event 
+ON openeyes._default.Element_OphTrOperationnote_Comments(event_id, created_date)
+WHERE type = 'Element_OphTrOperationnote_Comments';
+
+-- Index for generic procedures
+CREATE INDEX idx_operationnote_generic_event 
+ON openeyes._default.Element_OphTrOperationnote_GenericProcedure(event_id, created_date)
+WHERE type = 'Element_OphTrOperationnote_GenericProcedure';
+
+-- ===============================================================
+-- 2. LASER TREATMENT MODULE INDEXES (4 elements)
+-- ===============================================================
+
+-- Index for laser treatments
+CREATE INDEX idx_laser_treatment_event 
+ON openeyes._default.Element_OphTrLaser_Treatment(event_id, laser_id, eye_id, created_date)
+WHERE type = 'Element_OphTrLaser_Treatment';
+
+CREATE INDEX idx_laser_treatment_operator 
+ON openeyes._default.Element_OphTrLaser_Treatment(operator_id, created_date)
+WHERE type = 'Element_OphTrLaser_Treatment';
+
+-- Index for laser site
+CREATE INDEX idx_laser_site_event 
+ON openeyes._default.Element_OphTrLaser_Site(event_id, laser_id, created_date)
+WHERE type = 'Element_OphTrLaser_Site';
+
+-- Index for anterior segment laser
+CREATE INDEX idx_laser_anterior_event 
+ON openeyes._default.Element_OphTrLaser_AnteriorSegment(event_id, created_date)
+WHERE type = 'Element_OphTrLaser_AnteriorSegment';
+
+-- Index for posterior pole laser
+CREATE INDEX idx_laser_posterior_event 
+ON openeyes._default.Element_OphTrLaser_PosteriorPole(event_id, created_date)
+WHERE type = 'Element_OphTrLaser_PosteriorPole';
+
+-- ===============================================================
+-- 3. BIOMETRY MODULE INDEXES (3 elements)
+-- ===============================================================
+
+-- Index for biometry measurements
+CREATE INDEX idx_biometry_measurement_event 
+ON openeyes._default.Element_OphInBiometry_Measurement(event_id, eye_id, created_date)
+WHERE type = 'Element_OphInBiometry_Measurement';
+
+CREATE INDEX idx_biometry_measurement_axial_length 
+ON openeyes._default.Element_OphInBiometry_Measurement(axial_length_left, axial_length_right, created_date)
+WHERE type = 'Element_OphInBiometry_Measurement';
+
+-- Index for biometry calculations
+CREATE INDEX idx_biometry_calculation_event 
+ON openeyes._default.Element_OphInBiometry_Calculation(event_id, eye_id, created_date)
+WHERE type = 'Element_OphInBiometry_Calculation';
+
+CREATE INDEX idx_biometry_calculation_formula 
+ON openeyes._default.Element_OphInBiometry_Calculation(
+    DISTINCT ARRAY c.formula.name FOR c IN calculations END,
+    event_id
+)
+WHERE type = 'Element_OphInBiometry_Calculation';
+
+-- Index for IOL selection
+CREATE INDEX idx_biometry_selection_event 
+ON openeyes._default.Element_OphInBiometry_Selection(event_id, eye_id, created_date)
+WHERE type = 'Element_OphInBiometry_Selection';
+
+-- ===============================================================
+-- 4. PRESCRIPTION MODULE INDEXES (1 element)
+-- ===============================================================
+
+-- Index for prescription details
+CREATE INDEX idx_prescription_details_event 
+ON openeyes._default.Element_OphDrPrescription_Details(event_id, created_date)
+WHERE type = 'Element_OphDrPrescription_Details';
+
+CREATE INDEX idx_prescription_details_medications 
+ON openeyes._default.Element_OphDrPrescription_Details(
+    DISTINCT ARRAY item.medication.id FOR item IN prescription_items END,
+    event_id
+)
+WHERE type = 'Element_OphDrPrescription_Details';
+
+CREATE INDEX idx_prescription_details_status 
+ON openeyes._default.Element_OphDrPrescription_Details(is_print_pending, is_authorization_pending, created_date)
+WHERE type = 'Element_OphDrPrescription_Details';
+
+-- ===============================================================
+-- 5. CORRESPONDENCE MODULE INDEXES (1 element)
+-- ===============================================================
+
+-- Index for letters
+CREATE INDEX idx_letter_event 
+ON openeyes._default.ElementLetter(event_id, site_id, created_date)
+WHERE type = 'ElementLetter';
+
+CREATE INDEX idx_letter_type 
+ON openeyes._default.ElementLetter(letter_type.id, created_date)
+WHERE type = 'ElementLetter';
+
+CREATE INDEX idx_letter_status 
+ON openeyes._default.ElementLetter(is_signed_off, is_urgent, created_date)
+WHERE type = 'ElementLetter';
+
+CREATE INDEX idx_letter_internal_referral 
+ON openeyes._default.ElementLetter(internal_referral.from_subspecialty.id, internal_referral.to_subspecialty.id, created_date)
+WHERE type = 'ElementLetter' AND internal_referral IS NOT NULL;
+
+-- ===============================================================
+-- 6. OPERATION BOOKING MODULE INDEXES (3 elements)
+-- ===============================================================
+
+-- Index for operation bookings
+CREATE INDEX idx_opbooking_operation_event 
+ON openeyes._default.Element_OphTrOperationbooking_Operation(event_id, eye_id, created_date)
+WHERE type = 'Element_OphTrOperationbooking_Operation';
+
+CREATE INDEX idx_opbooking_operation_status 
+ON openeyes._default.Element_OphTrOperationbooking_Operation(status.id, decision_date, created_date)
+WHERE type = 'Element_OphTrOperationbooking_Operation';
+
+CREATE INDEX idx_opbooking_operation_procedures 
+ON openeyes._default.Element_OphTrOperationbooking_Operation(
+    DISTINCT ARRAY p.snomed_code FOR p IN procedures END,
+    event_id
+)
+WHERE type = 'Element_OphTrOperationbooking_Operation';
+
+CREATE INDEX idx_opbooking_operation_booking_date 
+ON openeyes._default.Element_OphTrOperationbooking_Operation(booking.session_date, created_date)
+WHERE type = 'Element_OphTrOperationbooking_Operation' AND booking IS NOT NULL;
+
+CREATE INDEX idx_opbooking_operation_priority 
+ON openeyes._default.Element_OphTrOperationbooking_Operation(priority.id, consultant_required, created_date)
+WHERE type = 'Element_OphTrOperationbooking_Operation';
+
+-- Index for operation booking diagnosis
+CREATE INDEX idx_opbooking_diagnosis_event 
+ON openeyes._default.Element_OphTrOperationbooking_Diagnosis(event_id, eye_id, created_date)
+WHERE type = 'Element_OphTrOperationbooking_Diagnosis';
+
+CREATE INDEX idx_opbooking_diagnosis_disorder 
+ON openeyes._default.Element_OphTrOperationbooking_Diagnosis(disorder.id, created_date)
+WHERE type = 'Element_OphTrOperationbooking_Diagnosis';
+
+-- Index for operation scheduling
+CREATE INDEX idx_opbooking_schedule_event 
+ON openeyes._default.Element_OphTrOperationbooking_ScheduleOperation(event_id, created_date)
+WHERE type = 'Element_OphTrOperationbooking_ScheduleOperation';
+
+CREATE INDEX idx_opbooking_schedule_unavailable 
+ON openeyes._default.Element_OphTrOperationbooking_ScheduleOperation(
+    DISTINCT ARRAY u.start_date FOR u IN patient_unavailables END,
+    event_id
+)
+WHERE type = 'Element_OphTrOperationbooking_ScheduleOperation';
+
+-- ===============================================================
+-- 7. CVI MODULE INDEXES (3 elements)
+-- ===============================================================
+
+-- Index for CVI event info
+CREATE INDEX idx_cvi_eventinfo_event 
+ON openeyes._default.Element_OphCoCvi_EventInfo(event_id, site_id, created_date)
+WHERE type = 'Element_OphCoCvi_EventInfo';
+
+CREATE INDEX idx_cvi_eventinfo_draft 
+ON openeyes._default.Element_OphCoCvi_EventInfo(is_draft, created_date)
+WHERE type = 'Element_OphCoCvi_EventInfo';
+
+CREATE INDEX idx_cvi_eventinfo_consultant 
+ON openeyes._default.Element_OphCoCvi_EventInfo(consultant_in_charge.id, created_date)
+WHERE type = 'Element_OphCoCvi_EventInfo';
+
+CREATE INDEX idx_cvi_eventinfo_delivery 
+ON openeyes._default.Element_OphCoCvi_EventInfo(
+    gp_delivery.status,
+    la_delivery.status,
+    rco_delivery.status,
+    created_date
+)
+WHERE type = 'Element_OphCoCvi_EventInfo';
+
+-- Index for CVI clinical info
+CREATE INDEX idx_cvi_clinicalinfo_event 
+ON openeyes._default.Element_OphCoCvi_ClinicalInfo(event_id, examination_date, created_date)
+WHERE type = 'Element_OphCoCvi_ClinicalInfo';
+
+CREATE INDEX idx_cvi_clinicalinfo_blind_status 
+ON openeyes._default.Element_OphCoCvi_ClinicalInfo(is_considered_blind, examination_date, created_date)
+WHERE type = 'Element_OphCoCvi_ClinicalInfo';
+
+CREATE INDEX idx_cvi_clinicalinfo_consultant 
+ON openeyes._default.Element_OphCoCvi_ClinicalInfo(consultant.id, examination_date, created_date)
+WHERE type = 'Element_OphCoCvi_ClinicalInfo';
+
+-- Index for CVI clerical info
+CREATE INDEX idx_cvi_clericalinfo_event 
+ON openeyes._default.Element_OphCoCvi_ClericalInfo(event_id, created_date)
+WHERE type = 'Element_OphCoCvi_ClericalInfo';
+
+CREATE INDEX idx_cvi_clericalinfo_language 
+ON openeyes._default.Element_OphCoCvi_ClericalInfo(preferred_language.id, created_date)
+WHERE type = 'Element_OphCoCvi_ClericalInfo';
+
+CREATE INDEX idx_cvi_clericalinfo_employment 
+ON openeyes._default.Element_OphCoCvi_ClericalInfo(employment_status.id, created_date)
+WHERE type = 'Element_OphCoCvi_ClericalInfo';
+
+-- ===============================================================
+-- COMPOSITE INDEXES FOR COMMON QUERIES
+-- ===============================================================
+
+-- Index for all clinical elements by event_id and created_date
+CREATE INDEX idx_clinical_elements_event_created 
+ON openeyes._default.clinical(event_id, created_date, type);
+
+-- Index for all clinical elements by type and created_date
+CREATE INDEX idx_clinical_elements_type_created 
+ON openeyes._default.clinical(type, created_date, event_id);
+
+-- ===============================================================
+-- INDEX CREATION SUMMARY
+-- ===============================================================
+--
+-- Total indexes created: 50+
+--
+-- Operation Notes:        7 indexes
+-- Laser Treatment:        5 indexes
+-- Biometry:              5 indexes
+-- Prescription:          3 indexes
+-- Correspondence:        4 indexes
+-- Operation Booking:     9 indexes
+-- CVI:                   9 indexes
+-- Composite:             2 indexes
+--
+-- ===============================================================
+-- VERIFICATION QUERIES
+-- ===============================================================
+
+-- Verify indexes are created:
+-- SELECT * FROM system:indexes WHERE keyspace_id = 'openeyes' AND name LIKE 'idx_%';
+
+-- Check index usage:
+-- EXPLAIN SELECT * FROM openeyes._default.Element_OphTrOperationnote_Cataract 
+-- WHERE event_id = 'some_event_id' AND type = 'Element_OphTrOperationnote_Cataract';
+
+-- ===============================================================

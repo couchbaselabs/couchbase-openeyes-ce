@@ -1,0 +1,412 @@
+-- ============================================================================
+-- Phase 14: Full Data Migration N1QL Indexes
+-- ============================================================================
+-- These indexes support efficient querying of migrated data from all 5 stages
+-- Created: December 24, 2025
+-- Migration Phases: Stages 1-5 (Reference, Clinical Reference, Core Clinical,
+--                   Module Elements, Administrative)
+-- ============================================================================
+
+-- ============================================================================
+-- STAGE 1: REFERENCE DATA INDEXES
+-- ============================================================================
+
+-- Event Type indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_event_type_class_name 
+ON `openeyes`.`reference`.`event_type`(class_name) 
+WHERE type = 'event_type';
+
+CREATE INDEX idx_event_type_name 
+ON `openeyes`.`reference`.`event_type`(name) 
+WHERE type = 'event_type';
+
+-- Element Type indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_element_type_class_name 
+ON `openeyes`.`reference`.`element_type`(class_name) 
+WHERE type = 'element_type';
+
+CREATE INDEX idx_element_type_event_type 
+ON `openeyes`.`reference`.`element_type`(event_type.id, display_order) 
+WHERE type = 'element_type';
+
+-- Site indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_site_name 
+ON `openeyes`.`reference`.`site`(name) 
+WHERE type = 'site';
+
+CREATE INDEX idx_site_institution 
+ON `openeyes`.`reference`.`site`(institution.id, name) 
+WHERE type = 'site';
+
+CREATE INDEX idx_site_remote_id 
+ON `openeyes`.`reference`.`site`(remote_id) 
+WHERE type = 'site' AND remote_id IS NOT NULL;
+
+-- Institution indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_institution_name 
+ON `openeyes`.`reference`.`institution`(name) 
+WHERE type = 'institution';
+
+CREATE INDEX idx_institution_remote_id 
+ON `openeyes`.`reference`.`institution`(remote_id) 
+WHERE type = 'institution' AND remote_id IS NOT NULL;
+
+-- Firm indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_firm_name 
+ON `openeyes`.`reference`.`firm`(name) 
+WHERE type = 'firm';
+
+CREATE INDEX idx_firm_service_subspecialty 
+ON `openeyes`.`reference`.`firm`(service_subspecialty_assignment.id, active) 
+WHERE type = 'firm';
+
+-- Specialty indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_specialty_code 
+ON `openeyes`.`reference`.`specialty`(code) 
+WHERE type = 'specialty';
+
+CREATE INDEX idx_specialty_name 
+ON `openeyes`.`reference`.`specialty`(name) 
+WHERE type = 'specialty';
+
+-- Subspecialty indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_subspecialty_ref_spec 
+ON `openeyes`.`reference`.`subspecialty`(ref_spec) 
+WHERE type = 'subspecialty';
+
+CREATE INDEX idx_subspecialty_name 
+ON `openeyes`.`reference`.`subspecialty`(name) 
+WHERE type = 'subspecialty';
+
+-- Gender, Eye, EthnicGroup (simple lookups)
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_gender_name 
+ON `openeyes`.`reference`.`gender`(name) 
+WHERE type = 'gender';
+
+CREATE INDEX idx_eye_name 
+ON `openeyes`.`reference`.`eye`(name) 
+WHERE type = 'eye';
+
+CREATE INDEX idx_ethnic_group_name 
+ON `openeyes`.`reference`.`ethnic_group`(name) 
+WHERE type = 'ethnic_group';
+
+-- ============================================================================
+-- STAGE 2: CLINICAL REFERENCE DATA INDEXES
+-- ============================================================================
+
+-- Disorder indexes (SNOMED codes)
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_disorder_snomed 
+ON `openeyes`.`reference`.`disorder`(snomed_code) 
+WHERE type = 'disorder' AND snomed_code IS NOT NULL;
+
+CREATE INDEX idx_disorder_term 
+ON `openeyes`.`reference`.`disorder`(term) 
+WHERE type = 'disorder';
+
+CREATE INDEX idx_disorder_specialty 
+ON `openeyes`.`reference`.`disorder`(
+    DISTINCT ARRAY s FOR s IN specialty_ids END
+) 
+WHERE type = 'disorder' AND specialty_ids IS NOT NULL;
+
+-- Procedure indexes (OPCS codes)
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_procedure_snomed 
+ON `openeyes`.`reference`.`procedure`(snomed_code) 
+WHERE type = 'procedure' AND snomed_code IS NOT NULL;
+
+CREATE INDEX idx_procedure_term 
+ON `openeyes`.`reference`.`procedure`(term) 
+WHERE type = 'procedure';
+
+CREATE INDEX idx_procedure_specialty 
+ON `openeyes`.`reference`.`procedure`(
+    DISTINCT ARRAY s FOR s IN specialty_ids END
+) 
+WHERE type = 'procedure' AND specialty_ids IS NOT NULL;
+
+-- Medication indexes (dm+d codes)
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_medication_preferred_term 
+ON `openeyes`.`reference`.`medication`(preferred_term) 
+WHERE type = 'medication';
+
+CREATE INDEX idx_medication_source_subtype 
+ON `openeyes`.`reference`.`medication`(source_subtype, preferred_term) 
+WHERE type = 'medication';
+
+CREATE INDEX idx_medication_vtm_code 
+ON `openeyes`.`reference`.`medication`(vtm_code) 
+WHERE type = 'medication' AND vtm_code IS NOT NULL;
+
+CREATE INDEX idx_medication_vmp_code 
+ON `openeyes`.`reference`.`medication`(vmp_code) 
+WHERE type = 'medication' AND vmp_code IS NOT NULL;
+
+-- Allergy indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_allergy_name 
+ON `openeyes`.`reference`.`allergy`(name) 
+WHERE type = 'allergy';
+
+CREATE INDEX idx_allergy_active 
+ON `openeyes`.`reference`.`allergy`(active) 
+WHERE type = 'allergy';
+
+-- Drug indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_drug_name 
+ON `openeyes`.`reference`.`drug`(name) 
+WHERE type = 'drug';
+
+CREATE INDEX idx_drug_tallman 
+ON `openeyes`.`reference`.`drug`(tallman) 
+WHERE type = 'drug' AND tallman IS NOT NULL;
+
+-- Benefit indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_benefit_name 
+ON `openeyes`.`reference`.`benefit`(name) 
+WHERE type = 'benefit';
+
+-- Complication indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_complication_name 
+ON `openeyes`.`reference`.`complication`(name) 
+WHERE type = 'complication';
+
+-- ============================================================================
+-- STAGE 3: CORE CLINICAL DATA INDEXES
+-- ============================================================================
+
+-- Patient indexes (CRITICAL - Most queried)
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_patient_hos_num 
+ON `openeyes`.`clinical`.`patient`(hos_num) 
+WHERE type = 'patient';
+
+CREATE INDEX idx_patient_nhs_num 
+ON `openeyes`.`clinical`.`patient`(nhs_num) 
+WHERE type = 'patient' AND nhs_num IS NOT NULL;
+
+CREATE INDEX idx_patient_dob 
+ON `openeyes`.`clinical`.`patient`(dob) 
+WHERE type = 'patient';
+
+CREATE INDEX idx_patient_contact_last_name 
+ON `openeyes`.`clinical`.`patient`(contact.last_name, contact.first_name) 
+WHERE type = 'patient' AND contact IS NOT NULL;
+
+CREATE INDEX idx_patient_created_date 
+ON `openeyes`.`clinical`.`patient`(created_date) 
+WHERE type = 'patient';
+
+-- Episode indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_episode_patient_id 
+ON `openeyes`.`clinical`.`episode`(patient.id) 
+WHERE type = 'episode';
+
+CREATE INDEX idx_episode_firm_id 
+ON `openeyes`.`clinical`.`episode`(firm.id) 
+WHERE type = 'episode';
+
+CREATE INDEX idx_episode_patient_firm 
+ON `openeyes`.`clinical`.`episode`(patient.id, firm.id, start_date) 
+WHERE type = 'episode';
+
+CREATE INDEX idx_episode_disorder 
+ON `openeyes`.`clinical`.`episode`(disorder.id, patient.id) 
+WHERE type = 'episode' AND disorder IS NOT NULL;
+
+-- Event indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_event_episode_id 
+ON `openeyes`.`clinical`.`event`(episode.id) 
+WHERE type = 'event';
+
+CREATE INDEX idx_event_event_type_id 
+ON `openeyes`.`clinical`.`event`(event_type.id, created_date) 
+WHERE type = 'event';
+
+CREATE INDEX idx_event_created_date 
+ON `openeyes`.`clinical`.`event`(created_date DESC) 
+WHERE type = 'event';
+
+CREATE INDEX idx_event_deleted 
+ON `openeyes`.`clinical`.`event`(deleted, created_date) 
+WHERE type = 'event';
+
+CREATE INDEX idx_event_patient_lookup 
+ON `openeyes`.`clinical`.`event`(episode.patient_id, event_type.id, created_date DESC) 
+WHERE type = 'event';
+
+-- Contact indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_contact_last_name 
+ON `openeyes`.`clinical`.`contact`(last_name, first_name) 
+WHERE type = 'contact';
+
+CREATE INDEX idx_contact_email 
+ON `openeyes`.`clinical`.`contact`(email) 
+WHERE type = 'contact' AND email IS NOT NULL;
+
+-- ============================================================================
+-- STAGE 5: ADMINISTRATIVE DATA INDEXES
+-- ============================================================================
+
+-- User indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_user_username 
+ON `openeyes`.`admin`.`user`(username) 
+WHERE type = 'user';
+
+CREATE INDEX idx_user_email 
+ON `openeyes`.`admin`.`user`(email) 
+WHERE type = 'user' AND email IS NOT NULL;
+
+CREATE INDEX idx_user_active 
+ON `openeyes`.`admin`.`user`(active, username) 
+WHERE type = 'user';
+
+-- Audit indexes (Time-series data)
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_audit_created_date 
+ON `openeyes`.`admin`.`audit`(created_date DESC) 
+WHERE type = 'audit';
+
+CREATE INDEX idx_audit_user_id 
+ON `openeyes`.`admin`.`audit`(user.id, created_date DESC) 
+WHERE type = 'audit';
+
+CREATE INDEX idx_audit_action_type 
+ON `openeyes`.`admin`.`audit`(action.name, type_name, created_date DESC) 
+WHERE type = 'audit';
+
+CREATE INDEX idx_audit_patient 
+ON `openeyes`.`admin`.`audit`(patient.id, created_date DESC) 
+WHERE type = 'audit' AND patient IS NOT NULL;
+
+-- Audit Type indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_audit_type_name 
+ON `openeyes`.`admin`.`audit_type`(name) 
+WHERE type = 'audit_type';
+
+-- Audit Action indexes
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_audit_action_name 
+ON `openeyes`.`admin`.`audit_action`(name) 
+WHERE type = 'audit_action';
+
+-- Setting indexes (Hierarchical)
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_setting_metadata_key 
+ON `openeyes`.`admin`.`setting_metadata`(`key`) 
+WHERE type = 'setting_metadata';
+
+CREATE INDEX idx_setting_installation_key 
+ON `openeyes`.`admin`.`setting_installation`(`key`, installation_id) 
+WHERE type = 'setting_installation';
+
+CREATE INDEX idx_setting_institution_key 
+ON `openeyes`.`admin`.`setting_institution`(`key`, institution.id) 
+WHERE type = 'setting_institution';
+
+CREATE INDEX idx_setting_site_key 
+ON `openeyes`.`admin`.`setting_site`(`key`, site.id) 
+WHERE type = 'setting_site';
+
+CREATE INDEX idx_setting_user_key 
+ON `openeyes`.`admin`.`setting_user`(`key`, user.id) 
+WHERE type = 'setting_user';
+
+-- ============================================================================
+-- MIGRATION MONITORING INDEXES
+-- ============================================================================
+
+-- Index for monitoring migration progress across all types
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_migration_monitoring 
+ON `openeyes`.`_default`.`_default`(type, created_date) 
+WHERE type IS NOT NULL;
+
+-- Index for finding records by ID across all collections
+-- ----------------------------------------------------------------------------
+CREATE INDEX idx_record_by_id 
+ON `openeyes`.`_default`.`_default`(id, type) 
+WHERE id IS NOT NULL;
+
+-- ============================================================================
+-- EXAMPLE QUERIES USING THESE INDEXES
+-- ============================================================================
+
+-- Query 1: Find patient by hospital number
+-- SELECT * FROM openeyes.clinical.patient 
+-- WHERE type = 'patient' AND hos_num = 'ABC123';
+
+-- Query 2: Get all episodes for a patient
+-- SELECT * FROM openeyes.clinical.episode 
+-- WHERE type = 'episode' AND patient.id = 12345
+-- ORDER BY start_date DESC;
+
+-- Query 3: Get recent events for a patient
+-- SELECT * FROM openeyes.clinical.event 
+-- WHERE type = 'event' 
+-- AND episode.patient_id = 12345 
+-- ORDER BY created_date DESC 
+-- LIMIT 10;
+
+-- Query 4: Find disorder by SNOMED code
+-- SELECT * FROM openeyes.reference.disorder 
+-- WHERE type = 'disorder' AND snomed_code = '12345678';
+
+-- Query 5: Patient search by name
+-- SELECT * FROM openeyes.clinical.patient 
+-- WHERE type = 'patient' 
+-- AND contact.last_name LIKE 'Smith%'
+-- ORDER BY contact.last_name, contact.first_name;
+
+-- Query 6: Audit trail for patient
+-- SELECT * FROM openeyes.admin.audit 
+-- WHERE type = 'audit' 
+-- AND patient.id = 12345 
+-- ORDER BY created_date DESC;
+
+-- Query 7: Count migrated records by type
+-- SELECT type, COUNT(*) as count 
+-- FROM openeyes._default._default 
+-- WHERE type IS NOT NULL 
+-- GROUP BY type 
+-- ORDER BY count DESC;
+
+-- ============================================================================
+-- INDEX BUILD VERIFICATION
+-- ============================================================================
+-- After running this script, verify indexes with:
+-- SELECT name, state, keyspace_id, using, condition 
+-- FROM system:indexes 
+-- WHERE keyspace_id = 'openeyes' 
+-- ORDER BY keyspace_id, name;
+
+-- ============================================================================
+-- NOTES
+-- ============================================================================
+-- 1. Indexes are created with WHERE type = '<type>' for efficiency
+-- 2. Most indexes are on the most frequently queried fields
+-- 3. Composite indexes support common multi-field queries
+-- 4. Patient indexes are optimized for search and lookup performance
+-- 5. Audit indexes support time-series queries
+-- 6. Setting indexes support hierarchical lookups
+-- 7. All indexes follow naming convention: idx_<table>_<field(s)>
+-- ============================================================================

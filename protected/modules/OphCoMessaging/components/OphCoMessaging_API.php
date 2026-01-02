@@ -95,6 +95,15 @@ class OphCoMessaging_API extends \BaseAPI
 
         $recipient_messages = $searcher->retrieveMailboxContentsUsingSQL($user->id, isset($mailbox) ? [$mailbox->id] : null);
 
+        // Couchbase-only: if the searcher returned a plain array (fallback), wrap it into an empty data provider
+        if (is_array($recipient_messages)) {
+            $recipient_messages = new \CArrayDataProvider($recipient_messages, [
+                'pagination' => [
+                    'pageSize' => 30,
+                ],
+            ]);
+        }
+
         list($mailboxes_with_counts, $count_unread_total) = $this->getMessageCounts($user);
 
         // Generate the dashboard widget HTML.
@@ -187,7 +196,8 @@ class OphCoMessaging_API extends \BaseAPI
     public function createPersonalMailboxIfDoesNotExist($user)
     {
         if (!Mailbox::model()->forPersonalMailbox($user->id)->exists()) {
-            $transaction = \Yii::app()->db->beginInternalTransaction();
+            $cbdb = \Yii::app()->cbdb;
+            $transaction = ($cbdb && method_exists($cbdb, 'beginInternalTransaction')) ? $cbdb->beginInternalTransaction() : null;
 
             try {
                 $personal_mailbox = new Mailbox();
@@ -196,16 +206,30 @@ class OphCoMessaging_API extends \BaseAPI
                 $personal_mailbox->is_personal = true;
                 $personal_mailbox->users = [$user];
 
-                if (!$personal_mailbox->save()) {
+                $saved = $personal_mailbox->save();
+
+                if (!$saved && empty($personal_mailbox->getErrors())) {
+                    // Couchbase-only fallback: ensure ID and upsert document
+                    if (!$personal_mailbox->id) {
+                        $personal_mailbox->id = (int)floor(microtime(true) * 1000);
+                    }
+                    $saved = $personal_mailbox->syncToCouchbase();
+                }
+
+                if (!$saved) {
                     throw new \Exception('Failed to save new personal mailbox: ' . print_r($personal_mailbox->getErrors(), true));
                 }
             } catch (\Exception $e) {
-                $transaction->rollback();
+                if ($transaction) {
+                    $transaction->rollback();
+                }
 
                 throw $e;
             }
 
-            $transaction->commit();
+            if ($transaction) {
+                $transaction->commit();
+            }
         }
     }
 }

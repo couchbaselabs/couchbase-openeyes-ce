@@ -58,7 +58,7 @@ class AdminController extends ModuleAdminController
             }
             $erod->items = $posted_items;
 
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 if (!$erod->save()) {
                     $errors = $erod->getErrors();
@@ -130,7 +130,7 @@ class AdminController extends ModuleAdminController
             }
             $erod->items = $posted_items;
 
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
 
             try {
                 if (!$erod->save()) {
@@ -165,7 +165,7 @@ class AdminController extends ModuleAdminController
     public function actionDeleteERODRules()
     {
         if (!empty($_POST['erod'])) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 foreach ($_POST['erod'] as $erod_id) {
                     if ($_erod = OphTrOperationbooking_Operation_EROD_Rule::model()->findByPk($erod_id)) {
@@ -481,7 +481,7 @@ class AdminController extends ModuleAdminController
         $errors = array();
 
         if (!empty($_POST)) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $rule->attributes = $_POST['OphTrOperationbooking_Waiting_List_Contact_Rule'];
 
             if (!$rule->save()) {
@@ -522,7 +522,7 @@ class AdminController extends ModuleAdminController
         $errors = array();
 
         if (!empty($_POST)) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             $rule->attributes = $_POST['OphTrOperationbooking_Waiting_List_Contact_Rule'];
 
             if (!$rule->save()) {
@@ -566,7 +566,7 @@ class AdminController extends ModuleAdminController
 
         if (!empty($_POST)) {
             if (@$_POST['delete']) {
-                $transaction = Yii::app()->db->beginTransaction();
+                $transaction = Yii::app()->cbdb->beginTransaction();
                 try {
                     $rule->deleteMapping(ReferenceData::LEVEL_INSTITUTION, Yii::app()->session['selected_institution_id']);
                 } catch (Exception $e) {
@@ -1728,7 +1728,7 @@ class AdminController extends ModuleAdminController
     public function actionSortWards()
     {
         if (!empty($_POST['order'])) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 foreach ($_POST['order'] as $i => $id) {
                     if ($ward = OphTrOperationbooking_Operation_Ward::model()->findByPk($id)) {
@@ -1914,7 +1914,7 @@ class AdminController extends ModuleAdminController
         $errors = array();
 
         if (!empty($_POST)) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 $reason->attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
                 if (!$reason->save()) {
@@ -1951,7 +1951,7 @@ class AdminController extends ModuleAdminController
         $reason = new OphTrOperationbooking_Operation_Session_UnavailableReason();
 
         if (!empty($_POST)) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 $reason->attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
                 if (!$reason->save()) {
@@ -1984,7 +1984,7 @@ class AdminController extends ModuleAdminController
     public function actionSortSessionUnavailableReasons()
     {
         if (!empty($_POST['order'])) {
-            $transaction = Yii::app()->db->beginTransaction();
+            $transaction = Yii::app()->cbdb->beginTransaction();
             try {
                 foreach ($_POST['order'] as $i => $id) {
                     if ($reason = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findByPk($id)) {

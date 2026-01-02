@@ -58,6 +58,9 @@ class OphTrOperationbooking_BookingHelper
     public static function validateElementsForEvent($elements)
     {
         $errors = array();
+        $op_el = null;
+        $diag_el = null;
+        
         foreach ($elements as $element) {
             $cls = get_class($element);
             if ($cls == 'Element_OphTrOperationbooking_Operation') {
@@ -67,8 +70,11 @@ class OphTrOperationbooking_BookingHelper
             }
         }
 
-        if ($diag_el->eye_id != Eye::BOTH && $op_el->eye_id != $diag_el->eye_id) {
-            $errors[] = 'Operation eye must match diagnosis eye!';
+        // Only validate eye match if both elements are present
+        if ($op_el && $diag_el) {
+            if ($diag_el->eye_id != Eye::BOTH && $op_el->eye_id != $diag_el->eye_id) {
+                $errors[] = 'Operation eye must match diagnosis eye!';
+            }
         }
 
         return $errors;
