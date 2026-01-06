@@ -37,9 +37,9 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
      */
     public function actionGetLeaflets()
     {
-        $id = @$_GET['id'];
-        $type = @$_GET['type']; //firm
-        $types = @$_GET['types']; //firm
+        $id = Yii::app()->request->getQuery('id');
+        $type = Yii::app()->request->getQuery('type'); //firm
+        $types = Yii::app()->request->getQuery('types'); //firm
 
         // Validate that required parameters are provided and not empty
         if (empty($id) || empty($type) || empty($types)) {
@@ -140,9 +140,15 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
      */
     public function actionDelete()
     {
-        $leaflet_id = @$_GET['leaflet_id'];
-        $type = @$_GET['type'];
-        $type_id = @$_GET['type_id'];
+        $leaflet_id = Yii::app()->request->getQuery('leaflet_id');
+        $type = Yii::app()->request->getQuery('type');
+        $type_id = Yii::app()->request->getQuery('type_id');
+
+        // Validate that required parameters are provided and not empty
+        if (empty($leaflet_id) || empty($type) || empty($type_id)) {
+            echo 'error';
+            return;
+        }
 
         if ($type === 'firm') {
             $model = OphTrConsent_Leaflet_Firm::model();
