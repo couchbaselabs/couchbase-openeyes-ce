@@ -18,6 +18,14 @@ use OEModule\OphCiExamination\listeners\UpdatePatientDiagnosesAfterSoftDelete;
 
 return [
     'components' => [
+        'urlManager' => [
+            'rules' => [
+                'OphCiExamination/admin/<action:\w+>/<id:\d+>' => '/OphCiExamination/Admin/<action>?id=<id>',
+                'OphCiExamination/admin/<action:\w+>' => '/OphCiExamination/Admin/<action>',
+                'OphCiExamination/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>?id=<id>',
+                'OphCiExamination/admin/<controller:\w+>/<action:\w+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>',
+            ]
+        ],
         'event' => [
             'observers' => [
                 'after_medications_save' => [
