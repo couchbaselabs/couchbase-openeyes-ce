@@ -22,7 +22,7 @@
     <div class="data-group">
         <div class="cols-10 column"><h2>View Genetics Study</h2></div>
         <div class="cols-2 column right">
-            <?php if ($this->checkAccess('OprnEditGeneticPatient')) : ?>
+            <?php if ($this->checkAccess('TaskEditGeneticStudy')) : ?>
                 <a href="/Genetics/study/edit/<?php echo $model->id; ?>?returnUri=<?php echo urlencode('/Genetics/study/view/') . $model->id; ?>" class="button small right" id="study_edit">Edit</a>
             <?php endif; ?>
         </div>
@@ -42,9 +42,11 @@
                         if ($model->subjects) {
                             $html = '<ul>';
                             foreach ($model->subjects as $subject) {
-                                $html .= '<li>';
-                                $html .= '<a href="/Genetics/subject/view/' . $subject->id . '">' . $subject->patient->fullName .  '</a>';
-                                $html .= '</li>';
+                                if ($subject && isset($subject->id) && $subject->patient) {
+                                    $html .= '<li>';
+                                    $html .= '<a href="/Genetics/subject/view/' . $subject->id . '">' . CHtml::encode($subject->patient->fullName) .  '</a>';
+                                    $html .= '</li>';
+                                }
                             }
                             $html .= '</ul>';
                         }
@@ -59,7 +61,11 @@
                         if ($model->proposers) {
                             $investigators = '<ul>';
                             foreach ($model->proposers as $proposer) {
-                                $investigators .= '<li>' . $proposer->first_name . ' ' . $proposer->last_name . '</li>';
+                                if ($proposer && (isset($proposer->first_name) || isset($proposer->last_name))) {
+                                    $firstName = isset($proposer->first_name) ? CHtml::encode($proposer->first_name) : '';
+                                    $lastName = isset($proposer->last_name) ? CHtml::encode($proposer->last_name) : '';
+                                    $investigators .= '<li>' . trim($firstName . ' ' . $lastName) . '</li>';
+                                }
                             }
                             $investigators .= '</ul>';
                         }
