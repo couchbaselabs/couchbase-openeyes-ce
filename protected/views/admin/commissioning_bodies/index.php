@@ -96,7 +96,7 @@
 </div>
 <script type="text/javascript">
 
-    $('#et_add_commissioning_body').click(function (e) {
+    $('#et_add').click(function (e) {
         e.preventDefault();
         window.location.href = baseUrl + '/admin/addCommissioning_body';
     });
@@ -105,7 +105,7 @@
         $('input[name="commissioning_body[]"]').attr('checked', $(this).is(':checked') ? 'checked' : false);
     });
 
-    $('#et_delete_commissioning_body').click(function (e) {
+    $('#et_delete').click(function (e) {
         e.preventDefault();
 
         if ($('input[type="checkbox"][name="commissioning_body[]"]:checked').length < 1) {
@@ -117,7 +117,7 @@
         $.ajax({
             'type': 'POST',
             'url': baseUrl + '/admin/verifyDeleteCommissioningBodies',
-            'data': $('#admin_commissioning_bodies').serialize() + "&YII_CSRF_TOKEN=" + YII_CSRF_TOKEN,
+            'data': $('#admin_CommissioningBodies').serialize() + "&YII_CSRF_TOKEN=" + YII_CSRF_TOKEN,
             'success': function (resp) {
                 var mention = ($('input[type="checkbox"][name="commissioning_body[]"]:checked').length == 1) ? 'commissioning body' : 'commissioning bodies';
 
@@ -152,7 +152,7 @@
         $.ajax({
             'type': 'POST',
             'url': baseUrl + '/admin/deleteCommissioningBodies',
-            'data': $('#admin_commissioning_bodies').serialize() + "&YII_CSRF_TOKEN=" + YII_CSRF_TOKEN,
+            'data': $('#admin_CommissioningBodies').serialize() + "&YII_CSRF_TOKEN=" + YII_CSRF_TOKEN,
             'success': function (resp) {
                 if (resp == "1") {
                     window.location.reload();
