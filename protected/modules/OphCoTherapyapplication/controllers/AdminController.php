@@ -247,6 +247,10 @@ class AdminController extends ModuleAdminController
     {
         $model = OphCoTherapyapplication_Treatment::model()->findByPk((int) $id);
 
+        if (!$model) {
+            throw new CHttpException(404, 'Unable to find the requested Treatment');
+        }
+
         if (isset($_POST['OphCoTherapyapplication_Treatment'])) {
             $model->attributes = $_POST['OphCoTherapyapplication_Treatment'];
 
@@ -487,14 +491,24 @@ class AdminController extends ModuleAdminController
                 Audit::add('admin', 'update', $model->id, null, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_DecisionTreeNodeRule'));
                 Yii::app()->user->setFlash('success', 'Decision Tree Node Rule updated');
 
-                $this->redirect(array('viewdecisiontree', 'id' => $model->node->decisiontree_id, 'node_id' => $model->node->id));
+                if ($model->node) {
+                    $this->redirect(array('viewdecisiontree', 'id' => $model->node->decisiontree_id, 'node_id' => $model->node->id));
+                } else {
+                    throw new CHttpException(500, 'Associated Decision Tree Node not found');
+                }
             }
+        }
+
+        // Ensure node relationship is loaded
+        $node = $model->node;
+        if (!$node) {
+            throw new CHttpException(500, 'Associated Decision Tree Node not found for rule ID ' . $model->id);
         }
 
         $this->renderPartial('update', array(
                 'model' => $model,
-                'node' => $model->node,
-                'title' => 'Rule for '.($model->node->outcome ? $model->node->outcome->name.' Outcome' : $model->node->question),
+                'node' => $node,
+                'title' => 'Rule for '.($node->outcome ? $node->outcome->name.' Outcome' : $node->question),
         ));
     }
 
