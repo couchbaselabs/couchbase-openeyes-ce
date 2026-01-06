@@ -45,7 +45,10 @@
                     <td><?= $role->name ?></td>
                     <td>
                         <?php
-                            $roles = CHtml::listData($role->sso_roles_assignment, 'id', 'authitem_role');
+                            $roles = array();
+                            if ($role->sso_roles_assignment) {
+                                $roles = CHtml::listData($role->sso_roles_assignment, 'id', 'authitem_role');
+                            }
                             echo $roles ? CHtml::encode(implode(', ', $roles)) : 'N/A';
                         ?>
                     </td>
