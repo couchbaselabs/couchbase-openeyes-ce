@@ -103,10 +103,14 @@ class GeneController extends BaseModuleController
 
     /**
      * Deletes rows for the model.
+     * @param int $id the ID of the model to be deleted
      */
-    public function actionDelete()
+    public function actionDelete($id = false)
     {
         $admin = new Crud(PedigreeGene::model(), $this);
+        if ($id) {
+            $admin->setModelId($id);
+        }
         $admin->deleteModel();
     }
 
