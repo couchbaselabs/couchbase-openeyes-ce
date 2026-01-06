@@ -291,7 +291,7 @@ class WhiteboardController extends BaseDashboardController
             throw new CHttpException(400, 'No whiteboard found for save with id ' . $id);
         }
 
-        if (!$whiteboard->booking->isEditable()) {
+        if (!is_object($whiteboard->booking) || !$whiteboard->booking->isEditable()) {
             throw new CHttpException(400, 'Whiteboard is not editable ' . $id);
         }
 
@@ -322,7 +322,7 @@ class WhiteboardController extends BaseDashboardController
             throw new CHttpException(400, 'No whiteboard found for comment save with id ' . $id);
         }
 
-        if (!$whiteboard->booking->isEditable()) {
+        if (!is_object($whiteboard->booking) || !$whiteboard->booking->isEditable()) {
             throw new CHttpException(400, 'Whiteboard is not editable ' . $id);
         }
 
@@ -351,6 +351,10 @@ class WhiteboardController extends BaseDashboardController
     public function getConsentFormImages($booking_id)
     {
         $procedure = Element_OphTrConsent_Procedure::model()->find('booking_event_id = ?', [$booking_id]);
+
+        if (!$procedure) {
+            return array();
+        }
 
         $eventImages = EventImage::model()->findAll('event_id = ? AND page IS NOT NULL', [$procedure->event_id]);
 
