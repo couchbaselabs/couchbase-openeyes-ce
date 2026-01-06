@@ -104,8 +104,13 @@ class DefaultController extends BaseEventTypeController
      * @param $id
      * @throws Exception
      */
-    public function actionExport($id)
+    public function actionExport($id = null)
     {
+        if ($id === null) {
+            $this->renderJSON(['error' => 'Event ID is required for export action.']);
+            return;
+        }
+        
         $file_path = $this->generatePDFPrint($id);
         $letter = ElementLetter::model()->find('event_id=?', array($id));
         if (!$letter) {
@@ -181,7 +186,7 @@ class DefaultController extends BaseEventTypeController
 
             $data = array();
 
-        $macro->substitute($patient);
+            $macro->substitute($patient);
 
         if ($macro->recipient && $macro->recipient->name === 'Patient') {
             $data['sel_address_target'] = 'Patient' . $patient->id;
@@ -364,7 +369,7 @@ class DefaultController extends BaseEventTypeController
                 }
                 break;
             case 'firm':
-                if (!$firm = FirmLetterString::model()->findByPk(@$_GET['string_id'])) {
+                if (!$string = FirmLetterString::model()->findByPk(@$_GET['string_id'])) {
                     throw new Exception(Firm::contextLabel() . ' letter string not found: ' . @$_GET['string_id']);
                 }
                 break;
@@ -411,12 +416,25 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionGetCc()
     {
+        // Validate required parameters
+        if (empty($_GET['patient_id'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: patient_id']);
+            return;
+        }
+
+        if (empty($_GET['contact'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: contact']);
+            return;
+        }
+
         if (!$patient = Patient::model()->findByPk(@$_GET['patient_id'])) {
-            throw new Exception('Unknown patient: ' . @$_GET['patient_id']);
+            $this->renderJSON(['error' => 'Unknown patient: ' . @$_GET['patient_id']]);
+            return;
         }
 
         if (!preg_match('/^([a-zA-Z]+)([0-9]+)$/', @$_GET['contact'], $m)) {
-            throw new Exception('Invalid contact format: ' . @$_GET['contact']);
+            $this->renderJSON(['error' => 'Invalid contact format: ' . @$_GET['contact']]);
+            return;
         }
 
         if ($m[1] === 'Contact') {
@@ -425,27 +443,32 @@ class DefaultController extends BaseEventTypeController
             $contact = Gp::model()->findByPk($m[2]);
         } else {
             if (!$contact = $m[1]::model()->findByPk($m[2])) {
-                throw new Exception("{$m[1]} not found: {$m[2]}");
+                $this->renderJSON(['error' => "{$m[1]} not found: {$m[2]}"]);
+                return;
             }
         }
 
-        if ($contact->isDeceased()) {
+        if ($contact && $contact->isDeceased()) {
             $this->renderJSON(array('errors' => 'DECEASED'));
 
             return;
         }
 
-        $address = $contact->getLetterAddress(array(
-            'patient' => $patient,
-            'include_name' => true,
-            'include_label' => true,
-            'delimiter' => '| ',
-            'include_prefix' => true,
-        ));
+        if ($contact) {
+            $address = $contact->getLetterAddress(array(
+                'patient' => $patient,
+                'include_name' => true,
+                'include_label' => true,
+                'delimiter' => '| ',
+                'include_prefix' => true,
+            ));
 
-        $address = str_replace(array(',', '|'), array(';', ','), $address);
+            $address = str_replace(array(',', '|'), array(';', ','), $address);
 
-        echo $address ?: 'NO ADDRESS';
+            echo $address ?: 'NO ADDRESS';
+        } else {
+            $this->renderJSON(['error' => 'Contact not found']);
+        }
     }
 
     /**
@@ -455,8 +478,15 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionExpandStrings()
     {
+        // Validate required parameters
+        if (empty($_POST['patient_id'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: patient_id']);
+            return;
+        }
+
         if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
-            throw new Exception('Patient not found: ' . @$_POST['patient_id']);
+            $this->renderJSON(['error' => 'Patient not found: ' . @$_POST['patient_id']]);
+            return;
         }
 
         $text = @$_POST['text'];
@@ -474,13 +504,25 @@ class DefaultController extends BaseEventTypeController
      *
      * @throws Exception
      */
-    public function actionMarkPrinted($id)
+    public function actionMarkPrinted($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        if ($id === null) {
+            $this->renderJSON(['error' => 'Event ID is required']);
+            return;
+        }
+        
         if ($letter = ElementLetter::model()->find('event_id=?', array($id))) {
             $letter->print = 0;
             if (!$letter->save()) {
                 throw new Exception('Unable to mark letter printed: ' . print_r($letter->getErrors(), true));
             }
+            $this->renderJSON(['success' => true]);
+        } else {
+            $this->renderJSON(['error' => 'Letter not found for event ID: ' . $id]);
         }
     }
 
@@ -609,7 +651,12 @@ class DefaultController extends BaseEventTypeController
     public function actionPrint($id = null)
     {
         if ($id === null) {
-            throw new CHttpException(400, 'Event ID is required for print action.');
+            // Check if there's an event ID in the request parameters
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required for print action. Please navigate to a correspondence event and use the print button.');
         }
         $this->actionPrintForRecipient($id);
     }
@@ -816,7 +863,7 @@ class DefaultController extends BaseEventTypeController
 
         $criteria->addCondition(array("LOWER(concat_ws(' ',first_name,last_name)) LIKE :term"));
 
-        $params[':term'] = '%' . strtolower(strtr($_GET['term'], array('%' => '\%'))) . '%';
+        $params[':term'] = '%' . strtolower(strtr($_GET['term'] ?? '', array('%' => '\%'))) . '%';
 
         $criteria->params = $params;
         $criteria->order = 'first_name, last_name';
