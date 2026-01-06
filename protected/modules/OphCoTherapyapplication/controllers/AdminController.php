@@ -427,7 +427,10 @@ class AdminController extends ModuleAdminController
         $this->layout = '//layouts/admin_popup';
 
         $model = OphCoTherapyapplication_DecisionTreeNode::model()->findByPk((int) $id);
-
+        
+        if (!$model) {
+            throw new CHttpException(404, 'Unable to find the requested Decision Tree Node');
+        }
         if (isset($_POST['OphCoTherapyapplication_DecisionTreeNode'])) {
             $model->attributes = $_POST['OphCoTherapyapplication_DecisionTreeNode'];
 
