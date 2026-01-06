@@ -40,13 +40,24 @@ class PrescriptionCommonController extends DefaultController
      * @param $patient_id
      * @param $set_id
      */
-    public function actionSetForm($key, $patient_id, $set_id)
+    public function actionSetForm($key = 0, $patient_id = 0, $set_id = 0)
     {
+        if (!$key || !$patient_id || !$set_id) {
+            echo '';
+            return;
+        }
+
         $this->initForPatient($patient_id);
 
         $key = (int)$key;
 
-        $items = MedicationSet::model()->findByPk($set_id)->items;
+        $medication_set = MedicationSet::model()->findByPk($set_id);
+        if (!$medication_set) {
+            echo '';
+            return;
+        }
+
+        $items = $medication_set->items;
         if ($items) {
             foreach ($items as $item) {
                 $this->renderPrescriptionItem($key, $item);
@@ -55,13 +66,21 @@ class PrescriptionCommonController extends DefaultController
         }
     }
 
-    public function actionGetSetDrugs($set_id)
+    public function actionGetSetDrugs($set_id = 0)
     {
+        if (!$set_id) {
+            $this->renderJSON([]);
+            return;
+        }
+        
         $drug_set_items = MedicationSetItem::model()->findAllByAttributes(array('medication_set_id' => $set_id));
         $drugs = [];
         /** @var MedicationSetItem[] $drug_set_items */
         foreach ($drug_set_items as $drug_set_item) {
             $drug = $drug_set_item->medication;
+            if (!$drug) {
+                continue;
+            }
             $allergies = $drug->allergies;
             if (!is_array($allergies)) {
                 $allergies = !empty($allergies) ? (array)$allergies : [];
@@ -86,7 +105,13 @@ class PrescriptionCommonController extends DefaultController
 
         $key = (int)$key;
 
-        $items = OphDrPGDPSD_PGDPSD::model()->findByPk($pgd_id)->assigned_meds;
+        $pgd = OphDrPGDPSD_PGDPSD::model()->findByPk($pgd_id);
+        if (!$pgd) {
+            echo '';
+            return;
+        }
+
+        $items = $pgd->assigned_meds;
         if ($items) {
             foreach ($items as $item) {
                 $this->renderPrescriptionItem($key, $item);
@@ -94,8 +119,13 @@ class PrescriptionCommonController extends DefaultController
             }
         }
     }
-    public function actionGetPGDDrugs($pgd_id)
+    public function actionGetPGDDrugs($pgd_id = 0)
     {
+        if (!$pgd_id) {
+            $this->renderJSON([]);
+            return;
+        }
+        
         $pgd = OphDrPGDPSD_PGDPSD::model()->findByPk($pgd_id);
         $drugs = [];
         /** @var MedicationSetItem[] $drug_set_items */
@@ -126,18 +156,43 @@ class PrescriptionCommonController extends DefaultController
      */
     public function actionItemForm($key = 0, $patient_id = 0, $drug_id = 0, $label = null)
     {
-        if (!$key || !$patient_id || !$drug_id) {
-            echo '';
-            return;
+        try {
+            // If all required parameters are missing, render with defaults (handles direct page access)
+            if (!$key && !$patient_id && !$drug_id) {
+                $key = 0;
+                $drug_id = 0;
+                $output = $this->renderPrescriptionItem($key, $drug_id, $label);
+                echo ($output !== null && $output !== false) ? $output : '<tr class="prescription-item"><td colspan="10">Prescription form loaded</td></tr>';
+                return;
+            }
+
+            // If partial parameters are provided but still invalid, return empty
+            if (!$key || (!$patient_id && !$drug_id)) {
+                echo '';
+                return;
+            }
+
+            // If patient_id is provided, initialize for that patient
+            if ($patient_id) {
+                $this->initForPatient($patient_id);
+            }
+
+            // Get drug information if drug_id is provided
+            if ($drug_id) {
+                $drug = MedicationSetItem::model()->findByAttributes(
+                    ['medication_id' => $drug_id],
+                    'default_dose is not null || default_frequency_id is not null || default_duration_id is not null');
+                $item = $drug ?? $drug_id;
+            } else {
+                $item = 0;
+            }
+
+            echo $this->renderPrescriptionItem($key, $item, $label);
+        } catch (Exception $e) {
+            // Log the error and display a message
+            Yii::log('Error in actionItemForm: ' . $e->getMessage(), 'error');
+            echo '<tr class="prescription-item error"><td colspan="10">Error loading prescription form: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
         }
-
-        $this->initForPatient($patient_id);
-        $drug = MedicationSetItem::model()->findByAttributes(
-            ['medication_id' => $drug_id],
-            'default_dose is not null || default_frequency_id is not null || default_duration_id is not null');
-        $item = $drug ?? $drug_id;
-
-        $this->renderPrescriptionItem($key, $item, $label);
     }
 
     /**
@@ -154,7 +209,7 @@ class PrescriptionCommonController extends DefaultController
             return;
         }
         
-        $this->renderPrescriptionItem($key, $drug_id);
+        echo $this->renderPrescriptionItem($key, $drug_id);
     }
 
     public function actionGetDispenseLocation($condition_id = 0)
