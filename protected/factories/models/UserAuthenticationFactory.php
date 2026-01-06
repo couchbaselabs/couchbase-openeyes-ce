@@ -31,6 +31,7 @@ class UserAuthenticationFactory extends ModelFactory
             'institution_authentication_id' => InstitutionAuthentication::factory(),
             'user_id' => User::factory(),
             'username' => $this->faker->userName(),
+            'active' => 1,
             // because we validate when saving with this factory, we must provide password
             'password' => 'password',
             'password_repeat' => 'password'

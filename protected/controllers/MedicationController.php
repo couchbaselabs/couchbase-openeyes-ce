@@ -173,11 +173,15 @@ class MedicationController extends BaseController
         }
         $route = MedicationRoute::model()->findByPk($id);
         if ($route && $route->has_laterality) {
-            $this->renderJSON([
-                ['id' => 1, 'name' => 'Left'],
-                ['id' => 2, 'name' => 'Right'],
-                ['id' => 3, 'name' => 'Both'],
-            ]);
+            // Fetch laterality options from database rather than hardcoding
+            $lateralities = MedicationLaterality::model()->findAll(
+                ['condition' => 'deleted_date IS NULL', 'order' => 'id']
+            );
+            $options = [];
+            foreach ($lateralities as $laterality) {
+                $options[] = ['id' => $laterality->id, 'name' => $laterality->name];
+            }
+            $this->renderJSON($options);
         } else {
             $this->renderJSON([]);
         }
@@ -254,7 +258,7 @@ class MedicationController extends BaseController
         $medication = $this->fetchModel('ArchiveMedication', @$_POST['medication_id']);
 
         if ($patient->id != $medication->patient_id) {
-            throw new Exception('Patient ID mismatch');
+            throw new CHttpException(400, 'Patient ID mismatch');
         }
 
         $medication->end_date = @$_POST['end_date'];
@@ -277,7 +281,7 @@ class MedicationController extends BaseController
         $medication = $this->fetchModel('ArchiveMedication', @$_POST['medication_id']);
 
         if ($patient->id != $medication->patient_id) {
-            throw new Exception('Patient ID mismatch');
+            throw new CHttpException(400, 'Patient ID mismatch');
         }
 
         $medication->delete();

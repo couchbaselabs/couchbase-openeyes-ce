@@ -126,7 +126,7 @@ class MedicationRoute extends BaseActiveRecordVersioned
         $criteria->compare('last_modified_date', $this->last_modified_date, true);
         $criteria->compare('created_user_id', $this->created_user_id, true);
         $criteria->compare('created_date', $this->created_date, true);
-        $criteria->compare('has_lateralty', $this->has_laterality, false);
+        $criteria->compare('has_laterality', $this->has_laterality, false);
         $criteria->compare('is_active',$this->is_active,false);
 
         return new CActiveDataProvider($this, array(

@@ -79,10 +79,11 @@ class DefaultController extends \CController
         $institution_id = $_POST['institution_id'] ?? 1;
         $attributes = $_POST['attributes'] ?? [];
         $password = $_POST['password'] ?? 'password';
+        $username = $attributes['username'] ?? $_POST['username'] ?? null;
 
         $user = User::factory()
             ->withAuthItems($authitems)
-            ->withLocalAuthForInstitution(Institution::model()->findByPk($institution_id), $password)
+            ->withLocalAuthForInstitution(Institution::model()->findByPk($institution_id), $password, $username)
             ->create($attributes);
 
         // Refresh user to load authentications relationship

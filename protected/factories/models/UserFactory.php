@@ -63,12 +63,14 @@ class UserFactory extends ModelFactory
      *
      * @param \Institution $institution
      * @param string $password
+     * @param string|null $username - Optional username for authentication. If not provided, one will be generated
      * @return self
      */
-    public function withLocalAuthForInstitution(\Institution $institution, string $password = 'password'): self
+    public function withLocalAuthForInstitution(\Institution $institution, string $password = 'password', ?string $username = null): self
     {
-        return $this->afterCreating(function (\User $user) use ($password, $institution) {
-            UserAuthentication::factory()->create([
+        return $this->afterCreating(function (\User $user) use ($password, $institution, $username) {
+            // Build attributes for UserAuthentication
+            $auth_attributes = [
                 'user_id' => $user->id,
                 'institution_authentication_id' => InstitutionAuthentication::factory()->useExisting([
                     'institution_id' => $institution->id,
@@ -76,7 +78,14 @@ class UserFactory extends ModelFactory
                 ]),
                 'password' => $password,
                 'password_repeat' => $password
-            ]);
+            ];
+            
+            // Only set username if provided, otherwise let factory generate one
+            if (!empty($username)) {
+                $auth_attributes['username'] = $username;
+            }
+            
+            UserAuthentication::factory()->create($auth_attributes);
         });
     }
 
