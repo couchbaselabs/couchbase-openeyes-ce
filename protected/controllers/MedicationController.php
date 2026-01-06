@@ -151,27 +151,27 @@ class MedicationController extends BaseController
         }
     }
 
-    public function actionDrugRouteOptions($route_id = null)
+    public function actionDrugRouteOptions($id = null)
     {
-        if (!$route_id) {
+        if (!$id) {
             throw new CHttpException(400, 'Route ID is required');
         }
         $this->renderPartial(
             'route_option',
             array(
                 'medication' => new ArchiveMedication(),
-                'route' => $this->fetchModel('DrugRoute', $route_id),
+                'route' => $this->fetchModel('MedicationRoute', $id),
             )
         );
     }
 
-    public function actionRetrieveDrugRouteOptions($route_id = null)
+    public function actionRetrieveDrugRouteOptions($id = null)
     {
-        if (!$route_id) {
+        if (!$id) {
             $this->renderJSON([]);
             return;
         }
-        $route = MedicationRoute::model()->findByPk($route_id);
+        $route = MedicationRoute::model()->findByPk($id);
         if ($route && $route->has_laterality) {
             $this->renderJSON([
                 ['id' => 1, 'name' => 'Left'],
@@ -224,7 +224,7 @@ class MedicationController extends BaseController
 
             $post_data = $_POST;
 
-            if (strpos($post_data['drug_id'], '@@M') !== false) {
+            if (!empty($post_data['drug_id']) && strpos($post_data['drug_id'], '@@M') !== false) {
                 $post_data['drug_id'] = null;
                 $medication_data = explode('@@M', $_POST['drug_id']);
                 $post_data['medication_drug_id'] = $medication_data[0];
