@@ -59,17 +59,32 @@ class DefaultController extends BaseEventTypeController
     {
         $this->_registerDnaTestFormJs();
         parent::actionUpdate($id);
+        
+        // Verify the event type is OphInDnasample
+        if ($this->event && $this->event->eventType && $this->event->eventType->class_name !== 'OphInDnasample') {
+            throw new CHttpException(400, 'Event type mismatch: Expected OphInDnasample, got ' . $this->event->eventType->class_name);
+        }
     }
 
     public function actionView($id)
     {
         $this->_registerDnaTestFormJs();
         parent::actionView($id);
+        
+        // Verify the event type is OphInDnasample
+        if ($this->event && $this->event->eventType && $this->event->eventType->class_name !== 'OphInDnasample') {
+            throw new CHttpException(400, 'Event type mismatch: Expected OphInDnasample, got ' . $this->event->eventType->class_name);
+        }
     }
 
     public function actionPrint($id)
     {
         parent::actionPrint($id);
+        
+        // Verify the event type is OphInDnasample
+        if ($this->event && $this->event->eventType && $this->event->eventType->class_name !== 'OphInDnasample') {
+            throw new CHttpException(400, 'Event type mismatch: Expected OphInDnasample, got ' . $this->event->eventType->class_name);
+        }
     }
 
     public function isRequiredInUI(BaseEventTypeElement $element)
