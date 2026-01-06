@@ -373,11 +373,13 @@ class DefaultController extends BaseEventTypeController
             if (isset($_POST['saveprint'])) {
                 Yii::app()->session['printConsent'] = 1;
             }
-            if (@$_POST['SelectBooking'] == 'unbooked') {
+            // Check if SelectBooking exists before using it
+            $select_booking = @$_POST['SelectBooking'];
+            if ($select_booking && $select_booking == 'unbooked') {
                 $this->redirect(array('/OphTrConsent/Default/create?patient_id=' . $this->patient->id . '&unbooked=1'));
-            } elseif (preg_match('/^booking([0-9]+)$/', @$_POST['SelectBooking'], $m)) {
+            } elseif ($select_booking && preg_match('/^booking([0-9]+)$/', $select_booking, $m)) {
                 $this->redirect(array('/OphTrConsent/Default/create?patient_id=' . $this->patient->id . '&booking_event_id=' . $m[1]));
-            } elseif (preg_match('/^template([0-9]+)$/', @$_POST['SelectBooking'], $m)) {
+            } elseif ($select_booking && preg_match('/^template([0-9]+)$/', $select_booking, $m)) {
                 if (!isset($_POST["template" . $m[1]]["right_eye"]) && !isset($_POST["template" . $m[1]]["left_eye"])) {
                     $errors = array('Consent form' => array('Please select laterality to add procedures for the template'));
                 } else {
@@ -386,7 +388,7 @@ class DefaultController extends BaseEventTypeController
                     $this->redirect(array('/OphTrConsent/Default/create?patient_id=' . $this->patient->id . '&consent_template_id=' . $m[1] . '&type_id=' . $consent_template->type_id . '&template_eye_id=' . $template_eye_id));
                 }
             }
-            if (!isset($errors)) {
+            if (!isset($errors) && (!$select_booking || (!($select_booking == 'unbooked' || preg_match('/^booking([0-9]+)$/', $select_booking) || preg_match('/^template([0-9]+)$/', $select_booking))))) {
                 $errors = array('Consent form' => array('Please add Laterality when a template is selected'));
             }
         }
@@ -525,28 +527,70 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionCreateEventImages($id = null)
     {
-        // If no ID is provided, render an empty response or message
-        if ($id === null) {
-            // Action can be called without ID, but nothing will be processed
-            return;
+        $success_message = null;
+        $error_message = null;
+        $booking_event_id = null;
+
+        // Handle form submission
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['booking_event_id'])) {
+            $id = $_POST['booking_event_id'];
         }
 
-        $procedure = Element_OphTrConsent_Procedure::model()->find('booking_event_id=?', [$id]);
-        if ($procedure === null) {
-            throw new CHttpException(404, 'No consent procedure found for the specified booking event');
+        // If an ID is provided (either from form or URL parameter), process it
+        if ($id !== null) {
+            try {
+                $procedure = Element_OphTrConsent_Procedure::model()->find('booking_event_id=?', [$id]);
+                if ($procedure === null) {
+                    // Don't throw 404 for form submission, instead show error message
+                    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                        $error_message = 'No consent procedure found for the specified booking event ID: ' . htmlspecialchars($id);
+                        $booking_event_id = $id;
+                    } else {
+                        // For direct URL access, still throw 404
+                        throw new CHttpException(404, 'No consent procedure found for the specified booking event');
+                    }
+                } else {
+                    // Generate a pdf file for the event
+                    $pdf_route = $this->setPDFprintData($procedure->event_id, false);
+
+                    $pf = ProtectedFile::createFromFile($procedure->event->imageDirectory . '/event_' . $pdf_route . '.pdf');
+                    $pf->title = 'event_' . $pdf_route . '.pdf';
+
+                    if ($pf->save()) {
+                        // Create preview images of generated pdf file
+                        $this->createPdfPreviewImages($pf->getPath());
+                        // Delete pdf file after creating images
+                        $pf->delete();
+                        
+                        // Set success message for form submission
+                        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                            $success_message = 'Event images successfully created for booking event ID: ' . htmlspecialchars($id);
+                            $booking_event_id = $id;
+                        }
+                    } else {
+                        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                            $error_message = 'Failed to create protected file for PDF.';
+                            $booking_event_id = $id;
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                    $error_message = 'Error: ' . $e->getMessage();
+                    $booking_event_id = $id;
+                } else {
+                    throw $e;
+                }
+            }
         }
 
-        // Generate a pdf file for the event
-        $pdf_route = $this->setPDFprintData($procedure->event_id, false);
-
-        $pf = ProtectedFile::createFromFile($procedure->event->imageDirectory . '/event_' . $pdf_route . '.pdf');
-        $pf->title = 'event_' . $pdf_route . '.pdf';
-
-        if ($pf->save()) {
-            // Create preview images of generated pdf file
-            $this->createPdfPreviewImages($pf->getPath());
-            // Delete pdf file after creating images
-            $pf->delete();
+        // If no ID is provided or this is a GET request, render the form
+        if ($id === null || $_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->render('createEventImages', array(
+                'success_message' => $success_message,
+                'error_message' => $error_message,
+                'booking_event_id' => $booking_event_id,
+            ));
         }
     }
 

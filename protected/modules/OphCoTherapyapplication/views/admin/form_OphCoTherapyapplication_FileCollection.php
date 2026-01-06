@@ -26,7 +26,13 @@
     <tbody>
         <tr>
             <td><?= $model->getAttributeLabel('institution') ?></td>
-            <td><?= \CHtml::activeDropDownList(
+            <td><?php
+                // Default to current selected institution if not already set
+                if ($model->isNewRecord && !$model->institution_id) {
+                    $model->institution_id = Yii::app()->session['selected_institution_id'] ?? null;
+                }
+            ?>
+            <?= \CHtml::activeDropDownList(
                 $model,
                 'institution_id',
                 Institution::model()->getTenantedList(true),

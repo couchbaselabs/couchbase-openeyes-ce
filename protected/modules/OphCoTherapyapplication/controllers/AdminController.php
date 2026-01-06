@@ -746,10 +746,18 @@ class AdminController extends ModuleAdminController
     public function actionAddEmailRecipient()
     {
         $model = new OphCoTherapyapplication_Email_Recipient();
+        
+        // Set default institution to current selected institution
+        $model->institution_id = Yii::app()->session['selected_institution_id'];
 
         if (isset($_POST['OphCoTherapyapplication_Email_Recipient'])) {
             // do the actual create
             $model->attributes = $_POST['OphCoTherapyapplication_Email_Recipient'];
+            
+            // Ensure institution_id is set to current institution
+            if (empty($model->institution_id)) {
+                $model->institution_id = Yii::app()->session['selected_institution_id'];
+            }
 
             if ($model->save()) {
                 Audit::add('admin', 'create', serialize($model->attributes), false, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_Email_Recipient'));
