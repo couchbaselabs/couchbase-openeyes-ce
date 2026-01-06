@@ -268,8 +268,10 @@ class AdminController extends BaseAdminController
 
         if (!empty($errors)) {
             $transaction->rollback();
+            Yii::app()->user->setFlash('warning.failure', 'Error adding mapping: ' . implode(', ', $errors));
         } else {
             $transaction->commit();
+            Yii::app()->user->setFlash('success', 'Mapping added successfully.');
         }
 
         $return_url = Yii::app()->request->getPost('return_url') ?? '';
@@ -307,8 +309,10 @@ class AdminController extends BaseAdminController
 
         if (!empty($errors)) {
             $transaction->rollback();
+            Yii::app()->user->setFlash('warning.failure', 'Error removing mapping: ' . implode(', ', $errors));
         } else {
             $transaction->commit();
+            Yii::app()->user->setFlash('success', 'Mapping removed successfully.');
         }
 
         $return_url = Yii::app()->request->getPost('return_url') ?? '';
