@@ -20,6 +20,7 @@
     <?= $this->renderPartial('//admin/_form_errors', array('errors' => $errors)) ?>
     <form method="POST">
         <input type="hidden" name="YII_CSRF_TOKEN" value="<?= Yii::app()->request->csrfToken ?>" />
+        <?= CHtml::activeHiddenField($q_assign, 'question_id'); ?>
         <table class="standard cols-full">
             <colgroup>
                 <col class="cols-4">
@@ -44,7 +45,7 @@
                         </td>
                     </tr>
                 <?php } ?>
-                <?php if ($q_assign->question->question_type->name !== 'radio' && $q_assign->question->question_type->name !== 'dropdown') : ?>
+                <?php if ($q_assign->question && $q_assign->question->question_type && $q_assign->question->question_type->name !== 'radio' && $q_assign->question->question_type->name !== 'dropdown') : ?>
                 <tr>
                     <td>Minimum answer length/choices</td>
                     <td>
@@ -71,7 +72,7 @@
                     </td>
                 </tr>
                 <?php endif; ?>
-                <?php if (isset($q_assign->id) && !$q_assign->question->question_type->text_based && count($q_assign->answers) > 0) : ?>
+                <?php if (isset($q_assign->id) && $q_assign->question && $q_assign->question->question_type && !$q_assign->question->question_type->text_based && count($q_assign->answers) > 0) : ?>
                 <tr>
                     <td>
                         <?= $q_assign->getAttributeLabel('default_option_selection'); ?>
@@ -86,7 +87,7 @@
                         ); ?>
                     </td>
                 </tr>
-                <?php elseif ($q_assign->question->question_type->text_based) : ?>
+                <?php elseif ($q_assign->question && $q_assign->question->question_type && $q_assign->question->question_type->text_based) : ?>
                 <tr>
                     <td>
                         <?= $q_assign->getAttributeLabel('default_option_text'); ?>
@@ -209,7 +210,7 @@
         ); ?>
     </form>
 </div>
-<?php if (isset($q_assign->id) && !$q_assign->question->question_type->text_based) : ?>
+<?php if (isset($q_assign->id) && $q_assign->question && $q_assign->question->question_type && !$q_assign->question->question_type->text_based) : ?>
 <br>
 <h2>Local question answer options</h2>
 <table class="standard cols-full">
@@ -224,7 +225,7 @@
     </thead>
     <tbody>
         <?php foreach ($q_assign->answers as $answer) { ?>
-            <tr id="$key" class="clickable row divider" data-id="<?= $answer->id ?>" data-uri="OphTrConsent/oeadmin/supplementaryConsent/editAnswer/<?= $answer->id ?>">
+            <tr id="$key" class="clickable row divider" data-id="<?= $answer->id ?>" data-uri="OphTrConsent/oeadmin/supplementaryConsent/editAnswer?id=<?= $answer->id ?>">
                 <td>
                     <?= $answer->display_order; ?>
                 </td>

@@ -88,7 +88,7 @@
             <?php
             $purifier = new CHtmlPurifier();
             foreach ($suppleConsent as $key => $question) { ?>
-                <tr class="clickable divider" data-id="<?= $question->id ?>" data-uri="OphTrConsent/oeadmin/supplementaryConsent/edit/<?= $question->id ?>">
+                <tr class="clickable divider" data-id="<?= $question->id ?>" data-uri="OphTrConsent/oeadmin/supplementaryConsent/edit?id=<?= $question->id ?>">
 
                     <td><?= $purifier->purify($question->name) ?></td>
                     <td><?= $purifier->purify($question->description) ?></td>

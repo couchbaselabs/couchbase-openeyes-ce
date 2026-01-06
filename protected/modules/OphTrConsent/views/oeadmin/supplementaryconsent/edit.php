@@ -103,7 +103,7 @@
             $purifier = new CHtmlPurifier();
         ?>
         <?php foreach ($suppleconsent->question_assignment as $questionAsgn) { ?>
-            <tr id="$key" class="clickable row divider" data-id="<?= $questionAsgn->id ?>" data-uri="OphTrConsent/oeadmin/supplementaryConsent/editAssignment/<?= $questionAsgn->id ?>">
+            <tr id="$key" class="clickable row divider" data-id="<?= $questionAsgn->id ?>" data-uri="OphTrConsent/oeadmin/supplementaryConsent/editAssignment?id=<?= $questionAsgn->id ?>">
                 <td>
                     <?= $purifier->purify($questionAsgn->question_text); ?>
                 </td>

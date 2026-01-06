@@ -12,45 +12,72 @@ class SupplementaryConsentController extends BaseAdminController
      */
     public function actionList()
     {
-        $criteria = new CDbCriteria();
         $search = \Yii::app()->request->getPost('search', ['query' => '', 'active' => '']);
-
         $query_lowercase = strtolower($search['query']);
 
-        $criteria->distinct = true;
+        // Get ALL questions first
+        $suppleConsent = Ophtrconsent_SupplementaryConsentQuestion::model();
+        $allQuestions = $suppleConsent->findAll();
 
-        $criteria->join = 'LEFT JOIN ophtrconsent_sup_consent_question_assignment qa ON qa.question_id = t.id ' .
-                        'LEFT JOIN ophtrconsent_sup_consent_question_answer qan ON qan.question_assignment_id = qa.id ' .
-                        'LEFT JOIN institution i ON i.id = qa.institution_id ' .
-                        'LEFT JOIN site st ON st.id = qa.site_id ' .
-                        'LEFT JOIN subspecialty sbs ON sbs.id = qa.subspecialty_id ' .
-                        'LEFT JOIN ophtrconsent_type_type ft ON ft.id = qa.form_id';
-
-        $criteria->addSearchCondition('LOWER(`t`.`name`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`t`.`description`)', $query_lowercase, true, 'OR');
-
-        $criteria->addSearchCondition('LOWER(`qa`.`question_text`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`qa`.`question_info`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`qa`.`question_output`)', $query_lowercase, true, 'OR');
-
-        $criteria->addSearchCondition('LOWER(`qan`.`name`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`qan`.`display`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`qan`.`answer_output`)', $query_lowercase, true, 'OR');
-
-        $criteria->addSearchCondition('LOWER(`i`.`name`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`st`.`name`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`sbs`.`name`)', $query_lowercase, true, 'OR');
-        $criteria->addSearchCondition('LOWER(`ft`.`name`)', $query_lowercase, true, 'OR');
-
-        if ($search['active'] !== '') {
-            $criteria->compare('`qa`.`active`', (int)$search['active']);
+        // Apply filtering
+        $filteredQuestions = [];
+        foreach ($allQuestions as $question) {
+            $include = true;
+            
+            // If there's a search query
+            if (!empty($query_lowercase)) {
+                $foundInQuestion = false;
+                
+                // Search in question name/description
+                if (stripos($question->name, $query_lowercase) !== false ||
+                    stripos($question->description, $query_lowercase) !== false) {
+                    $foundInQuestion = true;
+                }
+                
+                // Search in question assignments and answers
+                if (!$foundInQuestion) {
+                    foreach ($question->question_assignment as $qa) {
+                        if (stripos($qa->question_text, $query_lowercase) !== false ||
+                            stripos($qa->question_info, $query_lowercase) !== false ||
+                            stripos($qa->question_output, $query_lowercase) !== false) {
+                            $foundInQuestion = true;
+                            break;
+                        }
+                        // Check answers
+                        foreach ($qa->answers as $answer) {
+                            if (stripos($answer->name, $query_lowercase) !== false ||
+                                stripos($answer->display, $query_lowercase) !== false ||
+                                stripos($answer->answer_output, $query_lowercase) !== false) {
+                                $foundInQuestion = true;
+                                break 2;
+                            }
+                        }
+                    }
+                }
+                
+                $include = $foundInQuestion;
+            }
+            
+            // Filter by active status
+            if ($search['active'] !== '' && $include) {
+                $hasActiveAssignment = false;
+                foreach ($question->question_assignment as $qa) {
+                    if ((int)$qa->active === (int)$search['active']) {
+                        $hasActiveAssignment = true;
+                        break;
+                    }
+                }
+                $include = $hasActiveAssignment;
+            }
+            
+            if ($include) {
+                $filteredQuestions[] = $question;
+            }
         }
 
-        $suppleConsent = Ophtrconsent_SupplementaryConsentQuestion::model();
-
         $this->render('/oeadmin/supplementaryconsent/index', [
-            'pagination' => $this->initPagination($suppleConsent, $criteria),
-            'suppleConsent' => $suppleConsent->findAll($criteria),
+            'pagination' => new CPagination(count($filteredQuestions)),
+            'suppleConsent' => $filteredQuestions,
             'search' => $search,
         ]);
     }
@@ -92,7 +119,7 @@ class SupplementaryConsentController extends BaseAdminController
             if (!$q_assign->save()) {
                 $errors = $q_assign->getErrors();
             } else {
-                $this->redirect('/OphTrConsent/oeadmin/SupplementaryConsent/editAssignment/' . $q_assign->question_assignment_id);
+                $this->redirect('/OphTrConsent/oeadmin/SupplementaryConsent/editAssignment?id=' . $q_assign->question_assignment_id);
             }
         }
 
@@ -130,7 +157,7 @@ class SupplementaryConsentController extends BaseAdminController
             if (!$q_assign->save()) {
                 $errors = $q_assign->getErrors();
             } else {
-                $this->redirect('/OphTrConsent/oeadmin/SupplementaryConsent/edit/' . $q_assign->question_id);
+                $this->redirect('/OphTrConsent/oeadmin/SupplementaryConsent/edit?id=' . $q_assign->question_id);
             }
         }
 
