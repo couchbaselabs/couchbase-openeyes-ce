@@ -8,15 +8,25 @@ class SetupPathwayStepPickerBehavior extends CBehavior
             Yii::app()->session['selected_institution_id'],
             null
         );
-        $custom_booking_step_sql = Yii::app()->cbdb->createCommand()
-            ->select('pstpa.custom_pathway_step_type_id, pstpa.site_id, pstpa.subspecialty_id, pstpa.firm_id, pstpa.preset_id')
-            ->from('pathway_step_type_preset_assignment pstpa')
-            ->join('pathway_step_type pst', 'pst.id = pstpa.custom_pathway_step_type_id')
-            ->join('pathway_step_type_institution psti', 'psti.pathway_step_type_id = pst.id')
-            ->where('pstpa.preset_short_name = "Book Apt." AND psti.institution_id = :institution_id')
-            ->group('pstpa.custom_pathway_step_type_id, pstpa.site_id, pstpa.subspecialty_id, pstpa.firm_id, pstpa.preset_id')
-            ->bindValue(':institution_id', Yii::app()->session['selected_institution_id'])
-            ->queryAll();
+        
+        // Initialize custom_booking_step_sql with empty array to handle cases where the query fails
+        $custom_booking_step_sql = array();
+        try {
+            $custom_booking_step_sql = Yii::app()->cbdb->createCommand()
+                ->select('pstpa.custom_pathway_step_type_id, pstpa.site_id, pstpa.subspecialty_id, pstpa.firm_id, pstpa.preset_id')
+                ->from('pathway_step_type_preset_assignment pstpa')
+                ->join('pathway_step_type pst', 'pst.id = pstpa.custom_pathway_step_type_id')
+                ->join('pathway_step_type_institution psti', 'psti.pathway_step_type_id = pst.id')
+                ->where('pstpa.preset_short_name = "Book Apt." AND psti.institution_id = :institution_id')
+                ->group('pstpa.custom_pathway_step_type_id, pstpa.site_id, pstpa.subspecialty_id, pstpa.firm_id, pstpa.preset_id')
+                ->bindValue(':institution_id', Yii::app()->session['selected_institution_id'])
+                ->queryAll();
+        } catch (Exception $e) {
+            // If the query fails, log it and continue with empty array
+            Yii::log('Failed to query pathway_step_type_preset_assignment: ' . $e->getMessage(), CLogger::LEVEL_WARNING, 'application.behaviors.SetupPathwayStepPickerBehavior');
+            $custom_booking_step_sql = array();
+        }
+        
         $custom_booking_steps = array_map(
             static function ($item) {
                 return [
