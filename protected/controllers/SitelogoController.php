@@ -61,8 +61,9 @@ class SiteLogoController extends BaseController
 
     public function actionIndex($secondary_logo = null)
     {
-        // Navigate to the default logo
-        $this->actionView(1, $secondary_logo);
+        // Get all logos for the list page
+        $logos = SiteLogo::model()->findAll();
+        $this->render('index', array('logos' => $logos, 'secondary_logo' => $secondary_logo));
     }
 
     public function actionPrimary($id = 1)
@@ -88,8 +89,15 @@ class SiteLogoController extends BaseController
         $criteria->params[':logo_id'] = $id;
         $logo = SiteLogo::model()->find($criteria);
 
+        // If the requested logo is not found, try to find any available logo
         if (!$logo) {
-            throw new CHttpException(404, 'The requested logo does not exist.');
+            $logo = SiteLogo::model()->find();
+        }
+
+        // If still no logo found, return a placeholder transparent PNG
+        if (!$logo) {
+            $this->returnPlaceholderLogo();
+            return;
         }
 
         if ($secondary_logo) {
@@ -104,6 +112,11 @@ class SiteLogoController extends BaseController
                 $criteria->addCondition('id = 1');
                 $logo = SiteLogo::model()->find($criteria);
             }
+            // If no secondary logo found after fallbacks, use placeholder
+            if ($logo && !$logo->secondary_logo) {
+                $this->returnPlaceholderLogo();
+                return;
+            }
         } else {
             if ($logo && !$logo->primary_logo) {
                 $criteria = new CDbCriteria();
@@ -116,10 +129,16 @@ class SiteLogoController extends BaseController
                 $criteria->addCondition('id = 1');
                 $logo = SiteLogo::model()->find($criteria);
             }
+            // If no primary logo found after fallbacks, use placeholder
+            if ($logo && !$logo->primary_logo) {
+                $this->returnPlaceholderLogo();
+                return;
+            }
         }
 
         if (!$logo) {
-            throw new CHttpException(404, 'The requested logo does not exist.');
+            $this->returnPlaceholderLogo();
+            return;
         }
 
         $file_mod_time = strtotime($logo->last_modified_date);
@@ -144,6 +163,27 @@ class SiteLogoController extends BaseController
             header('Content-length: ' . strlen($image_data));
             echo $image_data;
         }
+    }
+
+    /**
+     * Returns a placeholder transparent PNG logo
+     * This is used when no actual logo is available in the database
+     */
+    private function returnPlaceholderLogo()
+    {
+        // 1x1 transparent PNG
+        $png_data = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        );
+
+        $headers = $this->getRequestHeaders();
+
+        header('Content-type: image/png');
+        header('Cache-Control: public, max-age=31536000, immutable');
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT', true, 200);
+        header('Content-transfer-encoding: binary');
+        header('Content-length: ' . strlen($png_data));
+        echo $png_data;
     }
 
     /**

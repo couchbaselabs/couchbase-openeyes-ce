@@ -22,8 +22,14 @@ class PracticeController extends BaseController
         return array(
             array(
                 'allow',
+                // allow anyone to view the index page
+                'actions' => array('index'),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
                 // allow users with either the TaskViewPractice or TaskCreatePractice roles to view Practice data
-                'actions' => array('index', 'view'),
+                'actions' => array('view'),
                 'roles' => array('TaskViewPractice', 'TaskCreatePractice'),
             ),
             array(

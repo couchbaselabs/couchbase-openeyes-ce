@@ -657,6 +657,11 @@ class WorklistManager extends CComponent
 
         $institution = $this->getCurrentInstitution();
 
+        // Return empty array if institution is not set
+        if (!$institution) {
+            return [$worklists, $definitions];
+        }
+
         if ($filter) {
             $site = $this->getModelForClass('Site')->findByPk($filter->getSiteId());
 

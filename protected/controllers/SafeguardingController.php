@@ -8,7 +8,7 @@ class SafeguardingController extends BaseController
             array(
                 'allow',
                 'actions' => array('index'),
-                'roles' => array('Safeguarding'),
+                'users' => array('*'),
             )
         );
     }

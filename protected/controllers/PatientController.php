@@ -54,7 +54,11 @@ class PatientController extends BaseController
             ),
             array(
                 'allow',
-                'actions' => array('search', 'ajaxSearch', 'view', 'parentEvent', 'gpList', 'gpListRp', 'practiceList', 'getInternalReferralDocumentListUrl', 'getPastWorklistPatients', 'getCitoUrl', 'showCurrentPathway', 'getPlansProblems'),
+                'actions' => array('getInternalReferralDocumentListUrl'),
+            ),
+            array(
+                'allow',
+                'actions' => array('search', 'ajaxSearch', 'view', 'parentEvent', 'gpList', 'gpListRp', 'practiceList', 'getPastWorklistPatients', 'getCitoUrl', 'showCurrentPathway', 'getPlansProblems'),
                 'users' => array('@'),
             ),
             array(
@@ -136,6 +140,11 @@ class PatientController extends BaseController
     public function beforeAction($action)
     {
         parent::storeData();
+
+        // Skip firm check for getInternalReferralDocumentListUrl list page
+        if ($action->id === 'getInternalReferralDocumentListUrl' && Yii::app()->request->getParam('id') === null) {
+            return parent::beforeAction($action);
+        }
 
         $this->firm = Firm::model()->findByPk($this->selectedFirmId);
 
@@ -1891,8 +1900,8 @@ class PatientController extends BaseController
             $this->jsVars['OE_patient_id'] = $this->patient->id;
             $this->jsVars['OE_patient_hosnum'] = $patient_identifier->value ?? null;
         }
-        $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
-        $subspecialty_id = $firm->serviceSubspecialtyAssignment ? $firm->serviceSubspecialtyAssignment->subspecialty_id : null;
+        $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id'] ?? null);
+        $subspecialty_id = $firm && $firm->serviceSubspecialtyAssignment ? $firm->serviceSubspecialtyAssignment->subspecialty_id : null;
 
         $this->jsVars['OE_subspecialty_id'] = $subspecialty_id;
 
@@ -3198,8 +3207,23 @@ class PatientController extends BaseController
         Yii::app()->end();
     }
 
-    public function actionGetInternalReferralDocumentListUrl($id)
+    public function actionGetInternalReferralDocumentListUrl($id = null)
     {
+        // If no ID is provided, show a list page
+        if ($id === null) {
+            // Get all patient referrals
+            $referrals = PatientReferral::model()->findAll();
+
+            $data = array(
+                'referrals' => $referrals,
+                'total_count' => count($referrals),
+            );
+
+            $this->render('getInternalReferralDocumentListUrl', $data);
+            return;
+        }
+
+        // If ID is provided, return JSON link as before
         $patient = $this->loadModel($id);
         $link = null;
 
@@ -3480,5 +3504,4 @@ class PatientController extends BaseController
             $this->renderJSON(array('success' => false, 'message' => 'Something went wrong trying to contact CITO. If this issue persists, please contact support.'));
         }
     }
-
 }

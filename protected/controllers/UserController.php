@@ -84,10 +84,12 @@ class UserController extends BaseController
             $db = Yii::app()->db;
             // If DB unavailable, report current time to force immediate refresh but avoid errors
             if ($db instanceof OEDbConnection && !$db->isConnectionAvailable()) {
-                return $this->renderJSON(time() + 3600);
+                $this->renderJSON(time() + 3600);
+                return;
             }
         } catch (\Throwable $e) {
-            return $this->renderJSON(time() + 3600);
+            $this->renderJSON(time() + 3600);
+            return;
         }
 
         try {
@@ -106,9 +108,11 @@ class UserController extends BaseController
             }
 
             $this->renderJSON($expire);
+            return;
         } catch (\Throwable $e) {
             // On query failure, keep session alive for 1 hour to avoid forcing logout
             $this->renderJSON(time() + 3600);
+            return;
         }
     }
 }

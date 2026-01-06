@@ -20,7 +20,7 @@
 <?php
 $settings = new SettingMetadata();
 $this->pageTitle = ((string)SettingMetadata::model()->getSetting('use_short_page_titles') != "on" ? Yii::app()->name . ' - ' : '') . 'Device ready';
-$user = Yii::app()->session['user'];
+$user = Yii::app()->session['user'] ?? null;
 ?>
 
 <div class="oe-login">
@@ -30,7 +30,7 @@ $user = Yii::app()->session['user'];
         <h1>Device ready</h1>
 
         <div class="highlighter inverted flex-c">
-            Linked to: <?= $user->first_name . ' ' . $user->last_name; ?>
+            Linked to: <?= $user ? ($user->first_name . ' ' . $user->last_name) : 'Unknown User'; ?>
         </div>
 
         <div class="info flex-c">
@@ -43,27 +43,39 @@ $user = Yii::app()->session['user'];
 
 <script type="text/javascript">
     function onSuccess(msg) {
-        const response = JSON.parse(msg);
-        if (response.status && response.event_id) {
-            let url = `/${response.module_id}/default/sign/${response.event_id}?`;
-            delete(response["module_id"], response["event_id"]);
-            window.location.href = url + $.param(response) + "&deviceSign=1"
+        try {
+            const response = JSON.parse(msg);
+            if (response.status && response.event_id) {
+                let url = `/${response.module_id}/default/sign/${response.event_id}?`;
+                delete(response["module_id"], response["event_id"]);
+                window.location.href = url + $.param(response) + "&deviceSign=1"
+            }
+        } catch (e) {
+            console.error('Error parsing response:', e, msg);
+            // Retry after a delay
+            setTimeout(subscribe, 2000);
         }
     }
 
     async function subscribe() {
-        let response = await fetch("/site/pollSignatureRequests");
-        if (response.status === 502) {
-            // Connection timeout error, try reconnecting
-            await subscribe();
-        } else if (response.status !== 200) {
-            // Another error
-            // Reconnect a little later
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            await subscribe();
-        } else {
-            let message = await response.text();
-            onSuccess(message);
+        try {
+            let response = await fetch("/site/pollSignatureRequests");
+            if (response.status === 502) {
+                // Connection timeout error, try reconnecting
+                setTimeout(subscribe, 1000);
+            } else if (response.status !== 200) {
+                // Another error (e.g., 401 Unauthorized)
+                // Reconnect a little later
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                await subscribe();
+            } else {
+                let message = await response.text();
+                onSuccess(message);
+            }
+        } catch (e) {
+            console.error('Error during subscribe:', e);
+            // Retry after a delay
+            setTimeout(subscribe, 2000);
         }
     }
 

@@ -78,7 +78,7 @@ class UserHotlistItemController extends BaseController
      * @throws Exception Thrown if an error occurs when saving the record
      * @throws CHttpException Thrown if the user doesn't have the privileges to access the ttem
      */
-    public function actionCloseHotlistItem($hotlist_item_id = null)
+    public function actionClosehotlistitem($hotlist_item_id = null)
     {
         if (!$hotlist_item_id) {
             echo json_encode(['success' => false, 'message' => 'Missing required parameter: hotlist_item_id']);
@@ -91,7 +91,11 @@ class UserHotlistItemController extends BaseController
             throw new CHttpException(403, 'Access denied');
         }
         $model->is_open = 0;
-        $model->save();
+        if (!$model->save()) {
+            throw new Exception('The hotlist item could not be saved ' . print_r($model->errors, true));
+        }
+        echo json_encode(['success' => true, 'message' => 'Hotlist item closed successfully']);
+        Yii::app()->end();
     }
 
     /**
@@ -101,7 +105,7 @@ class UserHotlistItemController extends BaseController
      * @throws Exception Thrown if an error occurs when saving the record
      * @throws CHttpException Thrown if the user doesn't have the privileges to access the ttem
      */
-    public function actionOpenHotlistItem($hotlist_item_id = null)
+    public function actionOpenhotlistitem($hotlist_item_id = null)
     {
         if (!$hotlist_item_id) {
             echo json_encode(['success' => false, 'message' => 'Missing required parameter: hotlist_item_id']);
@@ -115,7 +119,8 @@ class UserHotlistItemController extends BaseController
         }
 
         if ($model->is_open) {
-            return;
+            echo json_encode(['success' => true, 'message' => 'Hotlist item is already open']);
+            Yii::app()->end();
         }
 
         if ($model->wasUpdatedToday()) {
@@ -123,6 +128,7 @@ class UserHotlistItemController extends BaseController
             if (!$model->save()) {
                 throw new Exception('The hotlist item could not be saved ' . print_r($model->errors, true));
             }
+            echo json_encode(['success' => true, 'message' => 'Hotlist item opened successfully']);
         } else {
             $new_item = new UserHotlistItem();
             $new_item->patient_id = $model->patient_id;
@@ -131,7 +137,9 @@ class UserHotlistItemController extends BaseController
             if (!$new_item->save()) {
                 throw new Exception('New hotlist item could not be saved ' . print_r($new_item->errors, true));
             }
+            echo json_encode(['success' => true, 'message' => 'New hotlist item opened successfully']);
         }
+        Yii::app()->end();
     }
 
     /**
@@ -142,7 +150,7 @@ class UserHotlistItemController extends BaseController
      * @throws Exception Thrown if an error occurs when saving the record
      * @throws CHttpException Thrown if the user doesn't have privileges to access the item
      */
-    public function actionUpdateUserComment($hotlist_item_id = null, $comment = null)
+    public function actionUpdateusercomment($hotlist_item_id = null, $comment = null)
     {
         if (!$hotlist_item_id) {
             echo json_encode(['success' => false, 'message' => 'Missing required parameter: hotlist_item_id']);

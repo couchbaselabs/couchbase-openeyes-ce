@@ -2536,24 +2536,7 @@ class Patient extends BaseActiveRecordVersioned
      */
     public static function findDuplicates($firstName, $last_name, $dob, $id)
     {
-        $sql = '
-        SELECT p.*
-        FROM patient p
-        JOIN contact c
-          ON c.id = p.contact_id
-        WHERE p.dob = :dob
-          AND (SOUNDEX(c.first_name) = SOUNDEX(:first_name) OR levenshtein_ratio(c.first_name, :first_name) >= 30)
-          AND (SOUNDEX(c.last_name) = SOUNDEX(:last_name) OR levenshtein_ratio(c.last_name, :last_name) >= 30)
-          AND (:id IS NULL OR p.id != :id)
-          AND p.deleted = 0
-        ORDER BY c.first_name, c.last_name
-        ';
-
-        //Note: The dates processed by this function will always be assumed to be in full ascending/descending order
-        //Ex: dd/mm/yyyy and yyyy/mm/dd will work, but mm/dd/yyyy or yyyy/dd/mm will not
-        //This is normally handled by php: '/' delimited dates are american, '-' delimited dates are european
-        $mysqlDob = Helper::convertNHS2MySQL(date('d M Y', strtotime(str_replace('/', '-', $dob))));
-
+        // Validate input data
         $validPatient = new Patient('manual');
         $validContact = new Contact('manual');
         $validContact->created_institution_id = Yii::app()->session['selected_institution_id'];
@@ -2561,28 +2544,120 @@ class Patient extends BaseActiveRecordVersioned
         $validContact->last_name = $last_name;
         $validPatient->dob = $dob;
 
-        if ($validPatient->validate(array('dob')) && $validContact->validate(array('first_name', 'last_name'))) {
-            return Patient::model()->findAllBySql($sql, array(':dob' => $mysqlDob, ':first_name' => $firstName, ':last_name' => $last_name, ':id' => $id));
+        if (!($validPatient->validate(array('dob')) && $validContact->validate(array('first_name', 'last_name')))) {
+            return array('error' => array_merge($validPatient->getErrors(), $validContact->getErrors()));
         }
 
-        return array('error' => array_merge($validPatient->getErrors(), $validContact->getErrors()));
+        //Note: The dates processed by this function will always be assumed to be in full ascending/descending order
+        //Ex: dd/mm/yyyy and yyyy/mm/dd will work, but mm/dd/yyyy or yyyy/dd/mm will not
+        //This is normally handled by php: '/' delimited dates are american, '-' delimited dates are european
+        $mysqlDob = Helper::convertNHS2MySQL(date('d M Y', strtotime(str_replace('/', '-', $dob))));
+
+        try {
+            // Use Couchbase to fetch patients with matching DOB
+            $db = Yii::app()->cbdb;
+            $sql = 'SELECT p.* FROM `' . Yii::app()->cbdb->bucketName . '`.`core`.`patient` p
+                    WHERE p.dob = :dob AND p.deleted = 0';
+            
+            $command = $db->createCommand($sql);
+            $command->bindParam(':dob', $mysqlDob, PDO::PARAM_STR);
+            $patients = $command->queryAll();
+
+            if (empty($patients)) {
+                return array();
+            }
+
+            // Filter patients in PHP using string matching algorithms
+            $results = array();
+            foreach ($patients as $patientData) {
+                // Skip if the patient ID matches (if provided)
+                if ($id !== null && isset($patientData['id']) && $patientData['id'] == $id) {
+                    continue;
+                }
+
+                // Get the contact for this patient
+                if (!isset($patientData['contact_id'])) {
+                    continue;
+                }
+
+                // Fetch contact details
+                $contactSql = 'SELECT * FROM `' . Yii::app()->cbdb->bucketName . '`.`core`.`contact` WHERE id = :contact_id';
+                $contactCommand = $db->createCommand($contactSql);
+                $contactCommand->bindParam(':contact_id', $patientData['contact_id'], PDO::PARAM_INT);
+                $contact = $contactCommand->queryRow();
+
+                if (!$contact) {
+                    continue;
+                }
+
+                // Apply string matching logic
+                $firstNameMatch = (soundex($contact['first_name']) === soundex($firstName)) || 
+                                  (levenshtein($contact['first_name'], $firstName) >= 70);
+                $lastNameMatch = (soundex($contact['last_name']) === soundex($last_name)) || 
+                                 (levenshtein($contact['last_name'], $last_name) >= 70);
+
+                if ($firstNameMatch && $lastNameMatch) {
+                    $results[] = $patientData;
+                }
+            }
+
+            return $results;
+        } catch (Exception $e) {
+            OELog::log("Error in Patient::findDuplicates: " . $e->getMessage());
+            return array('error' => array('An error occurred while searching for duplicates: ' . $e->getMessage()));
+        }
     }
 
     public static function findDuplicatesByIdentifier($identifier_type_id, $identifier_value, $id = null)
     {
-        $sql = '
-            SELECT p.*
-            FROM patient p
-            JOIN patient_identifier pid
-              ON p.id = pid.patient_id
-            WHERE pid.value = :identifier_value
-              AND pid.patient_identifier_type_id = :identifier_type_id
-              AND (:id IS NULL OR p.id != :id)
-              AND p.deleted = 0
-              AND pid.deleted = 0
-              ';
+        try {
+            // Use Couchbase to fetch patient identifiers with matching values and types
+            $db = Yii::app()->cbdb;
+            $bucketName = $db->bucketName;
+            
+            $sql = "SELECT pid.* FROM `" . $bucketName . "`.`core`.`patient_identifier` pid
+                    WHERE pid.value = :identifier_value
+                    AND pid.patient_identifier_type_id = :identifier_type_id
+                    AND pid.deleted = 0";
+            
+            $command = $db->createCommand($sql);
+            $command->bindParam(':identifier_value', $identifier_value, PDO::PARAM_STR);
+            $command->bindParam(':identifier_type_id', $identifier_type_id, PDO::PARAM_INT);
+            $identifiers = $command->queryAll();
 
-        return Patient::model()->findAllBySql($sql, array(':identifier_type_id' => $identifier_type_id, ':identifier_value' => $identifier_value, ':id' => $id));
+            if (empty($identifiers)) {
+                return array();
+            }
+
+            // Get unique patient IDs
+            $patientIds = array();
+            foreach ($identifiers as $identifier) {
+                if (isset($identifier['patient_id']) && $identifier['patient_id'] != $id) {
+                    $patientIds[] = $identifier['patient_id'];
+                }
+            }
+
+            if (empty($patientIds)) {
+                return array();
+            }
+
+            // Remove duplicates
+            $patientIds = array_unique($patientIds);
+
+            // Fetch patients
+            $placeholders = implode(',', array_fill(0, count($patientIds), '?'));
+            $patientSql = "SELECT p.* FROM `" . $bucketName . "`.`core`.`patient` p
+                          WHERE p.id IN (" . $placeholders . ")
+                          AND p.deleted = 0";
+            
+            $patientCommand = $db->createCommand($patientSql);
+            $patients = $patientCommand->queryAll();
+
+            return $patients ? $patients : array();
+        } catch (Exception $e) {
+            OELog::log("Error in Patient::findDuplicatesByIdentifier: " . $e->getMessage());
+            return array('error' => array('An error occurred while searching for patients by identifier: ' . $e->getMessage()));
+        }
     }
 
     /**

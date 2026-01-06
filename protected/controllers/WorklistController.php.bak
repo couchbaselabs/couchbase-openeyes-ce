@@ -33,7 +33,7 @@ class WorklistController extends BaseController
 
     public function accessRules()
     {
-        return array(array('allow', 'users' => array('*')));
+        return array(array('allow', 'roles' => array('OprnWorklist')));
     }
 
     public function behaviors()
@@ -820,8 +820,8 @@ class WorklistController extends BaseController
                 }
 
                 if (
-                    ($step instanceof PathwayStep && $step->type && $step->type->short_name === 'drug admin')
-                    || ($step instanceof PathwayTypeStep && $step->step_type && $step->step_type->short_name === 'drug admin')
+                    ($step instanceof PathwayStep && $step->type->short_name === 'drug admin')
+                    || ($step instanceof PathwayTypeStep && $step->step_type->short_name === 'drug admin')
                 ) {
                     if (!$wl_patient) {
                         throw new CHttpException('Unable to retrieve pathway for patient.');
@@ -864,14 +864,14 @@ class WorklistController extends BaseController
 
                 // if the step is for prescription, only prescriber has the permission to start it
                 if (
-                    ($step instanceof PathwayStep && $step->type && $step->type->short_name === 'Rx')
-                    || ($step instanceof PathwayTypeStep && $step->step_type && $step->step_type->short_name === 'Rx')
+                    ($step instanceof PathwayStep && $step->type->short_name === 'Rx')
+                    || ($step instanceof PathwayTypeStep && $step->step_type->short_name === 'Rx')
                 ) {
                     $has_permission_to_start = Yii::app()->user->checkAccess('TaskPrescribe');
                 }
                 if ($step && $wl_patient) {
                     $view_file = $red_flag ? 'generic_step' :
-                        ($step instanceof PathwayStep ? ($step->type ? $step->type->widget_view : null) : ($step->step_type ? $step->step_type->widget_view : null)) ?? 'generic_step';
+                        ($step instanceof PathwayStep ? $step->type->widget_view : $step->step_type->widget_view) ?? 'generic_step';
                     $dom = $this->renderPartial(
                         '//worklist/steps/' . $view_file,
                         array(
@@ -989,11 +989,6 @@ class WorklistController extends BaseController
             $exam_api = Yii::app()->moduleAPI->get('OphCiExamination');
             $patientId = $_POST['patientId'];
             $patient = Patient::model()->findByPk($patientId);
-
-            if (!$patient) {
-                $this->renderJSON(['error' => 'Patient not found']);
-                return;
-            }
 
             $deceased = $patient->isDeceased();
             $institution = Institution::model()->getCurrent();
@@ -2057,19 +2052,8 @@ class WorklistController extends BaseController
      */
     public function actionAssignUserToPathway()
     {
-        // Validate that this is a POST request with required parameters
-        if (!Yii::app()->request->isPostRequest) {
-            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
-        }
-
         $id = Yii::app()->request->getPost('user_id');
         $visit_id = Yii::app()->request->getPost('target_visit_id');
-
-        // Validate required parameters
-        if (empty($id) || empty($visit_id)) {
-            throw new CHttpException(400, 'Missing required parameters: user_id and target_visit_id must be provided.');
-        }
-
         $visit = WorklistPatient::model()->findByPk($visit_id);
 
         if (!$visit) {
@@ -2306,11 +2290,6 @@ class WorklistController extends BaseController
      */
     public function actionCheckout()
     {
-        // Validate that this is a POST request with required parameters
-        if (!Yii::app()->request->isPostRequest) {
-            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
-        }
-
         $pathstep_id = Yii::app()->request->getPost('step_id');
         $type_step_id = Yii::app()->request->getPost('step_type_id');
         $visit_id = Yii::app()->request->getPost('visit_id');

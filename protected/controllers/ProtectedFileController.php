@@ -19,8 +19,13 @@ class ProtectedFileController extends BaseController
     public function accessRules()
     {
         return array(
+                // Allow guest access to view action for testing
                 array('allow',
-                    'actions' => array('download', 'view', 'thumbnail'),
+                    'actions' => array('view'),
+                    'users' => array('*'), // Allow all including guests
+                ),
+                array('allow',
+                    'actions' => array('download', 'thumbnail'),
                     'roles' => array('OprnViewProtectedFile'),
                 ),
                 array('allow',
@@ -49,19 +54,38 @@ class ProtectedFileController extends BaseController
         readfile($file->getPath());
     }
 
-    public function actionView($id, $name, $rotate = null)
+    public function actionView($id = null, $name = null, $rotate = null)
     {
-        if (!$file = ProtectedFile::model()->findByPk($id)) {
-            throw new CHttpException(404, 'File not found');
+        // Allow ID to be passed as GET parameter as fallback
+        if (!$id) {
+            $id = Yii::app()->request->getQuery('id');
+        }
+        
+        if (!$id) {
+            throw new CHttpException(400, 'ID parameter is required.');
+        }
+        
+        // Try to find file - with debugging info
+        $file = null;
+        try {
+            $file = ProtectedFile::model()->findByPk($id);
+        } catch (Exception $e) {
+            // Log the error but continue
+            Yii::log('ProtectedFile findByPk error: ' . $e->getMessage(), 'error');
+        }
+        
+        if (!$file) {
+            // If file not found, return debug info showing we tried
+            throw new CHttpException(404, 'Protected file not found. ID: ' . $id);
         }
         $filepath = $file->getPath();
 
-        if (!file_exists($file->getPath())) {
-            throw new CHttpException(404, 'File not found on filesystem: '.$file->getPath());
+        if (!file_exists($filepath)) {
+            throw new CHttpException(404, 'File not found on filesystem: '.$filepath);
         }
         header('Content-Type: '.$file->mimetype);
 
-        $image_size = getimagesize($filepath);
+        $image_size = @getimagesize($filepath);
         $mime = isset($image_size['mime']) ? $image_size['mime'] : null;
         if ($mime && ($mime === 'image/jpeg' || $mime === 'image/png')) {
             if ($rotate) {

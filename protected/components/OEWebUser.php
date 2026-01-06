@@ -143,14 +143,21 @@ EOD;
     /*Get the roles of current user*/
     public function getRole($id){
         $roles = array();
-        $query = "SELECT itemname FROM authassignment
-                  WHERE userid = $id;";
-        $command = Yii::app()->cbdb->createCommand($query);
-        $command->prepare();
-        $result = $command->queryAll();
-        foreach ($result as $item=>$value)
-        {
-            array_push($roles, $value['itemname']);
+        try {
+            $query = "SELECT itemname FROM authassignment
+                      WHERE userid = $id;";
+            $command = Yii::app()->cbdb->createCommand($query);
+            $command->prepare();
+            $result = $command->queryAll();
+            foreach ($result as $item=>$value)
+            {
+                array_push($roles, $value['itemname']);
+            }
+        } catch (\Throwable $e) {
+            // If Couchbase query fails, return empty roles array
+            // This prevents errors in autocomplete and other features when DB is unavailable
+            OELog::log("Failed to retrieve user roles for user $id: " . $e->getMessage());
+            $roles = array();
         }
         return $roles;
     }

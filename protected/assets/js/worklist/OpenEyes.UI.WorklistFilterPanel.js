@@ -165,14 +165,14 @@ OpenEyes.UI = OpenEyes.UI || {};
         pickmeup(fromInput.selector, {
             format: 'Y-m-d',
             hide_on_select: true,
-            date: fromInput.val().trim(),
+            date: fromInput.val() ? fromInput.val().trim() : '',
             default_date: false,
         });
 
         pickmeup(toInput.selector, {
             format: 'Y-m-d',
             hide_on_select: true,
-            date: toInput.val().trim(),
+            date: toInput.val() ? toInput.val().trim() : '',
             default_date: false,
         });
 

@@ -17,7 +17,6 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
-use OE\factories\models\traits\HasFactory;
 use OE\Models\Traits\CouchbaseModelBridge;
 use OEModule\OESysEvent\events\UserSavedSystemEvent;
 use OEModule\OphCoMessaging\models\Mailbox;
@@ -44,7 +43,6 @@ use OEModule\OphCoMessaging\models\MailboxUser;
  */
 class User extends BaseActiveRecordVersioned
 {
-    use HasFactory;
     use CouchbaseModelBridge;
 
     private const PIN_REGEN_LIMIT = 5;

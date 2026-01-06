@@ -81,10 +81,19 @@ class TestHarnessController extends BaseAdminController
                     'ext' => $ext,
                 );
             } elseif (is_readable("$dir$entry")) {
+                // Get MIME type using finfo instead of deprecated mime_content_type
+                $mime_type = 'application/octet-stream';
+                if (function_exists('finfo_file')) {
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    if ($finfo) {
+                        $mime_type = finfo_file($finfo, "$dir$entry");
+                        finfo_close($finfo);
+                    }
+                }
                 $retval[] = array(
                     'name' => "$entry",
                     'fullpath' => "$dir/$entry",
-                    'type' => mime_content_type("$dir$entry"),
+                    'type' => $mime_type,
                     'size' => filesize("$dir$entry"),
                     'lastmod' => filemtime("$dir$entry"),
                     'ext' => $ext,

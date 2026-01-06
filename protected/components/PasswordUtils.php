@@ -111,6 +111,11 @@ class PasswordUtils
             return null;
         }
 
+        // If password_status is null or empty, treat as not locked (current status)
+        if (empty($user_authentication->password_status)) {
+            return false;
+        }
+
         if ($user_authentication->password_status == $status) {
             return true;
         }

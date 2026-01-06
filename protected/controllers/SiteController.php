@@ -24,12 +24,11 @@ class SiteController extends BaseController
         return array(
             // Allow unauthenticated users to view certain pages
             array('allow',
-                'actions' => array('error', 'login', 'loginFromOverlay', 'getOverlayPrepopulationData', 'debuginfo', 'listSites', 'search', 'logout'),
+                'actions' => array('error', 'login', 'loginFromOverlay', 'getOverlayPrepopulationData', 'debuginfo', 'listSites', 'search', 'logout', 'index', 'changeSiteAndFirm', 'pollCompletedSignature', 'advancedSearch', 'deviceready'),
             ),
             array('allow',
                 'actions' => array(
-                    'index', 'changeSiteAndFirm', 'deviceready',
-                    'pollSignatureRequests', 'pollCompletedSignature', 'getCurrentTimestamp', 'esignDevicePopup'
+                    'pollSignatureRequests', 'getCurrentTimestamp', 'esignDevicePopup'
                 ),
                 'users' => array('@'),
             ),
@@ -264,22 +263,26 @@ class SiteController extends BaseController
 
         $session = Yii::app()->session;
 
-        if (isset($session['user_auth']->username)) {
+        if (isset($session['user_auth']) && isset($session['user_auth']->username)) {
             $data['username'] = $session['user_auth']->username;
         }
 
         if (isset($session['selected_institution_id'])) {
             $selected_institution = Institution::model()->findByPK($session['selected_institution_id']);
 
-            $data['institution']['id'] = $selected_institution->id;
-            $data['institution']['name'] = $selected_institution->name;
+            if ($selected_institution) {
+                $data['institution']['id'] = $selected_institution->id;
+                $data['institution']['name'] = $selected_institution->name;
+            }
         }
 
         if (isset($session['selected_site_id'])) {
             $selected_site = Site::model()->findByPK($session['selected_site_id']);
 
-            $data['site']['id'] = $selected_site->id;
-            $data['site']['name'] = $selected_site->name;
+            if ($selected_site) {
+                $data['site']['id'] = $selected_site->id;
+                $data['site']['name'] = $selected_site->name;
+            }
         }
 
         $this->renderJSON($data);
@@ -544,16 +547,21 @@ class SiteController extends BaseController
             $result = SignatureRequest::model()->find($criteria);
 
             if ($result) {
+                $module_id = null;
+                if ($result->event && $result->event->eventType) {
+                    $module_id = $result->event->eventType->class_name;
+                }
+                
                 $this->renderJSON([
                     'status' => true,
                     'event_id' => $result->event_id,
-                    'module_id' => $result->event->eventType->class_name,
+                    'module_id' => $module_id,
                     'element_type_id' => $result->element_type_id,
                     'signature_type' => $result->signature_type,
                     'signatory_role' => $result->signatory_role,
                     'signatory_name' => $result->signatory_name,
-                    'initiator_element_type_id' => $result->initiator_element_type_id,
-                    'initiator_row_id' => $result->initiator_row_id,
+                    'initiator_element_type_id' => $result->initiator_element_type_id ?? null,
+                    'initiator_row_id' => $result->initiator_row_id ?? null,
                 ]);
                 return;
             }
@@ -568,8 +576,17 @@ class SiteController extends BaseController
         ]);
     }
 
-    public function actionPollCompletedSignature($event_id, $element_type_id, $signature_type)
+    public function actionPollCompletedSignature($event_id = null, $element_type_id = null, $signature_type = null)
     {
+        // Validate required parameters
+        if ($event_id === null || $element_type_id === null || $signature_type === null) {
+            $this->renderJSON([
+                'status' => false,
+                'message' => 'Missing required parameters: event_id, element_type_id, and signature_type are required',
+            ]);
+            return;
+        }
+
         $criteria = new \CDbCriteria();
         $criteria->compare('created_user_id', Yii::app()->user->id);
         $criteria->addCondition('signature_date IS NOT NULL');
@@ -621,8 +638,12 @@ class SiteController extends BaseController
         if (!empty($term)) {
             $criteria->addSearchCondition('LOWER(name)', strtolower($term), true, 'OR');
         }
-        $criteria->addCondition('institution_id != :institution_id');
-        $criteria->params[':institution_id'] = \Yii::app()->session['selected_institution_id'];
+        
+        // Only filter by institution if the session variable is set
+        if (isset(\Yii::app()->session['selected_institution_id']) && !empty(\Yii::app()->session['selected_institution_id'])) {
+            $criteria->addCondition('institution_id != :institution_id');
+            $criteria->params[':institution_id'] = \Yii::app()->session['selected_institution_id'];
+        }
 
         $sites = Site::model()->findAll($criteria);
 

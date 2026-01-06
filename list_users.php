@@ -1,0 +1,1 @@
+<?php require_once("vendor/yiisoft/yii/framework/yii.php"); $config = "protected/config/main.php"; $app = Yii::createWebApplication($config); $users = User::model()->findAll(); foreach ($users as $u) { echo $u->username . PHP_EOL; } ?>

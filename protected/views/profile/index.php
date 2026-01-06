@@ -16,8 +16,25 @@ $this->pageTitle = 'User Profile';
                 </div>
             </div>
             <div class="oe-full-content oe-scrollable">
-                <p>User profile information is available to authenticated users only.</p>
-                <p>Please <a href="<?php echo $this->createUrl('/site/login'); ?>">log in</a> to view your profile.</p>
+                <div class="alert-box info">
+                    <p>To view and manage your profile, <a href="<?php echo $this->createUrl('/site/login'); ?>">please log in</a>.</p>
+                </div>
+                <table class="standard">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 20px;">
+                                No user profiles available. Please log in to manage your profile.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

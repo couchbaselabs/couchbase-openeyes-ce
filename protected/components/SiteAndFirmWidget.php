@@ -42,6 +42,13 @@ class SiteAndFirmWidget extends CWidget
     {
         $model = new SiteAndFirmForm();
         $user_auth = Yii::app()->session['user_auth'];
+        
+        if (!$user_auth) {
+            // Redirect to login if user is not authenticated
+            Yii::app()->controller->redirect(Yii::app()->createUrl('site/login'));
+            return;
+        }
+        
         $user = User::model()->findByPk($user_auth->user_id);
 
         if (isset($_POST['SiteAndFirmForm'])) {

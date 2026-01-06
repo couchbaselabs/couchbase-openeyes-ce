@@ -92,7 +92,7 @@ $to = min(($page_num + 1) * $items_per_page, $dataProvider->totalItemCount);
 
 <script type="text/javascript">
     $('#practice-grid tr.clickable').click(function () {
-        window.location.href = '<?php echo Yii::app()->controller->createUrl('/practice/view')?>/' + $(this).attr('id').match(/[0-9]+/);
+        window.location.href = '<?php echo Yii::app()->controller->createUrl('/practice')?>/' + $(this).attr('id').match(/[0-9]+/);
         return false;
     });
 </script>

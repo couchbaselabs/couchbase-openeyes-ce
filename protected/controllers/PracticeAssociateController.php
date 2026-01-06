@@ -39,9 +39,9 @@ class PracticeAssociateController extends BaseController
     {
         return array(
             array(
-                'allow', // allow anyone to search for contact labels
+                'allow',
                 'actions' => array('create','getGpWithPractice'),
-                'users' => array('*')
+                'users' => array('@') // require authentication
             ),
         );
     }
@@ -154,6 +154,7 @@ class PracticeAssociateController extends BaseController
                 $inputGpElement = '<input type="hidden" name="ExtraContact[gp_id][]" class="js-extra-gps" value="' . $gp_id . '">';
             }
             $return_array['content'] = '<li><span class="js-name" style="text-align:justify">' . $gp->getCorrespondenceName() . '</span><i id="js-remove-extra-gp-' . $gp->id . '" class="oe-i remove-circle small-icon pad-left"></i>' . $inputGpElement . '</li>';
+            $return_array['label'] = $gp->getCorrespondenceName();
         }
         echo CJSON::encode($return_array);
     }

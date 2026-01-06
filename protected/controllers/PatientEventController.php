@@ -295,12 +295,22 @@ class PatientEventController extends BaseController
     {
         $request = Yii::app()->getRequest();
 
-        $patient = $this->resolvePatient($request);
+        try {
+            $patient = $this->resolvePatient($request);
 
-        if ($patient && $episode = $patient->getOpenEpisodeOfSubspecialty($request->getQuery('subspecialty_id'))) {
-            $this->renderJSON($episode->firm_id);
-        } else {
-            $this->renderJSON(null);
+            $subspecialty_id = $request->getQuery('subspecialty_id');
+            if (!$subspecialty_id) {
+                throw new CHttpException(400, 'Subspecialty ID is required.');
+            }
+
+            if ($episode = $patient->getOpenEpisodeOfSubspecialty($subspecialty_id)) {
+                $this->renderJSON($episode->firm_id);
+            } else {
+                $this->renderJSON(null);
+            }
+        } catch (CHttpException $e) {
+            http_response_code($e->statusCode);
+            $this->renderJSON(array('error' => $e->getMessage()));
         }
     }
 }

@@ -266,7 +266,7 @@ class UserAuthentication extends BaseActiveRecordVersioned
                 $hash = '$2y$' . substr($hash, 4);
             }
 
-            if (!$hash || !password_verify($password, $hash)) {
+            if (!$hash || !is_string($hash) || !password_verify($password, $hash)) {
                 return false;
             }
 

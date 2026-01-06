@@ -443,44 +443,98 @@ class PatientMergeRequestController extends BaseController
     public function actionSearch()
     {
         $term = trim(\Yii::app()->request->getParam('term', ''));
-        $result = array();
+        
+        // If term is provided, act as JSON API for AJAX patient search
+        if ($term) {
+            $result = array();
+            $patient_search = new PatientSearch(false, true);
 
-        $patient_search = new PatientSearch(false, true);
-
-        if ($patient_search->getValidSearchTerm($term)) {
-            $data_provider = $patient_search->search($term);
-            foreach ($data_provider->getData() as $patient) {
-                // check if the patient is already in the Request List
-                $warning = array();
-                $notice = array();
-                $is_in_list = $this->isPatientInRequestList($patient->id);
-                if ($is_in_list) {
-                    $warning[] = "This patient is already requested for merge as $is_in_list patient.";
-                }
-                if ($patient->is_local) {
-                    $notice[] = "Local patient";
-                }
-
-                $subject = null;
-                $genetics_panel = null;
-                if ($api = $this->getApp()->moduleAPI->get('Genetics')) {
-                    $subject = $api->getSubject($patient);
-                    if ($subject) {
-                        $genetics_panel = $this->getGeneticsHTML($patient);
+            if ($patient_search->getValidSearchTerm($term)) {
+                $data_provider = $patient_search->search($term);
+                foreach ($data_provider->getData() as $patient) {
+                    // check if the patient is already in the Request List
+                    $warning = array();
+                    $notice = array();
+                    $is_in_list = $this->isPatientInRequestList($patient->id);
+                    if ($is_in_list) {
+                        $warning[] = "This patient is already requested for merge as $is_in_list patient.";
                     }
-                }
+                    if ($patient->is_local) {
+                        $notice[] = "Local patient";
+                    }
 
-                $result[] = array_merge($this->compilePatientDetails($patient, false), array(
-                    'warning' => $warning,
-                    'notice' => $notice,
-                    'genetics-panel' => $genetics_panel,
-                    'subject_id' => $subject ? $subject->id : null,
-                ));
+                    $subject = null;
+                    $genetics_panel = null;
+                    if ($api = $this->getApp()->moduleAPI->get('Genetics')) {
+                        $subject = $api->getSubject($patient);
+                        if ($subject) {
+                            $genetics_panel = $this->getGeneticsHTML($patient);
+                        }
+                    }
+
+                    $result[] = array_merge($this->compilePatientDetails($patient, false), array(
+                        'warning' => $warning,
+                        'notice' => $notice,
+                        'genetics-panel' => $genetics_panel,
+                        'subject_id' => $subject ? $subject->id : null,
+                    ));
+                }
             }
+
+            echo CJavaScript::jsonEncode($result);
+            Yii::app()->end();
+        }
+        
+        // Otherwise, render as a list page (same as actionIndex)
+        $filters = Yii::app()->request->getParam('PatientMergeRequestFilter');
+        $filters['secondary_patient_identifier'] = $filters['secondary_patient_identifier'] ?? null;
+        $filters['primary_patient_identifier'] = $filters['primary_patient_identifier'] ?? null;
+
+        $cookie_key = 'show_merged_' . Yii::app()->user->id;
+
+        if ((isset($filters['show_merged']) && $filters['show_merged'] == 1)) {
+            $cookie_value = 1;
+        } elseif (isset($filters['show_merged']) && $filters['show_merged'] == 0) {
+            $cookie_value = 0;
+        } elseif (Yii::app()->request->cookies->contains($cookie_key)) {
+            $cookie_value = Yii::app()->request->cookies[$cookie_key]->value;
+        } else {
+            $cookie_value = 0;
         }
 
-        echo CJavaScript::jsonEncode($result);
-        Yii::app()->end();
+        Yii::app()->request->cookies[$cookie_key] = new CHttpCookie($cookie_key, $cookie_value);
+        $filters['show_merged'] = $cookie_value;
+
+        $criteria = new CDbCriteria();
+        $criteria->compare('deleted', 0);
+        $criteria->addCondition('status != :status');
+        $criteria->addSearchCondition('secondary_local_identifier_value', $filters['secondary_patient_identifier']);
+        $criteria->addSearchCondition('primary_local_identifier_value', $filters['primary_patient_identifier']);
+
+        if (!$cookie_value) {
+            $criteria->params[':status'] = PatientMergeRequest::STATUS_MERGED;
+        } else {
+            $criteria->params[':status'] = PatientMergeRequest::STATUS_NOT_PROCESSED;
+        }
+
+        $items_count = PatientMergeRequest::model()->count($criteria);
+        $pagination = new CPagination($items_count);
+        $pagination->pageSize = 15;
+        $pagination->applyLimit($criteria);
+
+        $data_provider = new CActiveDataProvider('PatientMergeRequest', array(
+            'criteria' => $criteria,
+            'pagination' => $pagination,
+            'sort' => array(
+                'defaultOrder' => ($filters['show_merged'] ? 'last_modified_date' : 'created_date') . ' DESC',
+            ),
+        ));
+
+        $this->pageTitle = 'Patient Merge Search';
+        $this->render('//patientmergerequest/search', array(
+            'data_provider' => $data_provider,
+            'filters' => $filters,
+        ));
     }
 
     public function getEpisodesHTML($patient)
@@ -546,7 +600,7 @@ class PatientMergeRequestController extends BaseController
             $current_site_id
         );
 
-
+        $patient_identifiers = array();
         foreach ($patient->identifiers as $identifier) {
             $patient_identifiers[] = [
                 'title' => $identifier->patientIdentifierType->long_title ?? $identifier->patientIdentifierType->short_title,
@@ -579,12 +633,17 @@ class PatientMergeRequestController extends BaseController
             'is_local' => $patient->is_local ? 1 : 0,
             'all-episodes' => $all_episode,
             'patient_identifiers' => $patient_identifiers,
-            'primary_patient_identifiers' => [
+        );
+
+        if ($local_identifier) {
+            $patient_details['primary_patient_identifiers'] = [
                 'title' => (!is_null($local_identifier->patientIdentifierType->long_title) ? $local_identifier->patientIdentifierType->long_title : $local_identifier->patientIdentifierType->short_title),
                 'value' => $local_identifier->value,
                 'display_value' => PatientIdentifierHelper::getIdentifierValue($local_identifier)
-            ]
-        );
+            ];
+        } else {
+            $patient_details['primary_patient_identifiers'] = array();
+        }
 
         return $patient_details;
     }

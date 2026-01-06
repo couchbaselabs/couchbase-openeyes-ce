@@ -47,8 +47,8 @@ if (file_exists($root_path . '/buildinfo.txt')) {
     $buildinfo = '<pre>' . htmlspecialchars(@file_get_contents($root_path . '/buildinfo.txt')) . '</pre>';
 } elseif (file_exists('.git/HEAD')) {
     $commit = preg_replace('/[\s\t].*$/s', '', @file_get_contents(Yii::app()->basePath . '/../.git/FETCH_HEAD'));
-    $buildinfo .= "Commit: " . htmlspecialchars($commit) . '</br>';
-    $buildinfo .= "Commit Date: " . htmlspecialchars(exec(" git log -1 --format=%cd " . $commit)) . ' <br/> ';
+    $buildinfo .= "Commit: " . htmlspecialchars($commit) . '<br />';
+    $buildinfo .= "Commit Date: " . htmlspecialchars(exec(" git log -1 --format=%cd " . $commit)) . '<br />';
     if (strtolower($thisEnv == 'dev')) {
         $lines = shell_exec(Yii::app()->basePath . '/scripts/oe-which.sh');
         $branch = htmlspecialchars(trim(strtr($lines, array(
