@@ -57,9 +57,19 @@ class ClinicOutcomeRolesController extends \ModuleAdminController
     public function actionUpdate()
     {
         $request = Yii::app()->getRequest();
-        $model = OphCiExamination_ClinicOutcome_Role::model()->findByPk((int)$request->getParam('id'));
+        $id = $request->getParam('id');
+        
+        // If ID is not found in query parameters, try to extract it from the URL path
+        if (!$id && Yii::app()->request->pathInfo) {
+            $pathParts = explode('/', Yii::app()->request->pathInfo);
+            if (count($pathParts) >= 4 && is_numeric($pathParts[count($pathParts) - 1])) {
+                $id = $pathParts[count($pathParts) - 1];
+            }
+        }
+        
+        $model = OphCiExamination_ClinicOutcome_Role::model()->findByPk((int)$id);
         if (!$model) {
-            throw new Exception('OphCiExamination_ClinicOutcome_Role not found with id ' . $request->getParam('id'));
+            throw new Exception('OphCiExamination_ClinicOutcome_Role not found with id ' . $id);
         }
         if ($request->getPost('OEModule_OphCiExamination_models_OphCiExamination_ClinicOutcome_Role')) {
             $model->attributes = $request->getPost('OEModule_OphCiExamination_models_OphCiExamination_ClinicOutcome_Role');

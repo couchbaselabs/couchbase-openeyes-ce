@@ -125,12 +125,21 @@ class SubspecialtySubsection extends BaseActiveRecordVersioned
 
     public function getList($subspecialtyId)
     {
-        $sections = Yii::app()->cbdb->createCommand()
-            ->select('id, name')
-            ->from('subspecialty_subsection')
-            ->where('subspecialty_id = :id and active = 1', array(':id' => $subspecialtyId))
-            ->order('display_order ASC')
-            ->queryAll();
+        $sections = array();
+        
+        try {
+            $sections = Yii::app()->cbdb->createCommand()
+                ->select('id, name')
+                ->from('subspecialty_subsection')
+                ->where('subspecialty_id = :id and active = 1', array(':id' => $subspecialtyId))
+                ->order('display_order ASC')
+                ->queryAll();
+        } catch (Exception $e) {
+            // If Couchbase query fails (e.g., collection doesn't exist), return empty array
+            // This allows the UI to continue functioning without subsections
+            Yii::log("SubspecialtySubsection::getList failed: " . $e->getMessage(), CLogger::LEVEL_WARNING);
+            return array();
+        }
 
         $data = array();
 

@@ -32,6 +32,10 @@ class HistoryMacroController extends \ModuleAdminController
     public function actionEdit($id)
     {
         $model = HistoryMacro::model()->findByPk($id);
+        
+        if (!$model) {
+            throw new \CHttpException(404, 'History Macro not found.');
+        }
 
         $request = Yii::app()->getRequest();
         if ($post = $request->getPost('OEModule_OphCiExamination_models_HistoryMacro')) {
@@ -67,7 +71,7 @@ class HistoryMacroController extends \ModuleAdminController
             $criteria=new CDbCriteria;
             $criteria->select = 'max(display_order) AS display_order';
             $order = HistoryMacro::model()->find($criteria);
-            $model->display_order = (int)$order['display_order'] + 1;
+            $model->display_order = $order ? (int)$order['display_order'] + 1 : 1;
 
             if ($model->save()) {
                 $model->createMappings(ReferenceData::LEVEL_SUBSPECIALTY, $subspecialty_ids);

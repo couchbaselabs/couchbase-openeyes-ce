@@ -199,7 +199,9 @@ class ContactLocation extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Temporarily disabled: Couchbase sync is causing relation queries to fail
+        // Contact::locations relation does not retrieve newly created records from Couchbase
+        // $this->saveToCouchbase();
     }
 
     /**
@@ -208,6 +210,7 @@ class ContactLocation extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Temporarily disabled: Couchbase sync is causing relation queries to fail
+        // $this->deleteFromCouchbase();
     }
 }

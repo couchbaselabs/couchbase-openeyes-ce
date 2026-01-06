@@ -209,6 +209,8 @@ class AdminController extends ModuleAdminController
      */
     public function actionSortPostOpDrugs()
     {
+        $this->group = "Drugs";
+        
         if (!empty($_POST['order'])) {
             foreach ($_POST['order'] as $i => $id) {
                 if ($drug = OphTrOperationnote_PostopDrug::model()->findByPk($id)) {
@@ -218,7 +220,25 @@ class AdminController extends ModuleAdminController
                     }
                 }
             }
+            
+            // Log the action
+            Audit::add(
+                'admin',
+                'sort',
+                null,
+                null,
+                array('module' => 'OphTrOperationnote', 'model' => 'OphTrOperationnote_PostopDrug')
+            );
+            
+            // Return success response for AJAX requests
+            if (Yii::app()->request->isAjaxRequest) {
+                echo json_encode(array('success' => true));
+                Yii::app()->end();
+            }
         }
+        
+        // For GET requests or after successful POST, render the list
+        $this->render('postopdrugs');
     }
 
     /**

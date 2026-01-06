@@ -66,15 +66,21 @@ class GenericModelResource extends SeededResource
             if (in_array($relation, array_merge(['user', 'usermodified'], $exclude))) {
                 continue;
             }
-            if ($relation === 'event') {
-                $relations[$relation] = SeededEventResource::from($instance->$relation)->inSummary()->toArray();
+            try {
+                if ($relation === 'event') {
+                    $relations[$relation] = SeededEventResource::from($instance->$relation)->inSummary()->toArray();
+                    continue;
+                }
+                if ($definition[0] === CActiveRecord::BELONGS_TO) {
+                    $instance->$relation ? ($instance->$relation instanceof \CModel && $relations[$relation] = $instance->$relation ? $instance->$relation->getAttributes() : $instance->$relation) : null;
+                }
+                if ($definition[0] === CActiveRecord::HAS_MANY) {
+                    $relations[$relation] = $this->modelsToArrays($instance->$relation, $exclude);
+                }
+            } catch (\Exception $e) {
+                // Skip relations that reference non-existent tables
+                // This can happen during migration or when tables haven't been created yet
                 continue;
-            }
-            if ($definition[0] === CActiveRecord::BELONGS_TO) {
-                $instance->$relation ? ($instance->$relation instanceof \CModel && $relations[$relation] = $instance->$relation ? $instance->$relation->getAttributes() : $instance->$relation) : null;
-            }
-            if ($definition[0] === CActiveRecord::HAS_MANY) {
-                $relations[$relation] = $this->modelsToArrays($instance->$relation, $exclude);
             }
         }
         return $relations;

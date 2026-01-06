@@ -27,6 +27,7 @@ use OE\factories\models\traits\HasFactory;
  *
  * The followings are the available columns in table 'ophciexamination_risk_set_entry':
  * @property integer $id
+ * @property integer $set_id
  * @property integer $ophciexamination_risk_id
  * @property string $gender
  * @property string $age_min
@@ -37,7 +38,7 @@ use OE\factories\models\traits\HasFactory;
  * @property string $created_date
  *
  * The followings are the available model relations:
- * @property OphCiExaminationRiskSetAssignment[] $ophciexaminationRiskSetAssignments
+ * @property OphCiExaminationRiskSet $riskSet
  * @property OphCiExaminationRisk $ophciexaminationRisk
  * @property User $createdUser
  * @property User $lastModifiedUser
@@ -82,6 +83,7 @@ class OphCiExaminationRiskSetEntry extends \BaseActiveRecordVersioned
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
         return array(
+            'riskSet' => array(self::BELONGS_TO, 'OEModule\OphCiExamination\models\OphCiExaminationRiskSet', 'set_id'),
             'ophciexamination_risk' => array(self::BELONGS_TO, 'OEModule\OphCiExamination\models\OphCiExaminationRisk', 'ophciexamination_risk_id'),
             'createdUser' => array(self::BELONGS_TO, 'User', 'created_user_id'),
             'lastModifiedUser' => array(self::BELONGS_TO, 'User', 'last_modified_user_id'),

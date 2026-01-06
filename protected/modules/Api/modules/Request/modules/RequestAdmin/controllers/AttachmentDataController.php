@@ -38,7 +38,7 @@ class AttachmentDataController extends \AdminController
         $model = AttachmentData::model()->findByPk($id);
 
         if (!$model) {
-            throw new Exception('Request Data not found with id ' . $id);
+            throw new CHttpException(404, 'Request Data not found with id ' . $id);
         }
 
         if ($request->getPost('AttachmentData')) {

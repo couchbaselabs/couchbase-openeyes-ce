@@ -49,7 +49,9 @@ $this->beginWidget('zii.widgets.jui.CJuiDialog', array(
 <?php $this->endWidget()?>
 <script type="text/javascript">
     $('#add-new-episode-dialog button.confirm').click(function(e) {
-        disableButtons();
+        if (typeof disableButtons === 'function') {
+            disableButtons();
+        }
         $('#add-new-episode-form').submit();
         e.preventDefault();
     });

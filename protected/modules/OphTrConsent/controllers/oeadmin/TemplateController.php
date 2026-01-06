@@ -97,7 +97,9 @@ class TemplateController extends BaseAdminController
                     if (!array_key_exists('firms', $templateAtt) || !is_array($templateAtt['firms'])) {
                         $templateAtt['firms'] = array();
                     }
-                    $model->saveProcedures($templateAtt['procedures']);
+                    if (array_key_exists('procedures', $templateAtt) && is_array($templateAtt['procedures'])) {
+                        $model->saveProcedures($templateAtt['procedures']);
+                    }
                     $this->redirect(array('List'));
                 } else {
                     $errors = $model->getErrors();
@@ -127,7 +129,9 @@ class TemplateController extends BaseAdminController
                 if (!array_key_exists('firms', $templateAtt) || !is_array($templateAtt['firms'])) {
                     $templateAtt['firms'] = array();
                 }
-                $model->saveProcedures($templateAtt['procedures']);
+                if (array_key_exists('procedures', $templateAtt) && is_array($templateAtt['procedures'])) {
+                    $model->saveProcedures($templateAtt['procedures']);
+                }
                 $this->redirect(array('List'));
             } else {
                 $errors = $model->getErrors();

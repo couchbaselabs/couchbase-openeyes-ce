@@ -187,18 +187,20 @@ class PatientEventController extends BaseController
         $request = $app->getRequest();
 
         // Early validation of required parameters with better error messages
-        if (!$request->getQuery('patient_id')) {
-            throw new CHttpException(400, 'Missing required parameter: patient_id. Please access this page from a valid context.');
+        // Check if all required parameters are provided
+        $patient_id = $request->getQuery('patient_id');
+        $context_id = $request->getQuery('context_id');
+        $event_type_id = $request->getQuery('event_type_id');
+        $episode_id = $request->getQuery('episode_id');
+        $service_id = $request->getQuery('service_id');
+
+        // If any required parameter is missing, render a form to allow user to select them
+        if (!$patient_id || !$context_id || !$event_type_id || (!$episode_id && !$service_id)) {
+            $this->render('create');
+            return;
+            return;
         }
-        if (!$request->getQuery('context_id')) {
-            throw new CHttpException(400, 'Missing required parameter: context_id');
-        }
-        if (!$request->getQuery('event_type_id')) {
-            throw new CHttpException(400, 'Missing required parameter: event_type_id');
-        }
-        if (!$request->getQuery('episode_id') && !$request->getQuery('service_id')) {
-            throw new CHttpException(400, 'Missing required parameter: either episode_id or service_id');
-        }
+
 
         if ($request->getQuery('step_id')) {
             Yii::app()->session['active_worklist_patient_id'] = $request->getQuery('worklist_patient_id');
@@ -248,6 +250,12 @@ class PatientEventController extends BaseController
         $app = $this->getApp();
         $request = $app->getRequest();
 
+        // Handle missing draft_id gracefully - allow create page without draft_id
+        if (!$request->getQuery('draft_id')) {
+            $this->render('create');
+            return;
+        }
+
         $draft = $this->resolveDraft($request);
 
         if ($draft->event) {
@@ -273,7 +281,7 @@ class PatientEventController extends BaseController
             $context = Firm::model()->findByPk($event_firm_id);
 
             if (!$context) {
-                throw new Exception("Couldn't load draft, context not found.");
+                throw new CHttpException(500, "Couldn't load draft, context not found.");
             }
         }
         $this->setContext($context);

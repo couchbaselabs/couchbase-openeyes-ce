@@ -1325,9 +1325,11 @@ class PatientController extends BaseController
                 $allergy = $this->fetchModel('Allergy', @$_POST['allergy_id']);
                 $patient->addAllergy($allergy, @$_POST['other'], @$_POST['comments']);
             }
-        }
 
-        $this->redirect(array('patient/view/' . $patient->id));
+            $this->redirect(array('patient/view/' . $patient->id));
+        } else {
+            throw new CHttpException(400, 'Invalid request. This action requires POST data.');
+        }
     }
 
         /**
@@ -1380,7 +1382,8 @@ class PatientController extends BaseController
                 $patient->addRisk($risk, @$_POST['other'], @$_POST['comments']);
             }
             $this->redirect(array('patient/view/' . $patient->id));
-
+        } else {
+            $this->render('addRisk');
         }
     }
 
@@ -1437,14 +1440,30 @@ class PatientController extends BaseController
 
     public function actionAdddiagnosis()
     {
-        if (isset($_POST['DiagnosisSelection']['ophthalmic_disorder_id'])) {
-            $disorder = Disorder::model()->findByPk(@$_POST['DiagnosisSelection']['ophthalmic_disorder_id']);
-        } else {
-            $disorder = Disorder::model()->findByPk(@$_POST['DiagnosisSelection']['systemic_disorder_id']);
+        // Handle GET requests - show the form
+        if (!$this->request->isPostRequest) {
+            $this->render('adddiagnosis');
+            return;
+        }
+        
+        // Handle POST requests - process the form
+        // Support both old form structure (DiagnosisSelection) and new form structure (disorder_id)
+        $disorder_id = null;
+        
+        if (isset($_POST['disorder_id'])) {
+            // New form structure
+            $disorder_id = $_POST['disorder_id'];
+        } elseif (isset($_POST['DiagnosisSelection']['ophthalmic_disorder_id'])) {
+            // Old form structure from embedded form
+            $disorder_id = $_POST['DiagnosisSelection']['ophthalmic_disorder_id'];
+        } elseif (isset($_POST['DiagnosisSelection']['systemic_disorder_id'])) {
+            // Old form structure - systemic disorder
+            $disorder_id = $_POST['DiagnosisSelection']['systemic_disorder_id'];
         }
 
+        $disorder = Disorder::model()->findByPk($disorder_id);
         if (!$disorder) {
-            throw new Exception('Unable to find disorder: ' . @$_POST['DiagnosisSelection']['ophthalmic_disorder_id'] . ' / ' . @$_POST['DiagnosisSelection']['systemic_disorder_id']);
+            throw new Exception('Unable to find disorder: ' . $disorder_id);
         }
 
         if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
@@ -1473,20 +1492,34 @@ class PatientController extends BaseController
     {
         $errors = array();
 
-        if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
-            throw new Exception('Patient not found: ' . @$_POST['patient_id']);
+        // Validate that patient_id is provided in POST data
+        if (!isset($_POST['patient_id']) || empty($_POST['patient_id'])) {
+            $this->renderJSON(array('error' => 'Missing required patient_id parameter'));
+            return;
         }
 
+        if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
+            $this->renderJSON(array('error' => 'Patient not found: ' . @$_POST['patient_id']));
+            return;
+        }
+
+        $disorder_id = null;
         if (isset($_POST['DiagnosisSelection']['ophthalmic_disorder_id'])) {
             $disorder_id = $_POST['DiagnosisSelection']['ophthalmic_disorder_id'];
         } elseif (isset($_POST['DiagnosisSelection']['systemic_disorder_id'])) {
             $disorder_id = $_POST['DiagnosisSelection']['systemic_disorder_id'];
         }
 
+        // Validate that at least one disorder ID is provided
+        if (!$disorder_id) {
+            $this->renderJSON(array('error' => 'Missing required disorder selection (ophthalmic or systemic)'));
+            return;
+        }
+
         $sd = new SecondaryDiagnosis();
         $sd->patient_id = $patient->id;
         $sd->date = $this->processFuzzyDate();
-        $sd->disorder_id = @$disorder_id;
+        $sd->disorder_id = $disorder_id;
         $sd->eye_id = @$_POST['diagnosis_eye'];
 
         $errors = array();
@@ -1662,6 +1695,10 @@ class PatientController extends BaseController
 
     public function actionAddPreviousOperation()
     {
+        if (empty($_POST)) {
+            throw new CHttpException(400, 'Invalid request. This action requires POST data.');
+        }
+
         if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
             throw new Exception('Patient not found:' . @$_POST['patient_id']);
         }
@@ -1828,12 +1865,16 @@ class PatientController extends BaseController
     {
         // Validate that required POST data is present
         if (!$this->request->isPostRequest) {
-            throw new CHttpException(400, 'Bad Request: POST request required');
+            header("HTTP/1.1 400 Bad Request");
+            $this->renderJSON(array('error' => 'POST request required'));
+            return;
         }
         
         // Check for required POST parameters
         if (!(@$_POST['site_id'] || @$_POST['institution_id'])) {
-            throw new CHttpException(400, 'Bad Request: site_id or institution_id required');
+            header("HTTP/1.1 400 Bad Request");
+            $this->renderJSON(array('error' => 'site_id or institution_id required'));
+            return;
         }
         
         if (@$_POST['site_id']) {
@@ -2067,10 +2108,10 @@ class PatientController extends BaseController
         * @throws Exception
         * @deprecated - since version 2.0
         */
-    public function actionAddNewEpisode()
+    public function actionAddNewEpisode($id = null)
     {
-        // Get patient_id from POST or GET
-        $patient_id = !empty($_POST['patient_id']) ? $_POST['patient_id'] : (!empty($_GET['patient_id']) ? $_GET['patient_id'] : null);
+        // Get patient_id from URL parameter, POST, or GET
+        $patient_id = $id ?? (!empty($_POST['patient_id']) ? $_POST['patient_id'] : (!empty($_GET['patient_id']) ? $_GET['patient_id'] : null));
         
         if (!$patient_id) {
             throw new Exception('Patient not found: No patient ID provided');
@@ -2086,7 +2127,7 @@ class PatientController extends BaseController
                 $episode = $patient->addEpisode($firm);
             }
 
-            $this->redirect(array('/patient/summary/' . $episode->id));
+            $this->redirect(array('/patient/summary/' . $patient->id));
         }
 
         return $this->renderPartial('//patient/add_new_episode', array(

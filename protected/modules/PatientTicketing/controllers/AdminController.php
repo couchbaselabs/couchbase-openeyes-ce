@@ -33,6 +33,7 @@ class AdminController extends \ModuleAdminController
     protected function beforeAction($action)
     {
         if (parent::beforeAction($action)) {
+            Yii::app()->clientScript->registerCoreScript('jquery');
             Yii::app()->clientScript->registerScriptFile(
                 Yii::app()->createUrl($this->assetPath . '/js/jquery.jOrgChart.js')
             );
@@ -53,7 +54,7 @@ class AdminController extends \ModuleAdminController
     public function filters()
     {
         $filters = parent::filters();
-        $filters[] = 'postOnly + activateQueue, deactivateQueue, deleteQueue';
+        $filters[] = 'postOnly + deactivateQueue, deleteQueue';
 
         return $filters;
     }
@@ -134,7 +135,7 @@ class AdminController extends \ModuleAdminController
             } else {
                 $resp = array(
                     'success' => false,
-                    'form' => $this->renderPartial('form_queueset', array(
+                    'form' => $this->render('form_queueset', array(
                         'queueset' => $queueset,
                         'queue' => $queue,
                         'errors' => $errors,
@@ -143,7 +144,7 @@ class AdminController extends \ModuleAdminController
                 echo \CJSON::encode($resp);
             }
         } else {
-            $this->renderPartial('form_queueset', array(
+            $this->render('form_queueset', array(
                 'queueset' => $queueset,
                 'queue' => $queue,
                 'errors' => null,
@@ -199,7 +200,7 @@ class AdminController extends \ModuleAdminController
                 }
             }
         } else {
-            $this->renderPartial('form_queueset', array(
+            $this->render('form_queueset', array(
                 'queueset' => $queueset,
                 'queue' => null,
                 'errors' => null,
@@ -214,8 +215,13 @@ class AdminController extends \ModuleAdminController
      *
      * @throws \CHttpException
      */
-    public function actionQueueSetPermissions($id)
+    public function actionQueueSetPermissions($id = null)
     {
+        if ($id === null) {
+            $this->redirect($this->createUrl('index'));
+
+            return;
+        }
         if (!$queueset = models\QueueSet::model()->findByPk($id)) {
             throw new \CHttpException(404, "Queue Set not found with id {$id}");
         }
@@ -269,7 +275,10 @@ class AdminController extends \ModuleAdminController
             }
             $this->saveQueue($queue, $parent);
         } else {
-            $this->renderPartial('form_queue', array(
+            Yii::app()->clientScript->registerCoreScript('jquery');
+            
+            // Use render instead of renderPartial to include the layout which loads jQuery
+            $this->render('form_queue', array(
                     'parent' => $parent,
                     'queue' => $queue,
                     'errors' => null,
@@ -293,7 +302,10 @@ class AdminController extends \ModuleAdminController
         if (!empty($_POST)) {
             $this->saveQueue($queue);
         } else {
-            $this->renderPartial('form_queue', array(
+            Yii::app()->clientScript->registerCoreScript('jquery');
+            
+            // Use render instead of renderPartial to include the layout which loads jQuery
+            $this->render('form_queue', array(
                     'parent' => null,
                     'queue' => $queue,
                     'errors' => null,
@@ -360,8 +372,14 @@ class AdminController extends \ModuleAdminController
      *
      * @throws \CHttpException
      */
-    public function actionLoadQueueNav($id)
+    public function actionLoadQueueNav($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        if ($id === null || $id === '') {
+            throw new \CHttpException(400, 'Queue ID is required');
+        }
         if (!$queue = models\Queue::model()->findByPk((int) $id)) {
             throw new \CHttpException(404, "Queue not found with id {$id}");
         }
@@ -387,8 +405,18 @@ class AdminController extends \ModuleAdminController
      */
     public function actionActivateQueue()
     {
-        if (!$queue = models\Queue::model()->findByPk((int) @$_POST['id'])) {
-            throw new \CHttpException(404, 'Queue not found with id '.@$_POST['id']);
+        // Redirect GET requests to the admin index page
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect($this->createUrl('index'));
+            return;
+        }
+
+        $id = Yii::app()->request->getPost('id');
+        if ($id === null || $id === '') {
+            throw new \CHttpException(400, 'Queue ID is required');
+        }
+        if (!$queue = models\Queue::model()->findByPk((int) $id)) {
+            throw new \CHttpException(404, 'Queue not found with id '.$id);
         }
         $queue->active = true;
         if (!$queue->save()) {
@@ -405,8 +433,12 @@ class AdminController extends \ModuleAdminController
      */
     public function actionDeactivateQueue()
     {
-        if (!$queue = models\Queue::model()->findByPk((int) @$_POST['id'])) {
-            throw new \CHttpException(404, 'Queue not found with id '.@$_POST['id']);
+        $id = Yii::app()->request->getPost('id');
+        if ($id === null || $id === '') {
+            throw new \CHttpException(400, 'Queue ID is required');
+        }
+        if (!$queue = models\Queue::model()->findByPk((int) $id)) {
+            throw new \CHttpException(404, 'Queue not found with id '.$id);
         }
         $transaction = Yii::app()->cbdb->beginTransaction();
         try {
@@ -440,12 +472,19 @@ class AdminController extends \ModuleAdminController
     /**
      * Retrieve the count of ticket assignments for the given Queue and whether it can be deleted.
      *
-     * @param $id
+     * @param int $id Queue ID
      *
      * @throws \CHttpException
      */
-    public function actionGetQueueTicketStatus($id)
+    public function actionGetQueueTicketStatus($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        if ($id === null || $id === '') {
+            throw new \CHttpException(400, 'Queue ID parameter is required');
+        }
+
         $qs = Yii::app()->service->getService(self::$QUEUE_SERVICE);
         $qr = $qs->read((int) $id);
 
@@ -465,8 +504,12 @@ class AdminController extends \ModuleAdminController
      */
     public function actionDeleteQueue()
     {
+        $id = Yii::app()->request->getPost('id');
+        if ($id === null || $id === '') {
+            throw new \CHttpException(400, 'Queue ID is required');
+        }
         $qs = Yii::app()->service->getService(self::$QUEUE_SERVICE);
-        $qr = $qs->read((int) @$_POST['id']);
+        $qr = $qs->read((int) $id);
 
         $qs->delete($qr->getId());
         echo 1;

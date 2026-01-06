@@ -1111,24 +1111,31 @@ trait CouchbaseModelBridge
      */
     public function __get($name)
     {
-        // Check if this is a defined relation
-        $md = $this->getMetaData();
-        if (isset($md->relations[$name])) {
-            // Check if we should use Couchbase for relation loading
-            if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
-                // Check cache first
-                if (isset($this->_couchbaseRelationCache[$name])) {
-                    return $this->_couchbaseRelationCache[$name];
+        // First try parent __get to handle normal attributes and relations
+        try {
+            return parent::__get($name);
+        } catch (\CException $e) {
+            // If parent threw an exception for an undefined property, check if it's a relation
+            // that needs to be loaded from Couchbase
+            $md = $this->getMetaData();
+            if (isset($md->relations[$name])) {
+                // Check if we should use Couchbase for relation loading
+                if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+                    // Check cache first
+                    if (isset($this->_couchbaseRelationCache[$name])) {
+                        return $this->_couchbaseRelationCache[$name];
+                    }
+                    
+                    // Load from Couchbase
+                    $result = $this->loadRelationFromCouchbase($name);
+                    $this->_couchbaseRelationCache[$name] = $result;
+                    return $result;
                 }
-                
-                // Load from Couchbase
-                $result = $this->loadRelationFromCouchbase($name);
-                $this->_couchbaseRelationCache[$name] = $result;
-                return $result;
             }
+            
+            // Re-throw the exception if it's not a Couchbase relation
+            throw $e;
         }
-        
-        return parent::__get($name);
     }
     
     /**

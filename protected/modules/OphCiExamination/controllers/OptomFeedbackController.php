@@ -62,9 +62,9 @@ class OptomFeedbackController extends \BaseEventTypeController
     /**
      *  Optom Feedback manager row save
      */
-    public function actionOptomAjaxEdit($id)
+    public function actionOptomAjaxEdit($id = null)
     {
-        if ($this->request->isPostRequest) {
+        if ($this->request->isPostRequest && $id !== null) {
             $model = \AutomaticExaminationEventLog::model()->findByPk($id);
             if (!$model) {
                 $result = json_encode(array(

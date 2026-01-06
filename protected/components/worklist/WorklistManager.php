@@ -562,7 +562,7 @@ class WorklistManager extends CComponent
             $criteria->select = 'max(display_order) as maxDisplay';
             $row = $this->getModelForClass('WorklistDisplayOrder')->find($criteria);
 
-            $max_display_order = $row['maxDisplay'];
+            $max_display_order = ($row !== null) ? $row['maxDisplay'] : null;
             $display_order = $max_display_order ? $max_display_order + 1 : 1;
         }
 

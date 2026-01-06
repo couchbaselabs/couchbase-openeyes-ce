@@ -118,7 +118,19 @@ class V1Controller extends \CController
             $this->sendResponse(401);
         }
 
-        $identity = new UserIdentity($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], null, null);
+        // Set up default institution before authentication
+        $institution_id = null;
+        try {
+            $default_institution = \Institution::model()->getCurrent();
+            if ($default_institution) {
+                $institution_id = $default_institution->id;
+                \Yii::app()->session['selected_institution_id'] = $institution_id;
+            }
+        } catch (\Exception $e) {
+            // If no institution can be found, continue with null
+        }
+
+        $identity = new UserIdentity($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], $institution_id, null);
         list($authentication_success, $authentication_msg) = $identity->authenticate();
 
         if (!$authentication_success) {
@@ -142,7 +154,7 @@ class V1Controller extends \CController
         return array(
             'update' => 'id, identifier-type',
             'delete' => 'id',
-            'create' => null,
+            'create' => 'resource_type',
         )[strtolower($action->id)];
     }
 

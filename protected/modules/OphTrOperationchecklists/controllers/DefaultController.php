@@ -74,6 +74,12 @@ class DefaultController extends BaseEventTypeController
      */
     protected function initActionCreate()
     {
+        // If no patient_id is provided, redirect to home instead of showing error
+        if (!isset($_REQUEST['patient_id'])) {
+            $this->redirect('/');
+            return;
+        }
+        
         parent::initActionCreate();
 
         /** @var OphTrOperationbooking_API $api */
@@ -95,6 +101,12 @@ class DefaultController extends BaseEventTypeController
 
     public function initActionStep()
     {
+        // If no event_id is provided, redirect to home instead of showing error
+        if (!isset($_GET['id'])) {
+            $this->redirect('/');
+            return;
+        }
+        
         $this->initActionUpdate();
     }
 
@@ -151,13 +163,20 @@ class DefaultController extends BaseEventTypeController
         } else {
             // set up form for selecting a booking for the Op Operation checklists
             $bookings = array();
+            $operations = array();
 
             $element_enabled = Yii::app()->params['disable_theatre_diary'];
             $theatre_diary_disabled = isset($element_enabled) && $element_enabled == 'on';
 
             /** @var OphTrOperationbooking_API $api */
             if ($api = Yii::app()->moduleAPI->get('OphTrOperationbooking')) {
-                $operations = $api->getOpenOperations($this->patient);
+                try {
+                    $operations = $api->getOpenOperations($this->patient);
+                } catch (Exception $e) {
+                    // Log the error but don't fail - show empty operations list
+                    Yii::log('Failed to fetch open operations for patient ' . $this->patient->id . ': ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+                    $operations = array();
+                }
             }
 
             $this->setTitle('Please select booking');
@@ -237,8 +256,13 @@ class DefaultController extends BaseEventTypeController
         parent::actionView($id);
     }
 
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        if ($id === null) {
+            Yii::app()->user->setFlash('error', 'Event ID is required for printing operation checklists.');
+            $this->redirect(Yii::app()->request->getUrlReferrer() ?: Yii::app()->homeUrl);
+            return;
+        }
         parent::actionPrint($id);
     }
 

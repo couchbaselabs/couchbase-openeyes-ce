@@ -121,6 +121,10 @@ class PatientSearch
      */
     public function parseTerm($term): array
     {
+        // Handle null or empty term
+        if ($term === null) {
+            $term = '';
+        }
         $term = trim($term);
         $this->search_terms['original_term'] = $term;
         // we need to strip down protocol from the beginning of the term

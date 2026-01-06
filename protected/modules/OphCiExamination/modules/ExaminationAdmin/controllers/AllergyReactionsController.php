@@ -34,6 +34,13 @@ class AllergyReactionsController extends \ModuleAdminController
     {
         $request = Yii::app()->getRequest();
         $post = $request->getPost('OphCiExamination_AllergyReaction');
+        
+        // If no POST data, redirect to index
+        if (empty($post)) {
+            $this->redirect(['AllergyReactions/index']);
+            return;
+        }
+        
         $display_order = 1;
         $display_order_counter = 0;
         foreach ($post as $attributes) {

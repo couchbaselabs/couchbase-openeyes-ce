@@ -112,6 +112,9 @@ class OphTrOperationbooking_Whiteboard extends BaseActiveRecordVersioned
     public function loadData($id)
     {
         $booking = Element_OphTrOperationbooking_Operation::model()->find('event_id=?', array($id));
+        if (!$booking) {
+            throw new CHttpException(400, 'No operation booking found for the given event ID');
+        }
         $consent = Element_OphTrConsent_Procedure::model()->find('booking_event_id=?', [$id]);
 
         $eye = Eye::model()->findByPk($booking->eye_id);

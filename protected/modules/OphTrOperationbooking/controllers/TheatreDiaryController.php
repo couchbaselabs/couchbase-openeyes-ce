@@ -130,6 +130,27 @@ class TheatreDiaryController extends BaseModuleController
     {
         Audit::add('diary', 'print list');
 
+        // Validate that required POST parameters are present
+        $emergency_list = isset($_POST['emergency_list']) && $_POST['emergency_list'] === '1' ? true : false;
+        
+        // Dates are always required
+        $required_fields = array('date-start', 'date-end');
+        foreach ($required_fields as $field) {
+            if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+                throw new CHttpException(400, 'Missing required parameter: ' . $field);
+            }
+        }
+        
+        // These fields are only required for non-emergency lists
+        if (!$emergency_list) {
+            $emergency_only_fields = array('subspecialty-id', 'site-id');
+            foreach ($emergency_only_fields as $field) {
+                if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+                    throw new CHttpException(400, 'Missing required parameter: ' . $field);
+                }
+            }
+        }
+
         $this->renderPartial('_print_list', array('bookings' => $this->getBookingList($_POST)), false, true);
     }
 
@@ -292,8 +313,16 @@ class TheatreDiaryController extends BaseModuleController
     public function getBookingList($data)
     {
         $emergency_list = isset($data['emergency_list']) && $data['emergency_list'] === '1' ? true : false;
+        
+        // Validate that date parameters are always provided
+        foreach (array('date-start', 'date-end') as $required) {
+            if (!isset($data[$required]) || trim($data[$required]) === '') {
+                throw new Exception('invalid request for booking list');
+            }
+        }
+        
         if (!$emergency_list) {
-            foreach (array('date-start', 'date-end', 'subspecialty-id', 'site-id') as $required) {
+            foreach (array('subspecialty-id', 'site-id') as $required) {
                 if (!isset($data[$required])) {
                     throw new Exception('invalid request for booking list');
                 }
@@ -669,7 +698,7 @@ class TheatreDiaryController extends BaseModuleController
     public function actionCheckRequired()
     {
         if (!$session = OphTrOperationbooking_Operation_Session::model()->findByPk(@$_POST['session_id'])) {
-            throw new Exception('Session not found: ' . $_POST['session_id']);
+            throw new Exception('Session not found: ' . @$_POST['session_id']);
         }
 
         Yii::app()->event->dispatch('start_batch_mode');

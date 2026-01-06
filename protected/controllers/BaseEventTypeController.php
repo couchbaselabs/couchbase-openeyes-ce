@@ -1578,6 +1578,13 @@ class BaseEventTypeController extends BaseModuleController
      */
     public function actionUpdate($id)
     {
+        // Load the event from the ID parameter if not already set
+        if (!$this->event || $this->event->id != $id) {
+            if (!$this->event = Event::model()->findByPk($id)) {
+                throw new Exception("Event not found: " . $id);
+            }
+        }
+
         $errors = [];
 
         if (!empty($_POST)) {
@@ -1757,6 +1764,12 @@ class BaseEventTypeController extends BaseModuleController
         }
 
         $this->editing = true;
+        
+        // Check if eventType is null to prevent null pointer exception
+        if (!$this->event->eventType) {
+            throw new Exception("Event Type not found for Event ID: " . $this->event->id . " (event_type_id: " . $this->event->event_type_id . ")");
+        }
+        
         $this->event_tabs = array(
             array(
                 'label' => 'View',

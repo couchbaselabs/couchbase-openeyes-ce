@@ -340,11 +340,17 @@ class BaseActiveRecord extends CActiveRecord
         } catch (Exception $e) {
         }
 
-        $res = parent::save($runValidation, $attributes);
-        if ($res) {
-            $this->originalAttributes = $this->getAttributes();
+        try {
+            $res = parent::save($runValidation, $attributes);
+            if ($res) {
+                $this->originalAttributes = $this->getAttributes();
+            }
+            return $res;
+        } catch (Exception $e) {
+            // Log database errors for debugging
+            \Yii::log('BaseActiveRecord::save() exception for ' . get_class($this) . ': ' . $e->getMessage(), \CLogger::LEVEL_ERROR, 'application.db');
+            throw $e;
         }
-        return $res;
     }
 
     /**

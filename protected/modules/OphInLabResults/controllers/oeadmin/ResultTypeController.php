@@ -55,6 +55,12 @@ class ResultTypeController extends BaseAdminController
      */
     public function actionAddMapping()
     {
+        // Redirect GET requests to the list page
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect(['list']);
+            return;
+        }
+
         $transaction = Yii::app()->cbdb->beginTransaction();
         $result = [];
         $result['status'] = 1;
@@ -86,6 +92,12 @@ class ResultTypeController extends BaseAdminController
 
     public function actionDeleteMapping()
     {
+        // Redirect GET requests to the list page
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect(['list']);
+            return;
+        }
+
         $transaction = Yii::app()->cbdb->beginTransaction();
         $result = [];
         $result['status'] = 1;

@@ -21,8 +21,13 @@ class DefaultController extends BaseAdminController
 {
     public $group = 'PatientTicketing';
 
-    public function actionGetQueueSets($institution_id)
+    public function actionGetQueueSets($institution_id = null)
     {
+        // Use current institution if none provided
+        if ($institution_id === null) {
+            $institution_id = \Institution::model()->getCurrent()->id;
+        }
+
         // would be nice to use model()->findAllAtLevel, but unfortunately we can't override
         // the current institution yet in MappedReferenceData::getIdForLevel()
         $criteria = new \CDbCriteria();

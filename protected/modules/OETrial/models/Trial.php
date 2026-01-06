@@ -33,26 +33,12 @@ use OE\factories\models\traits\HasFactory;
  */
 class Trial extends BaseActiveRecordVersioned
 {
-    use \OE\Models\Traits\CouchbaseModelBridge;
+    // Temporarily disabled CouchbaseModelBridge - Trial should use MariaDB only for now
+    // use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
-    /**
-     * Returns the Couchbase scope name for this model.
-     * @return string
-     */
-    public function couchbaseScope(): string
-    {
-        return 'clinical';
-    }
-
-    /**
-     * Returns the Couchbase collection name for this model.
-     * @return string
-     */
-    public function couchbaseCollection(): string
-    {
-        return $this->tableName();
-    }
+    // Couchbase-related methods are deprecated - Trial uses MariaDB only
+    // couchbaseScope() and couchbaseCollection() have been removed as they are no longer needed
 
     /**
      * The success return code for addUserPermission()
@@ -253,7 +239,8 @@ class Trial extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Temporarily disabled - Trial should use MariaDB for now
+        // $this->saveToCouchbase();
 
         if ($this->getIsNewRecord()) {
             // Create a new permission assignment for the user that created the Trial
@@ -299,7 +286,8 @@ class Trial extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Temporarily disabled - Trial should use MariaDB for now
+        // $this->deleteFromCouchbase();
     }
 
     /**

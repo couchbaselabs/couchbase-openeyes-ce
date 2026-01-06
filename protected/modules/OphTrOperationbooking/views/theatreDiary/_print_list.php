@@ -77,8 +77,8 @@ $site_id = Yii::app()->session['selected_site_id'];
     }
 </style>
 <div id="diaryTemplate">
-    <div id="d_title">TCIs in date range <?= \CHtml::encode($_POST['date-start']) ?>
-        to <?= \CHtml::encode($_POST['date-end']) ?></div>
+    <div id="d_title">TCIs in date range <?= \CHtml::encode(isset($_POST['date-start']) ? $_POST['date-start'] : 'N/A') ?>
+        to <?= \CHtml::encode(isset($_POST['date-end']) ? $_POST['date-end'] : 'N/A') ?></div>
     <table class='d_data' width="100%">
         <tr>
             <th><?= PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), $institution_id, $site_id) ?></th>

@@ -94,7 +94,7 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
         $availabeStorage = Yii::app()->cbdb->createCommand()
             ->select('id')
             ->from('ophindnaextraction_storage_address')
-            ->where('box_id =:box_id and letter =:letter and number =:number', array(':box_id' => $this->box_id, ':letter' => $this->letter, ':number' => $this->number))
+            ->where('box_id =:box_id and `letter` =:letter and `number` =:number', array(':box_id' => $this->box_id, ':letter' => $this->letter, ':number' => $this->number))
             ->queryScalar();
 
         if ($availabeStorage) {

@@ -14,6 +14,7 @@ set -euo pipefail
 #   --sitemap-only       Only generate sitemap, don't verify
 #   --no-fix             Verify only, don't attempt fixes
 #   --max-fix-attempts   Max fix attempts per page (default: 3)
+#   --skip-passed <csv>  Skip pages that already passed in previous CSV
 #   --dry-run            Show what would be done
 #   -h|--help            Show this help
 
@@ -28,6 +29,8 @@ SITEMAP_ONLY=0
 NO_FIX=0
 SKIP_AUTH=0
 MAX_FIX_ATTEMPTS=10
+INCLUDE_EDIT_URLS=0
+SKIP_PASSED_CSV=""
 
 BASE_URL="${OPENEYES_URL:-http://localhost:7777}"
 LOGIN_USER="${OPENEYES_USER:-admin}"
@@ -59,6 +62,7 @@ Options:
   --sitemap-only         Only generate sitemap, don't verify
   --no-fix               Verify only, don't attempt fixes
   --max-fix-attempts <n> Max fix attempts per page (default: 10)
+  --include-edit-urls    Include edit/update URLs (will fetch/create IDs)
   --dry-run              Show what would be done without running droids
   -h, --help             Show this help
 
@@ -135,7 +139,9 @@ while [[ $# -gt 0 ]]; do
     --sitemap-only) SITEMAP_ONLY=1; shift ;;
     --no-fix)     NO_FIX=1; shift ;;
     --max-fix-attempts) MAX_FIX_ATTEMPTS="${2:-3}"; shift 2 ;;
+    --include-edit-urls) INCLUDE_EDIT_URLS=1; shift ;;
     --dry-run)    DRY_RUN=1; shift ;;
+    --skip-passed) SKIP_PASSED_CSV="${2:-}"; [[ -z "$SKIP_PASSED_CSV" ]] && { log_error "--skip-passed requires a CSV file path"; exit 2; }; shift 2 ;;
     -h|--help)    usage; exit 0 ;;
     ''|*[!0-9]*)  log_error "Unknown argument: $1"; usage; exit 2 ;;
     *)            CONCURRENCY="$1"; shift ;;
@@ -257,29 +263,84 @@ EOF
 # Extract page list from sitemap for verification
 extract_page_list() {
   log_info "Extracting page list from sitemap..."
+  log_info "Prioritizing: 1) Create/Add URLs, 2) Edit/Update URLs, 3) List/Other URLs"
   
   # Parse JSON and output page entries
-  # Format: url|controller|action|requires_id|requires_auth|controller_file
+  # Format: url|controller|action|requires_id|requires_auth|controller_file|related_list_url|related_add_url
   python3 -c "
 import json
 import sys
+import re
+
+include_edit = $INCLUDE_EDIT_URLS
 
 with open('$SITEMAP_JSON', 'r') as f:
     sitemap = json.load(f)
+
+# Build a map of controllers to their actions for finding related list/add URLs
+controller_actions = {}
+for page in sitemap:
+    ctrl = page.get('controller', '')
+    action = page.get('action', '').lower()
+    url = page.get('url', '')
+    if ctrl not in controller_actions:
+        controller_actions[ctrl] = {'list': [], 'add': [], 'index': []}
+    if 'list' in action or 'index' in action or 'search' in action or 'manage' in action:
+        controller_actions[ctrl]['list'].append(url)
+        controller_actions[ctrl]['index'].append(url)
+    if 'add' in action or 'create' in action or 'new' in action:
+        controller_actions[ctrl]['add'].append(url)
+
+# Categorize pages by priority
+add_pages = []      # Priority 1: Create/Add pages
+edit_pages = []     # Priority 2: Edit/Update pages  
+other_pages = []    # Priority 3: List/Index/Other pages
 
 for page in sitemap:
     url = page.get('url', '')
     controller = page.get('controller', '')
     action = page.get('action', '')
-    requires_id = 'true' if page.get('requires_id', False) else 'false'
+    action_lower = action.lower()
+    requires_id = page.get('requires_id', False)
     requires_auth = 'true' if page.get('requires_auth', True) else 'false'
     controller_file = page.get('controller_file', '')
     
-    # Skip pages that require ID for now (need sample data)
-    if requires_id == 'true':
-        continue
+    # Find related list and add URLs for this controller
+    related_list = ''
+    related_add = ''
+    if controller in controller_actions:
+        if controller_actions[controller]['list']:
+            related_list = controller_actions[controller]['list'][0]
+        elif controller_actions[controller]['index']:
+            related_list = controller_actions[controller]['index'][0]
+        if controller_actions[controller]['add']:
+            related_add = controller_actions[controller]['add'][0]
     
-    print(f'{url}|{controller}|{action}|{requires_id}|{requires_auth}|{controller_file}')
+    # Handle pages that require ID
+    if requires_id:
+        if not include_edit:
+            continue
+        requires_id_str = 'true'
+    else:
+        requires_id_str = 'false'
+    
+    entry = f'{url}|{controller}|{action}|{requires_id_str}|{requires_auth}|{controller_file}|{related_list}|{related_add}'
+    
+    # Categorize by action type for prioritization
+    if 'add' in action_lower or 'create' in action_lower or 'new' in action_lower:
+        add_pages.append(entry)
+    elif 'edit' in action_lower or 'update' in action_lower:
+        edit_pages.append(entry)
+    else:
+        other_pages.append(entry)
+
+# Output in priority order: Add -> Edit -> Other
+for entry in add_pages:
+    print(entry)
+for entry in edit_pages:
+    print(entry)
+for entry in other_pages:
+    print(entry)
 " > "$PAGE_LIST.tmp"
 
   # Apply filter if specified
@@ -297,8 +358,28 @@ for page in sitemap:
     grep "|false|" "$PAGE_LIST" > "$PAGE_LIST.noauth" || true
     mv "$PAGE_LIST.noauth" "$PAGE_LIST"
   fi
+
+  # Skip pages that already passed in a previous run (BEFORE applying limit)
+  if [[ -n "$SKIP_PASSED_CSV" && -f "$SKIP_PASSED_CSV" ]]; then
+    log_info "Skipping pages that already passed in: $SKIP_PASSED_CSV"
+    local skip_urls_file=$(mktemp)
+    # Extract URLs with final_status == "PASS" from previous CSV
+    awk -F, 'NR>1 && $5=="\"PASS\"" { gsub(/"/, "", $1); print $1 }' "$SKIP_PASSED_CSV" > "$skip_urls_file"
+    local skip_count=$(wc -l < "$skip_urls_file" | tr -d ' ')
+    log_info "Found $skip_count pages to skip"
+    
+    if [[ "$skip_count" -gt 0 ]]; then
+      # Filter out pages that are in the skip list
+      local before_count=$(wc -l < "$PAGE_LIST" | tr -d ' ')
+      grep -vFf <(cat "$skip_urls_file") "$PAGE_LIST" > "$PAGE_LIST.filtered" 2>/dev/null || true
+      mv "$PAGE_LIST.filtered" "$PAGE_LIST"
+      local after_count=$(wc -l < "$PAGE_LIST" | tr -d ' ')
+      log_info "Filtered from $before_count to $after_count pages (skipped $((before_count - after_count)) passed pages)"
+    fi
+    rm -f "$skip_urls_file"
+  fi
   
-  # Apply limit if specified
+  # Apply limit if specified (AFTER skipping passed pages)
   if [[ "$LIMIT" -gt 0 ]]; then
     log_info "Limiting to first $LIMIT pages"
     head -n "$LIMIT" "$PAGE_LIST" > "$PAGE_LIST.limited"
@@ -337,8 +418,8 @@ watch_progress() {
 run_droid_verify() {
   local page_entry="$1"
   
-  # Parse page entry
-  IFS='|' read -r page_url controller action requires_id requires_auth controller_file <<< "$page_entry"
+  # Parse page entry (now includes related_list and related_add URLs)
+  IFS='|' read -r page_url controller action requires_id requires_auth controller_file related_list related_add <<< "$page_entry"
   
   local tmpout start_s end_s duration_s status
   tmpout=$(mktemp)
@@ -353,12 +434,12 @@ run_droid_verify() {
     fi
   }
 
-  _child_log info "START $page_url ($controller::$action)"
+  _child_log info "START $page_url ($controller::$action) [requires_id=$requires_id]"
 
   local fix_instruction=""
   if [[ "$NO_FIX" -eq 0 ]]; then
     fix_instruction="
-4. IF ERRORS FOUND:
+6. IF ERRORS FOUND:
    - Analyze error message and stack trace
    - Locate the problematic file (controller: $controller_file)
    - Read the relevant code and identify the issue
@@ -368,8 +449,122 @@ run_droid_verify() {
    - Document what you fixed"
   else
     fix_instruction="
-4. IF ERRORS FOUND:
+6. IF ERRORS FOUND:
    - Document the error but do not attempt to fix"
+  fi
+
+  # Determine page type
+  local is_list_page="false"
+  local is_create_page="false"
+  local action_lower=$(echo "$action" | tr '[:upper:]' '[:lower:]')
+  if [[ "$action_lower" =~ (list|index|search|manage|all$) ]]; then
+    is_list_page="true"
+  fi
+  if [[ "$action_lower" =~ (add|create|new) ]]; then
+    is_create_page="true"
+  fi
+
+  # Build instructions based on page type
+  local id_instruction=""
+  local list_instruction=""
+  local create_instruction=""
+  
+  if [[ "$requires_id" == "true" ]]; then
+    # Edit/Update URL instructions
+    id_instruction="
+IMPORTANT: This page requires a valid ID to test.
+Related List URL: ${related_list:-NONE}
+Related Add URL: ${related_add:-NONE}
+
+Before testing the edit URL, you MUST:
+a) First navigate to the list page (${BASE_URL}${related_list:-/admin}) to find an existing item
+b) Look for table rows, list items, or links that contain IDs (usually in href attributes like /edit/123 or ?id=123)
+c) Extract a valid ID from the page
+d) If NO items exist in the list:
+   - Navigate to the add page (${BASE_URL}${related_add:-}) if available
+   - Fill in the required form fields with test data (use realistic test values)
+   - Submit the form to create a new item
+   - If errors occur during creation, fix them (check controller, model, view files)
+   - Verify the item was created successfully
+   - Navigate back to list page and VERIFY the new item appears
+   - If item is NOT visible on list, investigate and fix (check controller, model, DB queries, scopes)
+   - Get the ID of the newly created item
+e) Once you have a valid ID, construct the full edit URL: ${BASE_URL}${page_url}/{ID} or ${BASE_URL}${page_url}?id={ID}
+f) Navigate to the edit URL with the ID and verify it loads correctly
+g) Make a small edit to the item (e.g., update a field) and save
+h) Navigate back to list page: ${BASE_URL}${related_list:-/admin}
+i) CRITICAL: Verify the edited item appears with updated data
+j) If item or changes are NOT visible:
+   * This is a BUG - investigate controller, model, view, and DB queries
+   * Apply fixes and re-verify until the item/changes are visible
+"
+  elif [[ "$is_list_page" == "true" && -n "$related_add" ]]; then
+    # List/Index page instructions
+    list_instruction="
+IMPORTANT: This is a LIST/INDEX page. After verifying the page loads:
+Related Add URL: ${related_add}
+
+Additional validation for list pages:
+a) Check if there are any items displayed in the list/table
+b) If the list is EMPTY (no items/rows displayed):
+   - Navigate to the add page: ${BASE_URL}${related_add}
+   - Fill in the required form fields with realistic test data
+   - Submit the form to create a new item
+   - If errors occur during creation:
+     * Analyze the error message and stack trace
+     * Locate and fix the problematic code (controller, model, or view)
+     * Retry the form submission
+     * Repeat up to $MAX_FIX_ATTEMPTS times if needed
+   - After successful creation, navigate back to this list page: ${BASE_URL}${page_url}
+   - CRITICAL: Verify the newly created item appears in the list
+   - If the item is NOT visible on the list:
+     * This is a BUG that must be investigated and fixed
+     * Check the controller's list/index action - verify it queries the correct data source
+     * Check if the model's search/findAll method is returning the new record
+     * Check if there are any filters or scopes excluding the new item
+     * Check if the view is correctly iterating over and displaying the data
+     * Look for issues like: wrong database connection, missing scopes, incorrect queries, caching issues
+     * Apply fixes to make the newly created item visible
+     * Refresh the list page and verify the item now appears
+     * Repeat investigation and fixes up to $MAX_FIX_ATTEMPTS times until item is visible
+   - Confirm the item data is displayed correctly (name, date, status, etc.)
+c) If items exist, verify:
+   - Table/list renders properly with data
+   - Pagination works (if present)
+   - Sort/filter functionality works (if present)
+   - Action links (edit/delete/view) are present and properly formatted
+"
+  fi
+
+  # Create/Add page instructions
+  if [[ "$is_create_page" == "true" && -n "$related_list" ]]; then
+    create_instruction="
+IMPORTANT: This is a CREATE/ADD page. After verifying the page loads:
+Related List URL: ${related_list}
+
+Validation steps for create/add pages:
+a) Verify the form loads correctly with all required fields
+b) Fill in the form with realistic test data
+c) Submit the form to create a new item
+d) If errors occur during creation:
+   * Analyze the error message and stack trace
+   * Locate and fix the problematic code (controller, model, or view)
+   * Retry the form submission
+   * Repeat up to $MAX_FIX_ATTEMPTS times if needed
+e) After successful creation, navigate to the list page: ${BASE_URL}${related_list}
+f) CRITICAL: Verify the newly created item appears in the list
+g) If the item is NOT visible on the list:
+   * This is a BUG that must be investigated and fixed
+   * Check the controller's list/index action - verify it queries the correct data source
+   * Check if the model's search/findAll method is returning the new record
+   * Check if there are any filters or scopes excluding the new item
+   * Check if the view is correctly iterating over and displaying the data
+   * Look for issues like: wrong database connection, missing scopes, incorrect queries, caching issues
+   * Apply fixes to make the newly created item visible
+   * Refresh the list page and verify the item now appears
+   * Repeat investigation and fixes up to $MAX_FIX_ATTEMPTS times until item is visible
+h) Confirm the item data is displayed correctly on the list (name, date, status, etc.)
+"
   fi
 
   local prompt
@@ -380,31 +575,37 @@ Controller: $controller
 Controller File: protected/$controller_file
 Action: action$action
 Requires Auth: $requires_auth
-
+Requires ID: $requires_id
+Is List Page: $is_list_page
+Is Create Page: $is_create_page
+$id_instruction$list_instruction$create_instruction
 Steps:
 1. If requires_auth is true, first login at ${BASE_URL}/site/login with username: ${LOGIN_USER} and password: ${LOGIN_PASS}
-2. Navigate to ${BASE_URL}${page_url}
-3. Check for errors:
+2. If requires_id is true, follow the ID-fetching instructions above first
+3. Navigate to ${BASE_URL}${page_url} (with ID appended if required)
+4. If this is a list page, follow the list page validation instructions above
+4b. If this is a create/add page, follow the create page validation instructions above
+5. Check for errors:
    - HTTP 4xx/5xx responses (check page content for error messages)
    - PHP errors/exceptions displayed on page
    - JavaScript console errors
    - Page not loading or timing out
    - Missing main content area
 $fix_instruction
-5. Record final status
+7. Record final status
 
 IMPORTANT: Return ONLY a single pipe-delimited line in this EXACT format:
 url|initial_status|final_status|load_ms|js_error_count|fix_applied|files_modified|fix_description|attempts
 
 Where:
-- url: The page URL tested
+- url: The page URL tested (include the ID if one was used, e.g., /admin/editUser/5)
 - initial_status: PASS, FAIL, or ERROR (before any fixes)
 - final_status: PASS, FAIL, or ERROR (after fixes, same as initial if no fix attempted)
 - load_ms: Page load time in milliseconds (estimate if not measurable)
 - js_error_count: Number of JavaScript console errors (0 if none)
 - fix_applied: YES or NO
 - files_modified: Comma-separated list of modified files or NONE
-- fix_description: Brief description of fix or N/A
+- fix_description: Brief description of fix (include if you created a new item) or N/A
 - attempts: Number of fix attempts made (0 if no-fix mode)
 
 Return ONLY the pipe-delimited row, no other text.
@@ -458,7 +659,7 @@ EOF
 }
 
 export -f run_droid_verify
-export LOG_LEVEL LOG_FILE PROGRESS_FILE FAIL_FILE RESULTS_CSV PROTECTED_DIR DRY_RUN NO_FIX MAX_FIX_ATTEMPTS BASE_URL LOGIN_USER LOGIN_PASS
+export LOG_LEVEL LOG_FILE PROGRESS_FILE FAIL_FILE RESULTS_CSV PROTECTED_DIR DRY_RUN NO_FIX MAX_FIX_ATTEMPTS BASE_URL LOGIN_USER LOGIN_PASS INCLUDE_EDIT_URLS
 
 # Main execution
 log_info "============================================"
@@ -468,6 +669,7 @@ log_info "Base URL: $BASE_URL"
 log_info "Concurrency: $CONCURRENCY"
 log_info "Auto-fix: $([ "$NO_FIX" -eq 0 ] && echo 'enabled' || echo 'disabled')"
 log_info "Max fix attempts: $MAX_FIX_ATTEMPTS"
+log_info "Include edit URLs: $([ "$INCLUDE_EDIT_URLS" -eq 1 ] && echo 'yes (will fetch/create IDs)' || echo 'no')"
 log_info "============================================"
 
 # Phase 1: Generate sitemap

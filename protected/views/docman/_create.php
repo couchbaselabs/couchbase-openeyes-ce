@@ -22,6 +22,8 @@
 <?php
     $is_mandatory = isset($is_mandatory) ? $is_mandatory : false;
 ?>
+<form id="docman-form" method="post" action="<?php echo Yii::app()->createUrl('docman/save'); ?>">
+<?php echo CHtml::hiddenField(Yii::app()->request->csrfTokenName, Yii::app()->request->csrfToken); ?>
 <table class="cols-full" id="dm_table" data-test="dm_table" data-macro_id="<?php echo $macro_id; ?>" >
     <colgroup>
         <col>
@@ -258,3 +260,8 @@
         </tr>
     </tbody>
 </table>
+<div class="form-actions" style="margin-top: 20px; text-align: right;">
+    <button type="submit" class="button green" id="docman-save-btn">Create Document</button>
+    <a href="<?php echo Yii::app()->createUrl('docman/index'); ?>" class="button">Cancel</a>
+</div>
+</form>

@@ -113,10 +113,15 @@ class DefaultController extends \BaseAdminController
         ));
     }
 
-    public function actionCreateRemapValue($id)
+    public function actionCreateRemapValue($id = null)
     {
+        if (!$id) {
+            $this->redirect(array('viewXpathRemaps'));
+            return;
+        }
+        
         if (!$remap = XpathRemap::model()->findByPk($id)) {
-            throw new \CHttpException('404', 'Could not Xpath Remap');
+            throw new \CHttpException('404', 'Could not find Xpath Remap');
         }
 
         $model = new RemapValue();

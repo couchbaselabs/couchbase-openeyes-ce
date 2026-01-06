@@ -219,7 +219,8 @@ $(document).ready(function() {
                 $('#internal_referral_to_location span.error').fadeOut(500);
 			},
             'success': function (data) {
-			    data = JSON.parse(data);
+			    // jQuery already parses JSON responses, so check if it's a string first
+			    if (typeof data === 'string') { data = JSON.parse(data); }
 
                 if(data.success === true){
                     $('#internal_referral_to_location span.saved').show();

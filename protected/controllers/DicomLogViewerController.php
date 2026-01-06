@@ -318,10 +318,17 @@ class DicomLogViewerController extends BaseController
         return $data;
     }
 
-    public function actionUpdateList()
+    public function actionUpdateList($id = null)
     {
-        if (!$audit = Audit::model()->findByPk(@$_GET['last_id'])) {
-            throw new Exception('Log entry not found: '.@$_GET['last_id']);
+        // Accept both route parameter (id) and query parameter (last_id) for backwards compatibility
+        $audit_id = $id ?: @$_GET['last_id'];
+        
+        if (!$audit_id) {
+            throw new Exception('Log entry not found: no ID provided');
+        }
+        
+        if (!$audit = Audit::model()->findByPk($audit_id)) {
+            throw new Exception('Log entry not found: '.$audit_id);
         }
 
         $this->renderPartial('_list_update', array('data' => $this->getData(null, $audit->id)), false, true);

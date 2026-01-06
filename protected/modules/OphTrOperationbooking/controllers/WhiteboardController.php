@@ -63,10 +63,15 @@ class WhiteboardController extends BaseDashboardController
             $this->setWhiteboard($whiteboard);
         }
 
-        foreach (OphTrOperationbooking_Whiteboard_Settings_Data::model()->findAll() as $metadata) {
-            if (!isset(Yii::app()->params['whiteboard'][$metadata->key])) {
-                Yii::app()->params[$metadata->key] = $metadata->value;
+        try {
+            foreach (OphTrOperationbooking_Whiteboard_Settings_Data::model()->findAll() as $metadata) {
+                if (!isset(Yii::app()->params[$metadata->key])) {
+                    Yii::app()->params->add($metadata->key, $metadata->value);
+                }
             }
+        } catch (Exception $e) {
+            // Log error but don't fail if settings can't be loaded
+            Yii::log('Error loading whiteboard settings: ' . $e->getMessage(), CLogger::LEVEL_WARNING, 'application.modules.OphTrOperationbooking.controllers');
         }
     }
 
@@ -183,8 +188,16 @@ class WhiteboardController extends BaseDashboardController
      * @param $id int Booking event ID
      * @throws CHttpException
      */
-    public function actionBiometryReport($id)
+    public function actionBiometryReport($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+
+        if ($id === null) {
+            throw new CHttpException(400, 'No booking ID provided for biometry report');
+        }
+
         $whiteboard = $this->getWhiteboard();
         if (!$whiteboard) {
             $whiteboard = new OphTrOperationbooking_Whiteboard();
@@ -205,8 +218,16 @@ class WhiteboardController extends BaseDashboardController
         ));
     }
 
-    public function actionConsentForm($id)
+    public function actionConsentForm($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+
+        if ($id === null) {
+            throw new CHttpException(400, 'No booking ID provided for consent form');
+        }
+
         $whiteboard = $this->getWhiteboard();
         if (!$whiteboard) {
             $whiteboard = new OphTrOperationbooking_Whiteboard();
@@ -255,8 +276,16 @@ class WhiteboardController extends BaseDashboardController
      *
      * @throws CHttpException
      */
-    public function actionConfirm($id)
+    public function actionConfirm($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+
+        if ($id === null) {
+            throw new CHttpException(400, 'No booking ID provided for whiteboard confirm action');
+        }
+
         $whiteboard = $this->getWhiteboard();
         if (!$whiteboard) {
             throw new CHttpException(400, 'No whiteboard found for save with id ' . $id);
@@ -278,8 +307,16 @@ class WhiteboardController extends BaseDashboardController
      * @throws CHttpException
      * @throws Exception
      */
-    public function actionSaveComment($id)
+    public function actionSaveComment($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+
+        if ($id === null) {
+            throw new CHttpException(400, 'No booking event ID provided for whiteboard save');
+        }
+
         $whiteboard = $this->getWhiteboard();
         if (!$whiteboard) {
             throw new CHttpException(400, 'No whiteboard found for comment save with id ' . $id);

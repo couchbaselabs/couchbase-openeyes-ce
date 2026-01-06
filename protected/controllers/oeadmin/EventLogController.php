@@ -74,6 +74,9 @@ class EventLogController extends BaseAdminController
      */
     public function actionEdit($id = false)
     {
+        if ($id === false) {
+            throw new CHttpException(400, "Event ID is required");
+        }
         $eventQuery = AutomaticExaminationEventLog::model()->findByPk($id);
         if (!$eventQuery) {
             throw new CHttpException(404, "Event not found: $id");

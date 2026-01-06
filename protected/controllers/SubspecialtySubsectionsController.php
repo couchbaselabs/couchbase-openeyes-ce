@@ -81,6 +81,7 @@ class SubspecialtySubsectionsController extends BaseAdminController
 
         if ($request->getPost('SubspecialtySubsection')) {
             $model->setAttributes($request->getPost('SubspecialtySubsection'));
+            $subspecialty_id = $model->subspecialty_id;
 
             if ($model->save()) {
                 Audit::add(
@@ -95,15 +96,11 @@ class SubspecialtySubsectionsController extends BaseAdminController
             }
         }
 
-        if (isset($subspecialty_id) && !empty($subspecialty_id)) {
-            $this->render('/oeadmin/subspecialty_subsections/create', [
-                'model' => $model,
-                'subspecialty_id' => $subspecialty_id,
-                'errors' => $model->getErrors(),
-            ]);
-        } else {
-            $this->redirect(['list']);
-        }
+        $this->render('/oeadmin/subspecialty_subsections/create', [
+            'model' => $model,
+            'subspecialty_id' => $subspecialty_id,
+            'errors' => $model->getErrors(),
+        ]);
     }
 
     public function actionDelete()

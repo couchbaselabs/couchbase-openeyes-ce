@@ -14,7 +14,7 @@
  */
 ?>
 
-<h2><?= $model->id ? 'Edit' : 'Create'?> Subsection for the "<?= Subspecialty::model()->findByPk($subspecialty_id)->name ?>" Subspecialty</h2>
+<h2><?= $model->id ? 'Edit' : 'Create'?> Subsection<?= isset($subspecialty_id) && !empty($subspecialty_id) ? ' for the "' . Subspecialty::model()->findByPk($subspecialty_id)?->name . '" Subspecialty' : '' ?></h2>
 <?php
 $form = $this->beginWidget('BaseEventTypeCActiveForm', [
   'id' => 'subspecialty_subsection_admin_form',

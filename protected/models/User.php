@@ -833,7 +833,7 @@ class User extends BaseActiveRecordVersioned
         $user_ids = array();
         $users_with_roles = array();
 
-        $users = Yii::app()->cbdb->createCommand("SELECT DISTINCT(userid) FROM `authassignment` WHERE `itemname` IN ('" . (implode("','", $roles)) . "')")->queryAll();
+        $users = Yii::app()->db->createCommand("SELECT DISTINCT(userid) FROM `authassignment` WHERE `itemname` IN ('" . (implode("','", $roles)) . "')")->queryAll();
 
         foreach ($users as $index => $user) {
             $user_ids[] = $user['userid'];

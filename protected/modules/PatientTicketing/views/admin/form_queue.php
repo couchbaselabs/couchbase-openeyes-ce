@@ -17,7 +17,8 @@
  */
 ?>
 
-<?php $this->renderPartial('//elements/form_errors', array('errors' => $errors, 'bottom' => false)); ?>
+<?php 
+$this->renderPartial('//elements/form_errors', array('errors' => $errors, 'bottom' => false)); ?>
 <form>
     <input type="hidden" name="YII_CSRF_TOKEN" value="<?= Yii::app()->request->csrfToken ?>" />
     <?php if ($parent) {?>
@@ -85,7 +86,28 @@
     </div>
 </form>
 <script>
-    $(document).ready(function() {
-        setTimeout(() => autosize($('.autosize')), 0);
-    });
+    // Handle jQuery initialization for renderPartial context
+    function initializeAutosize() {
+        if (typeof $ !== 'undefined' && typeof autosize !== 'undefined') {
+            setTimeout(() => autosize($('.autosize')), 0);
+        } else if (typeof autosize !== 'undefined') {
+            // Fallback if jQuery is not available
+            const autosizeElements = document.querySelectorAll('.autosize');
+            if (autosizeElements.length > 0) {
+                setTimeout(() => autosize(autosizeElements), 0);
+            }
+        }
+    }
+    
+    // Initialize when DOM is ready
+    if (typeof $ !== 'undefined') {
+        $(document).ready(initializeAutosize);
+    } else {
+        document.addEventListener('DOMContentLoaded', initializeAutosize);
+    }
+    
+    // Also try to initialize immediately in case DOM is already loaded
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+        setTimeout(initializeAutosize, 0);
+    }
 </script>

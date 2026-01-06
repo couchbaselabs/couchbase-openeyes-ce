@@ -6,7 +6,9 @@
     <input type="hidden" name="<?= get_class($model) ?>[patient_lookup_gender]"/>
     <input type="hidden" name="<?= get_class($model) ?>[patient_lookup_deceased]"/>
         <div id="patient-result">
-          <a href="/patient/view/<?= $model->patient->id ?>" title="Patient Record"> <?= $model->patient->fullName ?></a>
+          <?php if ($model->patient) { ?>
+            <a href="/patient/view/<?= $model->patient->id ?>" title="Patient Record"> <?= $model->patient->fullName ?></a>
+          <?php } ?>
         </div>
         <input type="hidden" name="<?= get_class($model) ?>[patient_id]" id="patient-result-id" value="<?= $model->patient_id ?>">
   </div>
@@ -21,7 +23,7 @@
         <label for="patient-search">Maiden Name</label>
     </div>
     <div class="cols-5 column end">
-        <input type="text" id="patient-lookup-extra-maidenname" value="<?= ($model->patient->contact->maiden_name) ? $model->patient->contact->maiden_name : '' ?>" readonly>
+        <input type="text" id="patient-lookup-extra-maidenname" value="<?= ($model->patient && $model->patient->contact) ? (is_array($model->patient->contact) ? ($model->patient->contact['maiden_name'] ?? '') : ($model->patient->contact->maiden_name ?? '')) : '' ?>" readonly>
     </div>
 </div>
 <div class="data-group flex-layout cols-full">
@@ -37,7 +39,7 @@
     <label for="patient-search"><?= PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), $institution_id, $site_id) ?></label>
   </div>
   <div class="cols-5 column end">
-    <input type="text" id="patient-lookup-extra-hos-num" value="<?= ($model->patient) ? PatientIdentifierHelper::getIdentifierValue(PatientIdentifierHelper::getIdentifierForPatient(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), $model->patient->id, $institution_id, $site_id)) : '' ?>" readonly>
+    <input type="text" id="patient-lookup-extra-hos-num" value="<?= ($model->patient && isset($model->patient->id)) ? PatientIdentifierHelper::getIdentifierValue(PatientIdentifierHelper::getIdentifierForPatient(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), $model->patient->id, $institution_id, $site_id)) : '' ?>" readonly>
   </div>
 </div>
 <?php } ?>

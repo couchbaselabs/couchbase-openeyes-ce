@@ -226,8 +226,13 @@ class DefaultController extends \BaseModuleController
         return $criteria;
     }
 
-    public function actionPatientSearch($term)
+    public function actionPatientSearch($term = '')
     {
+        // If term is not provided via parameter, try to get it from request
+        if (empty($term)) {
+            $term = \Yii::app()->request->getParam('term', '');
+        }
+        
         $closed_tickets = \Yii::app()->request->getParam('closedTickets', '0');
 
         $queue_ids = [];
@@ -325,15 +330,15 @@ class DefaultController extends \BaseModuleController
         unset(Yii::app()->session['patientticket_ticket_in_review']);
         AutoSaveTicket::clear();
 
-        $cat_id = htmlspecialchars(Yii::app()->request->getParam('cat_id'));
-        $qs_id = htmlspecialchars(Yii::app()->request->getParam('queueset_id'));
-        $reset_filters = htmlspecialchars(Yii::app()->request->getParam('reset_filters', false));
+        $cat_id = htmlspecialchars(Yii::app()->request->getParam('cat_id') ?? '');
+        $qs_id = htmlspecialchars(Yii::app()->request->getParam('queueset_id') ?? '');
+        $reset_filters = htmlspecialchars(Yii::app()->request->getParam('reset_filters', '') ?? '');
         if ($reset_filters) {
             Yii::app()->session['patientticket_filter'] = [];
             unset($_GET['reset_filters']);
         }
 
-        $unset_patientticketing = htmlspecialchars(Yii::app()->request->getParam('unset_patientticketing'));
+        $unset_patientticketing = htmlspecialchars(Yii::app()->request->getParam('unset_patientticketing') ?? '');
         $patient_ids = Yii::app()->request->getParam('patient-ids', []);
 
         if ($unset_patientticketing === "true") {
@@ -448,8 +453,11 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionGetQueueAssignmentForm($id)
+    public function actionGetQueueAssignmentForm($id = null)
     {
+        if (!$id) {
+            throw new \CHttpException(404, 'Invalid queue id.');
+        }
         if (!$q = models\Queue::model()->findByPk($id)) {
             throw new \CHttpException(404, 'Invalid queue id.');
         }
@@ -492,8 +500,12 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionMoveTicket($id)
+    public function actionMoveTicket($id = null)
     {
+        if (empty($id)) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
+        
         if (!$ticket = models\Ticket::model()->with('current_queue')->findByPk($id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
         }
@@ -574,13 +586,16 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionNavigateToEvent($id)
+    public function actionNavigateToEvent($id = null)
     {
+        // Get id from request if not provided as route parameter
+        $id = $id ?: \Yii::app()->request->getParam('id');
+
         $data = $_POST;
 
         $response = '1';
 
-        if (strpos(strtolower($data['href']), 'ophcocorrespondence/default/create') !== false) {
+        if (isset($data['href']) && strpos(strtolower($data['href']), 'ophcocorrespondence/default/create') !== false) {
             if ($errs = $this->validateForm($id)) {
                 $response = json_encode(array('errors' => array_values($errs)));
             } else {
@@ -595,11 +610,16 @@ class DefaultController extends \BaseModuleController
 
     private static function autoSaveTicket($data)
     {
+        // Only save if patient_id and from_queue_id are provided
+        if (!isset($_POST['patient_id']) || !isset($_POST['from_queue_id'])) {
+            return;
+        }
+        
         unset($data['YII_CSRF_TOKEN']);
         unset($data['queue']);
-
         AutoSaveTicket::saveFormData($_POST['patient_id'], $_POST['from_queue_id'], $data);
     }
+
 
     public function validateForm($ticket_id)
     {
@@ -648,8 +668,12 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionGetTicketTableRowHistory($id)
+    public function actionGetTicketTableRowHistory($id = null)
     {
+        if ($id === null) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
+        
         /* @var models\Ticket $ticket */
         if (!$ticket = models\Ticket::model()->with(array('queue_assignments', 'queue_assignments.queue'))->findByPk($id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
@@ -669,9 +693,12 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionTakeTicket($id)
+    public function actionTakeTicket($id = null)
     {
-        if (!$ticket = models\Ticket::model()->with('current_queue')->findByPk($_REQUEST['id'])) {
+        if (empty($id)) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
+        if (!$ticket = models\Ticket::model()->with('current_queue')->findByPk($id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
         }
 
@@ -713,8 +740,11 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionReleaseTicket($id)
+    public function actionReleaseTicket($id = null)
     {
+        if (empty($id)) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
         if (!$ticket = models\Ticket::model()->with('current_queue')->findByPk($id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
         }
@@ -802,8 +832,12 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionStartTicketProcess($ticket_id)
+    public function actionStartTicketProcess($ticket_id = null)
     {
+        if (!$ticket_id) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
+        
         if (!$ticket = models\Ticket::model()->findByPk($ticket_id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
         }
@@ -832,9 +866,16 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionExpandTicket($ticket_id)
+    public function actionExpandTicket($ticket_id = null)
     {
-        if (!$ticket = models\Ticket::model()->findByPk($ticket_id)) {
+        if (!$ticket_id) {
+            $ticket_id = \Yii::app()->request->getParam('ticket_id');
+        }
+
+        if (!$ticket_id) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
+        if (!$ticket = models\Ticket::model()->findByPk((int)$ticket_id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
         }
         $this->setTicketState($ticket, true);
@@ -847,8 +888,15 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionCollapseTicket($ticket_id)
+    public function actionCollapseTicket($ticket_id = null)
     {
+        if (!$ticket_id) {
+            $ticket_id = \Yii::app()->request->getParam('ticket_id');
+        }
+
+        if (!$ticket_id) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
         if (!$ticket = models\Ticket::model()->findByPk((int)$ticket_id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
         }
@@ -862,8 +910,16 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionGetPatientAlert($patient_id)
+    public function actionGetPatientAlert($patient_id = null)
     {
+        if (!$patient_id) {
+            $patient_id = \Yii::app()->request->getParam('patient_id');
+        }
+        
+        if (!$patient_id) {
+            throw new \CHttpException(400, 'Patient ID is required.');
+        }
+        
         if (!$patient = \Patient::model()->findByPk((int)$patient_id)) {
             throw new \CHttpException(404, 'Invalid patient id.');
         }
@@ -875,7 +931,7 @@ class DefaultController extends \BaseModuleController
     public function actionGetFirmsForSubspecialty()
     {
         if (!$subspecialty = \Subspecialty::model()->findByPk(@$_GET['subspecialty_id'])) {
-            throw new Exception('Subspecialty not found: ' . @$_GET['subspecialty_id']);
+            throw new \Exception('Subspecialty not found: ' . @$_GET['subspecialty_id']);
         }
 
         echo \CHtml::dropDownList(
@@ -886,17 +942,28 @@ class DefaultController extends \BaseModuleController
         );
     }
 
-    public function actionUndoLastStep($id)
+    public function actionUndoLastStep($id = null)
     {
+        // Get id from request parameters if not provided as route parameter
+        $id = $id ?: \Yii::app()->request->getParam('id');
+        
+        if (empty($id)) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
+        
         if (!$ticket = models\Ticket::model()->findByPk($id)) {
-            throw new \Exception("Ticket not found: $id");
+            throw new \CHttpException(404, "Ticket not found: $id");
         }
 
         $queue_assignments = $ticket->queue_assignments;
         $last_assignment = array_pop($queue_assignments);
 
+        if (!$last_assignment) {
+            throw new \CHttpException(400, 'No queue assignments found for this ticket');
+        }
+
         if (!$last_assignment->delete()) {
-            throw new \Exception('Unable to remove ticket queue assignment: ' . print_r($last_assignment->errors, true));
+            throw new \CHttpException(500, 'Unable to remove ticket queue assignment: ' . print_r($last_assignment->errors, true));
         }
 
         $this->renderJSON(['success' => true]);

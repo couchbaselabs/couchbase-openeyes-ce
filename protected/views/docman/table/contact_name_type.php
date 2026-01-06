@@ -32,8 +32,8 @@ foreach ($address_targets as $key => $value) {
     }
 }
     echo \CHtml::dropDownList(
-        '',
-        null,
+        'DocumentTarget[' . $row_index . '][attributes][contact_id]',
+        $contact_id,
         $address_targets,
         array(
                 'empty' => '- Recipient -',

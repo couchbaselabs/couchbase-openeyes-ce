@@ -81,8 +81,13 @@ class StudyController extends BaseAdminController
         if (Yii::app()->request->isPostRequest) {
             if ($valid) {
                 Yii::app()->user->setFlash('success', "Study Saved");
-                $url = str_replace('/edit', '/view', (Yii::app()->request->requestUri)) . '/' . $admin->getModel()->id;
-                $this->redirect($url);
+                $model_id = $admin->getModel()?->id;
+                if ($model_id) {
+                    $url = str_replace('/edit', '/view', (Yii::app()->request->requestUri)) . '/' . $model_id;
+                    $this->redirect($url);
+                } else {
+                    $this->redirect(Yii::app()->request->getUrlReferrer());
+                }
             } else {
                 $admin->render($admin->getEditTemplate(), array('admin' => $admin, 'errors' => $admin->getModel()->getErrors()));
             }

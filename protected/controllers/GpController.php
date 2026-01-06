@@ -390,40 +390,68 @@ class GpController extends BaseController
     public function performGpSave(Contact $contact, Gp $gp, $isAjax = false)
     {
         $action = $gp->isNewRecord ? 'add' : 'edit';
-        $transaction = Yii::app()->cbdb->beginTransaction();
 
         try {
-            if ($contact->save()) {
-                // No need to re-set these values if they already exist.
-                if ($gp->contact_id === null) {
-                    $gp->contact_id = $contact->getPrimaryKey();
-                }
-
-                if ($gp->nat_id === null) {
-                    $gp->nat_id = 0;
-                }
-
-                if ($gp->save()) {
-                    $transaction->commit();
-                    Audit::add('Gp', $action . '-gp', "Practitioner manually [id: $gp->id] {$action}ed.");
-                    if (!$isAjax) {
-                        $this->redirect(array('view','id' => $gp->id));
-                    }
-                } else {
-                    if ($isAjax) {
-                        throw new CHttpException(400, "Unable to save Practitioner contact");
-                    }
-                    $transaction->rollback();
-                }
-            } else {
+            Yii::log("Starting GP save. Contact ID: " . $contact->id . ", is_new: " . ($contact->isNewRecord ? 'yes' : 'no'), CLogger::LEVEL_INFO, 'GpController');
+            
+            if (!$contact->save()) {
+                Yii::log("Contact save failed. Errors: " . print_r($contact->getErrors(), true), CLogger::LEVEL_ERROR, 'GpController');
                 if ($isAjax) {
                     throw new CHttpException(400, CHtml::errorSummary($contact));
+                } else {
+                    $this->render('create', array(
+                        'model' => $contact,
+                        'gp' => $gp,
+                        'context' => null
+                    ));
+                    return array($contact, $gp);
                 }
-                $transaction->rollback();
+            }
+            
+            Yii::log("Contact saved successfully. Contact ID: " . $contact->getPrimaryKey(), CLogger::LEVEL_INFO, 'GpController');
+
+            // No need to re-set these values if they already exist.
+            if ($gp->contact_id === null) {
+                $gp->contact_id = $contact->getPrimaryKey();
+            }
+
+            if ($gp->nat_id === null) {
+                $gp->nat_id = 0;
+            }
+
+            Yii::log("About to save GP. contact_id: " . $gp->contact_id . ", nat_id: " . $gp->nat_id, CLogger::LEVEL_INFO, 'GpController');
+            
+            if (!$gp->save()) {
+                Yii::log("GP save failed. Errors: " . print_r($gp->getErrors(), true), CLogger::LEVEL_ERROR, 'GpController');
+                if ($isAjax) {
+                    throw new CHttpException(400, "Unable to save Practitioner: " . print_r($gp->getErrors(), true));
+                } else {
+                    $this->render('create', array(
+                        'model' => $contact,
+                        'gp' => $gp,
+                        'context' => null
+                    ));
+                    return array($contact, $gp);
+                }
+            }
+            
+            Yii::log("GP saved successfully. GP ID: " . $gp->getPrimaryKey(), CLogger::LEVEL_INFO, 'GpController');
+            Yii::log("Verifying GP can be loaded by ID: " . $gp->getPrimaryKey(), CLogger::LEVEL_INFO, 'GpController');
+            $verify = Gp::model()->findByPk($gp->getPrimaryKey());
+            if ($verify) {
+                Yii::log("GP verification successful", CLogger::LEVEL_INFO, 'GpController');
+            } else {
+                Yii::log("WARNING: GP not found after save! ID: " . $gp->getPrimaryKey(), CLogger::LEVEL_WARNING, 'GpController');
+            }
+
+            Audit::add('Gp', $action . '-gp', "Practitioner manually [id: $gp->id] {$action}ed.");
+            
+            if (!$isAjax) {
+                $this->redirect(array('view','id' => $gp->id));
             }
         } catch (Exception $ex) {
             OELog::logException($ex);
-            $transaction->rollback();
+            Yii::log("Exception during GP save: " . $ex->getMessage(), CLogger::LEVEL_ERROR, 'GpController');
             if ($isAjax) {
                 if (strpos($ex->getMessage(), 'errorSummary')) {
                     echo $ex->getMessage();
@@ -431,6 +459,13 @@ class GpController extends BaseController
                 } else {
                     throw new Exception('Unable to save gp: ' . print_r($gp->getErrors(), true));
                 }
+            } else {
+                $gp->addError('general', 'Error saving practitioner: ' . $ex->getMessage());
+                $this->render('create', array(
+                    'model' => $contact,
+                    'gp' => $gp,
+                    'context' => null
+                ));
             }
         }
         return array($contact, $gp);

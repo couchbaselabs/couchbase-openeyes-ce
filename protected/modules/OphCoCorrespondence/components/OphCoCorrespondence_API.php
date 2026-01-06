@@ -650,19 +650,24 @@ class OphCoCorrespondence_API extends BaseAPI
             return json_encode(array('errors' => 'DECEASED'));
         }
 
-        $text_ElementLetter_address = $contact->getLetterAddress(array(
-            'patient' => $patient,
-            'include_name' => true,
-            'include_label' => false,
-            'delimiter' => "\n",
-        ));
+        $text_ElementLetter_address = '';
+        $address = '';
+        
+        if (method_exists($contact, 'getLetterAddress')) {
+            $text_ElementLetter_address = $contact->getLetterAddress(array(
+                'patient' => $patient,
+                'include_name' => true,
+                'include_label' => false,
+                'delimiter' => "\n",
+            ));
 
-        $address = $contact->getLetterAddress(array(
-            'patient' => $patient,
-            'include_name' => false,
-            'include_label' => false,
-            'delimiter' => "\n",
-        ));
+            $address = $contact->getLetterAddress(array(
+                'patient' => $patient,
+                'include_name' => false,
+                'include_label' => false,
+                'delimiter' => "\n",
+            ));
+        }
 
         if (Yii::app()->params['use_contact_practice_associate_model'] === true) {
             if ($m[1] == 'ContactPracticeAssociate') {
@@ -704,16 +709,29 @@ class OphCoCorrespondence_API extends BaseAPI
             $contact_type = 'Other';
         }
 
+        $letter_introduction = '';
+        if (method_exists($contact, 'getLetterIntroduction')) {
+            $letter_introduction = $contact->getLetterIntroduction(array(
+                'nickname' => (boolean)$nickname,
+            ));
+        }
+        
+        // Get contact nickname safely
+        $contact_nickname = '';
+        if (isset($contact->contact) && $contact->contact) {
+            $contact_nickname = isset($contact->contact->nick_name) ? $contact->contact->nick_name : '';
+        } elseif (isset($contact->nick_name)) {
+            $contact_nickname = $contact->nick_name;
+        }
+        
         return $data = array(
             'contact_type' => $contact_type,
             'contact_id' => $contact_id,
             'contact_name' => $correspondence_name,
-            'contact_nickname' => isset($contact->contact) ? $contact->contact->nick_name : $contact->nick_name,
+            'contact_nickname' => $contact_nickname,
             'address' => $address ? $address : "The contact does not have a valid address.",
             'text_ElementLetter_address' => $text_ElementLetter_address,
-            'text_ElementLetter_introduction' => $contact->getLetterIntroduction(array(
-                'nickname' => (boolean)$nickname,
-            )),
+            'text_ElementLetter_introduction' => $letter_introduction,
             'email' => $email,
         );
     }

@@ -179,6 +179,19 @@ $form = $this->beginWidget(
                     ); ?>
                 </td>
             </tr>
+            <tr>
+                <td><?php echo $user->getAttributeLabel('correspondence_sign_off_text'); ?></td>
+                <td>
+                    <?= \CHtml::activeTextField(
+                        $user,
+                        'correspondence_sign_off_text',
+                        [
+                            'class' => 'cols-full',
+                            'autocomplete' => SettingMetadata::model()->getSetting('html_autocomplete')
+                        ]
+                    ); ?>
+                </td>
+            </tr>
 
             </tbody>
         </table>

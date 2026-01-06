@@ -19,6 +19,10 @@
 
 ?>
 <?php
+if (!$this->patient) {
+    echo '<p>No patient data available for this event.</p>';
+    return;
+}
 $institution_id = Institution::model()->getCurrent()->id;
 $site_id = Yii::app()->session['selected_site_id'];
 $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), $this->patient->id, $institution_id, $site_id);

@@ -115,7 +115,8 @@ class UserTrialAssignment extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Temporarily disabled - UserTrialAssignment should use MariaDB for now
+        // $this->saveToCouchbase();
     }
 
     /**
@@ -124,6 +125,7 @@ class UserTrialAssignment extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Temporarily disabled - UserTrialAssignment should use MariaDB for now
+        // $this->deleteFromCouchbase();
     }
 }

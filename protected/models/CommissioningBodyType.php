@@ -51,11 +51,29 @@ class CommissioningBodyType extends BaseActiveRecordVersioned
 
     /**
      * After save, sync to Couchbase.
+     * Force sync to Couchbase even if dual-write is disabled to ensure newly created
+     * items are visible when the model reads from Couchbase.
      */
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Always sync to Couchbase to ensure consistency,
+        // since findAll() queries Couchbase even if dual-write is disabled
+        try {
+            $adapter = $this->getCouchbaseAdapter();
+            $doc = $this->toCouchbaseDocument();
+            $collection = $this->couchbaseCollection();
+            $pk = $this->getPrimaryKey();
+            // Upsert to avoid document_exists errors
+            $adapter->upsert($collection, $pk, $doc);
+        } catch (\Exception $e) {
+            // Log but don't fail - Couchbase sync is optional
+            \Yii::log(
+                "Couchbase sync failed for {$this->tableName()} #{$this->getPrimaryKey()}: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.couchbase'
+            );
+        }
     }
 
     /**

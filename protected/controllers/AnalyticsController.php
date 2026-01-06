@@ -2354,8 +2354,12 @@ class AnalyticsController extends BaseController
         $this->checkAuth();
         $this->obtainFilters(); // get current filters. Question: why not call validateFilters() in this function.
         $va_unit = VisualAcuityUnit::model()->getVAUnit($this->filters['va_unit']);
-        $va_init_ticks = VisualAcuityUnit::model()->getInitVaTicks($va_unit);
-        $va_final_ticks = VisualAcuityUnit::model()->sliceVATicks($va_init_ticks, 20);
+        // Initialize va_final_ticks as empty array if va_unit is null
+        $va_final_ticks = array();
+        if ($va_unit !== null) {
+            $va_init_ticks = VisualAcuityUnit::model()->getInitVaTicks($va_unit);
+            $va_final_ticks = VisualAcuityUnit::model()->sliceVATicks($va_init_ticks, 20);
+        }
         $specialty = $this->filters['specialty'];
 
         if (!isset($this->surgeon) && isset($surgeon_id)) {

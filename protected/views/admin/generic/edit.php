@@ -19,7 +19,7 @@ $assetManager = Yii::app()->getAssetManager();
 
 <div class="<?= $admin->div_wrapper_class ?>">
     <div class="row divider">
-        <h2><?php echo ($admin->getModel()->id ? 'Edit' : 'Add') . ' ' . $admin->getModelDisplayName() ?></h2>
+        <h2><?php echo ($admin->getModel()->isNewRecord ? 'Add' : 'Edit') . ' ' . $admin->getModelDisplayName() ?></h2>
     </div>
 
     <?php echo $this->renderPartial('//admin/_form_errors', array('errors' => $errors)) ?>

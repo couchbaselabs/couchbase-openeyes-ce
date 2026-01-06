@@ -17,7 +17,6 @@ class CaseSearchController extends BaseModuleController
     {
         return array(
             'accessControl',
-            'ajaxOnly + addParameter',
             'ajaxOnly + getSearchesByUser',
             'ajaxOnly + otherSearchUsers',
             'ajaxOnly + loadSearch',
@@ -227,7 +226,32 @@ class CaseSearchController extends BaseModuleController
      */
     public function actionAddParameter()
     {
+        if (!isset($_GET['parameter'])) {
+            http_response_code(400);
+            echo 'Missing required parameter: parameter';
+            Yii::app()->end();
+            return;
+        }
+
         $param = $_GET['parameter'];
+        
+        // Decode JSON if it's a string
+        if (is_string($param)) {
+            $param = json_decode($param, true);
+            if (!is_array($param)) {
+                http_response_code(400);
+                echo 'Invalid JSON in parameter';
+                Yii::app()->end();
+                return;
+            }
+        }
+
+        if (!isset($param['id']) || !isset($param['type']) || !isset($param['operation'])) {
+            http_response_code(400);
+            echo 'Missing required fields in parameter: id, type, operation';
+            Yii::app()->end();
+            return;
+        }
 
         $parameter = $this->buildParameterInstance(
             $param['id'],

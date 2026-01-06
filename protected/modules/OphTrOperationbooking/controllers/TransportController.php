@@ -73,7 +73,7 @@ class TransportController extends BaseModuleController
      */
     public function actionTCIs()
     {
-        if (ctype_digit(@$_GET['page'])) {
+        if (!empty($_GET['page']) && ctype_digit($_GET['page'])) {
             $this->page = $_GET['page'];
         }
         $this->renderPartial('_list', array('operations' => $this->getTransportList($_GET)));
@@ -90,7 +90,7 @@ class TransportController extends BaseModuleController
     public function getTransportList($data, $all = false)
     {
         if (!empty($data)) {
-            if (preg_match('/^[0-9]+ [a-zA-Z]{3} [0-9]{4}$/', @$data['date_from']) && preg_match('/^[0-9]+ [a-zA-Z]{3} [0-9]{4}$/', @$data['date_to'])) {
+            if (!empty($data['date_from']) && !empty($data['date_to']) && preg_match('/^[0-9]+ [a-zA-Z]{3} [0-9]{4}$/', $data['date_from']) && preg_match('/^[0-9]+ [a-zA-Z]{3} [0-9]{4}$/', $data['date_to'])) {
                 $date_from = Helper::convertNHS2MySQL($data['date_from']) . ' 00:00:00';
                 $date_to = Helper::convertNHS2MySQL($data['date_to']) . ' 23:59:59';
             }
@@ -147,12 +147,9 @@ class TransportController extends BaseModuleController
             ->with(array(
                 'latestBooking' => array(
                     'with' => array(
-                        'session' => array(
-                            'with' => array(
-                                'theatre' => array(
-                                    'with' => 'site',
-                                ),
-                            ),
+                        'session',
+                        'theatre' => array(
+                            'with' => 'site',
                         ),
                     ),
                 ),
@@ -219,7 +216,7 @@ class TransportController extends BaseModuleController
      */
     public function actionPrintList()
     {
-        if (ctype_digit(@$_GET['page'])) {
+        if (!empty($_GET['page']) && ctype_digit($_GET['page'])) {
             $this->page = $_GET['page'];
         }
         $this->renderPartial('_printList', array('operations' => $this->getTransportList($_GET, true)));
@@ -228,13 +225,14 @@ class TransportController extends BaseModuleController
     /**
      * Print transport letters for bookings.
      */
-    public function actionPrint($id)
+    public function actionPrint()
     {
-        $operation_ids = (isset($_GET['operations'])) ? $_GET['operations'] : null;
-        if (!is_array($booking_ids)) {
-            throw new CHttpException('400', 'Invalid operation list');
+        $operation_ids = (isset($_GET['operations'])) ? $_GET['operations'] : array();
+        if (!is_array($operation_ids) || empty($operation_ids)) {
+            $this->redirect(array('index'));
+            return;
         }
-        $bookings = OphTrOperationbooking_Operation_Booking::model()->findAllByPk($booking_ids);
+        $bookings = OphTrOperationbooking_Operation_Booking::model()->findAllByPk($operation_ids);
 
         // Print a letter for booking, separated by a page break
         $break = false;

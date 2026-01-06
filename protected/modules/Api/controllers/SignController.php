@@ -40,7 +40,7 @@ class SignController extends \BaseController
             array(
                 'allow',
                 'actions' => array('add'),
-                'users' => array('*'),
+                'users' => array('@'),
             ),
             array(
                 'deny',
@@ -206,8 +206,7 @@ class SignController extends \BaseController
                 $msg .= 'Failed signature save!';
             }
         } else {
-            $msg .= 'Bad request';
-            http_response_code(400);
+            $msg = ['status' => 'error', 'message' => 'This endpoint requires POST requests with JSON data'];
         }
 
         $this->renderJSON($msg);

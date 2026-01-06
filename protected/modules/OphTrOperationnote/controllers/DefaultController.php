@@ -94,6 +94,19 @@ class DefaultController extends BaseEventTypeController
         if ($this->booking_operation || $this->unbooked) {
             $this->createOpNote();
         } else {
+            // If patient_id is not provided, show an informational message
+            if (!$this->patient) {
+                $this->title = 'Create Operation Note';
+                $this->event_tabs = array(
+                    array(
+                        'label' => 'Create',
+                        'active' => true,
+                    ),
+                );
+                $this->render('create_help', array());
+                return;
+            }
+            
             // set up form for selecting a booking for the Op note
             $element_enabled = Yii::app()->params['disable_theatre_diary'];
             $theatre_diary_disabled = isset($element_enabled) && $element_enabled == 'on';
@@ -146,8 +159,11 @@ class DefaultController extends BaseEventTypeController
         }
     }
 
-    public function actionWhiteboard($id)
+    public function actionWhiteboard($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Operation ID is required for the whiteboard view.');
+        }
         $this->redirect(Yii::app()->createUrl('/OphTrOperationbooking/whiteboard/view/' . $id));
     }
 
@@ -510,6 +526,8 @@ class DefaultController extends BaseEventTypeController
         }
 
         $procedures = @$_POST['remaining_procedures'] ? explode(',', $_POST['remaining_procedures']) : array();
+        // Validate and filter procedure IDs to ensure they are numeric to prevent SQL injection
+        $procedures = array_filter(array_map('intval', $procedures));
 
         $elements = array();
 
@@ -865,6 +883,10 @@ class DefaultController extends BaseEventTypeController
 
     public function actionGetImage()
     {
+        if (!isset($_POST['image'])) {
+            return;
+        }
+
         preg_match('/data\:image\/png;base64,(.*)$/', $_POST['image'], $m);
 
         file_put_contents('/tmp/image.png', base64_decode($m[1]));
@@ -881,7 +903,7 @@ class DefaultController extends BaseEventTypeController
 
     public function actionGetTheatreOptions()
     {
-        $siteId = $this->request->getParam('siteId');
+        $siteId = $this->getApp()->request->getParam('siteId');
         if ($siteId > 0) {
             $optionValues = OphTrOperationbooking_Operation_Theatre::model()->findAll(array(
                 'condition' => 'active=1 and site_id=' . $siteId,
@@ -1198,8 +1220,9 @@ class DefaultController extends BaseEventTypeController
         }
     }
 
-    public function actionGetUserSettingsValues($surgeon_id)
+    public function actionGetUserSettingsValues()
     {
+        $surgeon_id = $this->getApp()->request->getParam('surgeon_id');
         echo json_encode($this->getUserSettings($surgeon_id));
     }
 
@@ -1225,7 +1248,7 @@ class DefaultController extends BaseEventTypeController
 
             $this->renderJSON(['procedures' => $procedures, 'templates' => $templates]);
         } else {
-            $this->renderJSON(null);
+            $this->renderJSON(['procedures' => [], 'templates' => []]);
         }
     }
 
@@ -1236,7 +1259,10 @@ class DefaultController extends BaseEventTypeController
      */
     protected function initActionCreate()
     {
-        parent::initActionCreate();
+        // Only call parent::initActionCreate() if patient_id is provided or if we're accessing with booking parameters
+        if (isset($_REQUEST['patient_id']) || isset($_GET['booking_event_id']) || isset($_GET['unbooked'])) {
+            parent::initActionCreate();
+        }
 
         /** @var OphTrOperationbooking_API $api */
         $api = Yii::app()->moduleAPI->get('OphTrOperationbooking');
@@ -1298,8 +1324,6 @@ class DefaultController extends BaseEventTypeController
     {
         if (isset($_GET['event_id'])) {
             $this->initWithEventId($_GET['event_id']);
-        } else {
-            parent::initActionCreate();
         }
 
         if (isset($_GET['template_id'])) {

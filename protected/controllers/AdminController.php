@@ -242,11 +242,19 @@ class AdminController extends BaseAdminController
 
     public function actionAddMapping()
     {
-        $model = $_POST['model']::model();
-        $level = $_POST['mapping_level'];
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Bad Request: This action requires a POST request');
+        }
 
+        $model_name = Yii::app()->request->getPost('model');
+        $level = Yii::app()->request->getPost('mapping_level');
         $ids = Yii::app()->request->getPost('selected');
 
+        if (empty($model_name) || empty($level)) {
+            throw new CHttpException(400, 'Bad Request: Required parameters (model, mapping_level) are missing');
+        }
+
+        $model = $model_name::model();
         $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
@@ -264,7 +272,7 @@ class AdminController extends BaseAdminController
             $transaction->commit();
         }
 
-        $return_url = $_POST['return_url'] ?? '';
+        $return_url = Yii::app()->request->getPost('return_url') ?? '';
         $referer = $_SERVER['HTTP_REFERER'] ?? '';
         $return_url = $return_url ?: ($referer ?: '/admin');
 
@@ -273,10 +281,19 @@ class AdminController extends BaseAdminController
 
     public function actionRemoveMapping()
     {
-        $model = $_POST['model']::model();
-        $level = $_POST['mapping_level'];
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Bad Request: This action requires a POST request');
+        }
 
+        $model_name = Yii::app()->request->getPost('model');
+        $level = Yii::app()->request->getPost('mapping_level');
         $ids = Yii::app()->request->getPost('selected');
+
+        if (empty($model_name) || empty($level)) {
+            throw new CHttpException(400, 'Bad Request: Required parameters (model, mapping_level) are missing');
+        }
+
+        $model = $model_name::model();
         $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $records = $model->findAllByPk($ids);
@@ -294,7 +311,7 @@ class AdminController extends BaseAdminController
             $transaction->commit();
         }
 
-        $return_url = $_POST['return_url'] ?? '';
+        $return_url = Yii::app()->request->getPost('return_url') ?? '';
         $referer = $_SERVER['HTTP_REFERER'] ?? '';
         $return_url = $return_url ?: ($referer ?: '/admin');
 
@@ -735,9 +752,8 @@ class AdminController extends BaseAdminController
 
     public function actionAddDrug()
     {
-        return; //disabled OE-4474
-
-        /*$drug = new Drug('create');
+        $drug = new Drug('create');
+        $errors = null;
 
         if (!empty($_POST)) {
                 $drug->attributes = $_POST['Drug'];
@@ -767,8 +783,8 @@ class AdminController extends BaseAdminController
 
         $this->render('/admin/adddrug', array(
                 'drug' => $drug,
-                'errors' => @$errors,
-        ));*/
+                'errors' => $errors,
+        ));
     }
 
     public function actionEditDrug($id)
@@ -1317,15 +1333,20 @@ class AdminController extends BaseAdminController
         return '1';
     }
 
-    public function actionAddContactLocation()
+    public function actionAddContactLocation($id = null)
     {
-        if (!isset($_GET['contact_id']) || empty($_GET['contact_id'])) {
-            throw new CHttpException(400, 'Contact ID parameter is required');
+        if ($id == null) {
+            $id = @$_GET['contact_id'];
         }
 
-        $contact = Contact::model()->findByPk(@$_GET['contact_id']);
+        if (empty($id)) {
+            $this->redirect('/admin/contacts');
+            return;
+        }
+
+        $contact = Contact::model()->findByPk($id);
         if (!$contact) {
-            throw new CHttpException(404, 'Contact not found: ' . @$_GET['contact_id']);
+            throw new CHttpException(404, 'Contact not found: ' . $id);
         }
 
         $errors = array();
@@ -1636,11 +1657,13 @@ class AdminController extends BaseAdminController
                 }
 
                 if (empty($errors)) {
-                    // Save the logo, and if sucsessful, add the logo ID to the institution, so that the relation is established.
-                    if (!$logo->save()) {
-                        throw new CHttpException(500, 'Unable to save Logo: ' . print_r($logo->getErrors(), true));
+                    // Save the logo only if it has content, and add the logo ID to the institution if successful
+                    if ($logo->primary_logo || $logo->secondary_logo) {
+                        if (!$logo->save()) {
+                            throw new CHttpException(500, 'Unable to save Logo: ' . print_r($logo->getErrors(), true));
+                        }
+                        $institution->logo_id = $logo->id;
                     }
-                    $institution->logo_id = $logo->id;
                     // revalidate institution
                     if (!$institution->validate()) {
                         $errors = $institution->getErrors();
@@ -2089,15 +2112,17 @@ class AdminController extends BaseAdminController
 
                 // get or generate institution logo ID
 
-                if ($site->institution->logo_id) {
+                if ($site->institution?->logo_id) {
                     $institution_logo = $site->institution->logo;
                 } else {
                     $institution_logo = new SiteLogo();
                     $institution_logo->save();
-                    $site->institution->logo_id = $institution_logo->id;
-                    $site->institution->saveAttributes(array('logo_id'));
+                    if ($site->institution) {
+                        $site->institution->logo_id = $institution_logo->id;
+                        $site->institution->saveAttributes(array('logo_id'));
+                    }
                 }
-                $logo->parent_logo = $site->institution->logo_id;
+                $logo->parent_logo = $site->institution?->logo_id;
             }
             if (!$logo->validate()) {
                 $errors = array_merge($errors, $logo->getErrors());
@@ -2106,11 +2131,13 @@ class AdminController extends BaseAdminController
                 }
             }
             if (empty($errors)) {
-                // Save the logo, and if sucsessful, add the logo ID to the site, so that the relation is established.
-                if (!$logo->save()) {
-                    throw new CHttpException(500, 'Unable to save Logo: ' . print_r($logo->getErrors(), true));
+                // Save the logo only if it has content, and add the logo ID to the site if successful
+                if ($logo->primary_logo || $logo->secondary_logo) {
+                    if (!$logo->save()) {
+                        throw new CHttpException(500, 'Unable to save Logo: ' . print_r($logo->getErrors(), true));
+                    }
+                    $site->logo_id = $logo->id;
                 }
-                $site->logo_id = $logo->id;
                 // revalidate site
                 if (!$site->validate()) {
                     $errors = $site->getErrors();
@@ -2410,11 +2437,14 @@ class AdminController extends BaseAdminController
             if (!$source->validate()) {
                 $errors = $source->getErrors();
             } else {
-                if (!$source->save()) {
-                    throw new CHttpException(500, 'Unable to save data source: ' . print_r($source->getErrors(), true));
+                if ($source->save()) {
+                    Audit::add('admin-DataSource', 'add', $source->id);
+                    $this->redirect('/admin/datasources');
+                } else {
+                    $errors = $source->getErrors();
+                    $errorMsg = !empty($errors) ? json_encode($errors) : 'Database save failed. Please check your connection.';
+                    throw new CHttpException(500, 'Unable to save data source: ' . $errorMsg);
                 }
-                Audit::add('admin-DataSource', 'add', $source->id);
-                $this->redirect('/admin/datasources');
             }
         }
 

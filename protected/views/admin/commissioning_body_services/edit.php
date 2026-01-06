@@ -49,6 +49,10 @@
             ['commissioning_body_type_id' => $commissioning_bt->id]
         );
     }
+    
+    // Separate criteria for commissioning bodies (no type filter)
+    $cb_criteria = new CDbCriteria();
+    $cb_criteria->order = 't.name asc';
     ?>
 
     <table class="standard cols-full">
@@ -64,7 +68,7 @@
                     $cbs,
                     'commissioning_body_id',
                     CHtml::listData(
-                        CommissioningBody::model()->findAll($criteria),
+                        CommissioningBody::model()->findAll($cb_criteria),
                         'id',
                         'name'
                     ),

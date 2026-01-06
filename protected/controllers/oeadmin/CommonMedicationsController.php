@@ -69,10 +69,12 @@ class CommonMedicationsController extends BaseAdminController
      */
     public function actionAdd()
     {
-        $medicationId = $this->request->getParam('medication_id');
         if (!Yii::app()->request->isAjaxRequest) {
-            echo 'error: notajaxcall';
+            // For non-AJAX requests, display the list page
+            $this->actionList();
         } else {
+            // Handle AJAX POST requests
+            $medicationId = $this->request->getParam('medication_id');
             if (!is_numeric($medicationId)) {
                 echo 'error';
             } else {

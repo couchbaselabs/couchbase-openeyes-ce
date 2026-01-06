@@ -258,21 +258,43 @@ class DocmanController extends BaseController
 
     public function actionAjaxUpdateTargetAddress()
     {
+        header("Content-Type: application/json");
         if (!Yii::app()->request->isAjaxRequest) {
-            return;
+            echo json_encode(['success' => false, 'message' => 'This action requires an AJAX request']);
+            Yii::app()->end();
         }
         $doc_target_id = Yii::app()->request->getQuery('doc_target_id');
-        if ($doc_target_id) {
-            $doc_data = DocumentTarget::model()->findByPk($doc_target_id);
-            if ($doc_data && ($new_address = Yii::app()->request->getQuery('new_address'))) {
-                $doc_data->address = $new_address;
-                $doc_data->contact_modified = 1;
-                $doc_data->save();
-                echo $new_address;
+        if (!$doc_target_id) {
+            echo json_encode(['success' => false, 'message' => 'doc_target_id is required']);
+            Yii::app()->end();
+        }
+        
+        $doc_data = DocumentTarget::model()->findByPk($doc_target_id);
+        if (!$doc_data) {
+            echo json_encode(['success' => false, 'message' => 'DocumentTarget not found']);
+            Yii::app()->end();
+        }
+        
+        $new_address = Yii::app()->request->getQuery('new_address');
+        if ($new_address === null) {
+            echo json_encode(['success' => false, 'message' => 'new_address is required']);
+            Yii::app()->end();
+        }
+        
+        $doc_data->address = $new_address;
+        $doc_data->contact_modified = 1;
+        
+        try {
+            if ($doc_data->save()) {
+                echo json_encode(['success' => true, 'message' => 'Address updated successfully', 'address' => $new_address]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to save address update']);
             }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error updating address: ' . $e->getMessage()]);
         }
 
-        return;
+        Yii::app()->end();
     }
 
     public function actionAjaxGetMacroTargets()
@@ -297,6 +319,64 @@ class DocmanController extends BaseController
             ));
     }
 
+    public function actionSave()
+    {
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request');
+        }
+
+        try {
+            $document_targets = array();
+            $target_data = Yii::app()->request->getPost('DocumentTarget');
+            
+            if (!empty($target_data) && is_array($target_data)) {
+                $document_set = new DocumentSet();
+                $document_set->event_id = null; // Can be set if needed
+                
+                if ($document_set->save()) {
+                    // Save each document target (recipient)
+                    foreach ($target_data as $index => $target) {
+                        $doc_target = new DocumentTarget();
+                        $doc_target->document_set_id = $document_set->id;
+                        
+                        // Get data from request
+                        if (isset($target['contact_id'])) {
+                            $doc_target->contact_id = $target['contact_id'];
+                        }
+                        if (isset($target['attributes']['ToCc'])) {
+                            $doc_target->to_cc = $target['attributes']['ToCc'];
+                        }
+                        if (isset($target['contact_name'])) {
+                            $doc_target->contact_name = $target['contact_name'];
+                        }
+                        if (isset($target['address'])) {
+                            $doc_target->address = $target['address'];
+                        }
+                        if (isset($target['contact_type'])) {
+                            $doc_target->contact_type = $target['contact_type'];
+                        }
+                        
+                        $doc_target->save();
+                        $document_targets[] = $doc_target;
+                    }
+                    
+                    Yii::app()->user->setFlash('success', 'Document recipients created successfully.');
+                    $this->redirect(array('docman/index'));
+                    return;
+                } else {
+                    Yii::app()->user->setFlash('error', 'Failed to create document set.');
+                }
+            } else {
+                Yii::app()->user->setFlash('error', 'No recipients specified.');
+            }
+        } catch (Exception $e) {
+            Yii::app()->user->setFlash('error', 'Error saving document: ' . $e->getMessage());
+        }
+        
+        // If we get here, there was an error, so redirect back to create page
+        $this->redirect(array('docman/getCreateTable'));
+    }
+
     public function actionCreateNewCorrespondence($macroId = null)
     {
         // Get macroId from query parameter if not provided as action parameter
@@ -310,16 +390,24 @@ class DocmanController extends BaseController
             $episode = $this->episode;
         } catch (CException $e) {
             // Episode property not available - action called outside of patient context
-            // Silently continue without creating correspondence
+            // Redirect to home page with error message
+            Yii::app()->user->setFlash('error', 'Correspondence can only be created from within a patient context.');
+            $this->redirect(array('/'));
+            return;
+        }
+        
+        if (!$episode || !isset($episode->id) || !$episode->id) {
+            // No valid episode - redirect with error
+            Yii::app()->user->setFlash('error', 'Unable to create correspondence: Episode not found.');
+            $this->redirect(array('/'));
+            return;
         }
         
         if ($api = Yii::app()->moduleAPI->get('OphCoCorrespondence')) {
-            if ($episode && isset($episode->id) && $episode->id) {
-                $api->createCorrespondenceContent(
-                    $api->createNewCorrespondenceEvent($episode->id),
-                    $macroId
-                );
-            }
+            $api->createCorrespondenceContent(
+                $api->createNewCorrespondenceEvent($episode->id),
+                $macroId
+            );
         }
     }
 }

@@ -376,11 +376,18 @@ class ProfileController extends BaseController
 
     public function actionAddSite()
     {
+        // Redirect to sites page if not a POST request (API endpoint)
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect(array('/profile/sites'));
+            return;
+        }
+
         if (@$_POST['site_id'] == 'all') {
             $sites = Institution::model()->getCurrent()->sites;
         } else {
             $sites = Site::model()->findAllByPk(@$_POST['site_id']);
         }
+        $sites = $sites ?: array();
         foreach ($sites as $site) {
             if (!$us = UserSite::model()->find('site_id=? and user_id=?', array($site->id, Yii::app()->user->id))) {
                 $us = new UserSite();
@@ -440,6 +447,12 @@ class ProfileController extends BaseController
 
     public function actionAddFirm()
     {
+        // Redirect to firms page if not a POST request (API endpoint)
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect(array('/profile/firms'));
+            return;
+        }
+
         $user = User::model()->findByPk(Yii::app()->user->id);
 
         if (@$_POST['firm_id'] == 'all') {
@@ -447,6 +460,7 @@ class ProfileController extends BaseController
         } else {
             $firms = Firm::model()->findAllByPk(@$_POST['firm_id']);
         }
+        $firms = $firms ?: array();
 
         foreach ($firms as $firm) {
             if (!$us = UserFirm::model()->find('firm_id=? and user_id=?', array($firm->id, Yii::app()->user->id))) {

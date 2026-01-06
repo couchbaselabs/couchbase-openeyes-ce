@@ -227,7 +227,8 @@ class TrialPatient extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Temporarily disabled - TrialPatient should use MariaDB for now
+        // $this->saveToCouchbase();
     }
 
     /**
@@ -236,7 +237,8 @@ class TrialPatient extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Temporarily disabled - TrialPatient should use MariaDB for now
+        // $this->deleteFromCouchbase();
     }
 
     /**

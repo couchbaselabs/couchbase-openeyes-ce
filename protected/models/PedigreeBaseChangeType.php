@@ -54,7 +54,7 @@ class PedigreeBaseChangeType extends BaseActiveRecord
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('change', 'safe'),
+            array('id, change', 'safe'),
             array('change', 'required'),
         );
     }
@@ -65,6 +65,55 @@ class PedigreeBaseChangeType extends BaseActiveRecord
     public function relations()
     {
         return array();
+    }
+
+    /**
+     * Override save to handle Couchbase-only mode
+     * In couchbase_primary mode, save to Couchbase only without trying MariaDB
+     */
+    public function save($runValidation = true, $attributes = null, $allow_overriding = false)
+    {
+        // Check if MariaDB is available
+        if (!Yii::app()->db->isConnectionAvailable() && $this->isDualWriteEnabled()) {
+            // In Couchbase-primary mode with no MariaDB, save directly to Couchbase
+            if ($this->getIsNewRecord() || !isset($this->id)) {
+                $this->created_user_id = Yii::app()->user->id ?? 1;
+                $this->created_date = date('Y-m-d H:i:s');
+                // Generate a UUID-like ID for Couchbase storage
+                if (!isset($this->id) || empty($this->id)) {
+                    $this->id = (int)(microtime(true) * 10000) % 2147483647;
+                }
+            }
+            $this->last_modified_user_id = Yii::app()->user->id ?? 1;
+            $this->last_modified_date = date('Y-m-d H:i:s');
+
+            // Validate if needed
+            if ($runValidation && !$this->validate()) {
+                return false;
+            }
+
+            // Save to Couchbase
+            return $this->saveToCouchbase();
+        }
+
+        // Use parent save for normal MariaDB mode
+        return parent::save($runValidation, $attributes, $allow_overriding);
+    }
+
+    /**
+     * Override findByPk to handle Couchbase-only mode
+     * When MariaDB is not available, return the current instance if id matches
+     */
+    public function findByPk($pk, $condition=null, $params=array())
+    {
+        // If MariaDB is not available and we're in Couchbase mode, return current instance if id matches
+        if (!Yii::app()->db->isConnectionAvailable() && $this->isDualWriteEnabled()) {
+            if ($this->id == $pk) {
+                return $this;
+            }
+            return null;
+        }
+        return parent::findByPk($pk, $condition, $params);
     }
 
     /**

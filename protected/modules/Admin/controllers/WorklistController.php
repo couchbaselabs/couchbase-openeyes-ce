@@ -550,7 +550,9 @@ class WorklistController extends BaseAdminController
     public function actionAddDefinitionMapping($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist definition ID is required.');
+            $this->flashMessage('info', 'Please select a Worklist Definition to add a mapping to.');
+            $this->redirect('/Admin/worklist/definitions');
+            return;
         }
         $definition = $this->getWorklistDefinition($id);
 
@@ -702,7 +704,8 @@ class WorklistController extends BaseAdminController
     public function actionDefinitionDisplayContextAdd($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist definition ID is required.');
+            $this->redirect(array('/Admin/worklist/definitions'));
+            return;
         }
         $definition = $this->getWorklistDefinition($id);
 

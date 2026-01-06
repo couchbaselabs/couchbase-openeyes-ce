@@ -312,10 +312,12 @@ class TrialController extends BaseModuleController
     public function actionAddPatient()
     {
         if (!isset($_GET['id'])) {
-            throw new CHttpException(400, 'Trial ID is required.');
+            $this->renderJSON(['error' => 'Trial ID is required.']);
+            return;
         }
         if (!isset($_GET['patient_id'])) {
-            throw new CHttpException(400, 'Patient ID is required.');
+            $this->renderJSON(['error' => 'Patient ID is required.']);
+            return;
         }
         
         $trial = $this->loadModel($_GET['id']);

@@ -215,7 +215,6 @@ class Disorder extends BaseActiveRecordVersioned
     public function checkDisorderExists($attribute) {
         $query = "SELECT id FROM disorder where id='$this->id'";
         $command = Yii::app()->cbdb->createCommand($query);
-        $command->prepare();
         $result = $command->queryColumn();
         if (sizeof($result) > 0 && $this->isNewRecord === true) {
             $this->addError($attribute, 'ID '.$this->id.' already exists. Please choose a unique ID.');

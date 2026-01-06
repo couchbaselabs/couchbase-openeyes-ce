@@ -24,6 +24,8 @@
  * @property string $routine_name
  * @property integer $try_count
  * @property string $next_try_date_time
+ * @property integer $execute_sequence
+ * @property integer $hash_code
  *
  * The followings are the available model relations:
  * @property RequestQueue $executeRequestQueue
@@ -71,12 +73,12 @@ class RequestRoutine extends CActiveRecord
         // will receive user inputs.
         return [
             ['request_id, execute_request_queue, status, routine_name', 'required'],
-            ['request_id, try_count', 'numerical', 'integerOnly' => true],
+            ['request_id, try_count, execute_sequence, hash_code', 'numerical', 'integerOnly' => true],
             ['execute_request_queue, status, routine_name', 'length', 'max' => 45],
             ['next_try_date_time', 'safe'],
             // The following rule is used by search().
             // @todo Please remove those attributes that should not be searched.
-            ['id, request_id, execute_request_queue, status, routine_name, try_count, next_try_date_time', 'safe', 'on' => 'search'],
+            ['id, request_id, execute_request_queue, status, routine_name, try_count, next_try_date_time, execute_sequence, hash_code', 'safe', 'on' => 'search'],
         ];
     }
 
@@ -108,6 +110,8 @@ class RequestRoutine extends CActiveRecord
             'routine_name' => 'Routine Name',
             'try_count' => 'Try Count',
             'next_try_date_time' => 'Next Try Date Time',
+            'execute_sequence' => 'Execute Sequence',
+            'hash_code' => 'Hash Code',
         ];
     }
 
@@ -136,6 +140,8 @@ class RequestRoutine extends CActiveRecord
         $criteria->compare('routine_name', $this->routine_name, true);
         $criteria->compare('try_count', $this->try_count);
         $criteria->compare('next_try_date_time', $this->next_try_date_time, true);
+        $criteria->compare('execute_sequence', $this->execute_sequence);
+        $criteria->compare('hash_code', $this->hash_code);
 
         return new CActiveDataProvider($this, [
             'criteria' => $criteria,

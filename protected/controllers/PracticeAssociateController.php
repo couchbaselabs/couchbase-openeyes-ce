@@ -53,6 +53,11 @@ class PracticeAssociateController extends BaseController
      */
     public function actionCreate()
     {
+        // Check if this is a valid POST request
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'This action can only be accessed via POST request.');
+        }
+        
         // Check if this is a valid AJAX POST request
         if (!Yii::app()->request->isAjaxRequest) {
             throw new CHttpException(400, 'This action can only be accessed via AJAX POST request.');

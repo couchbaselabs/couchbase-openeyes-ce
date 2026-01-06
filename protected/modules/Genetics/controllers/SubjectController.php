@@ -89,11 +89,11 @@ class SubjectController extends BaseModuleController
         if (!$genetics_patient) {
             $genetics_patient = new GeneticsPatient();
         }
+        $htmlOptions = null;
         if ($id) {
             $admin->setModelId($id);
             $this->renderPatientPanel = true;
             $this->patient = isset($admin->getModel()->patient) ? $admin->getModel()->patient : null;
-            $htmlOptions = null;
         }
 
         if (isset($_GET['patient']) && ((int)$_GET['patient'] > 0) && ($this->patient == null)) {
@@ -217,7 +217,7 @@ class SubjectController extends BaseModuleController
             ),
         ));
 
-        $redirect = $id ? ('/Genetics/subject/view/' . $id) : '/patient/view/' . $_GET['patient'];
+        $redirect = $id ? ('/Genetics/subject/view/' . $id) : ('/patient/view/' . (isset($_GET['patient']) ? $_GET['patient'] : 0));
         $admin->setCustomCancelURL($redirect);
         try {
             $valid = $admin->editModel(false);

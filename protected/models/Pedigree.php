@@ -221,12 +221,60 @@ class Pedigree extends BaseActiveRecord
     }
 
     /**
-     * After saving, sync to Couchbase
+     * Override save to catch database errors
+     */
+    public function save($runValidation = true, $attributes = null, $allow_overriding = false)
+    {
+        try {
+            return parent::save($runValidation, $attributes, $allow_overriding);
+        } catch (Exception $e) {
+            $this->addError('database', 'Database save failed: ' . $e->getMessage());
+            \Yii::log(
+                "Pedigree save failed: " . $e->getMessage() . "\nAttributes: " . print_r($this->attributes, true),
+                \CLogger::LEVEL_ERROR,
+                'application.pedigree'
+            );
+            return false;
+        }
+    }
+
+    /**
+     * Before saving, ensure required fields have values
+     */
+    protected function beforeSave()
+    {
+        // Ensure inheritance_id is set - default to "Unknown/other" if not set
+        if (empty($this->inheritance_id)) {
+            $defaultInheritance = PedigreeInheritance::model()->findByAttributes(array('name' => 'Unknown/other'));
+            if ($defaultInheritance) {
+                $this->inheritance_id = $defaultInheritance->id;
+            }
+        }
+        
+        // Ensure comments is not null (database requires NOT NULL)
+        if ($this->comments === null || $this->comments === '') {
+            $this->comments = '';
+        }
+        
+        return parent::beforeSave();
+    }
+
+    /**
+     * After saving, sync to Couchbase with error handling
      */
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        try {
+            $this->saveToCouchbase();
+        } catch (Exception $e) {
+            \Yii::log(
+                "Couchbase sync failed for Pedigree #{$this->id}: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.couchbase'
+            );
+            // Don't fail the main save - Couchbase sync is secondary
+        }
     }
 
     /**

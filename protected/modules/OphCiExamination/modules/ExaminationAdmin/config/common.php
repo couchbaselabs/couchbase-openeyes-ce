@@ -109,8 +109,12 @@ $config = [
     'components' => [
         'urlManager' => [
             'rules' => [
+                'OphCiExamination/ExaminationAdmin/freehandDraw/<action:\w+>/<id:\d+>' => '/OphCiExamination/ExaminationAdmin/FreehandDraw/<action>?id=<id>',
+                'OphCiExamination/ExaminationAdmin/freehandDraw/<action:\w+>' => '/OphCiExamination/ExaminationAdmin/FreehandDraw/<action>',
+                'OphCiExamination/ExaminationAdmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>?id=<id>',
+                'OphCiExamination/ExaminationAdmin/<controller:\w+>/<action:\w+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>',
                 'OphCiExamination/admin/<controller:\w+>/<action:\w+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>',
-                'OphCiExamination/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>',
+                'OphCiExamination/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>?id=<id>',
             ]
         ]
     ]

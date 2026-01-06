@@ -55,6 +55,10 @@ class DefaultController extends \BaseEventTypeController
      */
     public function checkManageMyMessageAccess()
     {
+        // If there's no message element, allow the action to proceed (it will redirect)
+        if (!$this->getMessageElement()) {
+            return true;
+        }
         return $this->checkAccess('OprnViewClinical') && ($this->isIntendedRecipient() || $this->isSender() || $this->isCopiedToUser());
     }
 
@@ -176,11 +180,10 @@ class DefaultController extends \BaseEventTypeController
     public function initActionAddComment()
     {
         $id = @$_GET['id'];
-        if (!$id) {
-            throw new \CHttpException(400, 'Event ID is required to add a comment.');
+        if ($id) {
+            $this->initWithEventId($id);
+            $this->setOpenElementsFromCurrentEvent('view');
         }
-        $this->initWithEventId($id);
-        $this->setOpenElementsFromCurrentEvent('view');
     }
 
     /**
@@ -189,8 +192,13 @@ class DefaultController extends \BaseEventTypeController
      * @throws \CHttpException
      * @throws \Exception
      */
-    public function actionAddComment($id)
+    public function actionAddComment($id = null)
     {
+        if (!$id) {
+            $this->redirect('/');
+            return;
+        }
+
         $element = $this->getMessageElement();
         $mailbox_id = isset($_POST['mailbox_id']) ? $_POST['mailbox_id'] : null;
 
@@ -409,6 +417,10 @@ class DefaultController extends \BaseEventTypeController
      */
     protected function getMessageElement()
     {
+        if (!$this->event) {
+            return null;
+        }
+
         if (!$this->message_el) {
             $this->message_el = $this->event->getElementByClass('\OEModule\OphCoMessaging\models\Element_OphCoMessaging_Message');
         }

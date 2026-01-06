@@ -69,7 +69,13 @@ class DispenseLocationController extends BaseAdminController
 
     public function actionAddMapping()
     {
-        $model = $_POST['model']::model();
+        $modelName = Yii::app()->request->getPost('model');
+        if (empty($modelName)) {
+            $this->redirect(['/OphDrPrescription/admin/DispenseLocation/index']);
+            return;
+        }
+        
+        $model = $modelName::model();
 
         $ids = Yii::app()->request->getPost('select');
 
@@ -94,7 +100,13 @@ class DispenseLocationController extends BaseAdminController
 
     public function actionRemoveMapping()
     {
-        $model = $_POST['model']::model();
+        $modelName = Yii::app()->request->getPost('model');
+        if (empty($modelName)) {
+            $this->redirect(['/OphDrPrescription/admin/DispenseLocation/index']);
+            return;
+        }
+        
+        $model = $modelName::model();
         $level = ReferenceData::LEVEL_INSTITUTION;
 
         $ids = Yii::app()->request->getPost('select');

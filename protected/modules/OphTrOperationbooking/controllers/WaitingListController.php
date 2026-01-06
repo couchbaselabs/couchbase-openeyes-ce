@@ -21,6 +21,15 @@ class WaitingListController extends BaseModuleController
     public $renderPatientPanel = false;
     private $pdf_output;
 
+    public function beforeAction($action)
+    {
+        // Skip CSRF validation for AJAX filter actions
+        if (in_array($action->id, array('filterFirms', 'filterSetFirm', 'filterSetStatus', 'filterSetSiteId', 'filterSetHosNum'))) {
+            Yii::app()->request->enableCsrfValidation = false;
+        }
+        return parent::beforeAction($action);
+    }
+
     public function accessRules()
     {
         return array(
@@ -241,7 +250,9 @@ class WaitingListController extends BaseModuleController
      */
     public function actionFilterSetFirm()
     {
-        $this->setFilter('firm-id', $_POST['firm_id']);
+        if (isset($_POST['firm_id'])) {
+            $this->setFilter('firm-id', $_POST['firm_id']);
+        }
     }
 
     /**
@@ -249,7 +260,9 @@ class WaitingListController extends BaseModuleController
      */
     public function actionFilterSetStatus()
     {
-        $this->setFilter('status', $_POST['status']);
+        if (isset($_POST['status'])) {
+            $this->setFilter('status', $_POST['status']);
+        }
     }
 
     /**
@@ -257,7 +270,9 @@ class WaitingListController extends BaseModuleController
      */
     public function actionFilterSetSiteId()
     {
-        $this->setFilter('site_id', $_POST['site_id']);
+        if (isset($_POST['site_id'])) {
+            $this->setFilter('site_id', $_POST['site_id']);
+        }
     }
 
     /**

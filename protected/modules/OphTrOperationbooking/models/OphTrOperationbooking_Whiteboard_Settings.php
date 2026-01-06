@@ -19,6 +19,17 @@
 class OphTrOperationbooking_Whiteboard_Settings extends BaseSetting
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
+    
+    /**
+     * Override to disable Couchbase reads for this settings model
+     * The Couchbase collection has not been properly migrated yet
+     * @return bool Always false to use MariaDB
+     */
+    protected function shouldReadFromCouchbase()
+    {
+        // Use MariaDB for reads until Couchbase collection is properly set up
+        return false;
+    }
 
 
     /**

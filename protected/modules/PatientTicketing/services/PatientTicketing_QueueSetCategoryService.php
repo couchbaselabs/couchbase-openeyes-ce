@@ -68,7 +68,11 @@ class PatientTicketing_QueueSetCategoryService extends \services\ModelService
      */
     public function readActive($id)
     {
-        return $this->modelToResource($this->model->findByPk($id));
+        $model = $this->model->findByPk($id);
+        if (!$model) {
+            return null;
+        }
+        return $this->modelToResource($model);
     }
 
     public function getCategoriesForInstitution($institution_id): array

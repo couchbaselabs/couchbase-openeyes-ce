@@ -227,7 +227,7 @@ class DefaultController extends OphTrOperationbookingEventController
 
         $this->contact_details = Element_OphTrOperationbooking_ContactDetails::model()->find('event_id=?', array($this->event->id));
         if ($this->operation_required && !$this->operation) {
-            if (!$this->eur_res || !$this->eur_res->id) {
+            if (!$this->eur_res->id) {
                 throw new CHttpException(500, 'Operation not found');
             }
         }
@@ -647,11 +647,7 @@ class DefaultController extends OphTrOperationbookingEventController
     protected function initActionCancel()
     {
         $this->operation_required = true;
-        $id = isset($_GET['id']) ? $_GET['id'] : null;
-        if (!$id) {
-            throw new CHttpException(400, 'Event ID is required to cancel an operation');
-        }
-        $this->initWithEventId($id);
+        $this->initWithEventId(@$_GET['id']);
     }
 
     /**
@@ -659,7 +655,7 @@ class DefaultController extends OphTrOperationbookingEventController
      */
     public function actionVerifyProcedures()
     {
-        $this->setPatient(@$_REQUEST['patient_id']);
+        $this->setPatient($_REQUEST['patient_id']);
 
         $resp = array(
                 'previousProcedures' => false,
@@ -792,6 +788,10 @@ class DefaultController extends OphTrOperationbookingEventController
      */
     protected function initActionAdmissionLetter()
     {
+        // Print actions handle their own initialization via printInit()
+        // Set operation_required flag for validation, but dont initialize here
+        $this->operation_required = true;
+    {
         $this->operation_required = true;
         $this->initWithEventId(@$_GET['id']);
     }
@@ -890,9 +890,9 @@ class DefaultController extends OphTrOperationbookingEventController
         echo $this->pdf_print_html;
     }
 
-    public function actionPrintAdmissionFormPdf($id)
+    public function actionPrintAdmissionFormPdf()
     {
-        $this->printInit($id);
+        $this->initWithEventId(@$_GET['id']);
         $wk = Yii::app()->puppeteer;
         $wk->setDocRef($this->event->docref);
         $wk->setPatient($this->event->episode->patient);
@@ -929,9 +929,6 @@ class DefaultController extends OphTrOperationbookingEventController
     protected function initActionPutOnHold()
     {
         $event_id = isset($_GET['id']) ? $_GET['id'] : null;
-        if (!$event_id) {
-            throw new CHttpException(400, 'Event ID is required to put an operation on hold');
-        }
         $this->initWithEventId($event_id);
     }
 
@@ -966,9 +963,6 @@ class DefaultController extends OphTrOperationbookingEventController
     protected function initActionPutOffHold()
     {
         $event_id = isset($_GET['id']) ? $_GET['id'] : null;
-        if (!$event_id) {
-            throw new CHttpException(400, 'Event ID is required to remove an operation from hold');
-        }
         $this->initWithEventId($event_id);
     }
 

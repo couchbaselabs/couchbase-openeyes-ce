@@ -8,7 +8,7 @@ class AttributeOptionsAdminController extends BaseAdminController
 
     public $group = 'Operation note';
 
-    public function actionIndex($attribute_id)
+    public function actionIndex($attribute_id = null)
     {
         $this->genericAdmin(
             'Manage Attribute Options',

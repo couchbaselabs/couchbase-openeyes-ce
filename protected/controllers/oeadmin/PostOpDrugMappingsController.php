@@ -139,34 +139,40 @@ class PostOpDrugMappingsController extends BaseAdminController
         $siteId = $this->request->getParam('site_id');
         $drugId = $this->request->getParam('drug_id');
 
-        if (!Yii::app()->request->isAjaxRequest) {
-            throw new CHttpException(400, 'This action requires an AJAX request.');
-        } else {
-            if (!is_numeric($subspecialtyId) || !is_numeric($siteId) || !is_numeric($drugId)) {
+        // This action can be called via AJAX or direct request
+        // Check if all required parameters are provided
+        if (!is_numeric($subspecialtyId) || !is_numeric($siteId) || !is_numeric($drugId)) {
+            if (Yii::app()->request->isAjaxRequest) {
                 echo 'error';
             } else {
-                //Check Op Drug exist with same site and subspecialty
-                $count = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->countByAttributes(array(
-                    'subspecialty_id' => $subspecialtyId,
-                    'site_id' => $siteId,
-                    'drug_id' => $drugId,
-                ));
+                echo 'Missing required parameters: subspecialty_id, site_id, drug_id';
+            }
+        } else {
+            //Check Op Drug exist with same site and subspecialty
+            $count = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->countByAttributes(array(
+                'subspecialty_id' => $subspecialtyId,
+                'site_id' => $siteId,
+                'drug_id' => $drugId,
+            ));
 
-                if ($count == 0) {
-                    $newONPSS = new OphTrOperationnote_PostopSiteSubspecialtyDrug();
+            if ($count == 0) {
+                $newONPSS = new OphTrOperationnote_PostopSiteSubspecialtyDrug();
 
-                    $newONPSS->subspecialty_id = $subspecialtyId;
-                    $newONPSS->site_id = $siteId;
-                    $newONPSS->drug_id = $drugId;
+                $newONPSS->subspecialty_id = $subspecialtyId;
+                $newONPSS->site_id = $siteId;
+                $newONPSS->drug_id = $drugId;
 
-                    if ($newONPSS->save()) {
+                if ($newONPSS->save()) {
+                    if (Yii::app()->request->isAjaxRequest) {
                         echo 'success';
                     } else {
-                        echo 'error';
+                        echo 'Post-Op Drug Mapping created successfully';
                     }
                 } else {
-                    echo 'error :: record exit';
+                    echo 'error';
                 }
+            } else {
+                echo 'error :: record exists';
             }
         }
     }

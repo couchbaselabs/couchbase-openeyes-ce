@@ -552,7 +552,8 @@ class DefaultController extends BaseEventTypeController
         }
         
         if ($id === null) {
-            throw new CHttpException(400, 'Event ID parameter is required.');
+            // No event ID provided; silently return as this is a background operation
+            return;
         }
         
         try {

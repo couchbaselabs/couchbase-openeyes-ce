@@ -105,7 +105,7 @@ class PatientTicketing_QueueService extends \services\ModelService
      * Get the dependent queues for given Queue resource.
      *
      * @param PatientTicketing_Queue $qr
-     losing
+     * @param bool $include_closing
      * @return models\Queue[]
      * @todo: return resources instead of models
      */

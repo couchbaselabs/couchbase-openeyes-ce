@@ -48,10 +48,15 @@ return array (
     ),
     'Trial' => 
     array (
-      'read_source' => 'couchbase',
-      'percentage' => 100,
+      'read_source' => 'mariadb',
+      'percentage' => 0,
     ),
     'OphTrIntravitrealinjection_SkinDrug' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'OphTrOperationbooking_Whiteboard_Settings' => 
     array (
       'read_source' => 'mariadb',
       'percentage' => 0,

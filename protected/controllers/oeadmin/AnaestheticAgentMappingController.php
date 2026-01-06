@@ -99,7 +99,7 @@ class AnaestheticAgentMappingController extends BaseAdminController
         $siteId = $this->request->getParam('site_id');
         $anaestheticAgentId = $this->request->getParam('anaesthetic_agent_id');
         if (!Yii::app()->request->isAjaxRequest) {
-            echo 'error: not an ajax call'; return;
+            $this->redirect(array('list')); return;
         } else {
             if (!is_numeric($subspecialtyId) || !is_numeric($siteId) || !is_numeric($anaestheticAgentId)) {
                 echo 'error';

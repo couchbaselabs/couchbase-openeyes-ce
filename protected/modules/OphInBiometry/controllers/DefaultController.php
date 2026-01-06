@@ -56,7 +56,8 @@ class DefaultController extends BaseEventTypeController
     {
         $errors = array();
         // if we are after the submit we need to check if any event is selected
-        if (preg_match('/^biometry([0-9]+)$/', Yii::app()->request->getPost('SelectBiometry'), $matches)) {
+        $selectBiometry = Yii::app()->request->getPost('SelectBiometry');
+        if ($selectBiometry !== null && preg_match('/^biometry([0-9]+)$/', $selectBiometry, $matches)) {
             $this->updateHotlistItem($this->patient);
             $importedEvent = OphInBiometry_Imported_Events::model()->findByPk($matches[1]);
             $this->updateImportedEvent(Event::model()->findByPk($importedEvent->event_id), $importedEvent);

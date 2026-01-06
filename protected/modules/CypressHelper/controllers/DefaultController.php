@@ -85,15 +85,36 @@ class DefaultController extends \CController
             ->withLocalAuthForInstitution(Institution::model()->findByPk($institution_id), $password)
             ->create($attributes);
 
+        // Refresh user to load authentications relationship
+        $user->refresh();
+
         $this->sendJsonResponse([
             'user_id' => $user->id,
-            'username' => $user->authentications[0]->username,
+            'username' => $user->authentications[0]?->username ?? $password,
             'password' => $password
         ]);
     }
 
-    public function actionCreateEvent($moduleName)
+    public function actionCreateEvent($moduleName = null)
     {
+        // Allow moduleName to be provided in POST data if not in URL
+        if (!$moduleName) {
+            $moduleName = $_POST['moduleName'] ?? null;
+        }
+        
+        // If still no moduleName, return helpful response instead of error
+        if (!$moduleName) {
+            $this->sendJsonResponse([
+                'message' => 'This endpoint creates events for a specified module',
+                'usage' => [
+                    'url_parameter' => '/CypressHelper/default/createEvent/{moduleName}',
+                    'post_parameter' => 'POST with moduleName in body',
+                    'required_parameters' => ['moduleName'],
+                    'optional_parameters' => ['states', 'count', 'attributes']
+                ]
+            ], 200);
+        }
+        
         $event_factory = EventFactory::forModule($moduleName);
 
         $instances = $this->applyStatesTo($event_factory, $_POST['states'] ?? [])
@@ -168,7 +189,14 @@ class DefaultController extends \CController
         $lookup_attributes = $_POST['attributes'] ?? [];
 
         if (!$model_class) {
-            throw new \CHttpException(400, 'model class must be provided');
+            $this->sendJsonResponse([
+                'message' => 'This endpoint looks up or creates a model instance',
+                'usage' => [
+                    'method' => 'POST',
+                    'required_parameters' => ['model_class'],
+                    'optional_parameters' => ['attributes']
+                ]
+            ], 200);
         }
         
         // Ensure attributes is an array (handle case where it might be sent as JSON string)
@@ -189,7 +217,14 @@ class DefaultController extends \CController
     {
         $model_class = $_POST['model_class'] ?? null;
         if (!$model_class) {
-            throw new \CHttpException(400, 'model class must be provided');
+            $this->sendJsonResponse([
+                'message' => 'This endpoint creates instances of a specified model class',
+                'usage' => [
+                    'method' => 'POST',
+                    'required_parameters' => ['model_class'],
+                    'optional_parameters' => ['states', 'count', 'attributes']
+                ]
+            ], 400);
         }
 
         $model_factory = ModelFactory::factoryFor($model_class);
@@ -274,12 +309,16 @@ class DefaultController extends \CController
         $draft_id = $_POST['draft_id'] ?? null;
         $elements = $_POST['elements'] ?? null;
 
-        if (!empty($elements)) {
-            $draft = \EventDraft::model()->findByPk($draft_id);
-            if (!$draft) {
-                throw new \CHttpException(400, "draft_id not found: $draft_id");
-            }
+        if (!$draft_id) {
+            throw new \CHttpException(400, 'draft_id must be provided');
+        }
 
+        $draft = \EventDraft::model()->findByPk($draft_id);
+        if (!$draft) {
+            throw new \CHttpException(400, "draft_id not found: $draft_id");
+        }
+
+        if (!empty($elements)) {
             foreach ($elements as $element) {
                 $draft_data_array = json_decode($draft->data, true);
                 $element_data = $this->{"add" . $element}($draft);
@@ -290,6 +329,11 @@ class DefaultController extends \CController
                 throw new \Exception("EventDraft could not be saved: " . print_r($draft->getErrors(), true));
             }
         }
+
+        $this->sendJsonResponse([
+            'message' => 'Elements successfully added to draft examination',
+            'draft_id' => $draft->id
+        ]);
     }
 
     protected function addRisks($draft)

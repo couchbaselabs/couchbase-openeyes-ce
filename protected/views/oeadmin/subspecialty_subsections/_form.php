@@ -30,6 +30,36 @@
             <col class="cols-full">
         </colgroup>
         <tbody>
+            <?php if (!isset($subspecialty_id) || empty($subspecialty_id)): ?>
+            <tr>
+                <td>Subspecialty</td>
+                <td class="cols-full">
+                <?php
+                $subspecialties = Subspecialty::model()->findAll(['order' => 'name']);
+                $options = [];
+                foreach ($subspecialties as $spec) {
+                    $options[$spec->id] = $spec->name;
+                }
+                echo \CHtml::activeDropDownList(
+                    $model,
+                    'subspecialty_id',
+                    $options,
+                    ['empty' => '-- Select a subspecialty --', 'class' => 'cols-full']
+                );
+                ?>
+                </td>
+            </tr>
+            <?php else: ?>
+            <tr>
+                <td colspan="2">
+                <?=\CHtml::activeHiddenField(
+                    $model,
+                    'subspecialty_id',
+                    [ 'value' => $subspecialty_id ]
+                ); ?>
+                </td>
+            </tr>
+            <?php endif; ?>
             <tr>
                 <td>Name</td>
                 <td class="cols-full">
@@ -37,11 +67,6 @@
                     $model,
                     'name',
                     ['class' => 'cols-full']
-                ); ?>
-                <?=\CHtml::activeHiddenField(
-                    $model,
-                    'subspecialty_id',
-                    [ 'value' => $subspecialty_id ]
                 ); ?>
                 </td>
             </tr>

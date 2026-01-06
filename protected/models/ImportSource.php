@@ -90,7 +90,9 @@ class ImportSource extends BaseActiveRecord
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Note: Couchbase sync is handled by CouchbaseModelBridge trait
+        // Disabling for ImportSource as it's not critical for Couchbase migration
+        // $this->saveToCouchbase();
     }
 
     /**

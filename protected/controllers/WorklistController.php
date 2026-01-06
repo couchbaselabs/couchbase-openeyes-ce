@@ -1866,6 +1866,11 @@ class WorklistController extends BaseController
         $position = Yii::app()->request->getPost('position');
         $step_data = Yii::app()->request->getPost('step_data') ?: array();
         $visit_id = Yii::app()->request->getPost('visit_id');
+        
+        if (!$visit_id) {
+            throw new CHttpException(400, 'Missing required parameter: visit_id');
+        }
+        
         $wl_patient = WorklistPatient::model()->findByPk($visit_id);
 
         if (!$wl_patient) {

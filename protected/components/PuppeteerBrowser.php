@@ -120,11 +120,14 @@ class PuppeteerBrowser extends CApplicationComponent
             $patient_dobs[] = date('d-m-Y', strtotime($patient->dob));
         }
 
-        while (count($patient_names) < $this->documents) {
-            $patient_names[] = $patient_names[count($patient_names) - 1];
-            $patient_primary_identifiers[] = $patient_primary_identifiers[count($patient_primary_identifiers) - 1];
-            $patient_secondary_identifiers[] = $patient_secondary_identifiers[count($patient_secondary_identifiers) - 1];
-            $patient_dobs[] = $patient_dobs[count($patient_dobs) - 1];
+        // Only duplicate patient data if we have at least one patient
+        if (!empty($patient_names)) {
+            while (count($patient_names) < $this->documents) {
+                $patient_names[] = $patient_names[count($patient_names) - 1];
+                $patient_primary_identifiers[] = $patient_primary_identifiers[count($patient_primary_identifiers) - 1];
+                $patient_secondary_identifiers[] = $patient_secondary_identifiers[count($patient_secondary_identifiers) - 1];
+                $patient_dobs[] = $patient_dobs[count($patient_dobs) - 1];
+            }
         }
 
         while (count($this->barcodes) < $this->documents) {

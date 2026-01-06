@@ -69,6 +69,43 @@ class UniqueCodesController extends BaseAdminController
     }
 
     /**
+     * Creates a new UniqueCodes record.
+     *
+     * @throws CHttpException
+     */
+    public function actionCreate()
+    {
+        $errors = [];
+        $unique_code_object = new UniqueCodes();
+
+        if (Yii::app()->request->isPostRequest) {
+            // get data from POST
+            $user_data = \Yii::app()->request->getPost('UniqueCodes');
+
+            $unique_code_object->code = $user_data['code'];
+            $unique_code_object->active = isset($user_data['active']) ? 1 : 0;
+
+            // Enable Couchbase write if available
+            $unique_code_object->enableCouchbaseSync();
+
+            // try saving the data
+            if (!$unique_code_object->save()) {
+                $errors = $unique_code_object->getErrors();
+                if (empty($errors)) {
+                    $errors['code'] = ['Unable to save record'];
+                }
+            } else {
+                $this->redirect('/oeadmin/uniqueCodes/list/');
+            }
+        }
+
+        $this->render('/oeadmin/unique_codes/edit', array(
+            'unique_code' => $unique_code_object,
+            'errors' => $errors
+        ));
+    }
+
+    /**
      * Edits or adds a Procedure.
      *
      * @param bool|int $id

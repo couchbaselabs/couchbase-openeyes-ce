@@ -221,10 +221,22 @@ class SettingMetadata extends BaseActiveRecordVersioned
     private function safeGetCache($id)
     {
         try {
-            return Yii::app()->settingCache->get($id);
+            set_error_handler(function($errno, $errstr) {
+                // Suppress unserialize errors and treat them as cache miss
+                return true;
+            });
+            $value = Yii::app()->settingCache->get($id);
+            restore_error_handler();
+            return $value;
         } catch (Exception $e) {
+            restore_error_handler();
             // If deserialization fails, clear this cache entry and return false
             // This forces the value to be recalculated and re-cached
+            Yii::app()->settingCache->delete($id);
+            return false;
+        } catch (Error $e) {
+            restore_error_handler();
+            // Handle PHP 7+ TypeError and other errors
             Yii::app()->settingCache->delete($id);
             return false;
         }

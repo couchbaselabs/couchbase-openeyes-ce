@@ -187,7 +187,7 @@ class BaseController extends Controller
             if ($user_authentication && !in_array($user_authentication->username, $special_usernames)) {
                 $user = $user_authentication->user;
                 // if not a active user, force log out
-                if (!$user_authentication->active || PasswordUtils::testStatus($user_authentication)) {
+                if ($user && (!$user_authentication->active || PasswordUtils::testStatus($user_authentication))) {
                     $user->audit('BaseController', 'force-logout', null, "User $user_authentication->username logged out because their account is not active");
                     Yii::app()->user->logout();
                     $this->redirect(Yii::app()->homeUrl);
@@ -201,7 +201,7 @@ class BaseController extends Controller
                     $user_authentication->audit('login', 'user-soft-unlock', null, "User: {$user_authentication->username} has finished their softlock period ");
                 }
 
-                $whitelistedRequestCheck = $user->CheckRequestOnExpiryWhitelist($_SERVER['REQUEST_URI']);
+                $whitelistedRequestCheck = $user?->CheckRequestOnExpiryWhitelist($_SERVER['REQUEST_URI']) ?? false;
 
                 // if user is expired, force them to change their password
                 if (PasswordUtils::testStatus($user_authentication, 'expired') && !$whitelistedRequestCheck) {
@@ -282,13 +282,23 @@ class BaseController extends Controller
         if (isset(Yii::app()->session['user_auth'])) {
             $user_auth = Yii::app()->session['user_auth'];
             $user = $user_auth->user;
-            $this->jsVars['user_id'] = $user->id;
-            $this->jsVars['user_full_name'] = $user->first_name . " " . $user->last_name;
-            $this->jsVars['user_email'] = $user->email;
-            $this->jsVars['user_username'] = $user_auth->username;
-            $institution = Institution::model()->getCurrent();
-            $this->jsVars['institution_code'] = $institution->remote_id;
-            $this->jsVars['institution_name'] = $institution->name;
+            if ($user) {
+                $this->jsVars['user_id'] = $user->id;
+                $this->jsVars['user_full_name'] = $user->first_name . " " . $user->last_name;
+                $this->jsVars['user_email'] = $user->email;
+                $this->jsVars['user_username'] = $user_auth->username;
+                $institution = Institution::model()->getCurrent();
+                $this->jsVars['institution_code'] = $institution->remote_id;
+                $this->jsVars['institution_name'] = $institution->name;
+            } else {
+                // If user relationship is null, set default values
+                $this->jsVars['user_id'] = null;
+                $this->jsVars['user_full_name'] = null;
+                $this->jsVars['user_email'] = null;
+                $this->jsVars['user_username'] = $user_auth->username ?? null;
+                $this->jsVars['institution_code'] = null;
+                $this->jsVars['institution_name'] = null;
+            }
         } else {
             // For unauthenticated users, set default values to prevent JavaScript errors
             $this->jsVars['user_id'] = null;

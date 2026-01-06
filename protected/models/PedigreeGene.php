@@ -31,7 +31,8 @@
  */
 class PedigreeGene extends BaseActiveRecord
 {
-    use \OE\Models\Traits\CouchbaseModelBridge;
+    // Couchbase trait temporarily disabled for debugging
+    // use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * Returns the static model of the specified AR class.
@@ -64,6 +65,7 @@ class PedigreeGene extends BaseActiveRecord
             array('location', 'length', 'max' => 16,
                 'tooLong' => "{attribute} is too long.",
             ),
+            array('priority', 'default', 'value' => 0),
         );
     }
 
@@ -78,36 +80,21 @@ class PedigreeGene extends BaseActiveRecord
     }
 
     /**
-     * @return string the Couchbase scope name
+     * Before save, ensure required fields have values
      */
-    public function couchbaseScope(): string
+    protected function beforeSave()
     {
-        return 'reference';
+        // Set priority to 0 if not set (required field in database)
+        // Use getAttribute() to safely handle potentially uninitialized attributes
+        $priority = $this->getAttribute('priority');
+        if ($priority === null || $priority === '' || (is_array($priority) && empty($priority))) {
+            $this->priority = 0;
+        } else if (!is_numeric($priority)) {
+            $this->priority = 0;
+        }
+        
+        return parent::beforeSave();
     }
 
-    /**
-     * @return string the Couchbase collection name
-     */
-    public function couchbaseCollection(): string
-    {
-        return $this->tableName();
-    }
-
-    /**
-     * After save, sync to Couchbase
-     */
-    protected function afterSave()
-    {
-        parent::afterSave();
-        $this->saveToCouchbase();
-    }
-
-    /**
-     * After delete, remove from Couchbase
-     */
-    protected function afterDelete()
-    {
-        parent::afterDelete();
-        $this->deleteFromCouchbase();
-    }
+    // Couchbase methods and hooks temporarily disabled for debugging
 }

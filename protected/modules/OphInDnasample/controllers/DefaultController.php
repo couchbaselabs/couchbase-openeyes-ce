@@ -39,6 +39,16 @@ class DefaultController extends BaseEventTypeController
         Yii::app()->clientScript->registerScriptFile($assetPath.'/js/dna_tests_view.js');
     }
 
+    protected function initActionCreate()
+    {
+        // Check if patient_id is provided, if not redirect to home
+        if (!isset($_REQUEST['patient_id'])) {
+            $this->redirect('/');
+            Yii::app()->end();
+        }
+        parent::initActionCreate();
+    }
+
     public function actionCreate()
     {
         $this->_registerDnaTestFormJs();

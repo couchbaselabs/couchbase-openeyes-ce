@@ -99,9 +99,7 @@
                     CHtml::listData(
                         Country::model()->findAll(),
                         'id',
-                        'name',
-                        'code
-                        '
+                        'name'
                     ),
                     [
                         'empty' => 'None',

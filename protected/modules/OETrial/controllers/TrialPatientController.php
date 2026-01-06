@@ -80,14 +80,25 @@ class TrialPatientController extends BaseModuleController
             throw new CHttpException(400, 'Missing required parameter: id');
         }
         
+        $newStatusCode = Yii::app()->getRequest()->getParam('new_status');
+        if (!$newStatusCode) {
+            throw new CHttpException(400, 'Missing required parameter: new_status');
+        }
+        
         $trialPatient = $this->loadModel($id);
         
+        // Check that the trial exists
+        if (!$trialPatient->trial) {
+            throw new CHttpException(404, 'Trial not found.');
+        }
+        
         // Check edit permission on the trial
-        if (!($trialPatient->trial && $trialPatient->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+        $trialPermission = $trialPatient->trial->getUserPermission(Yii::app()->user->id);
+        if (!($trialPermission && $trialPermission->can_edit)) {
             throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
         }
         
-        $new_status = TrialPatientStatus::model()->find('code = ?', array($_GET['new_status']));
+        $new_status = TrialPatientStatus::model()->find('code = ?', array($newStatusCode));
         $trialPatient->changeStatus($new_status);
     }
 
@@ -103,10 +114,20 @@ class TrialPatientController extends BaseModuleController
             throw new CHttpException(400, 'Missing required parameter: id');
         }
         
+        if (!isset($_POST['new_external_id'])) {
+            throw new CHttpException(400, 'Missing required parameter: new_external_id');
+        }
+        
         $model = $this->loadModel($id);
         
+        // Check that the trial exists
+        if (!$model->trial) {
+            throw new CHttpException(404, 'Trial not found.');
+        }
+        
         // Check edit permission on the trial
-        if (!($model->trial && $model->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+        $trialPermission = $model->trial->getUserPermission(Yii::app()->user->id);
+        if (!($trialPermission && $trialPermission->can_edit)) {
             throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
         }
         
@@ -125,10 +146,20 @@ class TrialPatientController extends BaseModuleController
             throw new CHttpException(400, 'Missing required parameter: id');
         }
         
+        if (!isset($_POST['new_comment'])) {
+            throw new CHttpException(400, 'Missing required parameter: new_comment');
+        }
+        
         $model = $this->loadModel($id);
         
+        // Check that the trial exists
+        if (!$model->trial) {
+            throw new CHttpException(404, 'Trial not found.');
+        }
+        
         // Check edit permission on the trial
-        if (!($model->trial && $model->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+        $trialPermission = $model->trial->getUserPermission(Yii::app()->user->id);
+        if (!($trialPermission && $trialPermission->can_edit)) {
             throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
         }
         
@@ -147,10 +178,20 @@ class TrialPatientController extends BaseModuleController
             throw new CHttpException(400, 'Missing required parameter: id');
         }
         
+        if (!isset($_POST['treatment_type'])) {
+            throw new CHttpException(400, 'Missing required parameter: treatment_type');
+        }
+        
         $model = $this->loadModel($id);
         
+        // Check that the trial exists
+        if (!$model->trial) {
+            throw new CHttpException(404, 'Trial not found.');
+        }
+        
         // Check edit permission on the trial
-        if (!($model->trial && $model->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+        $trialPermission = $model->trial->getUserPermission(Yii::app()->user->id);
+        if (!($trialPermission && $trialPermission->can_edit)) {
             throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
         }
         

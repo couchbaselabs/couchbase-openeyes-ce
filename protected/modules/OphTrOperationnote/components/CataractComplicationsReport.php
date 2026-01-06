@@ -289,6 +289,6 @@ class CataractComplicationsReport extends Report implements ReportInterface
 
         $totalData = $this->command->queryAll();
 
-        return $totalData[0]['total'];
+        return !empty($totalData) ? $totalData[0]['total'] : 0;
     }
 }

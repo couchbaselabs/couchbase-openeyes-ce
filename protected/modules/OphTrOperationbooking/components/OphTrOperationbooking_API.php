@@ -128,7 +128,7 @@ class OphTrOperationbooking_API extends BaseAPI
         $criteria = new CDbCriteria();
                 $criteria->addInCondition('status_id', Yii::app()->cbdb->createCommand()->select('id')
                     ->from('ophtroperationbooking_operation_status')
-                    ->where(['in','name', ['Scheduled', 'Rescheduled', ]])->queryColumn());
+                    ->where(['in','name', ['Scheduled', 'Rescheduled']])->queryColumn());
 
         return $this->getElements(
             'Element_OphTrOperationbooking_Operation',
@@ -152,7 +152,7 @@ class OphTrOperationbooking_API extends BaseAPI
         $criteria = new CDbCriteria();
                 $criteria->addNotInCondition('status_id', Yii::app()->cbdb->createCommand()->select('id')
                     ->from('ophtroperationbooking_operation_status')
-                    ->where(['in','name', ['Cancelled', 'Completed', ]])->queryColumn());
+                    ->where(['in','name', ['Cancelled', 'Completed']])->queryColumn());
 
         return $this->getElements(
             'Element_OphTrOperationbooking_Operation',

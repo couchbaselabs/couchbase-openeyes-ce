@@ -520,12 +520,21 @@ class DefaultController extends BaseEventTypeController
     /**
      * Create images for "print" version of consent event
      *
-     * @param int $id event id
+     * @param int $id booking event id (optional)
      * @return void
      */
-    public function actionCreateEventImages($id)
+    public function actionCreateEventImages($id = null)
     {
+        // If no ID is provided, render an empty response or message
+        if ($id === null) {
+            // Action can be called without ID, but nothing will be processed
+            return;
+        }
+
         $procedure = Element_OphTrConsent_Procedure::model()->find('booking_event_id=?', [$id]);
+        if ($procedure === null) {
+            throw new CHttpException(404, 'No consent procedure found for the specified booking event');
+        }
 
         // Generate a pdf file for the event
         $pdf_route = $this->setPDFprintData($procedure->event_id, false);

@@ -853,7 +853,7 @@ class DefaultController extends OphTrOperationbookingEventController
     public function actionAdmissionLetterPdf($id)
     {
 
-        $this->initWithEventId($id);
+        $this->printInit($id);
         $this->pdf_print_suffix = 'admission_letter';
         $wk = Yii::app()->puppeteer;
         $wk->setDocRef($this->event->docref);
@@ -996,6 +996,19 @@ class DefaultController extends OphTrOperationbookingEventController
         }
 
         $elements = parent::getEventElements();
+        
+        // If no elements were loaded (e.g., for Operation booking 2), try using the fallback
+        if (empty($elements) && $this->event && $this->event->isNewRecord) {
+            $all_types = $this->getAllElementTypes();
+            $default_types = array_filter($all_types, function($type) {
+                return $type->default;
+            });
+            
+            if (!empty($default_types)) {
+                $elements = BaseEventTypeElement::model()->resolveElementClasses($default_types);
+            }
+        }
+        
         foreach ($elements as $key => $element) {
             if (get_class($element) == 'Element_OphTrOperationbooking_PreAssessment') {
                 if (!$element->hasTypes()) {

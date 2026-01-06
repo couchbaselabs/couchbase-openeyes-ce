@@ -168,29 +168,57 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
      */
     public function actionAdd()
     {
-        $leaflet_id = @$_GET['leaflet_id'];
-        $type = @$_GET['type'];
-        $type_id = @$_GET['type_id'];
+        $leaflet_id = Yii::app()->request->getQuery('leaflet_id');
+        $type = Yii::app()->request->getQuery('type');
+        $type_id = Yii::app()->request->getQuery('type_id');
         $new_leaflet = null;
+
+        // Check if this is an AJAX request or direct page access
+        $isAjax = Yii::app()->request->isAjaxRequest;
+
+        // Validate required parameters
+        if (empty($leaflet_id) || empty($type) || empty($type_id)) {
+            if ($isAjax) {
+                // Return JSON response for AJAX requests
+                $this->renderJSON(['error' => 'Missing required parameters: leaflet_id, type, type_id']);
+            } else {
+                // Redirect to list page for direct page access
+                Yii::app()->user->setFlash('error', 'Invalid request. Missing required parameters.');
+                $this->redirect(array('list'));
+            }
+            return;
+        }
 
         if ($type === 'subspecialty') {
             $new_leaflet = new OphTrConsent_Leaflet_Subspecialty();
             $new_leaflet->subspecialty_id = $type_id;
-        }
-        if ($type === 'firm') {
+        } elseif ($type === 'firm') {
             $new_leaflet = new OphTrConsent_Leaflet_Firm();
             $new_leaflet->firm_id = $type_id;
         }
 
         if ($new_leaflet === null) {
-            echo 'error';
+            if ($isAjax) {
+                $this->renderJSON(['error' => 'Invalid type: ' . $type]);
+            } else {
+                Yii::app()->user->setFlash('error', 'Invalid type specified.');
+                $this->redirect(array('list'));
+            }
             return;
         }
 
         $new_leaflet->leaflet_id = $leaflet_id;
 
         if (!$new_leaflet->save()) {
-            echo 'error';
+            if ($isAjax) {
+                $this->renderJSON(['error' => 'Failed to save leaflet mapping: ' . implode(', ', $new_leaflet->getErrors())]);
+            } else {
+                Yii::app()->user->setFlash('error', 'Failed to add leaflet mapping.');
+                $this->redirect(array('list'));
+            }
+        } elseif ($isAjax) {
+            // Return success response for AJAX requests
+            $this->renderJSON(['success' => true]);
         }
     }
 

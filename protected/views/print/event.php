@@ -21,7 +21,7 @@ if (!isset($id) && isset($this->event_type)) {
     $id = $this->event_type->class_name.'_print';
 }
 $event = $this->event;
-$event_type = $event->eventType->name;
+$event_type = $event->eventType?->name ?? 'Unknown Event Type';
 $logo_helper = new LogoHelper();
 ?>
 

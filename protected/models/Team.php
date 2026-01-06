@@ -509,7 +509,7 @@ class Team extends BaseActiveRecordVersioned
      */
     private function getAuthAssignmentRows($tasks, $user_ids = null)
     {
-        $command = Yii::app()->cbdb->createCommand()
+        $command = Yii::app()->db->createCommand()
                                  ->select('itemname, userid, data')
                                  ->from('authassignment');
 

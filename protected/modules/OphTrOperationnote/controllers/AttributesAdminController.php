@@ -70,7 +70,11 @@ class AttributesAdminController extends BaseAdminController
     public function actionSort()
     {
         $admin = new Admin(OphTrOperationnote_Attribute::model(), $this);
-        $admin->sortModel();
+        if (Yii::app()->request->isPostRequest) {
+            $admin->sortModel();
+        } else {
+            $admin->listModel();
+        }
     }
 
     public function actionDelete()

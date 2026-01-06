@@ -87,19 +87,23 @@ class OperativeDeviceMappingController extends BaseAdminController
      * Delete an operative device association with the site
      * @param $itemId
      */
-    public function actionDelete($itemId)
+    public function actionDelete($itemId = null)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
         } else {
+            if (!$itemId) {
+                echo 'error';
+                return;
+            }
             if ($leafletSubspecialy = SiteSubspecialtyOperativeDevice::model()->findByPk($itemId)) {
                 $leafletSubspecialy->delete();
                 echo 'success';
             } else {
-                $this->render('errorpage', array('errormessage' => 'recordmissing'));
+                echo 'error';
             }
         }
     }
@@ -108,14 +112,18 @@ class OperativeDeviceMappingController extends BaseAdminController
      * To set default values to Operative Device
      * @param $item_id
      */
-    public function actionSetDefault($itemId)
+    public function actionSetDefault($itemId = null)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
         } else {
+            if (!$itemId) {
+                echo 'error';
+                return;
+            }
             $currentSSOD = SiteSubspecialtyOperativeDevice::model()->findByPk($itemId);
             if ($currentSSOD) {
                 $currentSSOD->default = 1;
@@ -134,14 +142,18 @@ class OperativeDeviceMappingController extends BaseAdminController
      * To remove default values to Operative Device
      * @param $item_id
      */
-    public function actionRemoveDefault($itemId)
+    public function actionRemoveDefault($itemId = null)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
         } else {
+            if (!$itemId) {
+                echo 'error';
+                return;
+            }
             $currentSSOD = SiteSubspecialtyOperativeDevice::model()->findByPk($itemId);
             if ($currentSSOD) {
                 $currentSSOD->default = 0;
@@ -165,7 +177,7 @@ class OperativeDeviceMappingController extends BaseAdminController
         $siteId = $this->request->getParam('site_id');
         $operativeDeviceId = $this->request->getParam('operative_device_id');
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errormessage' => 'notajaxcall'));
+            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
         } else {
             if (!is_numeric($subspecialtyId) || !is_numeric($siteId) || !is_numeric($operativeDeviceId)) {
                 echo 'error';
@@ -202,6 +214,7 @@ class OperativeDeviceMappingController extends BaseAdminController
     {
         if (Yii::app()->request->isAjaxRequest) {
             $criteria = new CDbCriteria();
+            $params = array();
             if (isset($_GET['term'])) {
                 $term = $_GET['term'];
                 $criteria->addCondition(

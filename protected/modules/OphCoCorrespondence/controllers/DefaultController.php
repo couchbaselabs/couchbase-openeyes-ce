@@ -59,15 +59,18 @@ class DefaultController extends BaseEventTypeController
     {
         $letter = ElementLetter::model()->find('event_id=?', array($id));
 
-        $output = $letter->getOutputByType(['Docman', 'Internalreferral']);
-        if ($output) {
-            $docnam = $output[0]; //for now only one Docman allowed
-            $title = $docnam->output_status;
-            if ($docnam->output_status === 'COMPLETE') {
-                $title = 'Sent';
+        // Check if letter exists before attempting to access its methods
+        if ($letter) {
+            $output = $letter->getOutputByType(['Docman', 'Internalreferral']);
+            if ($output) {
+                $docnam = $output[0]; //for now only one Docman allowed
+                $title = $docnam->output_status;
+                if ($docnam->output_status === 'COMPLETE') {
+                    $title = 'Sent';
+                }
+                $title = strtolower($title);
+                $this->title .= ' (' . ucfirst($title) . ')';
             }
-            $title = strtolower($title);
-            $this->title .= ' (' . ucfirst($title) . ')';
         }
         parent::actionView($id);
     }
@@ -75,6 +78,11 @@ class DefaultController extends BaseEventTypeController
     public function actionUpdate($id)
     {
         $letter = ElementLetter::model()->find('event_id=?', array($id));
+
+        // Check if letter exists before attempting to access its methods
+        if (!$letter) {
+            throw new CHttpException(404, 'Correspondence event could not be found.');
+        }
 
         // admin can go to edit mode event if the document has been sent
         if (!$letter->isEditable()) {
@@ -115,12 +123,25 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionGetAddress()
     {
+        // Validate required parameters
+        if (empty($_GET['patient_id'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: patient_id']);
+            return;
+        }
+
+        if (empty($_GET['contact'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: contact']);
+            return;
+        }
+
         if (!$patient = Patient::model()->findByPk(@$_GET['patient_id'])) {
-            throw new Exception('Unknown patient: ' . @$_GET['patient_id']);
+            $this->renderJSON(['error' => 'Unknown patient: ' . @$_GET['patient_id']]);
+            return;
         }
 
         if (!preg_match('/^([a-zA-Z]+)(\d+)$/', @$_GET['contact'], $m)) {
-            throw new Exception('Invalid contact format: ' . @$_GET['contact']);
+            $this->renderJSON(['error' => 'Invalid contact format: ' . @$_GET['contact']]);
+            return;
         }
 
         $api = Yii::app()->moduleAPI->get('OphCoCorrespondence');
@@ -1178,8 +1199,12 @@ class DefaultController extends BaseEventTypeController
                 @rmdir($event->imageDirectory);
             }
         } catch (Exception $ex) {
-            $this->saveEventImage('FAILED', ['message' => (string)$ex]);
-            throw $ex;
+            try {
+                $this->saveEventImage('FAILED', ['message' => (string)$ex]);
+            } catch (Exception $save_ex) {
+                // Silently ignore errors when saving the failed event image
+                Yii::log('Failed to save event image for event ' . $id . ': ' . $save_ex->getMessage(), CLogger::LEVEL_WARNING);
+            }
         }
     }
 
