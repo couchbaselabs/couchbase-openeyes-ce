@@ -2197,6 +2197,7 @@ class WorklistController extends BaseController
             OELog::log(print_r($comment->getErrors(), true));
             throw new CHttpException(500, "Unable to delete the comment with pathstep id {$step_id}");
         }
+        $this->renderJSON(['success' => true, 'step_id' => $step_id]);
     }
 
     public function actionRetrieveFilters()
@@ -2220,6 +2221,11 @@ class WorklistController extends BaseController
 
     public function actionStoreFilter()
     {
+        // Validate that this is a POST request
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
+        }
+
         $filter = null;
         $response = array();
         $is_recent = Yii::app()->request->getParam('is_recent') === 'true';
@@ -2238,7 +2244,9 @@ class WorklistController extends BaseController
 
         $filter->filter = Yii::app()->request->getParam('filter');
 
-        $filter->save();
+        if (!$filter->save()) {
+            throw new CHttpException(400, 'Failed to save filter. ' . json_encode($filter->getErrors()));
+        }
 
         $response['id'] = $filter->id;
         $response['user'] = $filter->created_user_id;
@@ -2256,7 +2264,11 @@ class WorklistController extends BaseController
             throw new CHttpException(404, 'Worklist filter not found');
         }
 
-        $filter->delete();
+        if (!$filter->delete()) {
+            throw new CHttpException(500, 'Failed to delete filter: ' . json_encode($filter->getErrors()));
+        }
+
+        $this->renderJSON(['success' => true, 'message' => 'Filter deleted successfully']);
     }
 
     /**
@@ -2353,6 +2365,11 @@ class WorklistController extends BaseController
      */
     public function actionRevertCheckout()
     {
+        // Validate that this is a POST request with required parameters
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
+        }
+
         $pathstep_id = Yii::app()->request->getPost('step_id');
         
         // Validate that required parameters are provided
