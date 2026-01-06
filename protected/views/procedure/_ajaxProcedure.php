@@ -15,10 +15,10 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 ?>
-<?php if ($durations) { ?>
+<?php if (!empty($durations)) { ?>
     <td class="duration">
-          <span data-default-duration="<?=$proc->default_duration ?>">
-              <?=$proc->default_duration;?>
+          <span data-default-duration="<?php echo $proc->default_duration; ?>">
+              <?php echo $proc->default_duration; ?>
           </span> mins
     </td>
 <?php } ?>
@@ -27,4 +27,3 @@
       <i class="oe-i trash"></i>
     </span>
 </td>
-
