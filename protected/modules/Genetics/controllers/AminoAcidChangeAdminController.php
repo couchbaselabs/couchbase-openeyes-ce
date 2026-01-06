@@ -51,7 +51,7 @@ class AminoAcidChangeAdminController extends BaseAdminController
         ));
         $admin->searchAll();
         $admin->getSearch()->setItemsPerPage($this->itemsPerPage);
-        $admin->getSearch()->setDefaultResults(false);
+        $admin->getSearch()->setDefaultResults(true);
         $admin->listModel();
     }
 
@@ -90,11 +90,27 @@ class AminoAcidChangeAdminController extends BaseAdminController
 
     /**
      * Deletes rows for the model.
+     * Supports both GET (individual delete by ID) and POST (batch delete).
+     *
+     * @param int|null $id The ID of the item to delete (for GET requests)
      */
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
-        $admin = new Admin(PedigreeAminoAcidChangeType::model(), $this);
-        $admin->deleteModel();
+        // Support both individual deletion by ID and batch deletion via POST
+        if (!empty($id)) {
+            // GET request: individual delete by ID
+            $model = $this->loadModel($id);
+            if ($model->delete()) {
+                Yii::app()->user->setFlash('success', "Amino Acid Change Type Deleted");
+            } else {
+                Yii::app()->user->setFlash('error', "Failed to delete Amino Acid Change Type");
+            }
+            $this->redirect('/Genetics/aminoAcidChangeAdmin/list');
+        } elseif (Yii::app()->request->isPostRequest) {
+            // POST request: batch delete
+            $admin = new Admin(PedigreeAminoAcidChangeType::model(), $this);
+            $admin->deleteModel();
+        }
     }
 
      /**

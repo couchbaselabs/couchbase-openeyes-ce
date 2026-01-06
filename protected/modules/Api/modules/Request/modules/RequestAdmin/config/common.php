@@ -55,8 +55,8 @@ $config = [
     'components' => [
         'urlManager' => [
             'rules' => [
-                'Api/Request/admin/<controller:\w+>/<action:\w+>' => '/Api/Request/RequestAdmin/<controller>/<action>',
-                'Api/Request/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/Api/Request/RequestAdmin/<controller>/<action>',
+                'Api/Request/admin/<controller:\w+>/<action:\w+>' => 'Api/Request/RequestAdmin/<controller>/<action>',
+                'Api/Request/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'Api/Request/RequestAdmin/<controller>/<action>',
             ]
         ]
     ]
