@@ -2067,36 +2067,6 @@ class PatientController extends BaseController
         $this->renderJSON($data);
     }
 
-    /**
-     * Display institution sites for the current institution.
-     *
-     * @return void
-     */
-    public function actionInstitutionSites()
-    {
-        // Get the current institution ID from the session
-        $institution_id = Yii::app()->session['selected_institution_id'] ?? null;
-
-        if (!$institution_id) {
-            throw new CHttpException(400, 'No institution selected.');
-        }
-
-        // Fetch the institution
-        $institution = Institution::model()->findByPk($institution_id);
-        if (!$institution) {
-            throw new CHttpException(404, 'Institution not found.');
-        }
-
-        // Fetch all sites for this institution
-        $sites = Site::model()->findAllByAttributes(array('institution_id' => $institution_id));
-
-        // Render the view
-        $this->render('institutionSites', array(
-            'institution' => $institution,
-            'sites' => $sites,
-        ));
-    }
-
     public function actionValidateEditContact()
     {
         $errors = array();
@@ -3491,24 +3461,4 @@ class PatientController extends BaseController
         }
     }
 
-    /**
-     * Find duplicates by patient identifier
-     * Searches for duplicate patients based on provided identifier values
-     */
-    public function actionFindDuplicatesByIdentifier()
-    {
-        $identifier_type_id = Yii::app()->request->getQuery('identifier_type_id');
-        $identifier_value = Yii::app()->request->getQuery('identifier_value');
-
-        if (!$identifier_type_id || !$identifier_value) {
-            throw new CHttpException(400, 'Identifier type and value are required.');
-        }
-
-        $this->pageTitle = 'Find Duplicate Patients';
-        $this->render('find_duplicates_by_identifier', array(
-            'identifier_type_id' => $identifier_type_id,
-            'identifier_value' => $identifier_value,
-            'duplicates' => array(),
-        ));
-    }
 }
