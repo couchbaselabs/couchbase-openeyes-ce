@@ -692,6 +692,10 @@ class Admin
             if (array_key_exists('id', $post) && is_array($post['id'])) {
                 foreach ($post['id'] as $id) {
                     $model = $this->model->findByPk($id);
+                    if (!$model) {
+                        $response = 0;
+                        continue;
+                    }
                     $attributes = $model->getAttributes();
                     if (isset($model->active)) {
                         $model->active = 0;
