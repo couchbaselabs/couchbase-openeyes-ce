@@ -183,6 +183,7 @@
             </tr>
             </tfoot>
         </table>
+    </form>
 </div>
 
 <?php

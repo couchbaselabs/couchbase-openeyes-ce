@@ -172,7 +172,18 @@ class LensTypeAdminController extends BaseAdminController
      */
     public function actionDeleteInstitutionMapping()
     {
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect('/OphInBiometry/lensTypeAdmin/list');
+            return;
+        }
+
         $ids = Yii::app()->request->getPost('select');
+        
+        if (empty($ids)) {
+            $this->redirect('/OphInBiometry/lensTypeAdmin/list');
+            return;
+        }
+
         $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
         $institution_id = Institution::model()->getCurrent()->id;
