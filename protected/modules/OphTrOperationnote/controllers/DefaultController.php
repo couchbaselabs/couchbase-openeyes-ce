@@ -973,6 +973,19 @@ class DefaultController extends BaseEventTypeController
             //TODO: check for missing elements for procedures
         } else {
             $elements = $this->event_type->getDefaultElements();
+            
+            // If no default elements are configured, initialize the required elements for operation notes
+            if (empty($elements)) {
+                $elements = array(
+                    new Element_OphTrOperationnote_SiteTheatre(),
+                    new Element_OphTrOperationnote_Surgeon(),
+                    new Element_OphTrOperationnote_ProcedureList(),
+                    new Element_OphTrOperationnote_Anaesthetic(),
+                    new Element_OphTrOperationnote_PostOpDrugs(),
+                    new Element_OphTrOperationnote_Comments(),
+                );
+            }
+            
             $procedures = $this->getBookingProcedures();
 
             if (empty($procedures) && $this->unbooked) {

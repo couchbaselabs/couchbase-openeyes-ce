@@ -771,11 +771,17 @@ class AdminController extends BaseAdminController
     public function actionCheckInstAuthType()
     {
         $institution_authentication_id = Yii::app()->request->getParam('id');
+        
+        if (empty($institution_authentication_id)) {
+            echo "ERROR: Missing required parameter 'id'";
+            return;
+        }
+        
         $institution_authentication = InstitutionAuthentication::model()->with('institution')->findByPk($institution_authentication_id);
         if ($institution_authentication) {
             echo $institution_authentication->user_authentication_method;
         } else {
-            echo "ERROR";
+            echo "ERROR: Institution authentication record not found";
         }
     }
 
@@ -854,7 +860,7 @@ class AdminController extends BaseAdminController
                 if ($user_auth->delete()) {
                     echo "success";
                 } else {
-                    echo "error: failed to delete: $user_auth->getErrors()";
+                    echo "error: failed to delete: " . json_encode($user_auth->getErrors());
                 }
             } else {
                 echo "error: not found";
@@ -1086,11 +1092,18 @@ class AdminController extends BaseAdminController
 
     public function actionLookupUser()
     {
-        Yii::app()->event->dispatch('lookup_user', array('username' => $_GET['username'], 'institution_authentication_id' => $_GET['institution_authentication_id']));
+        $username = isset($_GET['username']) ? $_GET['username'] : null;
+        $institution_authentication_id = isset($_GET['institution_authentication_id']) ? $_GET['institution_authentication_id'] : null;
+        
+        Yii::app()->event->dispatch('lookup_user', array('username' => $username, 'institution_authentication_id' => $institution_authentication_id));
 
-        $user_auth = UserAuthentication::model()->find('username=?', array($_GET['username']));
-        if ($user_auth) {
-            echo $user_auth->user->id;
+        if ($username) {
+            $user_auth = UserAuthentication::model()->find('username=?', array($username));
+            if ($user_auth && $user_auth->user) {
+                echo $user_auth->user->id;
+            } else {
+                echo 'NOTFOUND';
+            }
         } else {
             echo 'NOTFOUND';
         }
@@ -1229,9 +1242,16 @@ class AdminController extends BaseAdminController
 
     public function actionRemoveLocation()
     {
-        $cl = ContactLocation::model()->findByPk(@$_POST['location_id']);
+        $location_id = @$_POST['location_id'];
+        
+        if (empty($location_id)) {
+            $this->redirect('/admin/contacts');
+            return;
+        }
+        
+        $cl = ContactLocation::model()->findByPk($location_id);
         if (!$cl) {
-            throw new CHttpException(404, 'ContactLocation not found: ' . @$_POST['location_id']);
+            throw new CHttpException(404, 'ContactLocation not found: ' . $location_id);
         }
 
         if (count($cl->patients) > 0) {
@@ -1367,12 +1387,13 @@ class AdminController extends BaseAdminController
 
     public function actionGetInstitutionSites()
     {
-        $institution = Institution::model()->findByPk(@$_GET['institution_id']);
+        $institution_id = @$_GET['institution_id'] ?: $this->selectedInstitutionId;
+        $institution = Institution::model()->findByPk($institution_id);
         if (!$institution) {
-            throw new CHttpException(404, 'Institution not found: ' . @$_GET['institution_id']);
+            throw new CHttpException(404, 'Institution not found: ' . $institution_id);
         }
 
-        Audit::add('admin-Institution>Site', 'view', @$_GET['institution_id']);
+        Audit::add('admin-Institution>Site', 'view', $institution_id);
 
         $this->renderJSON(CHtml::listData($institution->sites, 'id', 'name'));
     }

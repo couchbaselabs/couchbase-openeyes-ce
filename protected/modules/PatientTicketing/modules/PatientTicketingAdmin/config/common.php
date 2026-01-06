@@ -19,8 +19,9 @@ $config = [
     'components' => [
         'urlManager' => [
             'rules' => [
-                'PatientTicketing/admin/<controller:\w+>/<action:\w+>' => '/PatientTicketing/PatientTicketingAdmin/<controller>/<action>',
-                'PatientTicketing/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/PatientTicketing/PatientTicketingAdmin/<controller>/<action>',
+                // Only route specific PatientTicketingAdmin controllers from /PatientTicketing/admin/* paths
+                'PatientTicketing/admin/<controller:(ClinicLocations|OutcomeOptions)>/<action:\w+>' => '/PatientTicketing/PatientTicketingAdmin/<controller>/<action>',
+                'PatientTicketing/admin/<controller:(ClinicLocations|OutcomeOptions)>/<action:\w+>/<id:\d+>' => '/PatientTicketing/PatientTicketingAdmin/<controller>/<action>',
                 'PatientTicketing/PatientTicketingAdmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/PatientTicketing/PatientTicketingAdmin/<controller>/<action>',
             ]
         ]

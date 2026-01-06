@@ -100,7 +100,7 @@ class Element_OphTrOperationnote_Surgeon extends Element_OpNote
      * 
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'clinical';
     }
