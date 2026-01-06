@@ -162,9 +162,10 @@ class DefaultController extends BaseEventTypeController
     public function actionWhiteboard($id = null)
     {
         if ($id === null) {
-            throw new CHttpException(400, 'Operation ID is required for the whiteboard view.');
+            $this->redirect(Yii::app()->createUrl('/'));
+        } else {
+            $this->redirect(Yii::app()->createUrl('/OphTrOperationbooking/whiteboard/view/' . $id));
         }
-        $this->redirect(Yii::app()->createUrl('/OphTrOperationbooking/whiteboard/view/' . $id));
     }
 
     protected function setOpenElementsFromCurrentEvent($action)
@@ -417,12 +418,15 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionLoadElementByProcedure()
     {
-        if (!$proc = Procedure::model()->findByPk((int)@$_GET['procedure_id'])) {
-            throw new SystemException('Procedure not found: ' . @$_GET['procedure_id']);
+        $procedure_id = \Yii::app()->request->getParam('procedure_id');
+        if (!$procedure_id || !$proc = Procedure::model()->findByPk((int)$procedure_id)) {
+            echo 'error: Procedure not found.';
+            return;
         }
 
         if (!$patient_id = $this->getApp()->request->getParam('patient_id')) {
-            throw new SystemException('patient_id required for procedure element loading.');
+            echo 'error: patient_id required for procedure element loading.';
+            return;
         }
         $this->setPatient($patient_id);
 
@@ -517,12 +521,17 @@ class DefaultController extends BaseEventTypeController
     /**
      * Ajax function that works out what elements are no longer needed when a procedure has been removed.
      *
-     * @throws SystemException
+     * @throws CHttpException
      */
     public function actionGetElementsToDelete()
     {
-        if (!$proc = Procedure::model()->findByPk((int)@$_POST['procedure_id'])) {
-            throw new SystemException('Procedure not found: ' . @$_POST['procedure_id']);
+        // Validate that procedure_id parameter is provided
+        if (empty($_POST['procedure_id'])) {
+            throw new CHttpException(400, 'Missing required parameter: procedure_id');
+        }
+
+        if (!$proc = Procedure::model()->findByPk((int)$_POST['procedure_id'])) {
+            throw new CHttpException(404, 'Procedure not found: ' . $_POST['procedure_id']);
         }
 
         $procedures = @$_POST['remaining_procedures'] ? explode(',', $_POST['remaining_procedures']) : array();
@@ -887,9 +896,12 @@ class DefaultController extends BaseEventTypeController
             return;
         }
 
-        preg_match('/data\:image\/png;base64,(.*)$/', $_POST['image'], $m);
-
-        file_put_contents('/tmp/image.png', base64_decode($m[1]));
+        if (preg_match('/data\:image\/png;base64,(.*)$/', $_POST['image'], $m) && isset($m[1])) {
+            $decoded = base64_decode($m[1], true);
+            if ($decoded !== false) {
+                file_put_contents('/tmp/image.png', $decoded);
+            }
+        }
     }
 
     public function getBookingOperation()
@@ -903,10 +915,11 @@ class DefaultController extends BaseEventTypeController
 
     public function actionGetTheatreOptions()
     {
-        $siteId = $this->getApp()->request->getParam('siteId');
+        $siteId = (int)$this->getApp()->request->getParam('siteId');
         if ($siteId > 0) {
             $optionValues = OphTrOperationbooking_Operation_Theatre::model()->findAll(array(
-                'condition' => 'active=1 and site_id=' . $siteId,
+                'condition' => 'active=1 and site_id=:site_id',
+                'params' => array(':site_id' => $siteId),
                 'order' => 'name',
             ));
 
@@ -1243,6 +1256,11 @@ class DefaultController extends BaseEventTypeController
     {
         $surgeon_id = \Yii::app()->request->getParam('surgeon_id');
         $procedures = \Yii::app()->request->getParam('procedures');
+        
+        // Ensure procedures is an array
+        if (!is_array($procedures)) {
+            $procedures = $procedures ? [$procedures] : [];
+        }
 
         $procedure_set = ProcedureSet::findForProcedures($procedures);
 
