@@ -44,10 +44,18 @@ class TagsAdminController extends BaseAdminController
         $admin = new Admin(Tag::model(), $this);
         if (!is_null($id)) {
             $admin->setModelId($id);
+            // Check if tag exists
+            $tag = Tag::model()->findByPk($id);
+            if ($tag === null) {
+                Yii::app()->user->setFlash('error', 'Tag not found.');
+                $this->redirect(array('/TagsAdmin/list'));
+                return;
+            }
         }
 
         $admin->setCustomSaveURL('/TagsAdmin/save');
 
+        $tag_model = is_null($id) ? null : Tag::model()->findByPk($id);
         $admin->setEditFields(array(
             'name' => is_null($id) ? 'text' : 'label',
             'active' => 'checkbox',
@@ -55,14 +63,14 @@ class TagsAdminController extends BaseAdminController
                 'widget' => 'CustomView',
                 'viewName' => 'application.modules.OphDrPrescription.modules.OphDrPrescriptionAdmin.views.tag_druglist',
                 'viewArguments' => array(
-                    'items' => is_null($id) ? array() : Tag::model()->findByPk($id)->drugs
+                    'items' => is_null($tag_model) ? array() : $tag_model->drugs
                 )
             ),
             'medication_drugs' => array(
                 'widget' => 'CustomView',
                 'viewName' => 'application.modules.OphDrPrescription.modules.OphDrPrescriptionAdmin.views.tag_medication_druglist',
                 'viewArguments' => array(
-                    'items' => is_null($id) ? array() : Tag::model()->findByPk($id)->medication_drugs
+                    'items' => is_null($tag_model) ? array() : $tag_model->medication_drugs
                 )
             )
 
@@ -89,6 +97,11 @@ class TagsAdminController extends BaseAdminController
                 $is_new = true;
             } else {
                 $tag = Tag::model()->findByPk($id);
+                if ($tag === null) {
+                    Yii::app()->user->setFlash('error', 'Tag not found.');
+                    $this->redirect(array('/TagsAdmin/list'));
+                    return;
+                }
                 $is_new = false;
             }
 
