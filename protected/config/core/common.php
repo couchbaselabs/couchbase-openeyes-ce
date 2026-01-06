@@ -443,13 +443,21 @@ $config = array(
                 'OphCoTherapyapplication/admin/<action:\w+>/<id:\d+>' => 'OphCoTherapyapplication/Admin/<action>?id=<id>',
                 'OphCoTherapyapplication/admin/<action:\w+>' => 'OphCoTherapyapplication/Admin/<action>',
 
+                // OphTrLaser admin routes - bypass ExaminationAdmin for OphTrLaser
+                'OphTrLaser/admin/<action:\w+>/<id:\d+>' => 'OphTrLaser/Admin/<action>/<id>',
+                'OphTrLaser/admin/<action:\w+>' => 'OphTrLaser/Admin/<action>',
+
+                // OphTrOperationbooking admin routes - bypass ExaminationAdmin for OphTrOperationbooking
+                'OphTrOperationbooking/admin/<action:\w+>/<id:\d+>' => 'OphTrOperationbooking/Admin/<action>?id=<id>',
+                'OphTrOperationbooking/admin/<action:\w+>' => 'OphTrOperationbooking/Admin/<action>',
+
                 // OphInDnaextraction routes - handle path parameters as query parameters
                 'OphInDnaextraction/<controller:\w+>/<action:\w+>/<id:\d+>' => 'OphInDnaextraction/<controller>/<action>?id=<id>',
                 'OphInDnaextraction/<controller:\w+>/<action:\w+>' => 'OphInDnaextraction/<controller>/<action>',
 
-                // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCoCvi, OphDrPrescription, or OphDrPGDPSD)
-                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>?id=<id>',
-                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
+                // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCoCvi, OphDrPrescription, OphDrPGDPSD, OphCoTherapyapplication, OphTrLaser, or OphTrOperationbooking)
+                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>?id=<id>',
+                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
                 '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>?id=<id>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>' => '<module>/oeadmin/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>?id=<id>',

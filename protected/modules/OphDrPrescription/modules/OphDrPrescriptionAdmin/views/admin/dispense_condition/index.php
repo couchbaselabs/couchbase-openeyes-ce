@@ -22,7 +22,7 @@
     <form id="admin_<?= get_class(OphDrPrescription_DispenseCondition::model()) ?>">
         <input type="hidden" name="YII_CSRF_TOKEN" value="<?php echo Yii::app()->request->csrfToken ?>"/>
         <input type="hidden" name="model" value="<?= OphDrPrescription_DispenseCondition::class ?>"/>
-        <table class="standard" id="et_sort" data-uri="/OphDrPrescription/admin/DispenseCondition/sortConditions">
+        <table class="standard" id="et_sort" data-uri="/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/sortConditions">
             <thead>
             <tr>
                 <th><input type="checkbox" name="selectall" id="selectall"/></th>
@@ -46,7 +46,7 @@
                     [
                         'model' => $dispense_condition,
                         'data_id' => $dispense_condition->id,
-                        'data_uri' => 'OphDrPrescription/admin/DispenseCondition/edit/' . $dispense_condition->id,
+                        'data_uri' => 'OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/edit/' . $dispense_condition->id,
                         'name' => $dispense_condition->name,
                         'display_order' => $dispense_condition->display_order,
                         'is_active' => $dispense_condition->hasMapping(
@@ -63,7 +63,7 @@
                     <?php echo CHtml::button(
                         'Add',
                         [
-                            'data-uri' => '/OphDrPrescription/admin/DispenseCondition/create',
+                            'data-uri' => '/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/create',
                             'class' => 'button large',
                             'id' => 'et_add'
                         ]
@@ -74,7 +74,7 @@
                             'name' => 'admin-map-add',
                             'id' => 'et_admin-map-add',
                             'class' => 'generic-admin-save button large',
-                            'formaction' => '/OphDrPrescription/admin/DispenseCondition/addMapping',
+                            'formaction' => '/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/addMapping',
                             'formmethod' => 'POST',
                         ]
                     );
@@ -84,7 +84,7 @@
                             'name' => 'admin-map-remove',
                             'id' => 'et_admin-map-remove',
                             'class' => 'generic-admin-save button large',
-                            'formaction' => '/OphDrPrescription/admin/DispenseCondition/removeMapping',
+                            'formaction' => '/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/removeMapping',
                             'formmethod' => 'POST',
                         ]
                     );

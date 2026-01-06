@@ -186,15 +186,22 @@ class SupplementaryConsentController extends BaseAdminController
         if (Yii::app()->request->isPostRequest) {
             $user_data = \Yii::app()->request->getPost('Ophtrconsent_SupplementaryConsentQuestion');
 
-            $suppleconsent->attributes = $user_data;
+            if ($user_data) {
+                $suppleconsent->attributes = $user_data;
 
-            $suppleconsent->question_type_id = $user_data['question_type_id'];
+                // Ensure question_type_id is set
+                if (isset($user_data['question_type_id'])) {
+                    $suppleconsent->question_type_id = $user_data['question_type_id'];
+                }
 
-            // try saving the data
-            if (!$suppleconsent->save()) {
-                $errors = $suppleconsent->getErrors();
+                // try saving the data
+                if (!$suppleconsent->save()) {
+                    $errors = $suppleconsent->getErrors();
+                } else {
+                    $this->redirect('/OphTrConsent/oeadmin/SupplementaryConsent/list/');
+                }
             } else {
-                $this->redirect('/OphTrConsent/oeadmin/SupplementaryConsent/list/');
+                $errors['form'] = 'No form data received';
             }
         }
         $this->render('/oeadmin/supplementaryconsent/edit', array(

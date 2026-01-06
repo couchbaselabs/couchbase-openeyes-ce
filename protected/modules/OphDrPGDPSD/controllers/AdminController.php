@@ -70,8 +70,13 @@ class AdminController extends BaseAdminController
         $this->savePGDPSD($pgdpsd, 'Add');
     }
 
-    public function actionEditPGDPSD($id)
+    public function actionEditPGDPSD($id = null)
     {
+        // Support both path-based and query-parameter-based IDs
+        if ($id === null) {
+            $id = Yii::app()->request->getQuery('id');
+        }
+        
         $pgdpsd = OphDrPGDPSD_PGDPSD::model()->findByPk($id);
         if (!$pgdpsd) {
             Yii::app()->user->setFlash('pgdpsd-not-found', 'Selected PGD/PSD does not exist');

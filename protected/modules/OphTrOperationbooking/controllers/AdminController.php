@@ -2033,7 +2033,7 @@ class AdminController extends ModuleAdminController
                 throw $e;
             }
             if (empty($errors)) {
-                $this->redirect(array('admin/viewSessionUnavailableReasons'));
+                $this->redirect(array('/OphTrOperationbooking/admin/viewSessionUnavailableReasons'));
             }
         }
 

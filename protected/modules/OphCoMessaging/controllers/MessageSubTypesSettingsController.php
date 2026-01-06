@@ -94,7 +94,7 @@ class MessageSubTypesSettingsController extends \ModuleAdminController
         if (!$this->checkAccess('admin')) {
             throw new \CHttpException(403, 'Only system admins may access these settings.');
         }
-        if (!$model = OphCoMessaging_Message_MessageType::model()->find('`id`=?', array(@$_GET['id']))) {
+        if (!$model = OphCoMessaging_Message_MessageType::model()->findByPk((int)\Yii::app()->request->getParam('id'))) {
             $this->redirect(array('/OphCoMessaging/MessageSubTypesSettings'));
         }
 

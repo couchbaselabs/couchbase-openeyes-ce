@@ -37,12 +37,12 @@ class DispenseConditionController extends BaseAdminController
     public function actionEdit($id)
     {
         if (!$model = OphDrPrescription_DispenseCondition::model()->findByPk($id)) {
-            $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+            $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
         }
 
         $model_saved = $this->saveModel($model);
         if ($model_saved) {
-            $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+            $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
         }
 
         $this->render('/admin/edit', [
@@ -57,7 +57,7 @@ class DispenseConditionController extends BaseAdminController
         $model = new OphDrPrescription_DispenseCondition();
         $model_saved = $this->saveModel($model);
         if ($model_saved) {
-            $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+            $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
         }
 
         $this->render('/admin/edit', [
@@ -70,7 +70,7 @@ class DispenseConditionController extends BaseAdminController
     public function actionAddMapping()
     {
         if (!Yii::app()->request->isPostRequest || !isset($_POST['model'])) {
-            $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+            $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
             return;
         }
 
@@ -94,13 +94,13 @@ class DispenseConditionController extends BaseAdminController
         } else {
             $transaction->commit();
         }
-        $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+        $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
     }
 
     public function actionRemoveMapping()
     {
         if (!Yii::app()->request->isPostRequest || !isset($_POST['model'])) {
-            $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+            $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
             return;
         }
 
@@ -124,7 +124,7 @@ class DispenseConditionController extends BaseAdminController
         } else {
             $transaction->commit();
         }
-        $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+        $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
     }
 
     private function saveModel($model)

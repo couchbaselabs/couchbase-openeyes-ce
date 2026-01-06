@@ -58,6 +58,8 @@ class Ophtrconsent_SupplementaryConsentQuestion extends BaseActiveRecordVersione
         return [
             ['name, description', 'length', 'max' => 500],
             ['name, description, last_modified_date, created_date', 'safe'],
+            ['question_type_id', 'required'],
+            ['question_type_id', 'numerical', 'integerOnly' => true],
             // The following rule is used by search().
             ['name, description', 'safe', 'on' => 'search'],
         ];

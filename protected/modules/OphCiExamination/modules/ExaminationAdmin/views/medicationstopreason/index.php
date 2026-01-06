@@ -39,7 +39,7 @@
             <?php foreach ($model_list as $i => $model) { ?>
                             <?php $editable = !in_array($model->name, $this->reasons_that_cannot_be_edited) ?>
                             <tr class="<?= $editable ? 'clickable' : ''  ?>" data-id="<?= $model->id ?>"
-                    data-uri="OphCiExamination/admin/MedicationStopReason/update/<?= $model->id ?>" >
+                    data-uri="OphCiExamination/admin/MedicationStopReason/update?id=<?= $model->id ?>" >
                     <td><input type="checkbox" name="select[]" value="<?= $model->id ?>"/></td>
                     <td class="stop-reason-name">
                                                 <?php if (!$editable) { ?>

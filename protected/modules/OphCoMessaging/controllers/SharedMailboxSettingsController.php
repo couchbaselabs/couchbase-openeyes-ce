@@ -86,7 +86,13 @@ class SharedMailboxSettingsController extends \ModuleAdminController
         }
 
         if (\Yii::app()->request->isPostRequest) {
-            $data = $_POST[\CHtml::modelName($mailbox)];
+            $modelName = \CHtml::modelName($mailbox);
+            $data = isset($_POST[$modelName]) ? $_POST[$modelName] : [];
+            
+            if (empty($data)) {
+                \Yii::log('POST data not found for model: ' . $modelName . '. Available POST keys: ' . implode(', ', array_keys($_POST)), \CLogger::LEVEL_WARNING);
+            }
+            
             $errors = $this->saveMailbox($mailbox, $data);
 
             if (empty($errors)) {
@@ -114,7 +120,10 @@ class SharedMailboxSettingsController extends \ModuleAdminController
     private function saveMailbox($mailbox, $data)
     {
         $mailbox->name = $data['name'];
-        $mailbox->is_personal = 0;
+        if (!$mailbox->id) {
+            // Only set is_personal = 0 for new mailboxes being created through SharedMailboxSettings
+            $mailbox->is_personal = 0;
+        }
         $mailbox->active = $data['active'] ?? '0';
 
         $user_ids = $data['mailboxUsers'] ?? [];

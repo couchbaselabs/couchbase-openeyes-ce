@@ -143,9 +143,14 @@ class OphTrOperationnote_Attribute extends BaseActiveRecordVersioned
     public function beforeValidate()
     {
         if (is_null($this->display_order)) {
-            if ($last = self::model()->findBySql("SELECT * FROM ".$this->tableName()." ORDER BY `display_order` DESC LIMIT 1")) {
-                $this->display_order = $last->display_order + 1;
-            } else {
+            try {
+                // Try to find the last display_order using the database
+                $max_order = (int)Yii::app()->db->createCommand()
+                    ->select('MAX(display_order)')
+                    ->from($this->tableName())
+                    ->queryScalar();
+                $this->display_order = $max_order + 1;
+            } catch (Exception $e) {
                 $this->display_order = 1;
             }
         }

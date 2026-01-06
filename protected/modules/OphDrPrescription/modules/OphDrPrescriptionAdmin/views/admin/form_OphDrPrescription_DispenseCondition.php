@@ -82,7 +82,7 @@ if (!$dc_institution) {
                 <?=\CHtml::submitButton(
                     'Cancel',
                     [
-                        'data-uri' => '/OphDrPrescription/admin/DispenseCondition/index',
+                        'data-uri' => '/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index',
                         'class' => 'warning button large primary event-action',
                         'name' => 'cancel',
                         'id' => 'et_cancel',

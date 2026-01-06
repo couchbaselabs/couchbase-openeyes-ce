@@ -29,14 +29,14 @@
                 <th>Active for Current Institution</th>
             </tr>
             </thead>
-            <tbody class="sortable" data-sort-uri="/OphTrOperationbooking/admin/sortpatientunavailablereasons">
+            <tbody class="sortable" data-sort-uri="/OphTrOperationbooking/admin/sortPatientUnavailableReasons">
             <?php
             $criteria = new CDbCriteria();
             $criteria->order = 'display_order asc';
             $reasons = OphTrOperationbooking_ScheduleOperation_PatientUnavailableReason::model()->findAll($criteria);
             $institution_id = Institution::model()->getCurrent()->id;
             foreach ($reasons as $i => $patientunavailablereason) {?>
-                <tr class="clickable" data-attr-id="<?php echo $patientunavailablereason->id?>" data-uri="OphTrOperationbooking/admin/editpatientunavailablereason/<?php echo $patientunavailablereason->id?>">
+                <tr class="clickable" data-attr-id="<?php echo $patientunavailablereason->id?>" data-uri="OphTrOperationbooking/admin/editPatientUnavailableReason/<?php echo $patientunavailablereason->id?>">
                     <td><input type="checkbox" name="select[]" value="<?php echo $patientunavailablereason->id?>" class="patientunavailablereasons-enabled" id="select[<?= $patientunavailablereason->id ?>"/></td>
                     <td>
                         <?php echo $patientunavailablereason->name?>
@@ -59,7 +59,7 @@
                         [
                             'class' => 'button large',
                             'name' => 'add',
-                            'data-uri' => '/OphTrOperationbooking/admin/AddPatientUnavailableReason',
+                            'data-uri' => '/OphTrOperationbooking/admin/addPatientUnavailableReason',
                             'id' => 'et_add'
                         ]
                     ) ?>
@@ -68,7 +68,7 @@
                         [
                             'class' => 'button large',
                             'name' => 'add-mapping',
-                            'formaction' => '/OphTrOperationbooking/admin/AddInstitutionMapping',
+                            'formaction' => '/OphTrOperationbooking/admin/addInstitutionMapping',
                             'id' => 'et_add_mapping'
                         ]
                     ) ?>
@@ -77,7 +77,7 @@
                         [
                             'class' => 'button large',
                             'name' => 'delete-mapping',
-                            'formaction' => '/OphTrOperationbooking/admin/DeleteInstitutionMapping',
+                            'formaction' => '/OphTrOperationbooking/admin/deleteInstitutionMapping',
                             'id' => 'et_delete_mapping'
                         ]
                     ) ?>

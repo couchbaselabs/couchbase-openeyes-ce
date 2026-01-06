@@ -47,7 +47,7 @@
             if (isset($theatres)) {
                 foreach ($theatres as $i => $theatre) { ?>
                     <tr class="clickable sortable" data-attr-id="<?php echo $theatre->id ?>"
-                        data-uri="OphTrOperationbooking/admin/editTheatre/<?php echo $theatre->id ?>">
+                        data-uri="OphTrOperationbooking/admin/editTheatre?id=<?php echo $theatre->id ?>">
                         <td><input type="checkbox" name="theatre[]" value="<?php echo $theatre->id ?>"
                                    class="theatres"/></td>
                         <td><?php echo $theatre->site?->name ?? 'None' ?></td>

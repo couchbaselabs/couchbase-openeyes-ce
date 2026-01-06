@@ -64,8 +64,8 @@
                         'options' => [
                             'label' => 'benefit',
                             'dropDown' => [
-                                'name' => null,
-                                'id' => '$benefits',
+                                'name' => 'benefits',
+                                'id' => 'benefits',
                                 'data' => \CHtml::listData($benefits, 'id', 'name'),
                                 'htmlOptions' => ['empty' => 'Add a Benefit', 'class' => 'cols-full'],
                                 'selectedItemsInputName' => "benefits[]",
@@ -85,8 +85,8 @@
                         'options' => [
                             'label' => 'complications',
                             'dropDown' => [
-                                'name' => null,
-                                'id' => '$complications',
+                                'name' => 'complications',
+                                'id' => 'complications',
                                 'data' => \CHtml::listData($complications, 'id', 'name'),
                                 'htmlOptions' => ['empty' => 'Add Complication', 'class' => 'cols-full'],
                                 'selectedItemsInputName' => "complications[]",

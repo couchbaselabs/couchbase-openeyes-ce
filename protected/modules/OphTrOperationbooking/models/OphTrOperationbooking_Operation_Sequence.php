@@ -371,7 +371,7 @@ class OphTrOperationbooking_Operation_Sequence extends BaseActiveRecordVersioned
                 $interval = $interval_obj ? $interval_obj->getInteger($endDate) : null;
             }
 
-            $days = $interval ? $interval / 24 / 60 / 60 : 0;
+            $days = $interval ? (int)($interval / 24 / 60 / 60) : 0;
 
             $nextStartDate = $startDate;
 

@@ -213,15 +213,16 @@ class DefaultController extends BaseEventTypeController
     protected function updateEventInfoByStep($id)
     {
         $info_text = '';
+        $current_step = $this->getCurrentStep();
         if ($id === '1') {
             $info_text = 'Admitted';
-        } elseif ($this->getCurrentStep()->id === '2') {
+        } elseif ($current_step && $current_step->id === '2') {
             $info_text = 'Ward to Theatre Checklist Complete';
-        } elseif ($this->getCurrentStep()->id === '3') {
+        } elseif ($current_step && $current_step->id === '3') {
             $info_text = 'Theatre Checklist 2 Completed';
-        } elseif ($this->getCurrentStep()->id === '4') {
+        } elseif ($current_step && $current_step->id === '4') {
             $info_text = 'Pending Discharge';
-        } elseif ($this->getCurrentStep()->id === '5') {
+        } elseif ($current_step && $current_step->id === '5') {
             $info_text = 'Discharged';
         }
         $this->event->info = $info_text;
@@ -236,7 +237,8 @@ class DefaultController extends BaseEventTypeController
         if ($step_id) {
             $this->step = OphTrOperationchecklists_ElementSet::model()->findByPk($step_id);
         } else {
-            $this->step = $this->getCurrentStep()->getNextStep();
+            $current_step = $this->getCurrentStep();
+            $this->step = $current_step ? $current_step->getNextStep() : null;
         }
 
         $this->setCurrentSet();

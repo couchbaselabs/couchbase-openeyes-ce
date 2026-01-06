@@ -33,10 +33,20 @@ class WhiteboardSettingsController extends ModuleAdminController
     public function actionEditSetting()
     {
         $key = \Yii::app()->request->getParam('key');
+        
+        // Validate that key parameter is provided
+        if (empty($key)) {
+            \Yii::app()->user->setFlash('error', 'Setting key is required.');
+            $this->redirect(array('/OphTrOperationbooking/oeadmin/WhiteboardSettings/settings'));
+            return;
+        }
+        
         $metadata = \OphTrOperationbooking_Whiteboard_Settings::model()->find('`key`=?', [$key]);
         $institution_id = $this->selectedInstitutionId;
         if (!$metadata) {
+            \Yii::app()->user->setFlash('error', 'Setting not found.');
             $this->redirect(array('/OphTrOperationbooking/oeadmin/WhiteboardSettings/settings'));
+            return;
         }
 
         $errors = [];

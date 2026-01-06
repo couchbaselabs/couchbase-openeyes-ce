@@ -24,9 +24,10 @@ $fpten_setting = SettingMetadata::model()->getSetting('prescription_form_format'
 $overprint_setting = SettingMetadata::model()->getSetting('enable_prescription_overprint');
 $fpten_dispense_condition = OphDrPrescription_DispenseCondition::model()->findByAttributes(array('name' => 'Print to {form_type}'));
 
-$dispense_condition_options = array(
-    $fpten_dispense_condition->id => array('label' => "Print to $fpten_setting")
-);
+$dispense_condition_options = array();
+if ($fpten_dispense_condition) {
+    $dispense_condition_options[$fpten_dispense_condition->id] = array('label' => "Print to $fpten_setting");
+}
 // End of FP10 settings
 ?>
 

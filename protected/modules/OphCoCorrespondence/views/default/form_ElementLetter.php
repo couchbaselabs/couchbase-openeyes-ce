@@ -43,7 +43,7 @@ $element->letter_type_id = ($element->letter_type_id ?: $macro_letter_type_id);
 $patient_id = Yii::app()->request->getQuery('patient_id', null);
 $patient = Patient::model()->findByPk($patient_id);
 $creating = $creating ?? false;
-$footer_array = explode("{e-signature}", $element["footer"]);
+$footer_array = explode("{e-signature}", $element["footer"] ?? '');
 ?>
 <?php if ($creating === false) : ?>
     <input type="hidden" id="re_default"
@@ -421,7 +421,7 @@ $footer_array = explode("{e-signature}", $element["footer"]);
                             $element,
                             're',
                             array('rows' => 2, 'label' => false, 'nowrapper' => true),
-                            empty($_POST) ? strlen($element->re) === 0 : strlen(@$_POST['ElementLetter']['re']) === 0,
+                            empty($_POST) ? strlen($element->re ?? '') === 0 : strlen(@$_POST['ElementLetter']['re'] ?? '') === 0,
                             array('class' => 'cols-full correspondence-letter-text autosize')
                         ) ?>
                 </td>
@@ -440,14 +440,14 @@ $footer_array = explode("{e-signature}", $element["footer"]);
         <h3>Sign-off &amp; signature block</h3>
         <div class="flex-t col-gap">
             <div class="cols-7">
-                <?php if (strpos($element["footer"], "{e-signature}") !== false) { ?>
+                <?php if (!empty($element["footer"]) && strpos($element["footer"], "{e-signature}") !== false) { ?>
                     <div class="correspondence-letter-text"><?php echo $footer_array[0]; ?></div>
                     <em class="fade">(e-Sign will be added here)</em>
                     <div class="correspondence-letter-text correspondence-letter-text-change">
                         <?php echo $footer_array[1]; ?>
                     </div>
                 <?php } else { ?>
-                    <div class="correspondence-letter-text"><?php echo nl2br($element["footer"]); ?></div>
+                    <div class="correspondence-letter-text"><?php echo nl2br($element["footer"] ?? ''); ?></div>
                 <?php } ?>
             </div>
             <div class="cols-5">

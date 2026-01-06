@@ -235,8 +235,21 @@ class AdminController extends \ModuleAdminController
         ));
     }
 
-    public function actionEditClinicalDisorderSection($id)
+    public function actionEditClinicalDisorderSection($id = null)
     {
+        // Try to get ID from various sources
+        if ($id === null || $id === '') {
+            // Try from GET parameter
+            $id = \Yii::app()->request->getQuery('id');
+        }
+        
+        if ($id === null || $id === '') {
+            // Try from the request URI path
+            $uri = \Yii::app()->request->getRequestUri();
+            if (preg_match('/editClinicalDisorderSection\/(\d+)/', $uri, $matches)) {
+                $id = $matches[1];
+            }
+        }
 
         if (!$section = OphCoCvi_ClinicalInfo_Disorder_Section::model()->findByPk($id)) {
             throw new Exception("Section not found: $id");

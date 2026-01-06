@@ -45,7 +45,7 @@ class DefaultController extends \ModuleAdminController
             $errors = $this->updateEventSubType($event_subtype, \Yii::app()->request->getPost('EventSubtype'));
 
             if (empty($errors)) {
-                $this->redirect('/OphGeneric/admin/Default/listEventSubTypes');
+                $this->redirect('/OphGeneric/OphGenericAdmin/default/listEventSubTypes');
             }
         }
 

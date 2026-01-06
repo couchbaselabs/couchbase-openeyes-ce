@@ -1767,7 +1767,7 @@ class BaseEventTypeController extends BaseModuleController
         
         // Check if eventType is null to prevent null pointer exception
         if (!$this->event->eventType) {
-            throw new Exception("Event Type not found for Event ID: " . $this->event->id . " (event_type_id: " . $this->event->event_type_id . ")");
+            throw new CHttpException(400, "Event does not have a valid event type.");
         }
         
         $this->event_tabs = array(

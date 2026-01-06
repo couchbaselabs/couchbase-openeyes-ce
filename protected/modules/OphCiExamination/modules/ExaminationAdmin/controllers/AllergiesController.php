@@ -47,12 +47,35 @@ class AllergiesController extends \ModuleAdminController
         $request = Yii::app()->getRequest();
         $post = $request->getPost('OphCiExamination_Allergy');
         
-        // Handle GET requests (no POST data) by redirecting to index
+        // Handle GET requests by loading single allergy for editing
         if (empty($post)) {
-            $this->redirect(['Allergies/index']);
+            $id = $request->getQuery('id') ?: Yii::app()->request->getParam('id');
+            
+            if (!$id) {
+                $this->redirect(['Allergies/index']);
+                return;
+            }
+            
+            $allergy = OphCiExaminationAllergy::model()->findByPk($id);
+            if (!$allergy) {
+                throw new CHttpException(404, 'Allergy not found');
+            }
+            
+            $this->group = 'Examination';
+            $asset_manager = Yii::app()->getAssetManager();
+            $asset_manager->registerScriptFile('/js/oeadmin/OpenEyes.admin.js');
+            $asset_manager->registerScriptFile('/js/oeadmin/list.js');
+            
+            $medication_set_list_options = \MedicationSet::model()->findAll('id NOT IN (SELECT medication_set_id FROM openeyes.medication_set_rule)');
+            
+            $this->render('/Allergies/update', [
+                'model' => $allergy,
+                'medication_set_list_options' => $medication_set_list_options,
+            ]);
             return;
         }
         
+        // Handle POST requests from both index and update pages
         $display_order = 1;
         foreach ($post as $attributes) {
             if (isset($attributes['id'])) {

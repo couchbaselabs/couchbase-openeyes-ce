@@ -86,7 +86,7 @@ class PrescriptionDrugSetsAdminController extends RefSetAdminController
 
     public function actionEdit($id = null)
     {
-        if (!isset($_GET['default']['name']) && $_GET['default']['name']) {
+        if (isset($_GET['default']['name']) && $_GET['default']['name']) {
             $this->redirect(['/OphDrPrescription/refSetAdmin/edit?default[name]=' . $_GET['default']['name'] . '&usage_code=PRESCRIPTION_SET']);
         } else {
             $this->redirect(['/OphDrPrescription/refSetAdmin/edit', 'usage_code' => 'PRESCRIPTION_SET']);

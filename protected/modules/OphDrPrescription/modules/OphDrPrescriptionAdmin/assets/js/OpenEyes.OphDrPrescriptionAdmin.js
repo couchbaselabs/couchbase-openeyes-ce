@@ -56,7 +56,7 @@ OpenEyes.OphDrPrescriptionAdmin = OpenEyes.OphDrPrescriptionAdmin || {};
         // Set value on load
         this.selected_code_filter = $('.js-set-select.green').data('usage_code_id');
 
-        $('#et_add_drugset').click( e => {
+        $('#et_add').click( e => {
             e.preventDefault();
             window.location.href = baseUrl + $(e.target).data('uri') + '?usage_code=' + this.selected_code_filter;
         });

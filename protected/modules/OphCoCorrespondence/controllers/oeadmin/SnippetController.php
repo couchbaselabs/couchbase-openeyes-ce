@@ -259,6 +259,13 @@ class SnippetController extends ModuleAdminController
             $this->admin->setModelId($id);
         }
 
+        // Set the proper form action URL to submit back to the same edit action
+        if ($id) {
+            $this->admin->setCustomSaveURL(Yii::app()->controller->createUrl('edit', array('id' => $id)));
+        } else {
+            $this->admin->setCustomSaveURL(Yii::app()->controller->createUrl('edit'));
+        }
+
         $group_id = Yii::app()->request->getParam('group_id');
         $list_institution_id = null;
         $default = Yii::app()->request->getParam('default');

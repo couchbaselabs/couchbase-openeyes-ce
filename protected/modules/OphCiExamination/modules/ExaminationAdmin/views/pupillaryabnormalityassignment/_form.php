@@ -51,7 +51,7 @@
 
     <?php
     $examination_abnormality_listdata = CHtml::listData(
-        OEModule\OphCiExamination\models\OphCiExamination_PupillaryAbnormalities_Abnormality::model()->findAll('active = 1'),
+        OEModule\OphCiExamination\models\OphCiExamination_PupillaryAbnormalities_Abnormality::model()->findAll(),
         'id',
         'name'
     );

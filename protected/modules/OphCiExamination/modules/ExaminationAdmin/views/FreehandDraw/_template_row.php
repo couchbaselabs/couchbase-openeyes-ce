@@ -19,7 +19,7 @@
 <?php foreach ($templates ?? [] as $i => $template) : ?>
     <tr class="clickable"
         data-id="<?php echo $template->id?>"
-        data-uri="OphCiExamination/admin/FreehandDraw/edit/<?=$template->id?>"
+        data-uri="OphCiExamination/admin/FreehandDraw/edit?id=<?=$template->id?>"
     >
         <td><input type="checkbox" name="delete_templates[]" value="<?=$template->id?>"></td>
         <td class="reorder">

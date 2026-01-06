@@ -274,6 +274,13 @@ class DefaultController extends BaseEventTypeController
     {
 
         $element_array = Yii::app()->request->getPost('OphInDnaextraction_DnaTests_Transaction');
+        
+        if (!is_array($element_array)) {
+            $this->renderJSON(['success'=>false, 'message' => 'Invalid request: OphInDnaextraction_DnaTests_Transaction data is required']);
+            Yii::app()->end();
+            return;
+        }
+        
         $element_array = array_shift($element_array);
 
         $transaction = new OphInDnaextraction_DnaTests_Transaction();

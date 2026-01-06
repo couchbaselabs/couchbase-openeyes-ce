@@ -21,7 +21,7 @@ foreach (Yii::app()->user->getFlashes() as $key => $message) {
 }
 ?>
 
-<form method="POST" action="/OphDrPrescription/OphDrPrescriptionAdmin/localDrugsAdmin/EditLocalDrugInstitutionMappings">
+<form method="POST" action="<?php echo Yii::app()->createUrl('OphDrPrescription/OphDrPrescriptionAdmin/localDrugsAdmin/editLocalDrugInstitutionMappings'); ?>">
     <input type="hidden" class="no-clear" name="YII_CSRF_TOKEN" value="<?php echo Yii::app()->request->csrfToken ?>"/>
     <?php
     $columns = array(

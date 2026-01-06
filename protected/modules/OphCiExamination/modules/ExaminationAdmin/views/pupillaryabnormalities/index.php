@@ -37,7 +37,7 @@
             <tbody class="sortable">
             <?php foreach ($model_list as $i => $model) { ?>
                 <tr class="clickable" data-id="<?= $model->id ?>"
-                    data-uri="OphCiExamination/admin/PupillaryAbnormalities/update/<?= $model->id ?>" >
+                    data-uri="OphCiExamination/admin/PupillaryAbnormalities/update?id=<?= $model->id ?>" >
                     <td class="reorder">
                         <span>↑↓</span>
                         <?=\CHtml::hiddenField("OphCiExamination_PupillaryAbnormalities_Abnormality[display_order][]", $model->id, ['id' => "OphCiExamination_PupillaryAbnormalities_Abnormality_display_order_{$i}"]);?>

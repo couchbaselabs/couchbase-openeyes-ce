@@ -20,15 +20,8 @@
 
 <?= CHtml::errorSummary($model, null, null, ['class' => 'alert-box alert with-icon']) ?>
 <?php
-$form = $this->beginWidget('BaseEventTypeCActiveForm', array(
-    'id' => 'adminform',
-    'enableAjaxValidation' => false,
-    'focus' => '#name',
-    'layoutColumns' => array(
-        'label' => 2,
-        'field' => 4,
-    ),
-));
+// Note: The form is already started in edit.php, so we don't start another one here
+// The $form variable is passed from edit.php
 ?>
 
 <div class="cols-8">
@@ -87,7 +80,6 @@ $form = $this->beginWidget('BaseEventTypeCActiveForm', array(
         'data-uri' => '/OphCiExamination/admin/HistoryMacro/list'
     ]) ?>
 </div>
-<?php $this->endWidget() ?>
 
 <script type="text/javascript">
     $(document).ready(function () {

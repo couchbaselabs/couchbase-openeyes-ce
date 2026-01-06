@@ -22,12 +22,20 @@ class AdminController extends ModuleAdminController
 
     public function actionManageLasers()
     {
-        $criteria = new CDbCriteria();
-        $criteria->with = 'site';
-        $criteria->condition = 't.institution_id = :institution_id OR (t.institution_id is null AND site.institution_id = :institution_id)';
-        $criteria->params = [':institution_id' => Yii::app()->session['selected_institution_id']];
-        $criteria->order = 'display_order asc';
-        $model_list = OphTrLaser_Site_Laser::model()->with('type')->findAll($criteria);
+        // Fetch all lasers and filter by institution in PHP
+        // This approach works better with Couchbase backend
+        $all_lasers = OphTrLaser_Site_Laser::model()->with('type')->findAll(array('order' => 'display_order asc'));
+        
+        $selected_institution_id = Yii::app()->session['selected_institution_id'];
+        $model_list = array();
+        
+        // Filter by institution
+        foreach ($all_lasers as $laser) {
+            if ($laser->institution_id == $selected_institution_id || 
+                ($laser->institution_id === null && $laser->site && $laser->site->institution_id == $selected_institution_id)) {
+                $model_list[] = $laser;
+            }
+        }
 
         Audit::add('admin', 'list', null, false, array('module' => 'OphTrLaser', 'model' => 'OphTrLaser_Site_Laser'));
 
@@ -275,18 +283,30 @@ class AdminController extends ModuleAdminController
 
     public function actionEditLaserProcedure($id = null)
     {
+        $laser_procedure = null;
+        if ($id) {
+            $laser_procedure = OphTrLaser_LaserProcedure::model()->findByPk($id);
+            if (!$laser_procedure) {
+                throw new CHttpException(404, 'Laser procedure not found with id ' . $id);
+            }
+        }
+
         if (Yii::app()->request->isPostRequest) {
             $procedure = $_POST['Procedure'];
             $institutions = $_POST['OphTrLaser_LaserProcedure']['institutions'];
 
             try {
-                $laser_procedure = OphTrLaser_LaserProcedure::model()->findByPk($id);
+                if (!$laser_procedure) {
+                    $laser_procedure = new OphTrLaser_LaserProcedure();
+                }
                 $laser_procedure->procedure_id = $procedure['proc_id'];
                 $laser_procedure->save();
 
-                OphTrLaser_LaserProcedure_Institution::model()->deleteAll('laserprocedure_id = :procedure_id', array(':procedure_id' => $id));
-                if (!empty($institutions)) {
-                    $laser_procedure->createMappings(ReferenceData::LEVEL_INSTITUTION, $institutions);
+                if ($laser_procedure->id) {
+                    OphTrLaser_LaserProcedure_Institution::model()->deleteAll('laserprocedure_id = :procedure_id', array(':procedure_id' => $laser_procedure->id));
+                    if (!empty($institutions)) {
+                        $laser_procedure->createMappings(ReferenceData::LEVEL_INSTITUTION, $institutions);
+                    }
                 }
             } catch (Exception $e) {
                 throw new CHttpException(500, $e->getMessage(), true);
@@ -296,8 +316,12 @@ class AdminController extends ModuleAdminController
 
         $this->setJSVars();
 
+        if (!$laser_procedure) {
+            $laser_procedure = new OphTrLaser_LaserProcedure();
+        }
+
         $this->render('edit_OphTrLaser_Procedure', [
-            'laser_procedure' => OphTrLaser_LaserProcedure::model()->findByPk($id),
+            'laser_procedure' => $laser_procedure,
         ]);
     }
 

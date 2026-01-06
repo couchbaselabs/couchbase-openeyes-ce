@@ -32,7 +32,7 @@
             <?php foreach ($event_subtypes as $subtype) { ?>
             <tr class="clickable"
                 data-id="<?= $subtype->event_subtype ?>"
-                data-uri="OphGeneric/admin/Default/editEventSubType/<?= $subtype->event_subtype ?>"
+                data-uri="OphGeneric/OphGenericAdmin/default/editEventSubType?id=<?= $subtype->event_subtype ?>"
             >
                 <td></td>
                 <td><?= $subtype->display_name ?></td>

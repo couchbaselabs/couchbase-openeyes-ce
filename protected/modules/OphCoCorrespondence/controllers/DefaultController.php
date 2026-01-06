@@ -1530,7 +1530,7 @@ class DefaultController extends BaseEventTypeController
     {
         $errors = parent::setAndValidateElementsFromData($data);
 
-        $document_target = $data['DocumentTarget'];
+        $document_target = $data['DocumentTarget'] ?? null;
         if (!isset($document_target[0]['attributes']['ToCc']) && Yii::app()->getController()->getAction(
             )->id === 'create') {
             $errors['Letter'][] = 'To Address: Please add at least one recipient!';

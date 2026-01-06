@@ -97,7 +97,7 @@ class AdminController extends \ModuleAdminController
     public function actionEditSetting()
     {
         if (!$metadata = OphCoCorrespondenceLetterSettings::model()->find('`key`=?', array(@$_GET['key']))) {
-            $this->redirect(array('/OphCoCorrespondence/admin/letterSettings/settings'));
+            $this->redirect('/OphCoCorrespondence/admin/letterSettings');
         }
 
         $institution_id = Institution::model()->getCurrent()->id;
@@ -114,7 +114,7 @@ class AdminController extends \ModuleAdminController
                     if (!$setting->save()) {
                         $errors = $setting->errors;
                     } else {
-                        $this->redirect(array('/OphCoCorrespondence/admin/letterSettings/settings'));
+                        $this->redirect('/OphCoCorrespondence/admin/letterSettings');
                     }
                 }
             }
@@ -801,7 +801,7 @@ class AdminController extends \ModuleAdminController
                 $errors = $template->errors;
             } else {
                 if (!$template->save()) {
-                    throw new Exception('Unable to save Email template: ' . print_r($template->errors, true));
+                    throw new Exception('Unable to save Email template: ' . json_encode($template->errors));
                 }
 
                 Audit::add('admin', 'create', $template->id, null, array('module' => 'OphCoCorrespondence', 'model' => 'EmailTemplate'));

@@ -38,10 +38,10 @@
                 <tr class="clickable" data-id="<?php echo $model->id ?>"
                     data-uri="OphTrLaser/admin/editLaser/<?php echo $model->id ?>">
                     <td><?php echo $model->name ?></td>
-                    <td><?php echo $model->type->name ?></td>
+                    <td><?php echo $model->type ? $model->type->name : 'N/A' ?></td>
                     <td><?php echo $model->wavelength ?></td>
                     <td><?php echo $model->institution ? $model->institution->name : 'N/A' ?></td>
-                    <td><?php echo $model->site->name ?></td>
+                    <td><?php echo $model->site ? $model->site->name : 'N/A' ?></td>
                     <td><i class="oe-i <?=($model->active ? 'tick' : 'remove');?> small"></i></td>
                     <td>
                             <?=\CHtml::link(

@@ -34,6 +34,11 @@ class DnaExtractionBoxAdminController extends \ModuleAdminController
 
     public function actionEdit($id = false)
     {
+        // Handle ID from both path parameter and GET request
+        if (!$id && isset($_GET['id'])) {
+            $id = $_GET['id'];
+        }
+        
         $admin = new Admin(OphInDnaextraction_DnaExtraction_Box::model(), $this);
         if ($id) {
             $admin->setModelId($id);

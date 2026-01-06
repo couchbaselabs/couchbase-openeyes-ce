@@ -174,7 +174,7 @@ class RefMedicationAdminController extends BaseAdminController
         $admin->setEditFields($this->_getEditFields($model));
 
         $admin->setModelDisplayName("Medication");
-        $admin->setCustomSaveURL('/OphDrPrescription/OphDrPrescriptionAdmin/' . $this->id . '/save/' . $model->id);
+        $admin->setCustomSaveURL('/OphDrPrescription/' . $this->id . '/save?id=' . $model->id);
 
         return $admin;
     }

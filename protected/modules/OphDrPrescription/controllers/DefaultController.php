@@ -882,6 +882,10 @@ class DefaultController extends BaseEventTypeController
         $model = Element_OphDrPrescription_Details::model()
             ->findBySql('SELECT * FROM et_ophdrprescription_details WHERE event_id = :id', [':id' => $id]);
 
+        if (!$model) {
+            throw new CHttpException(404, 'The prescription with ID ' . $id . ' was not found.');
+        }
+
         if (!$model->isEditableByMedication()) {
             throw new CHttpException(403, 'You are not authorised to update the Prescription from this page.');
         } elseif ($reason === null && !$model->draft) {

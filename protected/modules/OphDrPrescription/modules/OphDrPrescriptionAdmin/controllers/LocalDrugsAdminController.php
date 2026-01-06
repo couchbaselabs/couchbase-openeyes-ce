@@ -82,35 +82,65 @@ class LocalDrugsAdminController extends RefMedicationAdminController
     public function actionEditLocalDrugInstitutionMappings()
     {
         $level = ReferenceData::LEVEL_INSTITUTION;
-        $institution_id = Institution::model()->getCurrent()->id;
+        $institution_id = (string)Institution::model()->getCurrent()->id;
 
         $row_ids = Yii::app()->request->getPost('id');
         $selected = Yii::app()->request->getPost('selected');
-        $transaction = Yii::app()->cbdb->beginTransaction();
+        
+        // Debug: Log the input data
+        Yii::log("EditLocalDrugInstitutionMappings: row_ids=" . json_encode($row_ids) . ", selected=" . json_encode($selected) . ", institution_id=" . $institution_id, 'info');
+        
+        if (!is_array($row_ids)) {
+            $row_ids = array();
+        }
+        
+        $transaction = Yii::app()->db->beginTransaction();
         $errors = array();
         try {
             foreach ($row_ids as $row => $id) {
-                $record = Medication::model()->findByPk($id);
+                $record = Medication::model()->findByPk((int)$id);
+
+                if ($record === null) {
+                    $errors[] = "Medication with ID $id not found";
+                    Yii::log("Medication with ID $id not found", 'info');
+                    continue;
+                }
 
                 $needs_mapping = isset($selected[$row]) && $selected[$row] == 1;
+                Yii::log("Row $row: ID=$id, needs_mapping=" . ($needs_mapping ? 'true' : 'false'), 'info');
 
                 if ($record->hasMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id)) {
+                    Yii::log("Row $row: Mapping already exists", 'info');
                     if (!$needs_mapping) {
-                        $record->deleteMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id);
+                        if (!$record->deleteMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id)) {
+                            $errors[] = "Failed to delete mapping for medication $id";
+                            Yii::log("Failed to delete mapping for $id", 'error');
+                        } else {
+                            Yii::log("Deleted mapping for $id", 'info');
+                        }
                     }
                 } else {
+                    Yii::log("Row $row: No existing mapping", 'info');
                     if ($needs_mapping) {
-                        $record->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id);
+                        if (!$record->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id)) {
+                            $errors[] = "Failed to create mapping for medication $id";
+                            Yii::log("Failed to create mapping for $id", 'error');
+                        } else {
+                            Yii::log("Created mapping for $id", 'info');
+                        }
                     }
                 }
             }
         } catch (Exception $e) {
             $errors[] = $e->getMessage();
+            Yii::log("Exception: " . $e->getMessage(), 'error');
         }
 
         if (!empty($errors)) {
+            Yii::log("Rolling back transaction due to errors: " . json_encode($errors), 'error');
             $transaction->rollback();
         } else {
+            Yii::log("Committing transaction", 'info');
             $transaction->commit();
         }
         $this->redirect('/OphDrPrescription/OphDrPrescriptionAdmin/localDrugsAdmin/ListLocalDrugInstitutionMappings');

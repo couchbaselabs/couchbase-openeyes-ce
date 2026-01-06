@@ -117,8 +117,18 @@ class DocumentSubTypesSettingsController extends \ModuleAdminController
                     }
                 }
                 // just save the model because the validation already ran.
-                if ($model->save(false)) {
-                    $this->redirect(array('/OphCoDocument/oeadmin/DocumentSubTypesSettings'));
+                try {
+                    $saveResult = $model->save(true);
+                    if ($saveResult) {
+                        $this->redirect(array('/OphCoDocument/oeadmin/DocumentSubTypesSettings/index'));
+                    } else {
+                        $errors = $model->errors;
+                        if (empty($errors)) {
+                            $errors = array('general' => array('Failed to save model. Please check the logs.'));
+                        }
+                    }
+                } catch (Exception $e) {
+                    $errors = array('general' => array('Error saving model: ' . $e->getMessage()));
                 }
             } else {
                 $errors = $model->errors;

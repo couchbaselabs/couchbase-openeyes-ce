@@ -71,7 +71,7 @@ class RefSetAdminController extends BaseAdminController
         if ($id) {
             $admin->setModelId($id);
         }
-        $admin->setCustomSaveURL('/OphDrPrescription/refSetAdmin/save/' . $id);
+        $admin->setCustomSaveURL('/OphDrPrescription/refSetAdmin/save?id=' . $id);
 
         $admin->editModel();
     }

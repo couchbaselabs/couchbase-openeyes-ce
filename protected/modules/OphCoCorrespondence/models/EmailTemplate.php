@@ -56,43 +56,48 @@ class EmailTemplate extends BaseActiveRecordVersioned
 
     public function institutionSiteRecipientValidator($attribute, $params)
     {
-        // Build the WHERE clause conditions
-        $conditions = [];
-        $params = [];
+        try {
+            // Build the WHERE clause conditions
+            $conditions = [];
+            $queryParams = [];
 
-        // Institution condition
-        if ($this->institution_id != '') {
-            $conditions[] = 'oet.institution_id = :institution_id';
-            $params[':institution_id'] = $this->institution_id;
-        } else {
-            $conditions[] = 'oet.institution_id IS NULL';
-        }
+            // Institution condition
+            if ($this->institution_id != '') {
+                $conditions[] = 'oet.institution_id = :institution_id';
+                $queryParams[':institution_id'] = $this->institution_id;
+            } else {
+                $conditions[] = 'oet.institution_id IS NULL';
+            }
 
-        // Site condition
-        if ($this->site_id != '') {
-            $conditions[] = 'oet.site_id = :site_id';
-            $params[':site_id'] = $this->site_id;
-        } else {
-            $conditions[] = 'oet.site_id IS NULL';
-        }
+            // Site condition
+            if ($this->site_id != '') {
+                $conditions[] = 'oet.site_id = :site_id';
+                $queryParams[':site_id'] = $this->site_id;
+            } else {
+                $conditions[] = 'oet.site_id IS NULL';
+            }
 
-        // Recipient type and ID conditions
-        $conditions[] = 'LOWER(oet.recipient_type) = LOWER(:recipient_type)';
-        $conditions[] = 'oet.id != :email_template_id';
-        $params[':recipient_type'] = $this->recipient_type;
-        $params[':email_template_id'] = $this->id ?: -1;
+            // Recipient type and ID conditions
+            $conditions[] = 'LOWER(oet.recipient_type) = LOWER(:recipient_type)';
+            $conditions[] = 'oet.id != :email_template_id';
+            $queryParams[':recipient_type'] = $this->recipient_type;
+            $queryParams[':email_template_id'] = $this->id ?: -1;
 
-        $whereClause = implode(' AND ', $conditions);
+            $whereClause = implode(' AND ', $conditions);
 
-        // Use MariaDB connection directly instead of Couchbase
-        $query = Yii::app()->db->createCommand()
-            ->select('oet.id')
-            ->from('ophcocorrespondence_email_template oet')
-            ->where($whereClause, $params)
-            ->queryAll();
+            // Use MariaDB connection directly instead of Couchbase
+            $query = Yii::app()->db->createCommand()
+                ->select('oet.id')
+                ->from('ophcocorrespondence_email_template oet')
+                ->where($whereClause, $queryParams)
+                ->queryAll();
 
-        if (count($query) !== 0) {
-            $this->addError($attribute, 'This combination of institution, site and recipient already exists.');
+            if (count($query) !== 0) {
+                $this->addError($attribute, 'This combination of institution, site and recipient already exists.');
+            }
+        } catch (Exception $e) {
+            // Log the error but don't block validation
+            Yii::log('Email template validator error: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
         }
     }
 

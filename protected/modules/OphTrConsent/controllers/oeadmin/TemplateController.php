@@ -87,12 +87,41 @@ class TemplateController extends BaseAdminController
             throw new Exception('Template not found with id ' . $request->getParam('id'));
         }
         if ($request->getPost('OphTrConsent_Template')) {
-            $model->attributes = $request->getPost('OphTrConsent_Template');
             $templateAtt = $request->getPost('OphTrConsent_Template');
+            
+            // Extract only the model attributes (exclude nested arrays like procedures)
+            $modelAttributes = array();
+            foreach ($templateAtt as $key => $value) {
+                if (!is_array($value) || in_array($key, array('institution_id', 'site_id', 'subspecialty_id', 'type_id'))) {
+                    $modelAttributes[$key] = $value;
+                }
+            }
+            
+            $model->attributes = $modelAttributes;
+            
             if (!$model->validate()) {
                 $errors = $model->getErrors();
             } else {
-                if ($model->save()) {
+                // Use direct SQL UPDATE to bypass ORM issues with isSqlAvailable() checks
+                $updates = $modelAttributes;
+                unset($updates['id']); // Don't update the primary key
+                
+                $updatePairs = array();
+                $params = array();
+                foreach ($updates as $column => $value) {
+                    $paramName = ':' . $column;
+                    $updatePairs[] = "$column = $paramName";
+                    $params[$paramName] = $value;
+                }
+                $params[':id'] = $model->id;
+                
+                $sql = 'UPDATE ' . $model->tableName() . ' SET ' . implode(', ', $updatePairs) . ' WHERE id = :id';
+                
+                try {
+                    $command = Yii::app()->db->createCommand($sql);
+                    $command->execute($params);
+                    
+                    Audit::add('admin', 'update', serialize($model->attributes), false, array('model' => 'Template', 'id' => $model->id));
                     Yii::app()->user->setFlash('success', 'Template saved');
                     if (!array_key_exists('firms', $templateAtt) || !is_array($templateAtt['firms'])) {
                         $templateAtt['firms'] = array();
@@ -101,8 +130,9 @@ class TemplateController extends BaseAdminController
                         $model->saveProcedures($templateAtt['procedures']);
                     }
                     $this->redirect(array('List'));
-                } else {
-                    $errors = $model->getErrors();
+                } catch (Exception $e) {
+                    Yii::log('Failed to save template: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+                    Yii::app()->user->setFlash('error', 'Failed to save template: ' . $e->getMessage());
                 }
             }
         }

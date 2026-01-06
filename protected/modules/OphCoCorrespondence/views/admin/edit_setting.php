@@ -51,10 +51,14 @@ $form = $this->beginWidget('BaseEventTypeCActiveForm', array(
                 if (isset($institution_id)) {
                     echo CHtml::hiddenField($metadata->key.'_institution_id', $institution_id);
                 }
-                $this->renderPartial(
-                    '//admin/_admin_setting_' . strtolower(str_replace(' ', '_', $metadata->field_type->name)),
-                    array('metadata' => $metadata, 'allowed_classes' => null, 'institution_id' => $institution_id)
-                )
+                if ($metadata->field_type) {
+                    $this->renderPartial(
+                        '//admin/_admin_setting_' . strtolower(str_replace(' ', '_', $metadata->field_type->name)),
+                        array('metadata' => $metadata, 'allowed_classes' => null, 'institution_id' => $institution_id)
+                    );
+                } else {
+                    echo CHtml::textField($metadata->key, $metadata->getSetting($metadata->key), array('class' => 'cols-full'));
+                }
                 ?>
             </td>
         </tr>
