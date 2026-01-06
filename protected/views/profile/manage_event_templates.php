@@ -1,4 +1,7 @@
 <h2>Your templates for pre-filling data</h2>
+<?php if (empty($structured_templates)) { ?>
+    <p>You have no saved templates yet. <a href="<?= Yii::app()->createUrl('/profile/addSite') ?>">Create a new template</a></p>
+<?php } ?>
 <?php foreach ($structured_templates as $event_type_name => $procedure_set_templates) { ?>
 <div class="flex-l row"><i class="oe-i-e i-TrOperationNotes"></i>  <?= $event_type_name ?></div>
 <table class="standard last-right no-pad">
@@ -21,8 +24,12 @@
                 <ul class="dot-list">
                     <?php
                     $procedure_set = ProcedureSet::model()->findByPk($procedure_set_id);
-                    foreach ($procedure_set->procedures as $procedure) { ?>
-                        <li><?= $procedure->short_format ?></li>
+                    if ($procedure_set && isset($procedure_set->procedures)) {
+                        foreach ($procedure_set->procedures as $procedure) { ?>
+                            <li><?= $procedure->short_format ?></li>
+                        <?php }
+                    } else { ?>
+                        <li>Procedure set not found</li>
                     <?php } ?>
                 </ul>
             </td>
