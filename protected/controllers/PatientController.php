@@ -703,10 +703,21 @@ class PatientController extends BaseController
         $this->redirect(Yii::app()->createUrl('/' . $event->parent->eventType->class_name . '/default/view/' . $event->parent_id));
     }
 
-    public function actionEpisodes()
+    public function actionEpisodes($id = null)
     {
         $this->layout = '//layouts/events_and_episodes';
-        $this->patient = $this->loadModel($_GET['id'], false);
+        
+        // Get ID from parameter or GET request
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        // Check if ID was provided
+        if (empty($id)) {
+            throw new CHttpException(400, 'Patient ID is required.');
+        }
+        
+        $this->patient = $this->loadModel($id, false);
         $this->pageTitle = 'Episodes';
 
         //if $this->patient was merged we redirect the user to the primary patient's page
@@ -1151,6 +1162,9 @@ class PatientController extends BaseController
             });
 
             foreach ($selectedPreviews as $event) {
+                if (!$event->event_date) {
+                    continue;
+                }
                 $year = (new DateTime($event->event_date))->format('Y');
                 if (!isset($previewsByYear[$year])) {
                     $previewsByYear[$year] = array();
