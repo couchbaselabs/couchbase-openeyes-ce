@@ -530,21 +530,47 @@ class ProfileController extends BaseController
             ]);
             return;
         }
-        $img = base64_decode(str_replace('data:image/jpeg;base64,', '', $img));
-        $file = ProtectedFile::createForWriting("user_signature_" . $user->id);
-        $file->title = "Signature";
-        $file->mimetype = "image/jpeg";
-        file_put_contents($file->getPath(), $img);
-        if ($file->save()) {
-            $user->signature_file_id = $file->id;
-            $user->save(false, ["signature_file_id"]);
-            $this->renderJSON([
-                "success" => true
-            ]);
-        } else {
+        
+        // Decode the base64 image data
+        $decoded_img = base64_decode(str_replace('data:image/jpeg;base64,', '', $img), true);
+        if ($decoded_img === false || empty($decoded_img)) {
             $this->renderJSON([
                 "success" => false,
-                "message" => "An error occurred while saving the signature."
+                "message" => "Invalid image data"
+            ]);
+            return;
+        }
+        
+        try {
+            $file = ProtectedFile::createForWriting("user_signature_" . $user->id);
+            $file->title = "Signature";
+            $file->mimetype = "image/jpeg";
+            
+            // Write the file content
+            if (file_put_contents($file->getPath(), $decoded_img) === false) {
+                $this->renderJSON([
+                    "success" => false,
+                    "message" => "An error occurred while writing the signature file."
+                ]);
+                return;
+            }
+            
+            if ($file->save()) {
+                $user->signature_file_id = $file->id;
+                $user->save(false, ["signature_file_id"]);
+                $this->renderJSON([
+                    "success" => true
+                ]);
+            } else {
+                $this->renderJSON([
+                    "success" => false,
+                    "message" => "An error occurred while saving the signature."
+                ]);
+            }
+        } catch (Exception $e) {
+            $this->renderJSON([
+                "success" => false,
+                "message" => "An error occurred: " . $e->getMessage()
             ]);
         }
     }
@@ -656,6 +682,16 @@ class ProfileController extends BaseController
     public function actionUsersettings()
     {
         $element_type = ElementType::model()->find('class_name = :class_name', array(':class_name' => 'Element_OphTrOperationnote_Cataract'));
+        
+        // Handle case where element type doesn't exist
+        if (!$element_type) {
+            $errors = array('Element type' => array('Cataract operation note element type not found in system'));
+            $this->render('/profile/user_settings', array(
+                'errors' => $errors,
+                'settings' => array(),
+            ));
+            return;
+        }
         $setting_metadata = \Yii::app()->request->getPost('SettingMetadata');
         if ($setting_metadata) {
             SettingUser::model()->deleteAll('user_id = :user_id AND element_type_id = :element_type_id', array(':user_id' => Yii::app()->user->id, ':element_type_id' => $element_type->id));
@@ -691,6 +727,9 @@ class ProfileController extends BaseController
 
     public function getUserSettings($elementType)
     {
+        if (!$elementType) {
+            return array();
+        }
         return SettingUser::model()->findAll('user_id = :user_id AND element_type_id = :element_type_id', array(':user_id' => Yii::app()->user->id, ':element_type_id' => $elementType->id));
     }
 
@@ -700,7 +739,18 @@ class ProfileController extends BaseController
 
         $user_templates = EventTemplateUser::model()->findAllByAttributes(['user_id' => $user->id]);
 
-        $op_note_event_type_id = EventType::model()->findByAttributes(['class_name' => 'OphTrOperationnote'])->id;
+        $op_note_event_type = EventType::model()->findByAttributes(['class_name' => 'OphTrOperationnote']);
+        if (!$op_note_event_type) {
+            // If operation note event type doesn't exist, render with empty templates
+            $this->render(
+                '/profile/manage_event_templates',
+                array(
+                    'structured_templates' => [],
+                )
+            );
+            return;
+        }
+        $op_note_event_type_id = $op_note_event_type->id;
 
         $command = Yii::app()->cbdb->createCommand()
             ->select('t.id, t.name, et.id event_type_id, et.name event_type_name, ot.proc_set_id proc_set_id')
@@ -738,10 +788,15 @@ class ProfileController extends BaseController
             foreach ($template_data as $id => $name) {
                 $template = EventTemplate::model()->findByPk($id);
 
+                if ($template === null) {
+                    $errors[] = "Template with ID $id not found";
+                    continue;
+                }
+
                 $template->name = $name;
 
                 if (!$template->save()) {
-                    $errors[] = $template->errors;
+                    $errors[] = $template->getErrors();
                 }
             }
         }
@@ -763,6 +818,11 @@ class ProfileController extends BaseController
 
         foreach ($template_ids as $template_id) {
             $template = EventTemplate::model()->findByPk($template_id);
+
+            if ($template === null) {
+                $transaction->rollback();
+                $this->renderJSON(['success' => false, 'message' => "Template with ID $template_id not found"]);
+            }
 
             if (!$template->opnote_templates->delete()) {
                 $transaction->rollback();
