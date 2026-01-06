@@ -103,21 +103,48 @@ class Finding extends \BaseActiveRecordVersioned
     }
 
     /**
-     * After save, sync to Couchbase
+     * Disable Couchbase dual-write for this model due to connectivity issues
+     * TODO: Re-enable once Couchbase cluster is stable
+     */
+    protected function isDualWriteEnabled()
+    {
+        return false;
+    }
+
+    /**
+     * After save, sync to Couchbase (with error handling)
      */
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        try {
+            $this->saveToCouchbase();
+        } catch (\Exception $e) {
+            // Log the error but don't fail the save operation
+            \Yii::log(
+                "Failed to sync Finding #{$this->id} to Couchbase: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.couchbase'
+            );
+        }
     }
 
     /**
-     * After delete, remove from Couchbase
+     * After delete, remove from Couchbase (with error handling)
      */
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        try {
+            $this->deleteFromCouchbase();
+        } catch (\Exception $e) {
+            // Log the error but don't fail the delete operation
+            \Yii::log(
+                "Failed to delete Finding #{$this->id} from Couchbase: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.couchbase'
+            );
+        }
     }
 
     /**
