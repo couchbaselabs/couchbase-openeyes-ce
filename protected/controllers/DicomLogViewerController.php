@@ -41,7 +41,9 @@ class DicomLogViewerController extends BaseController
     public function beforeAction($action)
     {
         if (!Yii::app()->user->isGuest) {
-            $userid = Yii::app()->session['user']->id;
+            if (isset(Yii::app()->session['user']) && Yii::app()->session['user'] !== null) {
+                $userid = Yii::app()->session['user']->id;
+            }
         }
         return parent::beforeAction($action);
     }
@@ -77,6 +79,16 @@ class DicomLogViewerController extends BaseController
         // Validate sortby parameter to prevent SQL injection
         if (!in_array($sortby, array('ASC', 'DESC'))) {
             $sortby = 'DESC';
+        }
+
+        // Validate type parameter
+        if (!in_array($type, array(SignatureImportLog::TYPE_CVI, SignatureImportLog::TYPE_CONSENT))) {
+            $type = SignatureImportLog::TYPE_CVI;
+        }
+
+        // Validate page parameter
+        if (!is_numeric($page) || $page < 1) {
+            $page = 1;
         }
 
         $likewhere = '';
@@ -155,30 +167,51 @@ class DicomLogViewerController extends BaseController
     }
 
     /**
-     * Lists all disorders for a given search term.
+     * Lists all signatures for a given search term (hospital number or patient name).
      */
-    public function actionSignatureImportLogAutocomplete($term)
+    public function actionSignatureImportLogAutocomplete()
     {
+        // Get the search term from the query string, not as a function parameter
+        $term = isset($_GET['term']) ? $_GET['term'] : '';
+        
+        // Return empty array if no term is provided
+        if (empty($term)) {
+            echo json_encode(array());
+            return;
+        }
+        
         $search = "%{$term}%";
         $where = '(pi.value like :search)';
         //$where = '';
-        $cvis = \Yii::app()->cbdb->createCommand()
-            ->select('uc.code AS unique_id, DATE_FORMAT(e.event_date, "%d %b %Y") as label, DATE_FORMAT(e.event_date, "%d %b %Y") as value, ps.id AS element_id, pi.value AS hos_num, CONCAT(first_name," ", last_name) AS patient_name, e.id AS event_id')
-            ->from('event e')
-            ->join('episode ep', 'e.episode_id = ep.id')
-            ->join('patient p', 'ep.patient_id = p.id')
-            ->join('patient_identifier pi', 'pi.patient_id = p.id')
-            ->join('unique_codes_mapping ucm', 'e.id = ucm.event_id')
-            ->join('unique_codes uc', 'ucm.unique_code_id = uc.id')
-            ->join('et_ophcocvi_esign ps', 'e.id = ps.event_id')
-            ->join('contact c', 'p.contact_id = c.id')
-            //->join('et_ophcocvi_eventinfo eoe', 'e.id = eoe.event_id')
-            ->where($where, array(
-                ':search' => $search,
-            ))
-            ->order('e.event_date')
-            ->queryAll();
-
+        
+        try {
+            $cvis = \Yii::app()->cbdb->createCommand()
+                ->select('uc.code AS unique_id, 
+                    SUBSTR(STR_TO_ISO8601(e.event_date), 1, 10) as label, 
+                    SUBSTR(STR_TO_ISO8601(e.event_date), 1, 10) as value, 
+                    ps.id AS element_id, 
+                    pi.value AS hos_num, 
+                    CONCAT(c.first_name, " ", c.last_name) AS patient_name, 
+                    e.id AS event_id')
+                ->from('event e')
+                ->join('episode ep', 'e.episode_id = ep.id')
+                ->join('patient p', 'ep.patient_id = p.id')
+                ->join('patient_identifier pi', 'pi.patient_id = p.id')
+                ->join('unique_codes_mapping ucm', 'e.id = ucm.event_id')
+                ->join('unique_codes uc', 'ucm.unique_code_id = uc.id')
+                ->join('et_ophcocvi_esign ps', 'e.id = ps.event_id')
+                ->join('contact c', 'p.contact_id = c.id')
+                //->join('et_ophcocvi_eventinfo eoe', 'e.id = eoe.event_id')
+                ->where($where, array(
+                    ':search' => $search,
+                ))
+                ->order('e.event_date DESC')
+                ->queryAll();
+        } catch (Exception $e) {
+            OELog::log('Error in actionSignatureImportLogAutocomplete: ' . $e->getMessage());
+            echo json_encode(array());
+            return;
+        }
 
         echo json_encode($cvis);
     }
@@ -216,6 +249,9 @@ class DicomLogViewerController extends BaseController
             $event_id = Yii::app()->request->getPost("event_id");
 
             $log = SignatureImportLog::model()->findByPk($id);
+            if (!$log) {
+                throw new CHttpException(404, 'Signature import log not found.');
+            }
             $log->status_id = $status_id;
             $log->event_id = $event_id;
             $log->save();
@@ -240,12 +276,6 @@ class DicomLogViewerController extends BaseController
         }
 
         $this->renderJSON($result);
-        Yii::app()->end();
-
-        Yii::app()->assetManager->registerScriptFile('js/audit.js');
-        $this->renderPartial('//dicomlogviewer/_list', array('data' => $data), false, true);
-        echo '<!-------------------------->';
-        $this->renderPartial('//dicomlogviewer/_pagination', array('data' => $data), false, true);
     }
 
     public function criteria($count = false)
@@ -412,7 +442,9 @@ class DicomLogViewerController extends BaseController
 
         foreach ($data as $k => $y) {
             $data[$k] = $y;
-            $data[$k]['watcher_log'] = $this->getFileWatcherLog($y['id']);
+            if (isset($y['id'])) {
+                $data[$k]['watcher_log'] = $this->getFileWatcherLog($y['id']);
+            }
         }
 
         return $data;

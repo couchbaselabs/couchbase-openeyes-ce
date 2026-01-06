@@ -23,9 +23,13 @@ class DisorderController extends BaseController
     public function accessRules()
     {
         return array(
+            array('allow', // allow public access to index and view actions
+                'actions' => array('index', 'view'),
+                'users' => array('*'),
+            ),
             array(
                 'allow',
-                'actions' => array('index', 'view', 'autocomplete','getcommonlyuseddiagnoses', 'details', 'getcommonophthalmicdisorders', 'isCommonOphthalmic'),
+                'actions' => array('autocomplete','getcommonlyuseddiagnoses', 'details', 'getcommonophthalmicdisorders', 'isCommonOphthalmic'),
                 'users' => array('@'),
             ),
             array('allow', // allow admin user to perform 'admin' and 'delete' actions

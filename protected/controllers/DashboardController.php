@@ -91,6 +91,9 @@ class DashboardController extends BaseDashboardController
         }
 
 // allow no other than predefined types
+        $typeString = null;
+        $ext = null;
+        
         if ($type == 'image/png') {
             $typeString = '-m image/png';
             $ext = 'png';
@@ -106,9 +109,17 @@ class DashboardController extends BaseDashboardController
             $ext = 'txt';
         }
 
+        // Handle SVG export directly
+        if ($ext === 'svg') {
+            header("Content-Disposition: attachment; filename=\"$filename.svg\"");
+            header("Content-Type: image/svg+xml");
+            echo $svg;
+            return;
+        }
+
         $outfile = "$highchartsDir/$tempName.$ext";
 
-        if (isset($typeString)) {
+        if (isset($typeString) && $typeString !== null) {
             // size
             $width = '';
             if ($_POST['width']) {
@@ -151,12 +162,6 @@ class DashboardController extends BaseDashboardController
             // delete it
             unlink("protected/runtime/highcharts/$tempName.svg");
             unlink($outfile);
-
-            // SVG can be streamed directly back
-        } elseif ($ext == 'svg') {
-            header("Content-Disposition: attachment; filename=\"$filename.$ext\"");
-            header("Content-Type: $type");
-            echo $svg;
         } else {
             throw new CHttpException(400, 'Invalid Type');
         }
