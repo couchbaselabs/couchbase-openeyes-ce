@@ -888,14 +888,20 @@ class WorklistController extends BaseController
 
     /**
      * Update the worklist display order for the current user based on the submitted ids.
+     * @throws CHttpException
      */
     public function actionManualUpdateDisplayOrder()
     {
+        // Validate that this is a POST request
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
+        }
+
         $worklist_ids = @$_POST['item_ids'] ? explode(',', $_POST['item_ids']) : array();
 
         if (!$this->manager->setWorklistDisplayOrderForUser(Yii::app()->user, $worklist_ids)) {
             OELog::log(print_r($this->manager->getErrors(), true));
-            throw new Exception('Unable to save new display order for worklists');
+            throw new CHttpException(500, 'Unable to save new display order for worklists');
         }
 
         $this->redirect('/worklist/manual');

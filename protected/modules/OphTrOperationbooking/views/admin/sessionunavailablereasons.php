@@ -35,7 +35,7 @@ $institution_id = Institution::model()->getCurrent()->id;
             <?php
             $criteria = new CDbCriteria();
             $criteria->order = 'display_order asc';
-            foreach (OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findAll() as $i => $sessionunavailablereason) {?>
+            foreach (OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findAll($criteria) as $i => $sessionunavailablereason) {?>
                 <tr class="clickable" data-attr-id="<?php echo $sessionunavailablereason->id?>" data-uri="OphTrOperationbooking/admin/editsessionunavailablereason/<?php echo $sessionunavailablereason->id?>">
                     <td>
                         <input type="checkbox" name="select[]" value="<?php echo $sessionunavailablereason->id?>"/>

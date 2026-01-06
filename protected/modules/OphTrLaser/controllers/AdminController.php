@@ -61,10 +61,58 @@ class AdminController extends ModuleAdminController
             }
         }
 
+        // Fetch laser types - use direct database query to bypass Couchbase
+        $typesArray = array();
+        try {
+            // Try to fetch from database directly
+            $typeRows = Yii::app()->db->createCommand('SELECT id, name FROM ophtrlaser_type ORDER BY id')->queryAll();
+            foreach ($typeRows as $row) {
+                $typesArray[$row['id']] = $row['name'];
+            }
+            
+            // If no types exist in database, create default ones
+            if (empty($typesArray)) {
+                $defaultTypes = array(
+                    array('id' => 1, 'name' => 'Unknown'),
+                    array('id' => 2, 'name' => 'Argon'),
+                    array('id' => 3, 'name' => 'Diode'),
+                    array('id' => 4, 'name' => 'Excimer'),
+                    array('id' => 5, 'name' => 'YAG'),
+                );
+                
+                // Insert into database
+                foreach ($defaultTypes as $typeData) {
+                    try {
+                        Yii::app()->db->createCommand()
+                            ->insert('ophtrlaser_type', $typeData);
+                    } catch (Exception $e) {
+                        // Type might already exist, continue
+                    }
+                }
+                
+                // Refresh the types from database
+                $typeRows = Yii::app()->db->createCommand('SELECT id, name FROM ophtrlaser_type ORDER BY id')->queryAll();
+                foreach ($typeRows as $row) {
+                    $typesArray[$row['id']] = $row['name'];
+                }
+            }
+        } catch (Exception $e) {
+            Yii::log('Exception fetching laser types: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Fallback to hard-coded types
+            $typesArray = array(
+                1 => 'Unknown',
+                2 => 'Argon',
+                3 => 'Diode',
+                4 => 'Excimer',
+                5 => 'YAG',
+            );
+        }
+
         $this->render('edit', array(
             'model' => $model,
             'title' => 'Add Laser',
             'cancel_uri' => '/OphTrLaser/admin/manageLasers',
+            'types' => $typesArray,
         ));
     }
 
@@ -88,10 +136,58 @@ class AdminController extends ModuleAdminController
         }
         Audit::add('admin', 'edit', serialize($model->attributes), false, array('module' => 'OphTrLaser', 'model' => 'OphTrLaser_Site_Laser'));
 
+        // Fetch laser types - use direct database query to bypass Couchbase
+        $typesArray = array();
+        try {
+            // Try to fetch from database directly
+            $typeRows = Yii::app()->db->createCommand('SELECT id, name FROM ophtrlaser_type ORDER BY id')->queryAll();
+            foreach ($typeRows as $row) {
+                $typesArray[$row['id']] = $row['name'];
+            }
+            
+            // If no types exist in database, create default ones
+            if (empty($typesArray)) {
+                $defaultTypes = array(
+                    array('id' => 1, 'name' => 'Unknown'),
+                    array('id' => 2, 'name' => 'Argon'),
+                    array('id' => 3, 'name' => 'Diode'),
+                    array('id' => 4, 'name' => 'Excimer'),
+                    array('id' => 5, 'name' => 'YAG'),
+                );
+                
+                // Insert into database
+                foreach ($defaultTypes as $typeData) {
+                    try {
+                        Yii::app()->db->createCommand()
+                            ->insert('ophtrlaser_type', $typeData);
+                    } catch (Exception $e) {
+                        // Type might already exist, continue
+                    }
+                }
+                
+                // Refresh the types from database
+                $typeRows = Yii::app()->db->createCommand('SELECT id, name FROM ophtrlaser_type ORDER BY id')->queryAll();
+                foreach ($typeRows as $row) {
+                    $typesArray[$row['id']] = $row['name'];
+                }
+            }
+        } catch (Exception $e) {
+            Yii::log('Exception fetching laser types: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Fallback to hard-coded types
+            $typesArray = array(
+                1 => 'Unknown',
+                2 => 'Argon',
+                3 => 'Diode',
+                4 => 'Excimer',
+                5 => 'YAG',
+            );
+        }
+
         $this->render('edit', array(
             'model' => $model,
             'title' => 'Edit Laser',
             'cancel_uri' => '/OphTrLaser/admin/manageLasers',
+            'types' => $typesArray,
         ));
     }
 
@@ -99,11 +195,11 @@ class AdminController extends ModuleAdminController
     {
         if (Yii::app()->user->checkAccess('admin')) {
             // Show all procedures
-            $model_list = OphTrLaser_LaserProcedure::model()->findAll();
+            $model_list = OphTrLaser_LaserProcedure::model()->with('procedure')->findAll();
         } else {
             // Show procedures only at institution level
             $model_list = OphTrLaser_LaserProcedure::model()
-                ->with(['institutions' => [
+                ->with(['procedure', 'institutions' => [
                     'condition' => 'institutions_institutions.institution_id = :institution_id',
                     'params' => [':institution_id' => Yii::app()->session['selected_institution_id']],
                 ]])

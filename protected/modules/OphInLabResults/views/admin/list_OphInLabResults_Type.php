@@ -70,7 +70,7 @@ $api = new OphInLabResults_API();
                     </td>
                     <td><input type="checkbox" name="resultTypes[]" value="<?php echo $model->id ?>"/></td>
                     <td><?= $model->type ?></td>
-                    <td><?= $model->fieldType->name ?></td>
+                    <td><?= $model->fieldType?->name ?? '-' ?></td>
                     <td><?= $model->show_units ?></td>
                     <td><?= $model->allow_unit_change ?></td>
                     <td><?= $model->default_units ?: '-' ?></td>

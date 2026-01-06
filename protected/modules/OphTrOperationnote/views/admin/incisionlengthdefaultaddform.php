@@ -41,12 +41,30 @@ $form = $this->beginWidget('BaseEventTypeCActiveForm', array(
         <tr>
             <td>Context</td>
             <td>
-                <?=\CHtml::activeDropDownList(
+                <?php
+                $firmList = array();
+                try {
+                    $firms = Firm::model()->findAll('active = 1');
+                    foreach ($firms as $firm) {
+                        $firmList[$firm->id] = $firm->name;
+                    }
+                } catch (Exception $e) {
+                    // If query fails, provide a fallback
+                }
+                // Fallback if no firms found - get from all available
+                if (empty($firmList)) {
+                    $firms = Firm::model()->findAll();
+                    foreach ($firms as $firm) {
+                        $firmList[$firm->id] = $firm->name;
+                    }
+                }
+                echo \CHtml::activeDropDownList(
                     $default,
                     'firm_id',
-                    Firm::model()->getListWithSpecialties(),
+                    $firmList,
                     ['class' => 'cols-full', 'empty' => 'Select ' . Firm::contextLabel()]
-                ); ?>
+                );
+                ?>
             </td>
         </tr>
         <tr>

@@ -54,7 +54,7 @@ class PatientController extends BaseController
             ),
             array(
                 'allow',
-                'actions' => array('search', 'ajaxSearch', 'view', 'parentEvent', 'gpList', 'gpListRp', 'practiceList', 'getInternalReferralDocumentListUrl', 'getPastWorklistPatients', 'getCitoUrl', 'showCurrentPathway'),
+                'actions' => array('search', 'ajaxSearch', 'view', 'parentEvent', 'gpList', 'gpListRp', 'practiceList', 'getInternalReferralDocumentListUrl', 'getPastWorklistPatients', 'getCitoUrl', 'showCurrentPathway', 'getPlansProblems'),
                 'users' => array('@'),
             ),
             array(
@@ -483,7 +483,7 @@ class PatientController extends BaseController
             $plans[] = $attributes;
         }
 
-        return json_encode($plans);
+        echo json_encode($plans);
     }
 
         /**
@@ -1586,6 +1586,11 @@ class PatientController extends BaseController
 
     public function actionEditOphInfo()
     {
+        // This action only handles POST requests for AJAX submissions
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Method Not Allowed. This action only accepts POST requests.');
+        }
+
         $cvi_status = PatientOphInfoCviStatus::model()->findByPk(@$_POST['PatientOphInfo']['cvi_status_id']);
 
         if (!$cvi_status) {
@@ -1751,11 +1756,21 @@ class PatientController extends BaseController
         $this->renderJSON(array());
     }
 
-    public function actionEditSocialHistory()
+    public function actionEditSocialHistory($id = null)
     {
-        if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
-            throw new Exception('Patient not found:' . @$_POST['patient_id']);
+        // Get patient_id from URL parameter, POST, or GET
+        $patient_id = $id ?? (@$_POST['patient_id'] ?: @$_GET['patient_id']);
+        
+        if (!$patient = Patient::model()->findByPk($patient_id)) {
+            throw new Exception('Patient not found:' . $patient_id);
         }
+        
+        // Handle GET requests - redirect to patient view
+        if (!$this->request->isPostRequest) {
+            $this->redirect(array('patient/view/' . $patient->id));
+            return;
+        }
+        
         if (!$social_history = SocialHistory::model()->find('patient_id=?', array($patient->id))) {
             $social_history = new SocialHistory();
         }
@@ -1998,27 +2013,37 @@ class PatientController extends BaseController
 
     public function actionValidateEditContact()
     {
-        if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
-            throw new Exception('Patient not found: ' . @$_POST['patient_id']);
-        }
-
-        if (!$contact = Contact::model()->findByPk(@$_POST['contact_id'])) {
-            throw new Exception('Contact not found: ' . @$_POST['contact_id']);
-        }
-
         $errors = array();
+
+        // Validate patient_id is provided
+        if (!isset($_POST['patient_id']) || empty($_POST['patient_id'])) {
+            $errors['patient_id'] = 'Patient ID is required';
+        } else {
+            if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
+                $errors['patient_id'] = 'Patient not found: ' . @$_POST['patient_id'];
+            }
+        }
+
+        // Validate contact_id is provided
+        if (!isset($_POST['contact_id']) || empty($_POST['contact_id'])) {
+            $errors['contact_id'] = 'Contact ID is required';
+        } else {
+            if (!$contact = Contact::model()->findByPk(@$_POST['contact_id'])) {
+                $errors['contact_id'] = 'Contact not found: ' . @$_POST['contact_id'];
+            }
+        }
 
         if (!@$_POST['institution_id']) {
             $errors['institution_id'] = 'Please select an institution';
         } else {
             if (!$institution = Institution::model()->findByPk(@$_POST['institution_id'])) {
-                throw new Exception('Institution not found: ' . @$_POST['institution_id']);
+                $errors['institution_id'] = 'Institution not found: ' . @$_POST['institution_id'];
             }
         }
 
         if (@$_POST['site_id']) {
             if (!$site = Site::model()->findByPk(@$_POST['site_id'])) {
-                throw new Exception('Site not found: ' . @$_POST['site_id']);
+                $errors['site_id'] = 'Site not found: ' . @$_POST['site_id'];
             }
         }
 
@@ -2027,6 +2052,13 @@ class PatientController extends BaseController
 
     public function actionEditContact()
     {
+        // Validate that required POST data is present
+        if (!$this->request->isPostRequest) {
+            header("HTTP/1.1 400 Bad Request");
+            $this->renderJSON(array('error' => 'POST request required'));
+            return;
+        }
+
         if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
             throw new Exception('Patient not found: ' . @$_POST['patient_id']);
         }
@@ -2816,7 +2848,7 @@ class PatientController extends BaseController
      * If update is successful, the browser will be redirected to the 'view' page.
      * @param integer $id the ID of the model to be updated
      */
-    public function actionUpdate($id, $prevUrl)
+    public function actionUpdate($id, $prevUrl = '')
     {
         Yii::app()->assetManager->registerScriptFile('js/patient.js');
 

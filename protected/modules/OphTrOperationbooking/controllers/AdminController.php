@@ -139,7 +139,7 @@ class AdminController extends ModuleAdminController
                     foreach ($posted_items as $posted_item) {
                         $posted_item->erod_rule_id = $erod->id;
                         if (!$posted_item->save()) {
-                            $errors = array_merge($errors, $item->getErrors());
+                            $errors = array_merge($errors, $posted_item->getErrors());
                             throw new Exception();
                         }
                     }
@@ -637,33 +637,47 @@ class AdminController extends ModuleAdminController
 
     public function actionAddInstitutionMapping()
     {
-        $ids = Yii::app()->request->getPost('select');
-        $model = Yii::app()->request->getPost('model');
-        $redirect_url = Yii::app()->request->getPost('redirect-url');
-
-        if (empty($model) || empty($ids) || empty($redirect_url)) {
-            throw new CHttpException(400, 'Missing required parameters: model, select, and redirect-url are required.');
-        }
-
-        $model .= '::model';
-        $instances = call_user_func($model)->findAllByPk($ids);
-        $institution_id = Institution::model()->getCurrent()->id;
         $errors = array();
-        $status = 1;
+        $unavailable_reasons = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findAll();
+        $success_message = null;
 
-        /**
-         * @var $instances MappedReferenceData[]|BaseActiveRecordVersioned[]
-         */
-        foreach ($instances as $instance) {
-            if (!$instance->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id)) {
-                $errors[] = $instance->getErrors();
+        if (!empty($_POST)) {
+            $ids = Yii::app()->request->getPost('select');
+
+            if (empty($ids)) {
+                $errors[] = 'Please select at least one unavailable reason';
+            } else {
+                $transaction = Yii::app()->cbdb->beginTransaction();
+                $institution_id = Institution::model()->getCurrent()->id;
+                $reasons = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findAllByPk($ids);
+
+                try {
+                    foreach ($reasons as $reason) {
+                        if (!$reason->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id)) {
+                            $errors[] = $reason->getErrors();
+                        }
+                    }
+
+                    if (empty($errors)) {
+                        $transaction->commit();
+                        $success_message = 'Institution mapping added successfully for ' . count($reasons) . ' unavailable reason(s)';
+                        Audit::add('admin', 'create', serialize($ids), null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Session_UnavailableReason'));
+                        $this->redirect(array('/OphTrOperationbooking/admin/viewSessionUnavailableReasons'));
+                    } else {
+                        $transaction->rollback();
+                    }
+                } catch (Exception $e) {
+                    $transaction->rollback();
+                    $errors[] = 'Error: ' . $e->getMessage();
+                }
             }
         }
 
-        if (!empty($errors)) {
-            $status = 0;
-        }
-        $this->redirect($redirect_url);
+        $this->render('/admin/addInstitutionMapping', array(
+            'unavailable_reasons' => $unavailable_reasons,
+            'errors' => $errors,
+            'success_message' => $success_message,
+        ));
     }
 
     public function actionDeleteInstitutionMapping()
@@ -1553,6 +1567,7 @@ class AdminController extends ModuleAdminController
 
         if (!empty($_POST)) {
             $theatre->attributes = $_POST['OphTrOperationbooking_Operation_Theatre'];
+            $theatre->setAttribute('institution_id', Institution::model()->getCurrent()->id);
             if (!$theatre->save()) {
                 $errors = $theatre->getErrors();
             } else {
@@ -1578,6 +1593,7 @@ class AdminController extends ModuleAdminController
 
         if (!empty($_POST)) {
             $theatre->attributes = $_POST['OphTrOperationbooking_Operation_Theatre'];
+            $theatre->setAttribute('institution_id', Institution::model()->getCurrent()->id);
             if (!$theatre->save()) {
                 $errors = $theatre->getErrors();
             } else {
@@ -1963,7 +1979,9 @@ class AdminController extends ModuleAdminController
         if (!empty($_POST)) {
             $transaction = Yii::app()->cbdb->beginTransaction();
             try {
-                $reason->attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                $attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                unset($attributes['enabled']);
+                $reason->attributes = $attributes;
                 if (!$reason->save()) {
                     $errors = $reason->getErrors();
                     $transaction->rollback();
@@ -2000,7 +2018,9 @@ class AdminController extends ModuleAdminController
         if (!empty($_POST)) {
             $transaction = Yii::app()->cbdb->beginTransaction();
             try {
-                $reason->attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                $attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                unset($attributes['enabled']);
+                $reason->attributes = $attributes;
                 if (!$reason->save()) {
                     $errors = $reason->getErrors();
                     $transaction->rollback();

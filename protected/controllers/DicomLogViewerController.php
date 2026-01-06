@@ -331,7 +331,7 @@ class DicomLogViewerController extends BaseController
             throw new Exception('Log entry not found: '.$audit_id);
         }
 
-        $this->renderPartial('_list_update', array('data' => $this->getData(null, $audit->id)), false, true);
+        $this->renderPartial('_list_update', array('data' => $this->getData(1, $audit->id)), false, true);
     }
 
     ///////////////

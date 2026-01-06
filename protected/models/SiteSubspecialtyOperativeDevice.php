@@ -94,7 +94,12 @@ class SiteSubspecialtyOperativeDevice extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        try {
+            $this->saveToCouchbase();
+        } catch (Exception $e) {
+            Yii::log('Couchbase sync failed: ' . $e->getMessage(), 'error');
+            // Don't fail the save if Couchbase is unavailable
+        }
     }
 
     /**
@@ -103,6 +108,11 @@ class SiteSubspecialtyOperativeDevice extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        try {
+            $this->deleteFromCouchbase();
+        } catch (Exception $e) {
+            Yii::log('Couchbase delete failed: ' . $e->getMessage(), 'error');
+            // Don't fail the delete if Couchbase is unavailable
+        }
     }
 }

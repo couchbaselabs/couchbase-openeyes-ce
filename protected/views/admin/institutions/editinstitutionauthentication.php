@@ -48,7 +48,7 @@
             <tr>
                 <td><?= $institution_authentication->getAttributeLabel('institution'); ?></td>
                 <td>
-                    <?= $institution_authentication->institution->name ?>
+                    <?= $institution_authentication->institution?->name ?>
                     <?= \CHtml::activeHiddenField(
                         $institution_authentication,
                         'institution_id',
@@ -124,7 +124,7 @@
                     'Back',
                     [
                         'class' => 'button large',
-                        'data-uri' => "/admin/editinstitution?institution_id={$institution_authentication->institution->id}",
+                        'data-uri' => "/admin/editinstitution?institution_id={$institution_authentication->institution?->id}",
                         'name' => 'cancel',
                         'id' => 'et_cancel'
                     ]

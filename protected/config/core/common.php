@@ -376,6 +376,7 @@ $config = array(
                 'OECaseSearch/caseSearch/renderPopups',
                 'OECaseSearch/caseSearch/lookedAtPopup',
                 'OphCiExamination/contact/saveNewContact',
+                'OphTrConsent/contact/saveNewContact',
                 'OphTrOperationbooking/theatreDiary/printList',
                 'OphTrOperationbooking/theatreDiary/printDiary',
                 'OphTrOperationbooking/theatreDiary/filterTheatres',

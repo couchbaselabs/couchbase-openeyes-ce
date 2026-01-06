@@ -172,7 +172,7 @@ class Contact extends BaseActiveRecordVersioned
         return array(
             array('nick_name', 'length', 'max' => 80),
             array('title, first_name, last_name, nick_name, primary_phone, mobile_phone, qualifications, maiden_name,
-             contact_label_id, active, comment, national_code, fax',
+             contact_label_id, active, comment, national_code, fax, email',
                 'safe'),
             array('first_name, last_name, created_institution_id', 'required', 'on' => array('manualAddPatient', 'referral', 'self_register', 'other_register', 'manage_gp')),
             array('title, maiden_name', 'match', 'pattern' => '/^[a-zA-Z]+([\',. -]?[a-zA-Z -]*)*$/', 'message' => 'Invalid {attribute} entered.', 'except' => 'hscic_import'),

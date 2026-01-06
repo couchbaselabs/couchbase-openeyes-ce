@@ -100,7 +100,7 @@
             </td>
         </tr>
         <tr class="js-field-type-numeric-fields"
-            style="<?= $model->fieldType->name != "Numeric Field" ? "display:none" : "" ?>">
+            style="<?= $model->fieldType?->name != "Numeric Field" ? "display:none" : "" ?>">
             <td>Max Range</td>
             <td>
                 <?= \CHtml::activeNumberField(
@@ -111,7 +111,7 @@
             </td>
         </tr>
         <tr class="js-field-type-numeric-fields"
-            style="<?= $model->fieldType->name != "Numeric Field" ? "display:none" : "" ?>">
+            style="<?= $model->fieldType?->name != "Numeric Field" ? "display:none" : "" ?>">
             <td>Normal Min</td>
             <td>
                 <?= \CHtml::activeNumberField(
@@ -122,7 +122,7 @@
             </td>
         </tr>
         <tr class="js-field-type-numeric-fields"
-            style="<?= $model->fieldType->name != "Numeric Field" ? "display:none" : "" ?>">
+            style="<?= $model->fieldType?->name != "Numeric Field" ? "display:none" : "" ?>">
             <td>Normal Max</td>
             <td>
                 <?= \CHtml::activeNumberField(
@@ -145,7 +145,7 @@
         </tbody>
     </table>
 </div>
-<div class="cols-5 js-drop-down-fields" style="<?= $model->fieldType->name != "Drop-down Field" ? "display:none" : "" ?>">
+<div class="cols-5 js-drop-down-fields" style="<?= $model->fieldType?->name != "Drop-down Field" ? "display:none" : "" ?>">
     <div class="row-divider">
         <h2>Field Options</h2>
     </div>

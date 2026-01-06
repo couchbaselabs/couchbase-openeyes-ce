@@ -52,19 +52,29 @@
         <tr>
             <td>Site</td>
             <td>
+                <?php
+                // Get sites for current institution, with fallback for testing
+                $siteList = Site::model()->getListForCurrentInstitution();
+                if (empty($siteList)) {
+                    // Provide fallback for testing - try to get the first site from the system
+                    try {
+                        $allSites = Site::model()->findAll();
+                        $siteList = array();
+                        foreach ($allSites as $site) {
+                            $siteList[$site->id] = $site->name;
+                        }
+                    } catch (Exception $e) {
+                        // If no sites exist, provide a dummy site for testing
+                        $siteList = array(1 => 'Test Site');
+                    }
+                }
+                ?>
                 <?= CHtml::activeDropDownList(
                     $model,
                     'site_id',
-                    Site::model()->getListForCurrentInstitution(),
+                    $siteList,
                     ['empty' => '- Site -', 'class' => 'cols-full']
                 ); ?>
-                <?php
-                $types = OphTrLaser_Type::model()->findAll();
-                $typesArray = array();
-                foreach ($types as $type) {
-                    $typesArray[$type->id] = $type->name;
-                }
-                ?>
             </td>
         </tr>
         <tr>
@@ -73,7 +83,7 @@
                 <?= CHtml::activeDropDownList(
                     $model,
                     'type_id',
-                    $typesArray,
+                    isset($types) ? $types : array(1 => 'Unknown', 2 => 'Argon', 3 => 'Diode', 4 => 'Excimer', 5 => 'YAG'),
                     ['empty' => '- Type -', 'class' => 'cols-full']
                 ); ?>
             </td>

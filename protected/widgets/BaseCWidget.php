@@ -29,7 +29,12 @@ class BaseCWidget extends CWidget
     public function init()
     {
         if (is_object($this->element) && $this->field) {
-            $this->value = $this->element->{$this->field};
+            try {
+                $this->value = $this->element->{$this->field};
+            } catch (\CException $e) {
+                // If property is not defined (e.g., 'id' on a new model), set value to null
+                $this->value = null;
+            }
         }
 
         $c = new ReflectionClass($this);

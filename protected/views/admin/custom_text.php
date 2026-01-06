@@ -3,12 +3,15 @@
  * @var $model_list ElementType[]|EventType[]
  * @var $errors array
  */
-$model_name = str_replace('Type', '', get_class($model_list[0]));
+$model_name = !empty($model_list) ? str_replace('Type', '', get_class($model_list[0])) : 'Element';
 $event_name = null;
 ?>
 <h3>Event custom text</h3>
 <?php echo $this->renderPartial('_form_errors', array('errors' => $errors)) ?>
 
+<?php if (empty($model_list)): ?>
+    <p>No items available to edit.</p>
+<?php else: ?>
 <?= CHtml::beginForm(array('id' => 'custom-text-form')) ?>
 <?= CHtml::submitButton('Save', array('class' => 'button small green'))?>
 <table class="standard">
@@ -61,6 +64,7 @@ $event_name = null;
 </table>
 <?= CHtml::submitButton('Save', array('class' => 'button small green'))?>
 <?= CHtml::endForm() ?>
+<?php endif; ?>
 
 <script type="text/javascript">
     $(document).ready(function() {

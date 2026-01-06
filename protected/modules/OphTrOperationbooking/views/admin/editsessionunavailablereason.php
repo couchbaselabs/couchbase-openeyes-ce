@@ -30,6 +30,26 @@
             ))?>
     <?php echo $form->errorSummary($reason); ?>
     <?php echo $form->textField($reason, 'name', array('class'=>'cols-4'))?>
+    <div class="row data-row">
+        <div class="large-2 column">
+            <label>Enabled:</label>
+        </div>
+        <div class="large-10 column">
+            <?php 
+                $enabledValue = true;
+                try {
+                    if (property_exists($reason, 'enabled') || isset($reason->_attributes['enabled'])) {
+                        $enabledValue = $reason->enabled;
+                    }
+                } catch (Exception $e) {
+                    // Default to true if property doesn't exist
+                    $enabledValue = true;
+                }
+                echo CHtml::checkBox('OphTrOperationbooking_Operation_Session_UnavailableReason[enabled]', $enabledValue);
+            ?>
+        </div>
+    </div>
+    <?php echo $form->textField($reason, 'display_order', array('class'=>'cols-2'))?>
     <?php echo $form->formActions();?>
     <?php $this->endWidget()?>
 </div>

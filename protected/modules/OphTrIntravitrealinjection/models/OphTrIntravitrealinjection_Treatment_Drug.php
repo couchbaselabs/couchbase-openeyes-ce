@@ -24,6 +24,7 @@
  * @property string $id
  * @property string $name
  * @property bool $active
+ * @property int $display_order
  *
  * The followings are the available model relations:
  * @property ElementType $element_type
@@ -79,7 +80,7 @@ class OphTrIntravitrealinjection_Treatment_Drug extends BaseActiveRecordVersione
         // will receive user inputs.
         return array(
             array('name, active', 'safe'),
-            array('name, active', 'required'),
+            array('name', 'required'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
             array('id, name', 'safe', 'on' => 'search'),
@@ -114,6 +115,30 @@ class OphTrIntravitrealinjection_Treatment_Drug extends BaseActiveRecordVersione
         return array(
             'LookupTable' => 'LookupTable',
         );
+    }
+
+    /**
+     * Map the 'available' database column to 'active' PHP attribute on save
+     */
+    public function beforeSave()
+    {
+        // If 'active' attribute is set, map it to the 'available' database column
+        if (isset($this->active)) {
+            $this->setAttribute('available', $this->active);
+        }
+        return parent::beforeSave();
+    }
+
+    /**
+     * Map the 'available' database column to 'active' PHP attribute after loading from DB
+     */
+    public function afterFind()
+    {
+        parent::afterFind();
+        // Copy the 'available' column value to 'active' attribute for backward compatibility
+        if (isset($this->_attributes['available']) && !isset($this->_attributes['active'])) {
+            $this->_attributes['active'] = $this->_attributes['available'];
+        }
     }
 
     /**

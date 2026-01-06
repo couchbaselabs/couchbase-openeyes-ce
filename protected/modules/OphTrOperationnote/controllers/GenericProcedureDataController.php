@@ -110,20 +110,26 @@ class GenericProcedureDataController extends ModuleAdminController
         if ($request->getPost('OphTrOperationNote_Generic_Procedure_Data')) {
             $model->attributes = $request->getPost('OphTrOperationNote_Generic_Procedure_Data');
 
+            try {
+                if ($model->save()) {
+                    Audit::add('admin', 'create', serialize($model->attributes), false, array('module' => 'OphTrOperationnote', 'model' => 'OphTrOperationNote_Generic_Procedure_Data'));
+                    Yii::app()->user->setFlash('success', 'Operation Generic Data created');
 
-            if ($model->save()) {
-                Audit::add('admin', 'create', serialize($model->attributes), false, array('module' => 'OphTrOperationnote', 'model' => 'OphTrOperationNote_Generic_Procedure_Data'));
-                Yii::app()->user->setFlash('success', 'Operation Generic Data created');
-
-                $this->redirect(array('List'));
+                    $this->redirect(array('List'));
+                } else {
+                    // Log validation errors
+                    Yii::log('Validation errors: ' . print_r($model->errors, true), CLogger::LEVEL_ERROR);
+                    // Don't set flash, let the form display errors
+                }
+            } catch (Exception $e) {
+                Yii::log('Exception during save: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+                Yii::app()->user->setFlash('error', 'Error saving: ' . $e->getMessage());
             }
         }
 
+        // Get all procedures for selection
         $criteria = new CDbCriteria();
-        $criteria->join = ' LEFT JOIN ophtroperationnote_procedure_element ope ON ope.`procedure_id` = t.id';
-        $criteria->join .= ' LEFT JOIN ophtroperationnote_generic_procedure_data gpa ON gpa.`proc_id` = t.id';
-        $criteria->addCondition('ope.procedure_id IS NULL');
-        $criteria->addCondition('gpa.proc_id IS NULL');
+        $criteria->order = 'term ASC';
 
         $this->render('/admin/edit', array(
             'model' => $model,

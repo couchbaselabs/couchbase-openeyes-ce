@@ -103,6 +103,11 @@
         window.location.href = baseUrl + '/OphTrOperationbooking/admin/viewOperationNameRules';
     });
     handleButton($('#et_save'), function (e) {
-        $('#adminform').submit();
+        e.preventDefault();
+        disableButtons();
+        // Use setTimeout to ensure form submission happens after button is disabled
+        setTimeout(function() {
+            $('#adminform').submit();
+        }, 10);
     });
 </script>

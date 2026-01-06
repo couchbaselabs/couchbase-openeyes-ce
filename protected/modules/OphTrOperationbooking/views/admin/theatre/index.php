@@ -50,10 +50,10 @@
                         data-uri="OphTrOperationbooking/admin/editTheatre/<?php echo $theatre->id ?>">
                         <td><input type="checkbox" name="theatre[]" value="<?php echo $theatre->id ?>"
                                    class="theatres"/></td>
-                        <td><?php echo $theatre->site->name ?></td>
+                        <td><?php echo $theatre->site?->name ?? 'None' ?></td>
                         <td><?php echo $theatre->name ?></td>
                         <td><?php echo $theatre->code ?></td>
-                        <td><?php echo $theatre->ward->name ?? 'None' ?></td>
+                        <td><?php echo $theatre->ward?->name ?? 'None' ?></td>
                     </tr>
                 <?php }
             } ?>

@@ -29,8 +29,13 @@ class BaseTree extends BaseActiveRecordVersioned
     {
         $tree = array();
         $criteria = new CDbCriteria();
-        $criteria->addCondition('parent_rule_id <=> :parent_rule_id');
-        $criteria->params[':parent_rule_id'] = $parent->id ?? null;
+        $parent_id = $parent ? $parent->id : null;
+        if ($parent_id === null) {
+            $criteria->addCondition('parent_rule_id IS NULL');
+        } else {
+            $criteria->addCondition('parent_rule_id = :parent_rule_id');
+            $criteria->params[':parent_rule_id'] = $parent_id;
+        }
         $criteria->order = 'rule_order asc';
         if ($institution_id) {
             $criteria->with = 'institutions';
@@ -121,8 +126,13 @@ class BaseTree extends BaseActiveRecordVersioned
         $list = array();
 
         $criteria = new CDbCriteria();
-        $criteria->addCondition('parent_rule_id <=> :parent');
-        $criteria->params[':parent'] = $parent->id ?? null;
+        $parent_id = $parent ? $parent->id : null;
+        if ($parent_id === null) {
+            $criteria->addCondition('parent_rule_id IS NULL');
+        } else {
+            $criteria->addCondition('parent_rule_id = :parent');
+            $criteria->params[':parent'] = $parent_id;
+        }
         $criteria->order = 'rule_order asc';
         if ($institution_id) {
             $criteria->addCondition('institution_id = :institution_id');

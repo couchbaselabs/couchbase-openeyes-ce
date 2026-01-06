@@ -125,29 +125,46 @@ class LensTypeAdminController extends BaseAdminController
     }
 
     /**
+     * Adds institution mappings for selected lens types.
+     * Supports both GET (to display form) and POST (to process form) requests.
+     *
      * @throws Exception
      */
     public function actionAddInstitutionMapping()
     {
-        $ids = Yii::app()->request->getPost('select');
-        $transaction = Yii::app()->cbdb->beginTransaction();
         $errors = array();
-        $institution_id = Institution::model()->getCurrent()->id;
-        $lens_types = OphInBiometry_LensType_Lens::model()->findAllByPk($ids);
-        try {
-            foreach ($lens_types as $lens_type) {
-                $lens_type->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id);
+        $lensTypes = OphInBiometry_LensType_Lens::model()->findAll();
+        $success_message = null;
+        
+        if (Yii::app()->request->isPostRequest) {
+            $ids = Yii::app()->request->getPost('select');
+            
+            if (empty($ids)) {
+                $errors[] = 'Please select at least one lens type';
+            } else {
+                $transaction = Yii::app()->cbdb->beginTransaction();
+                $institution_id = Institution::model()->getCurrent()->id;
+                $lens_types = OphInBiometry_LensType_Lens::model()->findAllByPk($ids);
+                
+                try {
+                    foreach ($lens_types as $lens_type) {
+                        $lens_type->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id);
+                    }
+                    $transaction->commit();
+                    $success_message = 'Institution mapping added successfully for ' . count($lens_types) . ' lens type(s)';
+                    $this->redirect('/OphInBiometry/lensTypeAdmin/list');
+                } catch (Exception $e) {
+                    $transaction->rollback();
+                    $errors[] = 'Error: ' . $e->getMessage();
+                }
             }
-        } catch (Exception $e) {
-            $errors[] = $e->getMessage();
         }
 
-        if (!empty($errors)) {
-            $transaction->rollback();
-        } else {
-            $transaction->commit();
-        }
-        $this->redirect('/OphInBiometry/lensTypeAdmin/list');
+        $this->render('/admin/addInstitutionMapping', array(
+            'lensTypes' => $lensTypes,
+            'errors' => $errors,
+            'success_message' => $success_message,
+        ));
     }
 
     /**

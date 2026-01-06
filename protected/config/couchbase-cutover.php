@@ -8,7 +8,7 @@
 return array (
   'enabled' => true,
   'read_source' => 'couchbase',
-  'write_mode' => 'dual_write',
+  'write_mode' => 'couchbase_primary',
   'couchbase_read_percentage' => 100,
   'fallback_enabled' => true,
   'fallback_on_error' => true,
@@ -130,6 +130,16 @@ return array (
     array (
       'read_source' => 'mariadb',
       'percentage' => 0,
+    ),
+    'OphCoCvi_ClinicalInfo_Disorder_Section' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'CommissioningBodyType' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
     ),
   ),
   'user_targeting' => 

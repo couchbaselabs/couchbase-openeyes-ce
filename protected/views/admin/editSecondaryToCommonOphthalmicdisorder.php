@@ -361,7 +361,7 @@
                    style="display: block;" autocomplete="off" type="text" value=""
                    name="SecondaryToCommonOphthalmicDisorder[{{row_count}}][finding_id]" id="SecondaryToCommonOphthalmicDisorder_{{row_count}}_finding_id">
             <span role="status" aria-live="polite" class="ui-helper-hidden-accessible"></span>
-            <input class="finding-id" type="hidden" value="" name="SecondaryToCommonOphthalmicDisorder[{{row_count}}][finding_id]" id="SecondaryToCommonOphthalmicDisorder_{{row_count}}_finding_id">
+            <input class="finding-id" type="hidden" value="" name="SecondaryToCommonOphthalmicDisorder[{{row_count}}][finding_id]">
         </td>
         <td>
             <input name="SecondaryToCommonOphthalmicDisorder[{{row_count}}][letter_macro_text]" id="SecondaryToCommonOphthalmicDisorder_{{row_count}}_letter_macro_text" type="text" value="">

@@ -124,17 +124,34 @@ class ExaminationElementAttributesController extends BaseAdminController
      */
     public function actionUpdate()
     {
+        // Handle GET requests by redirecting to edit page
+        if (!Yii::app()->request->isPostRequest) {
+            $id = Yii::app()->request->getParam('id');
+            if ($id) {
+                Yii::app()->controller->redirect(array('edit', 'id' => $id));
+            } else {
+                Yii::app()->controller->redirect(array('list'));
+            }
+            return;
+        }
+
         $newOCEA = new OphCiExamination_Attribute();
         $newOCEAE = new OphCiExamination_AttributeElement();
 
         $post = Yii::app()->request->getPost('OEModule_OphCiExamination_models_OphCiExamination_Attribute');
+        
+        // Check if POST data is null
+        if (!$post) {
+            echo 'error: No POST data provided';
+            Yii::app()->end();
+        }
 
-        $attributeId = $post['id'];
-        $attributeName = $post['name'];
-        $attributeLabel = $post['label'];
-        $attributeElements = $post['attribute_elements'];
-        $attributeInstitution = $post['institution'] === '' ? null : $post['institution'];
-        $attributeIsMultiSelect = $post['is_multiselect'];
+        $attributeId = isset($post['id']) ? $post['id'] : null;
+        $attributeName = isset($post['name']) ? $post['name'] : null;
+        $attributeLabel = isset($post['label']) ? $post['label'] : null;
+        $attributeElements = isset($post['attribute_elements']) ? $post['attribute_elements'] : null;
+        $attributeInstitution = isset($post['institution']) && $post['institution'] !== '' ? $post['institution'] : null;
+        $attributeIsMultiSelect = isset($post['is_multiselect']) ? $post['is_multiselect'] : 0;
 
         if (!isset($attributeElements)) {
             $newOCEA->name = $attributeName;
@@ -143,8 +160,8 @@ class ExaminationElementAttributesController extends BaseAdminController
             $newOCEA->is_multiselect = $attributeIsMultiSelect;
 
             if ($newOCEA->save()) {
-                echo 'success';
-                Yii::app()->request->redirect('list');
+                Yii::app()->request->redirect(array('list'));
+                Yii::app()->end();
             } else {
                 echo 'error1';
                 print_r($newOCEA->getErrors(), true);

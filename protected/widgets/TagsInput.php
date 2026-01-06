@@ -29,15 +29,20 @@ class TagsInput extends BaseFieldWidget
         $relation = $this->relation;
         $tag_names = array();
         if (empty($_POST)) {
-            if ($tags = $this->element->$relation) {
-                foreach ($tags as $tag) {
-                    $tag_names[] = $tag->name;
+            try {
+                if ($tags = $this->element->$relation) {
+                    foreach ($tags as $tag) {
+                        $tag_names[] = $tag->name;
+                    }
                 }
+            } catch (Exception $e) {
+                // For new models or when relation loading fails, use empty array
+                $tag_names = array();
             }
         } else {
             $field = isset($_POST[$this->field]) ? $_POST[$this->field] :
-                isset($_POST[CHtml::modelName($this->element)][$this->field]) ?
-                    $_POST[CHtml::modelName($this->element)][$this->field] : '';
+                (isset($_POST[CHtml::modelName($this->element)][$this->field]) ?
+                    $_POST[CHtml::modelName($this->element)][$this->field] : '');
             $tag_names = explode(',', $field);
         }
 

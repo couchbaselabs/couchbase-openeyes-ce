@@ -18,6 +18,9 @@
 
 
 $sites = Site::model()->getListForCurrentInstitution();
+if (empty($sites)) {
+    $sites = Site::model()->getListForAllInstitutions();
+}
 ?>
 
 <div class="row divider">

@@ -13,7 +13,6 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 ?>
-<tbody id="ldap-details">
     <tr>
         <td>LDAP Method</td>
         <td>
@@ -53,8 +52,8 @@
                 [ 'class' => 'cols-full' ]
             ); ?>
         </td>
-    <tr>
     </tr>
+    <tr>
         <td>LDAP Admin Password</td>
         <td>
             <?= \CHtml::activePasswordField(
@@ -63,8 +62,8 @@
                 [ 'class' => 'cols-full' ]
             ); ?>
         </td>
-    <tr>
     </tr>
+    <tr>
         <td>LDAP Base Distinguished Name</td>
         <td>
             <?= \CHtml::activeTextField(
@@ -74,26 +73,23 @@
             ); ?>
         </td>
     </tr>
-    <tbody id="ldap-additional-params-table">
-        <tr>
-            <td>Additional LDAP Params</td>
-        </tr>
+    <tr>
+        <td>Additional LDAP Params</td>
+    </tr>
     <?php foreach ($ldap_config->ldap_additional_params as $key => $param) {
         $this->renderPartial('/admin/ldap_config/_ldap_additional_param_row', [
             'key' => $key,
             'ldap_config' => $ldap_config,
         ]);
     } ?>
-    </tbody>
-    <tr>
-        <td colspan="2">
-            <?= \CHtml::button(
-                'Add Additional LDAP Param',
-                [
-                    'class' => 'button large',
-                    'id' => 'add-ldap-additional-param-btn'
-                ]
-            ); ?>
-        </td>
-    </tr>
-</tbody>
+<tr>
+    <td colspan="2">
+        <?= \CHtml::button(
+            'Add Additional LDAP Param',
+            [
+                'class' => 'button large',
+                'id' => 'add-ldap-additional-param-btn'
+            ]
+        ); ?>
+    </td>
+</tr>

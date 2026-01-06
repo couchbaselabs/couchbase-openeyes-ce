@@ -149,9 +149,10 @@ class DefaultController extends BaseEventTypeController
         $errors = array();
 
         if (!empty($_POST)) {
-            if (preg_match('/^booking([0-9]+)$/', @$_POST['SelectBooking'], $m)) {
+            $selectBooking = $_POST['SelectBooking'] ?? null;
+            if ($selectBooking && preg_match('/^booking([0-9]+)$/', $selectBooking, $m)) {
                 $this->redirect(array('/OphTrOperationchecklists/Default/create?patient_id=' . $this->patient->id . '&booking_event_id=' . $m[1]));
-            } elseif (@$_POST['SelectBooking'] === 'emergency') {
+            } elseif ($selectBooking === 'emergency') {
                 $this->redirect(array('/OphTrOperationchecklists/Default/create?patient_id=' . $this->patient->id . '&unbooked=1'));
             }
 
@@ -944,6 +945,13 @@ class DefaultController extends BaseEventTypeController
         $errors = $this->customSetAndValidateElementsFromData($data);
         $currentStep = $this->getCurrentStep();
         $nextStep = $this->getNextStep();
+        
+        // Check if element sets are available
+        if (!$currentStep) {
+            $errors['Element Sets'] = array('Element sets are not available. Please ensure the system is properly configured.');
+            return $errors;
+        }
+        
         if (isset($data['Element_OphTrOperationchecklists_Documentation']['checklistResults'])) {
             $errors = $this->setAndValidateDocumentationElement($data['Element_OphTrOperationchecklists_Documentation']['checklistResults'], $currentStep, $nextStep, $errors);
         }
@@ -1501,12 +1509,12 @@ class DefaultController extends BaseEventTypeController
      *
      * @param Event $event
      *
-     * @return OphTrOperationchecklists_ElementSet
+     * @return OphTrOperationchecklists_ElementSet|null
      */
     protected function getNextStep($event = null)
     {
         $step = $this->getCurrentStep();
-        return $step->getNextStep();
+        return $step ? $step->getNextStep() : null;
     }
 
     /**

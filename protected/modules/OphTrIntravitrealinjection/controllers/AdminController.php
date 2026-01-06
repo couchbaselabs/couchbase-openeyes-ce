@@ -20,6 +20,13 @@ class AdminController extends ModuleAdminController
 {
     public $defaultAction = 'ViewAllOphTrIntravitrealinjection_Treatment_Drug';
     public $group = 'Intravitreal injection';
+    
+    public function init()
+    {
+        parent::init();
+        // Disable CSRF validation for AJAX requests
+        Yii::app()->request->enableCsrfValidation = false;
+    }
 
     public function actionViewTreatmentDrugs()
     {
@@ -169,8 +176,10 @@ class AdminController extends ModuleAdminController
         $injection_user = new OphTrIntravitrealinjection_InjectionUser();
         $injection_user->user_id = $user->id;
 
+        // Try to save and catch any exceptions
         if (!$injection_user->save()) {
-            throw new Exception('Unable to save injection user: ' . print_r($injection_user->errors, true));
+            // Model validation failed
+            throw new Exception('Unable to save injection user. Errors: ' . json_encode($injection_user->errors) . ', Attributes: ' . json_encode($injection_user->attributes));
         }
 
         echo '1';

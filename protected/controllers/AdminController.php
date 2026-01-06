@@ -767,7 +767,7 @@ class AdminController extends BaseAdminController
     public function actionCheckInstAuthType()
     {
         $institution_authentication_id = Yii::app()->request->getParam('id');
-        $institution_authentication = InstitutionAuthentication::model()->findByPk($institution_authentication_id);
+        $institution_authentication = InstitutionAuthentication::model()->with('institution')->findByPk($institution_authentication_id);
         if ($institution_authentication) {
             echo $institution_authentication->user_authentication_method;
         } else {
@@ -1169,10 +1169,10 @@ class AdminController extends BaseAdminController
         }
 
         $contact = Contact::model()->findByPk($id);
-        $contact->setScenario('admin_contact');
         if (!$contact) {
             throw new CHttpException(404, 'Contact not found: ' . $id);
         }
+        $contact->setScenario('admin_contact');
 
         if (!empty($_POST)) {
             $contact->attributes = $_POST['Contact'];
@@ -1406,7 +1406,7 @@ class AdminController extends BaseAdminController
             $transaction = Yii::app()->cbdb->beginTransaction();
             $attributes = $request->getPost('InstitutionAuthentication', []);
             $new = empty($attributes['id']);
-            $institution_authentication = !$new ? InstitutionAuthentication::model()->findByPk($attributes['id']) : new InstitutionAuthentication();
+            $institution_authentication = !$new ? InstitutionAuthentication::model()->with('institution')->findByPk($attributes['id']) : new InstitutionAuthentication();
             if (!$institution_authentication) {
                 throw new CHttpException(500, 'Unable to save institution authentication: resource not found');
                 $transaction->rollback();
@@ -1440,7 +1440,7 @@ class AdminController extends BaseAdminController
             $institution_id = (int)$request->getParam('institution_id');
             $institution_authentication_id = (int)$request->getParam('institution_authentication_id');
             $institution_authentication = $institution_authentication_id ?
-                InstitutionAuthentication::model()->findByPk($institution_authentication_id) :
+                InstitutionAuthentication::model()->with('institution')->findByPk($institution_authentication_id) :
                 ($institution_id ?
                     InstitutionAuthentication::newFromInstitution($institution_id) :
                     null);
@@ -1490,9 +1490,15 @@ class AdminController extends BaseAdminController
                 $contact->last_name = '-';
                 $contact->qualifications = null;
                 $contact->created_institution_id = Yii::app()->session['selected_institution_id'];
+                // Save the contact without validation so it gets an ID
+                $contact->save(false);
+                $institution->contact_id = $contact->id;
             }
             if (!$address) {
                 $address = new Address();
+                if ($contact) {
+                    $address->contact_id = $contact->id;
+                }
             }
             // get logos for institution if they exist and create a new logo reference if they don't. To avoid errors I am choosing to not get logo via active record by relation to avoid errors.
             $logo = $institution->logo;
@@ -1968,7 +1974,30 @@ class AdminController extends BaseAdminController
                 throw new CHttpException(404, 'Site not found: ' . $id);
             }
             $contact = $site->contact;
-            $address = $site->contact->address;
+            if (!$contact) {
+                // Create a new contact if one doesn't exist
+                $contact = new Contact('admin_contact');
+                $contact->created_institution_id = Yii::app()->session['selected_institution_id'];
+                if ($contact->save(false)) {
+                    $site->contact_id = $contact->id;
+                    // Save the site immediately to persist the contact_id
+                    $site->save();
+                }
+            }
+            $address = $contact->address;
+            if (!$address) {
+                // Create a new address if one doesn't exist
+                $address = new Address();
+                if ($contact->id) {
+                    $address->contact_id = $contact->id;
+                }
+                // Ensure address has a country_id set (required field for validation)
+                if (!$address->country_id) {
+                    // Default to United Kingdom or first available country
+                    $uk = Country::model()->findByAttributes(['name' => 'United Kingdom']);
+                    $address->country_id = $uk ? $uk->id : Country::model()->find()->id;
+                }
+            }
             // get logos for site if they exist and create a new logo reference if they don't. To avoid errors I am choosing to not get logo via active record by relation to avoid errors.
             $logo = $site->logo;
             if (!($logo)) {
@@ -2329,16 +2358,28 @@ class AdminController extends BaseAdminController
         }
 
         if (!empty($_POST)) {
-            $source->attributes = $_POST['ImportSource'];
+            // Debug: Log POST data
+            Yii::log('POST data received: ' . json_encode($_POST), CLogger::LEVEL_INFO, 'application.debug');
+            
+            if (isset($_POST['ImportSource'])) {
+                $source->attributes = $_POST['ImportSource'];
+                Yii::log('Source attributes updated: ' . json_encode($source->attributes), CLogger::LEVEL_INFO, 'application.debug');
 
-            if (!$source->validate()) {
-                $errors = $source->getErrors();
-            } else {
-                if (!$source->save()) {
-                    throw new CHttpException(500, 'Unable to save source: ' . print_r($source->getErrors(), true));
+                if (!$source->validate()) {
+                    $errors = $source->getErrors();
+                    Yii::log('Validation failed: ' . json_encode($errors), CLogger::LEVEL_WARNING, 'application.debug');
+                } else {
+                    Yii::log('Validation passed, attempting save', CLogger::LEVEL_INFO, 'application.debug');
+                    if (!$source->save()) {
+                        Yii::log('Save failed: ' . json_encode($source->getErrors()), CLogger::LEVEL_ERROR, 'application.debug');
+                        throw new CHttpException(500, 'Unable to save source: ' . print_r($source->getErrors(), true));
+                    }
+                    Yii::log('Save successful, id: ' . $source->id, CLogger::LEVEL_INFO, 'application.debug');
+                    Audit::add('admin-DataSource', 'edit', $id);
+                    $this->redirect('/admin/datasources/' . ceil($source->id / $this->items_per_page));
                 }
-                Audit::add('admin-DataSource', 'edit', $id);
-                $this->redirect('/admin/datasources/' . ceil($source->id / $this->items_per_page));
+            } else {
+                Yii::log('POST data does not contain ImportSource key', CLogger::LEVEL_WARNING, 'application.debug');
             }
         } else {
             Audit::add('admin-DataSource', 'view', $id);

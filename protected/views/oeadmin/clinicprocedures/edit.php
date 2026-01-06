@@ -68,7 +68,6 @@
                     ) ?>
                 </td>
             </tr>
-            </tbody>
             <tr>
                 <td colspan="8">
                     <?= CHtml::submitButton(
@@ -90,6 +89,7 @@
                     ) ?>
                 </td>
             </tr>
+            </tbody>
         </table>
     </form>
 </div>

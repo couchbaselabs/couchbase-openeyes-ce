@@ -50,6 +50,15 @@
                 ); ?>
             </td>
         </tr>
+        <tr style="display:none;">
+            <td>Display Order</td>
+            <td>
+                <?=\CHtml::activeHiddenField(
+                    $reason,
+                    'display_order'
+                ); ?>
+            </td>
+        </tr>
         </tbody>
         <tfoot>
         <tr>

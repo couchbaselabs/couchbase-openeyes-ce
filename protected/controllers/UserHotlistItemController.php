@@ -155,6 +155,11 @@ class UserHotlistItemController extends BaseController
             throw new CHttpException(403, 'Access denied');
         }
         $model->user_comment = $comment;
-        $model->save();
+        if ($model->save()) {
+            echo json_encode(['success' => true, 'message' => 'Comment updated successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update comment', 'errors' => $model->errors]);
+        }
+        Yii::app()->end();
     }
 }

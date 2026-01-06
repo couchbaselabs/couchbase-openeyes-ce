@@ -385,7 +385,7 @@ $default_urls = $logo_helper->getLogoURLs();
                 <tr class="clickable" data-id="<?= $institution_authentication->id ?>" data-uri="admin/editinstitutionauthentication?institution_authentication_id=<?= $institution_authentication->id ?>" data-key="<?= $key ?>">
                     <td><?= $institution_authentication->id ?></td>
                     <td><?= $institution_authentication->site ? $institution_authentication->site->name : '-' ?></td>
-                    <td><?= $institution_authentication->userAuthenticationMethod->code ?></td>
+                    <td><?= $institution_authentication->userAuthenticationMethod ? $institution_authentication->userAuthenticationMethod->code : '-' ?></td>
                     <td><?= $institution_authentication->description ?></td>
                     <td><?= $institution_authentication->ldap_config_id ? $institution_authentication->LDAPConfig->description : '-' ?></td>
                     <td><i class="oe-i <?= $institution_authentication->active ? 'tick' : 'remove' ?> small"></i></td>

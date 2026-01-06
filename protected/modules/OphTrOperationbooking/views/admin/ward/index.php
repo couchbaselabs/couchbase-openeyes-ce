@@ -44,7 +44,7 @@
                                          } else {
                                                 ?>odd<?php
                                          }?>" data-attr-id="<?php echo $ward->id?>" data-uri="OphTrOperationbooking/admin/editWard/<?php echo $ward->id?>">
-                        <td><?php echo $ward->site->name?></td>
+                        <td><?php echo $ward->site ? $ward->site->name : 'N/A'?></td>
                         <td><?php echo $ward->name?></td>
                         <td><?php echo $ward->code?>&nbsp;</td>
                         <td><?php echo $ward->restrictionText?></td>

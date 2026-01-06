@@ -108,6 +108,7 @@ class OphTrOperationbooking_Operation_Session_UnavailableReason extends BaseActi
     protected function afterConstruct()
     {
         parent::afterConstruct();
+        
         if (!$this->display_order) {
             $criteria = new CDbCriteria();
             $criteria->order = 'display_order desc';
@@ -131,7 +132,6 @@ class OphTrOperationbooking_Operation_Session_UnavailableReason extends BaseActi
         // will receive user inputs.
         return array(
                 array('name, enabled, display_order', 'safe'),
-                array('name, enabled, display_order', 'required'),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
                 array('id, name', 'safe', 'on' => 'search'),

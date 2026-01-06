@@ -236,59 +236,14 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
     }
 
     public function save($runValidation = true, $attributes = null, $allow_overriding = false)
-    {
-        if ($this->version_id) {
-            throw new Exception('save() should not be called on versiond model instances.');
-        }
-
-        if ($this->isSqlAvailable()) {
-            return parent::save($runValidation, $attributes, $allow_overriding);
-        }
-
-        // Couchbase-only path
-        if ($runValidation && !$this->validate($attributes)) {
-            return false;
-        }
-
-        $user_id = $this->getChangeUserId();
-        if ($this->getIsNewRecord() || !isset($this->id)) {
-            if ($this->hasAttribute('created_user_id') && !$allow_overriding) {
-                $this->created_user_id = $user_id;
-            }
-            if ($this->hasAttribute('created_date') && (!$allow_overriding || $this->created_date == '1900-01-01 00:00:00')) {
-                $this->created_date = date('Y-m-d H:i:s');
-            }
-        }
-
-        if ($this->hasAttribute('last_modified_user_id') && !$allow_overriding) {
-            $this->last_modified_user_id = $user_id;
-        }
-        if ($this->hasAttribute('last_modified_date') && (!$allow_overriding || $this->last_modified_date == '1900-01-01 00:00:00')) {
-            $this->last_modified_date = date('Y-m-d H:i:s');
-        }
-
-        // Ensure we have a primary key for Couchbase document keying
-        // Only set auto-generated ID if model has 'id' column AND no primary key value yet
-        if (!$this->getPrimaryKey() && $this->hasAttribute('id')) {
-            $this->id = (int)floor(microtime(true) * 1000);
-        }
-
-        // Run lifecycle hooks
-        if (!$this->beforeSave()) {
-            return false;
-        }
-
-        if (method_exists($this, 'saveToCouchbase')) {
-            $this->saveToCouchbase();
-        } elseif (method_exists($this, 'syncToCouchbase')) {
-            $this->syncToCouchbase();
-        }
-
-        // Mark as persisted to align with AR expectations
-        $this->setIsNewRecord(false);
-        $this->afterSave();
-        return true;
+{
+    if ($this->version_id) {
+        throw new Exception('save() should not be called on versiond model instances.');
     }
+
+    // Always save to SQL database - ignore Couchbase fallback
+    return parent::save($runValidation, $attributes, $allow_overriding);
+}
 
     public function resetScope($resetDefault = true)
     {

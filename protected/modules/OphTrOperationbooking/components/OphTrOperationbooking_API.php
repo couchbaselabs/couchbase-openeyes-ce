@@ -79,7 +79,9 @@ class OphTrOperationbooking_API extends BaseAPI
         $criteria = new CDbCriteria();
         $criteria->addInCondition('status_id', Yii::app()->cbdb->createCommand()->select('id')
             ->from('ophtroperationbooking_operation_status')
-            ->where(['not in','name', ['Completed', 'On-Hold']])->queryColumn());
+            ->where('name NOT IN (:names)')
+            ->bindValues([':names' => ['Completed', 'On-Hold']])
+            ->queryColumn());
 
         $operations = $this->getElements(
             'Element_OphTrOperationbooking_Operation',
@@ -150,9 +152,22 @@ class OphTrOperationbooking_API extends BaseAPI
     public function getOpenOperations(Patient $patient, $use_context = false)
     {
         $criteria = new CDbCriteria();
-                $criteria->addNotInCondition('status_id', Yii::app()->cbdb->createCommand()->select('id')
-                    ->from('ophtroperationbooking_operation_status')
-                    ->where(['in','name', ['Cancelled', 'Completed']])->queryColumn());
+        
+        // Get excluded status IDs - use a try-catch to handle Couchbase query issues gracefully
+        try {
+            $excluded_ids = Yii::app()->cbdb->createCommand()
+                ->select('id')
+                ->from('ophtroperationbooking_operation_status')
+                ->where('name = :cancelled OR name = :completed', array(':cancelled' => 'Cancelled', ':completed' => 'Completed'))
+                ->queryColumn();
+            
+            if (!empty($excluded_ids)) {
+                $criteria->addNotInCondition('status_id', $excluded_ids);
+            }
+        } catch (Exception $e) {
+            // If the query fails, log it but don't break - we'll show all operations
+            Yii::log('getOpenOperations query failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+        }
 
         return $this->getElements(
             'Element_OphTrOperationbooking_Operation',

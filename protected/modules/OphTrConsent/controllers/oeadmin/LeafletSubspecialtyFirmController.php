@@ -156,6 +156,11 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
 
         $leaflet = $model->findByAttributes(array($type . '_id' => $type_id, 'leaflet_id' => $leaflet_id));
 
+        if ($leaflet === null) {
+            echo 'error';
+            return;
+        }
+
         if (!$leaflet->delete()) {
             echo 'error';
         }

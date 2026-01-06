@@ -19,7 +19,7 @@ if (!empty($injection_users)) {
     foreach ($injection_users as $i => $user) {?>
         <tr>
             <td><input type="checkbox" name="injection_users[]" value="<?php echo $user->id?>" /></td>
-            <td><?php echo $user->user->fullName?></td>
+            <td><?php echo $user->user?->fullName ?? 'Unknown User'?></td>
         </tr>
     <?php }
 } else {?>

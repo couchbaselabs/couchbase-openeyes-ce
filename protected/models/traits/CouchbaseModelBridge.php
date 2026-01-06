@@ -1156,7 +1156,7 @@ trait CouchbaseModelBridge
             $foreignKey = $relation->foreignKey;
             
             // Instantiate the related model to use its Couchbase methods
-            $relatedModel = new $relatedClass();
+            $relatedModel = $relatedClass::model();
             
             // Handle different relation types
             if ($relation instanceof \CBelongsToRelation) {

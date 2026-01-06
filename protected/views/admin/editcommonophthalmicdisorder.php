@@ -440,7 +440,7 @@ foreach (Yii::app()->user->getFlashes() as $key => $message) {
                    id="CommonOphthalmicDisorder_{{row_count}}_disorder_id" autocomplete="off">
             <span role="status" aria-live="polite" class="ui-helper-hidden-accessible"></span>
             <input type="hidden" name="CommonOphthalmicDisorder[{{row_count}}][disorder_id]" class="savedDiagnosis"
-                   value="">
+                   id="CommonOphthalmicDisorder_{{row_count}}_disorder_id_actual" value="">
             <ul class="oe-autocomplete"></ul>
         </td>
         <td>
@@ -463,7 +463,7 @@ foreach (Yii::app()->user->getFlashes() as $key => $message) {
                 <input class="finding-search-autocomplete finding-search-inputfield ui-autocomplete-input"
                        style="display: block;" autocomplete="off" type="text" value=""
                        name="CommonOphthalmicDisorder[{{row_count}}][finding_id]"
-                       id="CommonOphthalmicDisorder_{{row_count}}_finding_id">
+                       id="CommonOphthalmicDisorder_{{row_count}}_finding_id_input">
                 <span role="status" aria-live="polite" class="ui-helper-hidden-accessible"></span>
                 <input class="finding-id" type="hidden" value="" name="CommonOphthalmicDisorder[{{row_count}}][finding_id]"
                        id="CommonOphthalmicDisorder_{{row_count}}_finding_id">
@@ -481,7 +481,7 @@ foreach (Yii::app()->user->getFlashes() as $key => $message) {
                 <input class="alternate-disorder-search-autocomplete alternate-disorder-search-inputfield ui-autocomplete-input"
                        style="display: inline;" autocomplete="off" type="text"
                        name="CommonOphthalmicDisorder[{{row_count}}][alternate_disorder_id]"
-                       id="CommonOphthalmicDisorder_{{row_count}}_alternate_disorder_id">
+                       id="CommonOphthalmicDisorder_{{row_count}}_alternate_disorder_id_input">
                 <span role="status" aria-live="polite" class="ui-helper-hidden-accessible"></span>
                 <input class="alternate-disorder-id" type="hidden"
                        name="CommonOphthalmicDisorder[{{row_count}}][alternate_disorder_id]"

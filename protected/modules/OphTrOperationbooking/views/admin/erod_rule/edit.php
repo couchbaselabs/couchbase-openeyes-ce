@@ -50,7 +50,7 @@
                     'Firms',
                     'firms',
                     'item_id',
-                    Firm::model()->getListWithSpecialties(),
+                    Firm::model()->getListWithSpecialties(null, true),
                     null,
                     ['empty' => '- ' . Firm::contextLabel() . 's -', 'class' => 'cols-full', 'nowrapper' => true]
                 );

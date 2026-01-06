@@ -357,14 +357,11 @@ class AdminController extends ModuleAdminController
             // do the actual create
             $model->attributes = $_POST['OphCoTherapyapplication_DecisionTree'];
 
-            if (!$model->save()) {
-                // Log validation errors
-                Yii::app()->user->setFlash('error', 'Failed to save Decision Tree: ' . json_encode($model->getErrors()));
-            } else {
+            if ($model->save()) {
                 Audit::add('admin', 'create', $model->id, null, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_DecisionTree'));
                 Yii::app()->user->setFlash('success', 'Decision Tree created');
 
-                $this->redirect(array('viewdecisiontrees'));
+                $this->redirect(array('viewdecisiontree', 'id' => $model->id));
             }
         }
 
@@ -632,7 +629,7 @@ class AdminController extends ModuleAdminController
                     Yii::app()->user->setFlash('success', 'File Collection created');
 
                     $transaction->commit();
-                    $this->redirect(array('viewFileCollections'));
+                    $this->redirect(array('viewfilecollections'));
                 }
             }
 
@@ -746,18 +743,12 @@ class AdminController extends ModuleAdminController
     public function actionAddEmailRecipient()
     {
         $model = new OphCoTherapyapplication_Email_Recipient();
-        
-        // Set default institution to current selected institution
-        $model->institution_id = Yii::app()->session['selected_institution_id'];
 
         if (isset($_POST['OphCoTherapyapplication_Email_Recipient'])) {
             // do the actual create
             $model->attributes = $_POST['OphCoTherapyapplication_Email_Recipient'];
-            
-            // Ensure institution_id is set to current institution
-            if (empty($model->institution_id)) {
-                $model->institution_id = Yii::app()->session['selected_institution_id'];
-            }
+            // Always use current selected institution
+            $model->institution_id = Yii::app()->session['selected_institution_id'];
 
             if ($model->save()) {
                 Audit::add('admin', 'create', serialize($model->attributes), false, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_Email_Recipient'));

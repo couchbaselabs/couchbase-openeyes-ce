@@ -38,12 +38,29 @@ class RemapValue extends \BaseActiveRecordVersioned
     }
 
     /**
-     * After save, sync to Couchbase.
+     * After save, sync to Couchbase with error handling.
+     * Couchbase sync is non-critical for PASAPI models, so we skip on timeout/error.
      */
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        
+        // Skip Couchbase sync if not in dual-write mode
+        if (!$this->isDualWriteEnabled()) {
+            return;
+        }
+        
+        // Wrap Couchbase sync with error handling
+        try {
+            $this->saveToCouchbase();
+        } catch (\Exception $e) {
+            // Log error but don't fail the operation - Couchbase sync is non-critical for PASAPI
+            \Yii::log(
+                'RemapValue afterSave Couchbase sync error: ' . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.pasapi.couchbase'
+            );
+        }
     }
 
     /**

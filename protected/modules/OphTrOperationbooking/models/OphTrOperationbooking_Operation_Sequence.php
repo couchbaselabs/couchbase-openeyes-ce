@@ -364,9 +364,14 @@ class OphTrOperationbooking_Operation_Sequence extends BaseActiveRecordVersioned
             }
             $dateList = $this->getWeekOccurrences($this->weekday, $this->week_selection, $time, $endDate, $date, date('Y-m-d', $endDate));
         } else {
-            $interval = $this->interval->getInteger($endDate);
+            $interval = $this->interval?->getInteger($endDate);
+            
+            if (!$interval && $this->interval_id) {
+                $interval_obj = OphTrOperationbooking_Operation_Sequence_Interval::model()->findByPk($this->interval_id);
+                $interval = $interval_obj ? $interval_obj->getInteger($endDate) : null;
+            }
 
-            $days = $interval / 24 / 60 / 60;
+            $days = $interval ? $interval / 24 / 60 / 60 : 0;
 
             $nextStartDate = $startDate;
 

@@ -117,7 +117,12 @@ class OphTrOperationnote_PostopDrug extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        try {
+            $this->saveToCouchbase();
+        } catch (Exception $e) {
+            Yii::log('Error saving OphTrOperationnote_PostopDrug to Couchbase: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Don't throw exception here, as the database save was successful
+        }
     }
 
     /**
@@ -127,6 +132,20 @@ class OphTrOperationnote_PostopDrug extends BaseActiveRecordVersioned
     {
         parent::afterDelete();
         $this->deleteFromCouchbase();
+    }
+
+    /**
+     * Before save, ensure all required fields are set
+     */
+    protected function beforeSave()
+    {
+        try {
+            Yii::log('OphTrOperationnote_PostopDrug::beforeSave() called', CLogger::LEVEL_INFO);
+            return parent::beforeSave();
+        } catch (Exception $e) {
+            Yii::log('Error in OphTrOperationnote_PostopDrug::beforeSave(): ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            throw $e;
+        }
     }
 
     /**

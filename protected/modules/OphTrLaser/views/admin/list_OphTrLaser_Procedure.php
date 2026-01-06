@@ -28,7 +28,7 @@
             <?php foreach ($model_list as $i => $model) { ?>
                 <tr class="clickable" data-id="<?= $model->id ?>"
                     data-uri="OphTrLaser/admin/editLaserProcedure/<?= $model->id ?>">
-                    <td><?= $model->procedure->term ?></td>
+                    <td><?= $model->procedure?->term ?? 'N/A' ?></td>
                     <td>
                         <?php $institutions = CHtml::listData($model->institutions, 'id', 'name');
                         echo $institutions ? CHtml::encode(implode(', ', $institutions)) : 'N/A'; ?>

@@ -142,7 +142,7 @@ class ResultTypeController extends BaseAdminController
             if (isset($elementType)) {
                 $model->result_element_id = $elementType->id;
             }
-            if ($model->fieldType->name !== "Numeric Field") {
+            if ($model->fieldType?->name !== "Numeric Field") {
                 $model->min_range = null;
                 $model->max_range = null;
                 $model->normal_min = null;
@@ -153,7 +153,7 @@ class ResultTypeController extends BaseAdminController
                 $errors = $model->getErrors();
             }
 
-            if ($model->fieldType->name === "Drop-down Field") {
+            if ($model->fieldType?->name === "Drop-down Field") {
                 if (isset($_POST['type_options']['options_id'])) {
                     $optionsId = $_POST['type_options']['options_id'];
                     $values = $_POST['type_options']['value'];

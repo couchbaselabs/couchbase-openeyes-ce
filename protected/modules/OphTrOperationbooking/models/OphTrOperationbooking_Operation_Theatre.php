@@ -68,8 +68,8 @@ class OphTrOperationbooking_Operation_Theatre extends BaseActiveRecordVersioned
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('name, site_id, code, ward_id', 'safe'),
-            array('name, site_id, code', 'required'),
+            array('name, site_id, code, ward_id, institution_id', 'safe'),
+            array('name, code', 'required'),
             array('code', 'length', 'max' => 4),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
@@ -173,7 +173,7 @@ class OphTrOperationbooking_Operation_Theatre extends BaseActiveRecordVersioned
 
     public function getNameWithSite()
     {
-        return $this->name.' ('.$this->site->name.')';
+        return $this->name.' ('.$this->site?->name.')';
     }
 
     /**

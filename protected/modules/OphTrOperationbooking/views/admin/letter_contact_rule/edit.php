@@ -43,7 +43,7 @@
             <td><?=$rule->getAttributeLabel('parent_rule_id');?></td>
             <td><?=\CHtml::activeDropDownList(
                 $rule,
-                'rule_order',
+                'parent_rule_id',
                 CHtml::listData(OphTrOperationbooking_Letter_Contact_Rule::model()->getListAsTree(), 'id', 'treeName'),
                 ['empty' => '- None -', 'class' => 'cols-full']
             ); ?>

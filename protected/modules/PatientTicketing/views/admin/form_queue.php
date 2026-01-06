@@ -84,7 +84,13 @@ $this->renderPartial('//elements/form_errors', array('errors' => $errors, 'botto
     </table>
 
     </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="button green" id="et_save_queue">Save Queue</button>
+        <a href="/PatientTicketing/admin" class="button">Cancel</a>
+    </div>
 </form>
+
 <script>
     // Handle jQuery initialization for renderPartial context
     function initializeAutosize() {
@@ -110,4 +116,42 @@ $this->renderPartial('//elements/form_errors', array('errors' => $errors, 'botto
     if (document.readyState === 'interactive' || document.readyState === 'complete') {
         setTimeout(initializeAutosize, 0);
     }
+    
+    // Handle form submission
+    $(document).ready(function() {
+        $('form').on('submit', function(e) {
+            e.preventDefault();
+            
+            var form = $(this);
+            var submitBtn = form.find('#et_save_queue');
+            var originalText = submitBtn.text();
+            
+            $.ajax({
+                url: form.attr('action') || window.location.href,
+                type: 'POST',
+                data: form.serialize(),
+                dataType: 'json',
+                beforeSend: function() {
+                    submitBtn.prop('disabled', true).text('Saving...');
+                },
+                success: function(resp) {
+                    if (resp.success) {
+                        // Redirect to list page
+                        window.location.href = '/PatientTicketing/admin';
+                    } else {
+                        // Replace form with errors
+                        if (resp.form) {
+                            form.closest('main').html(resp.form);
+                        }
+                        submitBtn.prop('disabled', false).text(originalText);
+                    }
+                },
+                error: function(jqXHR, status, error) {
+                    alert('There was a problem saving the queue: ' + error);
+                    submitBtn.prop('disabled', false).text(originalText);
+                }
+            });
+            return false;
+        });
+    });
 </script>

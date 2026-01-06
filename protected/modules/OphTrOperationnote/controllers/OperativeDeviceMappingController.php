@@ -16,7 +16,7 @@
  * @copyright Copyright (c) 2011-2012, OpenEyes Foundation
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
-class OperativeDeviceMappingController extends BaseAdminController
+class OperativeDeviceMappingController extends ModuleAdminController
 {
     public $group = 'Operation note';
 
@@ -173,12 +173,14 @@ class OperativeDeviceMappingController extends BaseAdminController
      */
     public function actionAdd()
     {
-        $subspecialtyId = $this->request->getParam('subspecialty_id');
-        $siteId = $this->request->getParam('site_id');
-        $operativeDeviceId = $this->request->getParam('operative_device_id');
-        if (!Yii::app()->request->isAjaxRequest) {
-            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
-        } else {
+        $model = new SiteSubspecialtyOperativeDevice();
+        
+        // Handle AJAX requests (for AdminListAutocomplete functionality)
+        if (Yii::app()->request->isAjaxRequest) {
+            $subspecialtyId = $this->request->getParam('subspecialty_id');
+            $siteId = $this->request->getParam('site_id');
+            $operativeDeviceId = $this->request->getParam('operative_device_id');
+            
             if (!is_numeric($subspecialtyId) || !is_numeric($siteId) || !is_numeric($operativeDeviceId)) {
                 echo 'error';
             } else {
@@ -204,7 +206,45 @@ class OperativeDeviceMappingController extends BaseAdminController
                     echo 'success';
                 }
             }
+            return;
         }
+        
+        // Handle form requests (POST and GET)
+        $request = Yii::app()->getRequest();
+        
+        // Set default values from session
+        $site_id = Yii::app()->session['selected_site_id'];
+        $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
+        $subspecialty_id = $firm->serviceSubspecialtyAssignment->subspecialty_id;
+        
+        $model->site_id = $site_id;
+        $model->subspecialty_id = $subspecialty_id;
+        
+        if ($request->getPost('SiteSubspecialtyOperativeDevice')) {
+            $model->attributes = $request->getPost('SiteSubspecialtyOperativeDevice');
+            if ($model->save()) {
+                Yii::app()->user->setFlash('success', 'Operative Device Mapping created successfully');
+                $this->redirect(array('list'));
+            } else {
+                // Log save errors for debugging and display them
+                $errors = $model->getErrors();
+                Yii::log('Save failed for SiteSubspecialtyOperativeDevice: ' . json_encode($errors), 'error');
+                
+                // Add error message to view
+                foreach ($errors as $field => $messages) {
+                    foreach ($messages as $message) {
+                        Yii::app()->user->setFlash('error', $message);
+                    }
+                }
+            }
+        }
+        
+        // Render the form view
+        $this->render('/admin/add', array(
+            'model' => $model,
+            'title' => 'Add Operative Device Mapping',
+            'cancel_uri' => '/OphTrOperationnote/OperativeDeviceMapping/list',
+        ));
     }
 
     /**

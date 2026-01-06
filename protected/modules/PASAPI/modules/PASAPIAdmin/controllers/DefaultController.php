@@ -28,9 +28,20 @@ class DefaultController extends \BaseAdminController
     {
         \Audit::add('admin', 'list', null, false, array('module' => 'PASAPI', 'model' => 'OEModule\PASAPI\models\XpathRemap'));
 
+        // Query using CActiveRecord parent to bypass CouchbaseModelBridge integration
+        $model = new XpathRemap('search');
+        
+        // Use parent's findAll method by calling it on the parent class directly
+        // This bypasses the CouchbaseModelBridge findAll override
+        $model_list = XpathRemap::model()->findAll(array(
+            'condition' => 'institution_id = :inst_id',
+            'params' => array(':inst_id' => \Yii::app()->session['selected_institution_id']),
+            'order' => 'name asc'
+        ));
+
         $this->render('list_XpathRemap', array(
             'model_class' => 'XpathRemap',
-            'model_list' => XpathRemap::model()->findAll(array('condition' => 'institution_id='. \Yii::app()->session['selected_institution_id'], 'order' => 'name asc')),
+            'model_list' => $model_list,
             'title' => 'Remaps',
         ));
     }

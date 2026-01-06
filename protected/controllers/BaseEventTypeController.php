@@ -2827,23 +2827,23 @@ class BaseEventTypeController extends BaseModuleController
         $episode = Episode::model()->getCurrentEpisodeByFirm($this->patient->id, $this->firm);
         if (!$episode && $this->patient && $this->firm) {
             // Create a new episode if one doesn't exist
-            Yii::log('Creating new episode for patient ' . $this->patient->id . ', firm ' . $this->firm->id, CLogger::LEVEL_INFO);
             $episode = new Episode();
             $episode->patient_id = $this->patient->id;
             $episode->firm_id = $this->firm->id;
             $episode->support_services = false;
             $episode->start_date = date('Y-m-d H:i:s');
-            if (!$episode->save()) {
+            $episode->episode_status_id = 1; // Set default episode status (required field)
+            if ($episode->save()) {
+                return $episode;
+            } else {
                 // Log error but don't throw exception to avoid breaking existing behavior
                 $errors = $episode->getErrors();
-                Yii::log('Could not create episode for patient ' . $this->patient->id . ': ' . json_encode($errors), CLogger::LEVEL_ERROR);
+                $errorMessage = 'Could not create episode for patient ' . $this->patient->id . ', firm ' . $this->firm->id . ': ' . json_encode($errors);
+                Yii::log($errorMessage, CLogger::LEVEL_ERROR);
+                // Also log to file for debugging
+                error_log($errorMessage);
                 return null;
             }
-            Yii::log('Successfully created episode ' . $episode->id, CLogger::LEVEL_INFO);
-        } else if ($episode) {
-            Yii::log('Using existing episode ' . $episode->id, CLogger::LEVEL_INFO);
-        } else {
-            Yii::log('Could not get or create episode - patient or firm is missing', CLogger::LEVEL_ERROR);
         }
         return $episode;
     }
@@ -3533,22 +3533,33 @@ class BaseEventTypeController extends BaseModuleController
             Yii::log('Skipped hotlist update because patient is missing', CLogger::LEVEL_INFO);
             return;
         }
-        $user = Yii::app()->user;
-        $hotlistItem = UserHotlistItem::model()->find(
-            'created_user_id = :user_id AND patient_id = :patient_id
-                       AND (DATE(last_modified_date) = :current_date OR is_open = 1)',
-            array(':user_id' => $user->id, ':patient_id' => $patient->id, ':current_date' => date('Y-m-d'))
-        );
+        
+        try {
+            $user = Yii::app()->user;
+            
+            // Try to find an existing open hotlist item (simplified query without date functions)
+            $hotlistItem = UserHotlistItem::model()->findByAttributes(
+                array(
+                    'created_user_id' => $user->id,
+                    'patient_id' => $patient->id,
+                    'is_open' => 1
+                )
+            );
 
-        if (!$hotlistItem) {
-            $hotlistItem = new UserHotlistItem();
-            $hotlistItem->patient_id = $patient->id;
+            if (!$hotlistItem) {
+                $hotlistItem = new UserHotlistItem();
+                $hotlistItem->patient_id = $patient->id;
+            }
+
+            $hotlistItem->is_open = 1;
+            if (!$hotlistItem->save()) {
+                // Log the error but don't fail the whole request
+                Yii::log('UserHotListItem failed validation: ' . print_r($hotlistItem->errors, true), CLogger::LEVEL_WARNING);
+            }
+        } catch (Exception $e) {
+            // Log the error but don't fail the whole request - hotlist is not critical
+            Yii::log('Error updating hotlist item: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
         }
-
-        $hotlistItem->is_open = 1;
-        if (!$hotlistItem->save()) {
-            throw new Exception('UserHotListItem failed validation ' . print_r($hotlistItem->errors, true));
-        };
     }
 
 

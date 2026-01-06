@@ -140,7 +140,8 @@ class Episode extends BaseActiveRecordVersioned
         // will receive user inputs.
         return array(
             array('patient_id', 'required'),
-            array('patient_id, firm_id', 'length', 'max' => 10),
+            // Removed length validation as it was restricting large integer patient IDs used in production
+            // array('patient_id, firm_id', 'length', 'max' => 10),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
             array('id, patient_id, firm_id, start_date, end_date', 'safe', 'on' => 'search'),

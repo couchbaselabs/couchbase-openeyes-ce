@@ -30,10 +30,11 @@
             <?php
             $criteria = new CDbCriteria();
             $criteria->order = 'display_order asc';
-            foreach (OphTrOperationbooking_Operation_Name_Rule::model()->findAll() as $i => $rule) {?>
-                <tr class="clickable sortable" data-attr-id="<?php echo $rule->id?>?>" data-uri="OphTrOperationbooking/admin/editoperationnamerule/<?php echo $rule->id?>">
+            $criteria->with = array('theatre');
+            foreach (OphTrOperationbooking_Operation_Name_Rule::model()->findAll($criteria) as $i => $rule) {?>
+                <tr class="clickable sortable" data-attr-id="<?php echo $rule->id?>" data-uri="OphTrOperationbooking/admin/editoperationnamerule/<?php echo $rule->id?>">
                     <td><input type="checkbox" name="operation_name[]" value="<?php echo $rule->id?>" class="operation_name_rules" /></td>
-                    <td><?php echo $rule->theatre->name?></td>
+                    <td><?php echo $rule->theatre ? $rule->theatre->name : 'N/A'?></td>
                     <td><?php echo $rule->name?></td>
                 </tr>
             <?php }?>

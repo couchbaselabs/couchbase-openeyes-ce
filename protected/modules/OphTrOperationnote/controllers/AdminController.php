@@ -71,7 +71,13 @@ class AdminController extends ModuleAdminController
                 $errors = $default->getErrors();
             } else {
                 if (!$default->save()) {
-                    throw new CHttpException(400, 'Unable to save drug: '.print_r($default->getErrors(), true));
+                    $errorDetails = '';
+                    foreach ($default->getErrors() as $attribute => $errorMessages) {
+                        foreach ($errorMessages as $message) {
+                            $errorDetails .= "$attribute: $message. ";
+                        }
+                    }
+                    throw new CHttpException(400, 'Unable to save incision length default: ' . ($errorDetails ?: 'Unknown error'));
                 } else {
                     Audit::add('admin-OphTrOperationnote_IncisionLengthDefaults', 'add', $default->id);
                     $this->redirect('/OphTrOperationnote/admin/viewIncisionLengthDefaults');
@@ -121,16 +127,54 @@ class AdminController extends ModuleAdminController
         $drug = new OphTrOperationnote_PostopDrug();
 
         if (!empty($_POST)) {
+            Yii::log('Full $_POST: ' . json_encode($_POST), CLogger::LEVEL_INFO);
+            
+            if (!isset($_POST['OphTrOperationnote_PostopDrug'])) {
+                Yii::log('ERROR: OphTrOperationnote_PostopDrug key not in $_POST', CLogger::LEVEL_ERROR);
+                throw new Exception('Form data not received correctly');
+            }
+            
             $drug->attributes = $_POST['OphTrOperationnote_PostopDrug'];
+            
+            Yii::log('Drug attributes: ' . json_encode($drug->attributes), CLogger::LEVEL_INFO);
 
             if (!$drug->validate()) {
                 $errors = $drug->getErrors();
+                Yii::log('Validation errors: ' . json_encode($errors), CLogger::LEVEL_ERROR);
             } else {
-                if (!$drug->save()) {
-                    throw new Exception('Unable to save drug: '.print_r($drug->getErrors(), true));
+                try {
+                    Yii::log('Attempting to save drug with name: ' . $drug->name, CLogger::LEVEL_INFO);
+                    Yii::log('Drug is new record: ' . ($drug->getIsNewRecord() ? 'true' : 'false'), CLogger::LEVEL_INFO);
+                    Yii::log('Drug attributes before save: ' . json_encode($drug->getAttributes()), CLogger::LEVEL_INFO);
+                    
+                    // Explicitly disable save_only_if_dirty to ensure save proceeds
+                    $drug->saveOnlyIfDirty(false);
+                    
+                    try {
+                        $save_result = $drug->save();
+                    } catch (Exception $save_exception) {
+                        Yii::log('Exception during save(): ' . $save_exception->getMessage(), CLogger::LEVEL_ERROR);
+                        throw $save_exception;
+                    }
+                    
+                    Yii::log('Save result: ' . ($save_result ? 'true' : 'false'), CLogger::LEVEL_INFO);
+                    Yii::log('Drug attributes after save: ' . json_encode($drug->getAttributes()), CLogger::LEVEL_INFO);
+                    
+                    if (!$save_result) {
+                        $model_errors = $drug->getErrors();
+                        $error_msg = 'Unable to save drug';
+                        if (!empty($model_errors)) {
+                            $error_msg .= ': ' . json_encode($model_errors);
+                        }
+                        Yii::log('PostopDrug save failed: ' . $error_msg, CLogger::LEVEL_ERROR);
+                        throw new Exception($error_msg);
+                    }
+                    Audit::add('admin-OphTrOperationnote_PostopDrug', 'add', $drug->id);
+                    $this->redirect('/OphTrOperationnote/admin/viewPostOpDrugs');
+                } catch (Exception $e) {
+                    Yii::log('Exception in actionAddPostOpDrug: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+                    throw $e;
                 }
-                Audit::add('admin-OphTrOperationnote_PostopDrug', 'add', $drug->id);
-                $this->redirect('/OphTrOperationnote/admin/viewPostOpDrugs');
             }
         }
 

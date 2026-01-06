@@ -18,7 +18,7 @@
     <div class="row divider">
         <h2><?= $ldap_config->isNewRecord ? 'Add' : 'Edit' ?> LDAP Configuration</h2>
     </div>
-    <?php echo $this->renderPartial('_form_errors', ['errors' => $errors]) ?>
+    <?php echo $this->renderPartial('/admin/_form_errors', ['errors' => $errors]) ?>
     <?php
     $form = $this->beginWidget(
         'BaseEventTypeCActiveForm',
