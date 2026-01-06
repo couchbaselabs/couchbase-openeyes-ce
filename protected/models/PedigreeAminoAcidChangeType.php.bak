@@ -100,6 +100,23 @@ class PedigreeAminoAcidChangeType extends BaseActiveRecord
         return parent::save($runValidation, $attributes, $allow_overriding);
     }
 
+    /**
+     * Override findByPk to handle Couchbase-only mode
+     * When MariaDB is not available, return the current instance if id matches
+     */
+    public function findByPk($pk, $condition=null, $params=array())
+    {
+        // If MariaDB is not available and we're in Couchbase mode, return current instance if id matches
+        if (!Yii::app()->db->isConnectionAvailable() && $this->isDualWriteEnabled()) {
+            if ($this->id == $pk) {
+                return $this;
+            }
+            return null;
+        }
+        return parent::findByPk($pk, $condition, $params);
+    }
+
+    /**
      * @return string the Couchbase scope name
      */
     public function couchbaseScope(): string

@@ -107,46 +107,30 @@ class UniqueCodes extends BaseActiveRecord
 
     /**
      * Override count to use MariaDB instead of Couchbase
+     * Use CDbCriteria if available, otherwise fall back to string-based conditions
      */
-    public function count($condition = '', $params = [])
+    public function count($criteria = '', $params = [])
     {
-        $command = $this->getCommandBuilder()->createCountCommand($this->tableName(), $condition, $params);
-        return (int)$command->queryScalar();
+        if ($criteria instanceof CDbCriteria) {
+            return parent::count($criteria, $params);
+        }
+        
+        // Fall back to parent implementation for string conditions
+        return parent::count($criteria, $params);
     }
 
     /**
      * Override findAll to use MariaDB instead of Couchbase
      */
-    public function findAll($condition = '', $params = [])
+    public function findAll($criteria = '', $params = [])
     {
-        $criteria = $this->getDbCriteria();
-        if (is_string($condition)) {
-            $criteria->condition = $condition;
-            $criteria->params = $params;
-        } elseif (is_array($condition)) {
-            $criteria->condition = $condition['condition'] ?? '';
-            $criteria->params = $condition['params'] ?? [];
+        if ($criteria instanceof CDbCriteria) {
+            // Handle CDbCriteria object
+            return parent::findAll($criteria, $params);
         }
-
-        return $this->query($criteria)->queryAll();
-    }
-
-    /**
-     * Override findByPk to use MariaDB instead of Couchbase
-     */
-    public function findByPk($pk, $condition = '', $params = [])
-    {
-        $criteria = $this->getDbCriteria();
-        $criteria->addCondition($this->getTableAlias(true, false).'.id=:pk');
-        $criteria->params[':pk'] = $pk;
-
-        if (is_string($condition)) {
-            $criteria->addCondition($condition);
-            $criteria->params = array_merge($criteria->params, $params);
-        }
-
-        $record = $this->query($criteria)->queryRow();
-        return $record ? $this->populateRecord($record) : null;
+        
+        // Fall back to parent implementation
+        return parent::findAll($criteria, $params);
     }
 
     /**

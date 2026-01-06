@@ -323,6 +323,8 @@ return [
     // REFERENCE SCOPE - Lookup/Reference Data
     // ============================================
     'reference' => [
+        // API Reference Data
+        'attachment_type',
         // Disorders & Diagnoses
         'disorder',
         'common_ophthalmic_disorder',

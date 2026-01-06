@@ -797,8 +797,12 @@ class WorklistController extends BaseAdminController
     /**
      * @throws CHttpException
      */
-    public function actionEditPathwayPreset($id)
+    public function actionEditPathwayPreset($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Pathway preset ID is required for editing.');
+        }
+
         $pathway_type = PathwayType::model()->findByPk($id);
         if ($pathway_type) {
             if (isset($_POST['PathwayType'])) {

@@ -241,7 +241,36 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
         throw new Exception('save() should not be called on versiond model instances.');
     }
 
-    // Always save to SQL database - ignore Couchbase fallback
+    // Check if SQL is available; if not, fall back to Couchbase for models that support it
+    if (!$this->isSqlAvailable() && method_exists($this, 'isDualWriteEnabled')) {
+        // SQL is not available, but model supports Couchbase, so skip SQL and use Couchbase
+        if ($runValidation && !$this->validate()) {
+            return false;
+        }
+        
+        // Generate an ID if this is a new record (use timestamp-based ID)
+        if ($this->isNewRecord && !$this->id) {
+            // Generate a simple numeric ID using timestamp and random number
+            $this->id = intval(microtime(true) * 10000) + rand(1, 9999);
+        }
+        
+        // Set timestamps for new records
+        if ($this->isNewRecord && $this->hasAttribute('created_date')) {
+            $this->created_date = date('Y-m-d H:i:s');
+        }
+        if ($this->hasAttribute('last_modified_date')) {
+            $this->last_modified_date = date('Y-m-d H:i:s');
+        }
+        
+        // Mark as no longer a new record after getting an ID
+        $this->setIsNewRecord(false);
+        
+        // Manually trigger afterSave to sync to Couchbase
+        $this->afterSave();
+        return true;
+    }
+
+    // SQL is available, save to SQL database
     return parent::save($runValidation, $attributes, $allow_overriding);
 }
 

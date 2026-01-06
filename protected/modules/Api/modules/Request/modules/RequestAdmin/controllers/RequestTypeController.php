@@ -54,7 +54,7 @@ class RequestTypeController extends \AdminController
         if (isset($_POST['RequestType'])) {
             $model->attributes = $_POST['RequestType'];
             if ($model->save()) {
-                $this->redirect(['/Api/Request/requestType/index']);
+                $this->redirect(['/Api/Request/admin/requestType/index']);
             }
         }
 
@@ -80,7 +80,7 @@ class RequestTypeController extends \AdminController
         if (isset($_POST['RequestType'])) {
             $model->attributes = $_POST['RequestType'];
             if ($model->save()) {
-                $this->redirect(['/Api/Request/requestType/index']);
+                $this->redirect(['/Api/Request/admin/requestType/index']);
             }
         }
 

@@ -99,6 +99,9 @@ class TrialPatientController extends BaseModuleController
         }
         
         $new_status = TrialPatientStatus::model()->find('code = ?', array($newStatusCode));
+        if (!$new_status) {
+            throw new CHttpException(400, 'Invalid status code provided.');
+        }
         $trialPatient->changeStatus($new_status);
     }
 
@@ -196,6 +199,10 @@ class TrialPatientController extends BaseModuleController
         }
         
         $treatmentType = TreatmentType::model()->findByPk($_POST['treatment_type']);
+        if (!$treatmentType) {
+            throw new CHttpException(400, 'Invalid treatment type ID provided.');
+        }
+        
         $model->updateTreatmentType($treatmentType);
     }
 }

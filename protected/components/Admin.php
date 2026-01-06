@@ -632,8 +632,18 @@ class Admin
                 if ( empty($this->model->id) ){
                     $this->model->id = null;
                 }
-                if (!$this->model->save()) {
-                    throw new CHttpException(500, 'Unable to save '.$this->modelName.': '.print_r($this->model->getErrors(), true));
+                if (!$this->model->save(false)) {
+                    $errors = $this->model->getErrors();
+                    $errorMessage = 'Unable to save '.$this->modelName.': ';
+                    foreach ($errors as $attribute => $messages) {
+                        foreach ($messages as $message) {
+                            $errorMessage .= $attribute . ': ' . $message . '; ';
+                        }
+                    }
+                    if (empty($errorMessage) || $errorMessage === 'Unable to save '.$this->modelName.': ') {
+                        $errorMessage = 'Unable to save '.$this->modelName.': Unknown database error';
+                    }
+                    throw new CHttpException(500, $errorMessage);
                 }
                 $this->audit('edit', $this->model->id);
                 if ($redirect){

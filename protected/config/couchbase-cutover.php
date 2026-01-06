@@ -141,6 +141,11 @@ return array (
       'read_source' => 'couchbase',
       'percentage' => 100,
     ),
+    'RequestRoutine' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
+    ),
   ),
   'user_targeting' => 
   array (

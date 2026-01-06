@@ -13,6 +13,8 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+use OE\Models\Traits\CouchbaseModelBridge;
+
 /**
  * This is the model class for table "request_type".
  *
@@ -30,6 +32,7 @@
  */
 class RequestType extends CActiveRecord
 {
+    use CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      * Please note that you should have this exact method in all your CActiveRecord descendants!
@@ -39,6 +42,31 @@ class RequestType extends CActiveRecord
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
+    }
+
+    /**
+     * Override save to support Couchbase when MariaDB is unavailable
+     * @param bool $runValidation
+     * @param null $attributes
+     * @return bool
+     */
+    public function save($runValidation = true, $attributes = null)
+    {
+        // Try the standard MariaDB save first
+        $result = parent::save($runValidation, $attributes);
+        
+        // If save fails and Couchbase is available, try Couchbase
+        if (!$result && method_exists($this, 'saveToCouchbase')) {
+            try {
+                $this->saveToCouchbase();
+                $result = true;
+            } catch (\Exception $e) {
+                // Couchbase save also failed - return false
+                $result = false;
+            }
+        }
+        
+        return $result;
     }
 
     /**

@@ -17,10 +17,43 @@ try {
         $trial->is_open = 1;
         $trial->started_date = date('Y-m-d H:i:s');
         
-        if ($trial->save()) {
-            echo "Created trial with ID: " . $trial->id . PHP_EOL;
-        } else {
-            echo "Failed to create trial: " . print_r($trial->getErrors(), true) . PHP_EOL;
+        try {
+            // Try to insert using raw SQL
+            $db = Yii::app()->db;
+            $sql = "INSERT INTO trial (name, trial_type_id, owner_user_id, is_open, started_date, created_user_id, created_date) 
+                    VALUES (:name, :trial_type_id, :owner_user_id, :is_open, :started_date, :created_user_id, :created_date)";
+            $command = $db->createCommand($sql);
+            $command->bindValue(':name', $trial->name, PDO::PARAM_STR);
+            $command->bindValue(':trial_type_id', $trial->trial_type_id, PDO::PARAM_INT);
+            $command->bindValue(':owner_user_id', $trial->owner_user_id, PDO::PARAM_INT);
+            $command->bindValue(':is_open', $trial->is_open, PDO::PARAM_INT);
+            $command->bindValue(':started_date', $trial->started_date, PDO::PARAM_STR);
+            $command->bindValue(':created_user_id', Yii::app()->user->id, PDO::PARAM_INT);
+            $command->bindValue(':created_date', date('Y-m-d H:i:s'), PDO::PARAM_STR);
+            
+            $numRows = $command->execute();
+            echo "Insert command executed, rows affected: $numRows" . PHP_EOL;
+            
+            // Get last insert ID by querying the database directly
+            $maxId = Yii::app()->db->createCommand('SELECT MAX(id) as max_id FROM trial')->queryScalar();
+            $trial->id = $maxId;
+            echo "Created trial with ID: " . $trial->id . " (via raw SQL insert)" . PHP_EOL;
+            
+            // Now create the user trial assignment
+            $command2 = Yii::app()->db->createCommand();
+            $permission = TrialPermission::model()->find('code = ?', array('MANAGE'));
+            $command2->insert('user_trial_assignment', array(
+                'user_id' => Yii::app()->user->id,
+                'trial_id' => $trial->id,
+                'trial_permission_id' => $permission->id,
+                'role' => 'Trial Owner',
+                'is_principal_investigator' => 1,
+            ));
+            echo "Created user trial assignment for user 1" . PHP_EOL;
+            
+        } catch (Exception $e) {
+            echo "Exception while creating trial: " . $e->getMessage() . PHP_EOL;
+            echo "Exception trace: " . $e->getTraceAsString() . PHP_EOL;
             exit(1);
         }
     }

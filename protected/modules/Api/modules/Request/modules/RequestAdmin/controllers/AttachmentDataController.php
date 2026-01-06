@@ -51,8 +51,19 @@ class AttachmentDataController extends \AdminController
             }
         }
 
+        // Handle null or empty text_data - use empty object as default
+        $decoded_data = null;
+        if (!empty($model->text_data)) {
+            $decoded_data = json_decode($model->text_data);
+        }
+        
+        // Use empty object as default if decode fails or data is null
+        if ($decoded_data === null && empty($model->text_data)) {
+            $decoded_data = new \stdClass();
+        }
+        
         $json_pretty_text_data = json_encode(
-            json_decode($model->text_data),
+            $decoded_data,
             JSON_PRETTY_PRINT
         );
 

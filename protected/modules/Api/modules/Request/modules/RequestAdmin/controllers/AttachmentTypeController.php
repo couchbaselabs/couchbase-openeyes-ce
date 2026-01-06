@@ -56,6 +56,9 @@ class AttachmentTypeController extends \AdminController
             $model->attributes = $_POST['AttachmentType'];
             if ($model->save()) {
                 $this->redirect(['/Api/Request/admin/attachmentType/index']);
+            } else {
+                // Log validation errors for debugging
+                \Yii::log('AttachmentType validation errors: ' . json_encode($model->getErrors()), 'error');
             }
         }
 

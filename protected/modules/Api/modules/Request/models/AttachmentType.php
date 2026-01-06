@@ -15,6 +15,7 @@
  */
 class AttachmentType extends CActiveRecord
 {
+    use \OE\Models\Traits\CouchbaseModelBridge;
     /**
      * Returns the static model of the specified AR class.
      * Please note that you should have this exact method in all your CActiveRecord descendants!
@@ -104,5 +105,74 @@ class AttachmentType extends CActiveRecord
         return new CActiveDataProvider($this, [
             'criteria' => $criteria,
         ]);
+    }
+
+    /**
+     * Returns the Couchbase scope for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Returns the Couchbase collection for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * Override save to use Couchbase directly since MariaDB is disabled
+     */
+    public function save($runValidation = true, $attributes = null)
+    {
+        if ($runValidation && !$this->validate($attributes)) {
+            return false;
+        }
+        
+        try {
+            // Save to Couchbase using the adapter directly
+            $adapter = $this->getCouchbaseAdapter();
+            $doc = $this->toCouchbaseDocument();
+            $pk = $this->getPrimaryKey();
+            
+            if ($pk === null || $pk === '') {
+                // Generate a primary key if not set
+                $pk = $this->attachment_type;
+                $this->setPrimaryKey($pk);
+            }
+            
+            // Upsert to Couchbase
+            $adapter->upsert($this->couchbaseCollection(), $pk, $doc);
+            
+            // Mark as not dirty
+            $this->setIsNewRecord(false);
+            
+            return true;
+        } catch (\Exception $e) {
+            \Yii::log("AttachmentType save to Couchbase failed: " . $e->getMessage(), \CLogger::LEVEL_ERROR);
+            return false;
+        }
+    }
+
+    /**
+     * Override delete to use Couchbase directly
+     */
+    public function delete()
+    {
+        try {
+            $adapter = $this->getCouchbaseAdapter();
+            $adapter->delete($this->couchbaseCollection(), $this->getPrimaryKey());
+            return true;
+        } catch (\Exception $e) {
+            \Yii::log("AttachmentType delete from Couchbase failed: " . $e->getMessage(), \CLogger::LEVEL_ERROR);
+            return false;
+        }
     }
 }

@@ -112,6 +112,10 @@ class AdminController extends \ModuleAdminController
     {
         $model = models\OphCiExamination_Instrument::model()->findByPk((int) $id);
 
+        if (!$model) {
+            throw new \CHttpException(404, 'IOP Instrument not found');
+        }
+
         if (isset($_POST[\CHtml::modelName($model)])) {
             $post_attributes = $_POST[\CHtml::modelName($model)];
             try {
@@ -415,6 +419,11 @@ class AdminController extends \ModuleAdminController
     public function actionUpdateOphCiExamination_InjectionManagementComplex_Question($id)
     {
         $model = models\OphCiExamination_InjectionManagementComplex_Question::model()->findByPk((int) $id);
+        
+        if (!$model) {
+            throw new \CHttpException(404, 'The requested page does not exist.');
+        }
+        
         if (isset($_POST[\CHtml::modelName($model)])) {
             // process submission
             $model->attributes = $_POST[\CHtml::modelName($model)];
@@ -883,7 +892,7 @@ class AdminController extends \ModuleAdminController
         
         // Validate that required parameters are provided
         if (!$workflow_id || !$element_set_id || !$step_name) {
-            throw new \Exception('Missing required parameters: workflow_id, element_set_id, and step_name are required');
+            throw new \CHttpException(400, 'Missing required parameters: workflow_id, element_set_id, and step_name are required');
         }
         
         $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id));
@@ -907,7 +916,7 @@ class AdminController extends \ModuleAdminController
         
         // Validate that required parameters are provided
         if (!$workflow_id || !$element_set_id) {
-            throw new \Exception('Missing required parameters: workflow_id and element_set_id are required');
+            throw new \CHttpException(400, 'Missing required parameters: workflow_id and element_set_id');
         }
         
         $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id));
@@ -1366,7 +1375,7 @@ class AdminController extends \ModuleAdminController
     public function actionUpdatePostOpComplications()
     {
         $complication_ids = Yii::app()->request->getParam('complication_ids', array());
-        $institution_id = Yii::app()->request->getParam('institution_id', array());
+        $institution_id = Yii::app()->request->getParam('institution_id', null);
         $subspecialty_id = Yii::app()->request->getParam('subspecialty_id', null);
 
         $tx = Yii::app()->cbdb->beginTransaction();

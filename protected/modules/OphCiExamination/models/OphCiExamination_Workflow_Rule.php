@@ -105,10 +105,21 @@ class OphCiExamination_Workflow_Rule extends \BaseActiveRecordVersioned
         try {
             $restClient = \Yii::app()->couchbaseRest;
             $n1ql = "SELECT r.* FROM `openeyes`.`reference`.`ophciexamination_workflow_rule` r WHERE r.id = \$id LIMIT 1";
-            $rows = $restClient->query($n1ql, ['id' => (int)$pk]);
+            
+            // Handle ID as either integer or string - try both approaches if needed
+            $idValue = is_numeric($pk) ? (int)$pk : $pk;
+            
+            $rows = $restClient->query($n1ql, ['id' => $idValue]);
             
             if (empty($rows)) {
-                return null;
+                // Try as string if integer lookup failed
+                if ($idValue !== $pk) {
+                    $rows = $restClient->query($n1ql, ['id' => $pk]);
+                }
+                
+                if (empty($rows)) {
+                    return null;
+                }
             }
             
             return $this->populateFromRow($rows[0]);

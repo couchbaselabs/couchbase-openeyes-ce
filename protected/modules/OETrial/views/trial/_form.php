@@ -116,7 +116,7 @@
                   <?php echo $form->radioButton(
                       $trial,
                       'trial_type_id',
-                      array('value' => $trial_type->id, 'uncheckValue' => null)
+                      array('value' => $trial_type->id, 'uncheckValue' => null, 'id' => 'Trial_trial_type_id_' . $trial_type->id)
                   ); ?>
                   <?= $trial_type->name ?>
               </label>

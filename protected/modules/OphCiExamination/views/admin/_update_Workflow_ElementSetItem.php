@@ -66,7 +66,7 @@ if ($step->display_order_edited) {
                   <span>&uarr;&darr;</span>
                   <input type="hidden" name="OphCiExamination_ElementSetItem[display_order][]" value="<?= $item->id ?>">
               </td>
-            <td><?php echo $item->element_type->name?></td>
+            <td><?php echo $item->element_type ? $item->element_type->name : 'N/A'?></td>
             <td><?=\CHtml::activeCheckBox($item, "[$i]is_hidden", array('class' => 'workflow-item-attr'))?></td>
             <td><?=\CHtml::activeCheckBox($item, "[$i]is_mandatory", array('class' => 'workflow-item-attr'))?></td>
             <td><a href="#" class="removeElementType" rel="<?php echo $item->id?>" data-element-type-id="<?php echo $item->element_type_id?>">Remove</a></td>
