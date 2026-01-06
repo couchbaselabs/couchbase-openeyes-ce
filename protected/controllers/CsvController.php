@@ -170,6 +170,7 @@ class CsvController extends BaseController
         }
 
         $errors = null;
+        $summary_table = array();
 
         $import_log = new ImportLog();
         $import_log->import_user_id = Yii::app()->user->id;
@@ -266,7 +267,7 @@ class CsvController extends BaseController
                 foreach (Import::model()->findAllByAttributes(['parent_log_id' => $import_log->id]) as $summary_import) {
                     $summary = array();
 
-                    $status = $summary_import->import_status->status_value;
+                    $status = $summary_import->import_status ? $summary_import->import_status->status_value : "Unknown";
 
                     switch ($context) {
                         case 'trials':

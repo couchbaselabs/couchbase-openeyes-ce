@@ -26,7 +26,6 @@ class DashboardController extends BaseDashboardController
         return array(
             array('allow',
                 'actions' => array('index', 'printSvg'),
-                'roles' => array('*'),
             ),
             array('allow',
                 'actions' => array('oescape'),
@@ -74,7 +73,8 @@ class DashboardController extends BaseDashboardController
         if (!$filename or !preg_match('/^[A-Za-z0-9\-_ ]+$/', $filename)) {
             $filename = 'chart';
         }
-        if (get_magic_quotes_gpc()) {
+        // get_magic_quotes_gpc was removed in PHP 8.0, so we check if it exists before calling
+        if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc()) {
             $svg = stripslashes($svg);
         }
 

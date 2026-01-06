@@ -389,6 +389,7 @@ $config = array(
                 'OphTrOperationbooking/waitingList/filterSetHosNum',
                 'worklist/addComment',
                 'worklist/deleteComment',
+                'dashboard/printSvg', //disabled csrf check for SVG export functionality
             ),
         ),
         'service' => array(

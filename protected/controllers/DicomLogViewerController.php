@@ -74,6 +74,11 @@ class DicomLogViewerController extends BaseController
         $this->layout = 'admin';
         Audit::add('admin-SignatureImportLog', 'list');
 
+        // Validate sortby parameter to prevent SQL injection
+        if (!in_array($sortby, array('ASC', 'DESC'))) {
+            $sortby = 'DESC';
+        }
+
         $likewhere = '';
         if ($type == SignatureImportLog::TYPE_CVI) {
             $likewhere = 'cvi';
@@ -180,12 +185,21 @@ class DicomLogViewerController extends BaseController
 
     public function actionSignatureImageView($id)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Invalid or missing file ID.');
+        }
+
         $file = ProtectedFile::model()->findByPk($id);
+        
+        if (!$file) {
+            throw new CHttpException(404, 'File not found.');
+        }
 
         $filepath = $file->getPath();
         if (!file_exists($filepath)) {
-            return false;
+            throw new CHttpException(404, 'File not found on filesystem.');
         }
+        
         header('Content-Type: image/jpeg');
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
@@ -423,7 +437,15 @@ class DicomLogViewerController extends BaseController
             $request = Yii::app()->getRequest();
             $filename = $request->getPost('filename');
             if ($filename != '') {
-                Yii::app()->cbdb->createCommand("update dicom_file_queue set status_id=1 where filename = '".$filename."'")->execute();
+                try {
+                    Yii::app()->cbdb->createCommand(
+                        "UPDATE dicom_file_queue SET status_id=1 WHERE filename = :filename"
+                    )
+                    ->bindValue(':filename', $filename)
+                    ->execute();
+                } catch (Exception $e) {
+                    OELog::log('Error reprocessing DICOM file: ' . $e->getMessage());
+                }
             }
         } else {
             // For non-AJAX requests, redirect to the main dicom log viewer page

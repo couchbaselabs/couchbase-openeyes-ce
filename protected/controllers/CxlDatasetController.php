@@ -121,27 +121,33 @@ class CxlDatasetController extends BaseController
      */
     public function actionGenerate()
     {
-        try {
-            $this->patient_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), Institution::model()->getCurrent()->id, $this->selectedSiteId);
+        // Only process POST requests from the form submission
+        if (Yii::app()->request->isPostRequest) {
+            try {
+                $this->patient_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), Institution::model()->getCurrent()->id, $this->selectedSiteId);
 
-            $this->generateExport();
+                $this->generateExport();
 
-            $this->createZipFile();
+                $this->createZipFile();
 
-            if (file_exists($this->exportPath . '/' . $this->zipName)) {
-                Yii::app()->getRequest()->sendFile($this->zipName, file_get_contents($this->exportPath . '/' . $this->zipName));
+                if (file_exists($this->exportPath . '/' . $this->zipName)) {
+                    Yii::app()->getRequest()->sendFile($this->zipName, file_get_contents($this->exportPath . '/' . $this->zipName));
+                }
+            } catch (CHttpException $e) {
+                // Re-throw HTTP exceptions as-is
+                throw $e;
+            } catch (Exception $e) {
+                // Log the error
+                Yii::log("CXL Dataset export failed: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+                
+                // Render index page with error message
+                $this->render('//cxldataset/index', array(
+                    'error' => 'CXL Dataset export is not supported on this database backend. Temporary table operations are required but not available in Couchbase.'
+                ));
             }
-        } catch (CHttpException $e) {
-            // Re-throw HTTP exceptions as-is
-            throw $e;
-        } catch (Exception $e) {
-            // Log the error
-            Yii::log("CXL Dataset export failed: " . $e->getMessage(), CLogger::LEVEL_ERROR);
-            
-            // Redirect to index page with error message
-            $this->render('//cxldataset/index', array(
-                'error' => 'CXL Dataset export is not supported on this database backend. Temporary table operations are required but not available in Couchbase.'
-            ));
+        } else {
+            // For GET requests, just render the form
+            $this->render('//cxldataset/index');
         }
     }
 

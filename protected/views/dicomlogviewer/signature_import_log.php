@@ -89,14 +89,14 @@
                     </td>
                     <td>
                         <?php
-                        if ($log->event) { ?>
+                        if ($log->event && $log->event->episode && $log->event->episode->patient) { ?>
                             <?= $log->event->episode->patient->getFullName(); ?>
                             <?php
                         } ?>
                     </td>
                     <td>
                         <?php
-                        if ($log->event) { ?>
+                        if ($log->event && $log->event->episode && $log->event->episode->patient) { ?>
                             <?= $log->event->episode->patient->getHos(); ?>
                             <?php
                         } ?>
