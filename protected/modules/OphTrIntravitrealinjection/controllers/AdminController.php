@@ -93,6 +93,9 @@ class AdminController extends ModuleAdminController
      */
     public function actionSortTreatmentDrugs()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request method.');
+        }
         if (!empty($_POST['order'])) {
             foreach ($_POST['order'] as $i => $id) {
                 if ($drug = OphTrIntravitrealinjection_Treatment_Drug::model()->findByPk($id)) {
@@ -136,7 +139,7 @@ class AdminController extends ModuleAdminController
     public function actionInjectionUsers()
     {
         $injection_users = OphTrIntravitrealinjection_InjectionUser::model()->with(array('user'))->findAll(array('order' => 'user.last_name, user.first_name'));
-        $user_ids = CHtml::listData($injection_users, 'id', 'user.id');
+        $user_ids = CHtml::listData($injection_users, 'id', 'user_id');
 
         $criteria = new CDbCriteria();
         $criteria->order = 'first_name asc, last_name asc';
@@ -155,6 +158,10 @@ class AdminController extends ModuleAdminController
 
     public function actionAddInjectionUser()
     {
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request method');
+        }
+
         if (!$user = User::model()->findByPk(@$_POST['user_id'])) {
             throw new Exception('User not found: ' . @$_POST['user_id']);
         }

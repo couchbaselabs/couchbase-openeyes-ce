@@ -41,6 +41,13 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
         $type = @$_GET['type']; //firm
         $types = @$_GET['types']; //firm
 
+        // Validate that required parameters are provided and not empty
+        if (empty($id) || empty($type) || empty($types)) {
+            echo '';
+            return;
+        }
+
+
         $criteria = new CDbCriteria();
         $criteria->with = array(
             $types => array(
@@ -90,8 +97,22 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
      * @param integer firm_id - id of the given firm
      * @return int Id of the corresponding subspecialty
      */
-    public function actionGetSubspecialtyByFirm($firm_id)
+    public function actionGetSubspecialtyByFirm($firm_id = null)
     {
+        // Allow firm_id to be passed via GET or POST if not provided as parameter
+        if ($firm_id === null) {
+            $firm_id = Yii::app()->request->getQuery('firm_id');
+        }
+        if ($firm_id === null) {
+            $firm_id = Yii::app()->request->getPost('firm_id');
+        }
+        
+        // If still no firm_id, return error
+        if ($firm_id === null) {
+            echo json_encode(['error' => 'firm_id is required']);
+            return;
+        }
+
         $criteria = new CDbCriteria();
 
         $criteria->addCondition('t.id = :query');
@@ -105,7 +126,12 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
         );
         $criteria->together = true;
 
-        return Firm::model()->find($criteria)->serviceSubspecialtyAssignment->subspecialty_id;
+        $firm = Firm::model()->find($criteria);
+        if ($firm) {
+            return $firm->serviceSubspecialtyAssignment->subspecialty_id;
+        }
+        
+        return null;
     }
 
     /**
@@ -156,6 +182,11 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
             $new_leaflet->firm_id = $type_id;
         }
 
+        if ($new_leaflet === null) {
+            echo 'error';
+            return;
+        }
+
         $new_leaflet->leaflet_id = $leaflet_id;
 
         if (!$new_leaflet->save()) {
@@ -170,6 +201,7 @@ class LeafletSubspecialtyFirmController extends BaseAdminController
     {
         if (Yii::app()->request->isAjaxRequest) {
             $criteria = new CDbCriteria();
+            $params = array();
             if (isset($_GET['term'])) {
                 $term = $_GET['term'];
                 $criteria->addCondition(array('LOWER(name) LIKE :term'), 'OR');

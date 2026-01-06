@@ -18,7 +18,7 @@
 $institution_id = Institution::model()->getCurrent()->id;
 ?>
 <div class="box admin">
-    <h2>Patient Unavailable Reasons</h2>
+    <h2>Session Unavailable Reasons</h2>
     <form id="admin_sessionunavailablereasons" method="POST">
         <input type="hidden" name="model" value="OphTrOperationbooking_Operation_Session_UnavailableReason"/>
         <input type="hidden" name="redirect-url" value="/OphTrOperationbooking/admin/viewSessionUnavailableReasons"/>

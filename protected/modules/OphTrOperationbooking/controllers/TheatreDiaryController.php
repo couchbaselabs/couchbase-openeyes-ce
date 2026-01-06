@@ -169,7 +169,7 @@ class TheatreDiaryController extends BaseModuleController
         $startDate = $data['date-start'];
         $endDate = $data['date-end'];
 
-        if (trim($startDate) == '') {
+        if (is_null($startDate) || trim($startDate) == '') {
             $error = true;
             $errorMessage .= 'Empty start date <br>';
         } else {
@@ -179,7 +179,7 @@ class TheatreDiaryController extends BaseModuleController
             }
         }
 
-        if (trim($endDate) == '') {
+        if (is_null($endDate) || trim($endDate) == '') {
             $error = true;
             $errorMessage .= 'Empty end date <br>';
         } else {

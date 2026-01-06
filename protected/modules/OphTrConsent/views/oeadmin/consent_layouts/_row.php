@@ -33,7 +33,7 @@
             $data,
             "element_id"
         ); ?>
-        <label class="cols-full"><?= CHtml::encode($data->element->name); ?></label>
+        <label class="cols-full"><?= CHtml::encode($data->element ? $data->element->name : ''); ?></label>
     </td>
     <td>
         <button type="button">

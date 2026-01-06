@@ -52,10 +52,10 @@ class ConsentLayoutsController extends BaseAdminController
             }
         }
 
-         $this->renderJSON([
+        $this->renderJSON([
             'success' => 1,
             'rows' => $rows
-         ]);
+        ]);
     }
 
     public function actionAddLayoutElements()
@@ -88,6 +88,9 @@ class ConsentLayoutsController extends BaseAdminController
             $this->renderJSON([
                 'success' => 1
             ]);
+        } else {
+            // For GET requests, render the same view as actionList
+            $this->render('/oeadmin/consent_layouts/index', []);
         }
     }
 
@@ -123,6 +126,9 @@ class ConsentLayoutsController extends BaseAdminController
                     }
                 }
             }
+        } else {
+            // For GET requests, render the same view as actionList
+            $this->render('/oeadmin/consent_layouts/index', []);
         }
     }
 }

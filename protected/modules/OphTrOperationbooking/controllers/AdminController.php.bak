@@ -1596,7 +1596,7 @@ class AdminController extends ModuleAdminController
         ));
     }
 
-    public function actionGetWardOptions($siteId = null, $wardId = null)
+    public function actionGetWardOptions($siteId, $wardId = null)
     {
         if ($siteId > 0) {
             $optionValues = OphTrOperationbooking_Operation_Ward::model()->findAll(array(
@@ -1617,11 +1617,6 @@ class AdminController extends ModuleAdminController
 
     public function actionVerifyDeleteTheatres()
     {
-        if (!isset($_POST['theatre']) || empty($_POST['theatre'])) {
-            echo '0';
-            return;
-        }
-
         $criteria = new CDbCriteria();
         $criteria->addInCondition('session.theatre_id', $_POST['theatre']);
         $criteria->addCondition('booking_cancellation_date is null');
@@ -1767,23 +1762,6 @@ class AdminController extends ModuleAdminController
                 throw $e;
             }
         }
-
-        Audit::add('admin', 'list', null, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Ward'));
-
-        $criteria = new CDbCriteria();
-        $criteria->order = 'display_order asc';
-        if (!$this->checkAccess('admin')) {
-            $criteria->with = 'site';
-            $criteria->addCondition('site.institution_id = :institution_id');
-            $criteria->params[':institution_id'] = Institution::model()->getCurrent()->id;
-        }
-
-        $this->render(
-            '/admin/ward/index',
-            [
-                'wards' => OphTrOperationbooking_Operation_Ward::model()->findAll($criteria),
-            ]
-        );
     }
 
     public function actionOperationPriorities()
@@ -1900,8 +1878,6 @@ class AdminController extends ModuleAdminController
             }
             Audit::add('admin', 'sort', serialize($_POST), false, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_ScheduleOperation_PatientUnavailableReason'));
         }
-
-        $this->render('/admin/patient_unavailable_reasons/index');
     }
 
     /**
@@ -1911,12 +1887,6 @@ class AdminController extends ModuleAdminController
      */
     public function actionSwitchEnabledPatientUnavailableReason()
     {
-        // Handle case where action is accessed directly as a page (GET request)
-        if (empty($_POST['id'])) {
-            $this->redirect(array('/OphTrOperationbooking/admin/viewPatientUnavailableReasons'));
-            return;
-        }
-
         if (!$reason = OphTrOperationbooking_ScheduleOperation_PatientUnavailableReason::model()->findByPk(@$_POST['id'])) {
             throw new Exception('Patient Unavailable Reason not found: '.@$_POST['id']);
         }
@@ -2030,27 +2000,23 @@ class AdminController extends ModuleAdminController
      */
     public function actionSortSessionUnavailableReasons()
     {
-        // Handle case where action is accessed directly as a page (GET request)
-        if (empty($_POST['order'])) {
-            $this->redirect(array('/OphTrOperationbooking/admin/viewSessionUnavailableReasons'));
-            return;
-        }
-
-        $transaction = Yii::app()->cbdb->beginTransaction();
-        try {
-            foreach ($_POST['order'] as $i => $id) {
-                if ($reason = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findByPk($id)) {
-                    $reason->display_order = $i + 1;
-                    if (!$reason->save()) {
-                        throw new Exception('Unable to save sessiion unavailable reason: '.print_r($reason->getErrors(), true));
+        if (!empty($_POST['order'])) {
+            $transaction = Yii::app()->cbdb->beginTransaction();
+            try {
+                foreach ($_POST['order'] as $i => $id) {
+                    if ($reason = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findByPk($id)) {
+                        $reason->display_order = $i + 1;
+                        if (!$reason->save()) {
+                            throw new Exception('Unable to save sessiion unavailable reason: '.print_r($reason->getErrors(), true));
+                        }
                     }
                 }
+                Audit::add('admin', 'sort', serialize($_POST), false, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_ScheduleOperation_PatientUnavailableReason'));
+                $transaction->commit();
+            } catch (Exception $e) {
+                $transaction->rollback();
+                throw $e;
             }
-            Audit::add('admin', 'sort', serialize($_POST), false, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_ScheduleOperation_PatientUnavailableReason'));
-            $transaction->commit();
-        } catch (Exception $e) {
-            $transaction->rollback();
-            throw $e;
         }
     }
 
@@ -2061,12 +2027,6 @@ class AdminController extends ModuleAdminController
      */
     public function actionSwitchEnabledSessionUnavailableReason()
     {
-        // Handle case where action is accessed directly as a page (GET request)
-        if (empty($_POST['id'])) {
-            $this->redirect(array('/OphTrOperationbooking/admin/viewSessionUnavailableReasons'));
-            return;
-        }
-
         if (!$reason = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findByPk(@$_POST['id'])) {
             throw new Exception('Session Unavailable Reason not found: '.@$_POST['id']);
         }

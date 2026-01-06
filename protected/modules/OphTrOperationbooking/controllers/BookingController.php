@@ -47,7 +47,12 @@ class BookingController extends OphTrOperationbookingEventController
         parent::initAction($action);
 
         if (!$this->event && in_array(strtolower($action), array('schedule', 'reschedule', 'reschedulelater'))) {
-            $this->initWithEventId(@$_GET['id']);
+            if (!isset($_GET['id']) || !$_GET['id']) {
+                // Redirect to waiting list if no event ID is provided for schedule actions
+                $this->redirect(array('waitingList/index'));
+                return;
+            }
+            $this->initWithEventId($_GET['id']);
             $this->operation_required = true;
         }
 
@@ -55,7 +60,7 @@ class BookingController extends OphTrOperationbookingEventController
         if ($this->operation_required) {
             if (!$this->operation = Element_OphTrOperationbooking_Operation::model()->find('event_id = ?', array($this->event->id))) {
                 throw new Exception('Operation not found');
-            };
+            }
         }
     }
 
