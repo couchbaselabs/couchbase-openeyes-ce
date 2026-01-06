@@ -99,7 +99,7 @@ class AdminController extends ModuleAdminController
     public function actionDeleteIncisionLengthDefaults()
     {
         $result = 1;
-        if (is_array($_POST['incisionLengths'])) {
+        if (isset($_POST['incisionLengths']) && is_array($_POST['incisionLengths'])) {
             foreach (OphTrOperationnote_CataractIncisionLengthDefault::model()->findAllByPk($_POST['incisionLengths']) as $incisionLength) {
                 if (!$incisionLength->delete()) {
                     $result = 0;
@@ -223,24 +223,54 @@ class AdminController extends ModuleAdminController
 
     /**
      * Delete a post op drug.
+     * Handles both single deletion by ID (GET/URL parameter) and batch deletion via POST.
      *
+     * @param int|null $id The ID of a single drug to delete (optional, from URL)
      * @throws Exception
      */
-    public function actionDeletePostOpDrugs()
+    public function actionDeletePostOpDrugs($id = null)
     {
-        $result = 1;
-        foreach (OphTrOperationnote_PostopDrug::model()->findAllByPk(@$_POST['drugs']) as $drug) {
-            $drug->active = 0;
-            if (!$drug->save()) {
-                $result = 0;
+        // Handle single deletion by ID parameter
+        if ($id !== null) {
+            $drug = OphTrOperationnote_PostopDrug::model()->findByPk($id);
+            if ($drug) {
+                $drug->active = 0;
+                if ($drug->save()) {
+                    Audit::add(
+                        'admin',
+                        'delete',
+                        $drug->id,
+                        null,
+                        array('module' => 'OphTrOperationnote', 'model' => 'OphTrOperationnote_PostopDrug')
+                    );
+                    $this->redirect('/OphTrOperationnote/admin/viewPostOpDrugs');
+                } else {
+                    throw new Exception('Unable to delete drug: ' . print_r($drug->getErrors(), true));
+                }
             } else {
-                Audit::add(
-                    'admin',
-                    'delete',
-                    $drug->id,
-                    null,
-                    array('module' => 'OphTrOperationnote', 'model' => 'OphTrOperationnote_PostopDrug')
-                );
+                throw new Exception('Drug not found: ' . $id);
+            }
+            return;
+        }
+
+        // Handle batch deletion via POST
+        $result = 1;
+        $drugs_to_delete = isset($_POST['drugs']) ? $_POST['drugs'] : array();
+        
+        if (is_array($drugs_to_delete) && count($drugs_to_delete) > 0) {
+            foreach (OphTrOperationnote_PostopDrug::model()->findAllByPk($drugs_to_delete) as $drug) {
+                $drug->active = 0;
+                if (!$drug->save()) {
+                    $result = 0;
+                } else {
+                    Audit::add(
+                        'admin',
+                        'delete',
+                        $drug->id,
+                        null,
+                        array('module' => 'OphTrOperationnote', 'model' => 'OphTrOperationnote_PostopDrug')
+                    );
+                }
             }
         }
         echo $result;
