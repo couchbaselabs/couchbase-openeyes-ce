@@ -95,7 +95,14 @@ class PrescriptionDrugSetsAdminController extends RefSetAdminController
 
     public function actionDelete()
     {
-        $ids_to_delete = Yii::app()->request->getPost('MedicationSet')['id'];
+        $medicationSetData = Yii::app()->request->getPost('MedicationSet');
+        if (!isset($medicationSetData['id'])) {
+            // Handle GET requests or missing data - redirect to list
+            $this->redirect('/OphDrPrescription/prescriptionDrugSetsAdmin/list');
+            return;
+        }
+
+        $ids_to_delete = $medicationSetData['id'];
         if (is_array($ids_to_delete)) {
             foreach ($ids_to_delete as $id) {
                 $model = MedicationSet::model()->findByPk($id);

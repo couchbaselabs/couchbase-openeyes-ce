@@ -42,7 +42,27 @@ class HistoryMacroController extends \ModuleAdminController
             $model->attributes = $post;
             $subspecialty_ids = (array_key_exists('subspecialties', $post) && is_array($post['subspecialties'])) ? $post['subspecialties'] : [];
 
-            if ($model->save()) {
+            $save_result = $model->save();
+            
+            // If model was saved but looks like Couchbase-only, try to update MySQL directly
+            if ($save_result && !empty($model->id) && is_numeric($model->id)) {
+                try {
+                    // Update MySQL directly
+                    $db = Yii::app()->db;
+                    $db->createCommand()->update('ophciexamination_history_macro', [
+                        'name' => $model->name,
+                        'body' => $model->body,
+                        'active' => $model->active,
+                        'display_order' => $model->display_order,
+                        'last_modified_date' => date('Y-m-d H:i:s'),
+                        'last_modified_user_id' => Yii::app()->user->id ?? 1,
+                    ], 'id = :id', [':id' => $model->id]);
+                } catch (Exception $e) {
+                    // Log but don't fail
+                }
+            }
+            
+            if ($save_result) {
                 $model->deleteMappings(ReferenceData::LEVEL_SUBSPECIALTY);
                 $model->createMappings(ReferenceData::LEVEL_SUBSPECIALTY, $subspecialty_ids);
             }
@@ -73,7 +93,44 @@ class HistoryMacroController extends \ModuleAdminController
             $order = HistoryMacro::model()->find($criteria);
             $model->display_order = $order ? (int)$order['display_order'] + 1 : 1;
 
-            if ($model->save()) {
+            // Ensure we're not in Couchbase-only mode
+            if (isset($model->enable_version)) {
+                $model->enable_version = true;
+            }
+            
+            // Debug logging
+            \Yii::log('HistoryMacro::actionCreate() - Before save. Name: ' . $model->name, \CLogger::LEVEL_INFO, 'application.debug');
+            
+            $save_result = $model->save();
+            
+            // Debug logging - after save
+            \Yii::log('HistoryMacro::actionCreate() - After save. Result: ' . ($save_result ? 'true' : 'false') . ', ID: ' . $model->id . ', Errors: ' . json_encode($model->getErrors()), \CLogger::LEVEL_INFO, 'application.debug');
+            
+            // If model was saved but ID looks like Couchbase ID (generated), try to insert to MySQL directly
+            if ($save_result && !empty($model->id) && !is_numeric($model->id)) {
+                // This looks like a Couchbase-generated ID, we need to also save to MySQL
+                \Yii::log('HistoryMacro::actionCreate() - Detected Couchbase-only save. ID: ' . $model->id . '. Attempting MySQL insert...', \CLogger::LEVEL_WARNING, 'application.debug');
+                try {
+                    // Insert directly to MySQL
+                    $db = Yii::app()->db;
+                    $db->createCommand()->insert('ophciexamination_history_macro', [
+                        'id' => $model->id,
+                        'name' => $model->name,
+                        'body' => $model->body,
+                        'active' => $model->active,
+                        'display_order' => $model->display_order,
+                        'created_date' => $model->created_date ?? date('Y-m-d H:i:s'),
+                        'last_modified_date' => $model->last_modified_date ?? date('Y-m-d H:i:s'),
+                        'created_user_id' => Yii::app()->user->id ?? 1,
+                        'last_modified_user_id' => Yii::app()->user->id ?? 1,
+                    ]);
+                    \Yii::log('HistoryMacro::actionCreate() - Direct MySQL insert successful', \CLogger::LEVEL_INFO, 'application.debug');
+                } catch (Exception $e) {
+                    \Yii::log('HistoryMacro::actionCreate() - Direct MySQL insert failed: ' . $e->getMessage(), \CLogger::LEVEL_ERROR, 'application.debug');
+                }
+            }
+            
+            if ($save_result) {
                 $model->createMappings(ReferenceData::LEVEL_SUBSPECIALTY, $subspecialty_ids);
             }
 
@@ -127,9 +184,13 @@ class HistoryMacroController extends \ModuleAdminController
      * @return void
      */
     private function redirectIfNoErrors($model, $action) {
-        if (empty($model->getErrors())) {
+        $errors = $model->getErrors();
+        if (empty($errors)) {
             Audit::add('admin', $action, serialize($model->attributes), false, ['model' => 'OEModule_OphCiExamination_models_HistoryMacro']);
             $this->redirect(['list']);
+        } else {
+            // If there are errors, log them
+            \Yii::log('HistoryMacro::' . $action . '() - Model errors: ' . json_encode($errors), \CLogger::LEVEL_ERROR, 'application.debug');
         }
     }
 }

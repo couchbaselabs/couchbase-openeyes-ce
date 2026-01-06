@@ -68,7 +68,8 @@
         ],
     ];
 
-    $dataProvider = $model->search(true);
+    // Show all surgical history sets regardless of current institution
+    $dataProvider = $model->search(false);
     $dataProvider->pagination = false;
 
     ?>

@@ -76,11 +76,22 @@ class DrugController extends \ModuleAdminController
     }
 
     /**
-    * Deletes the selected models
+    * Deletes a single drug model by ID or batch deletes via POST
     */
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
+        // Handle single deletion by ID
+        if ($id !== null) {
+            $drug = OphCiExamination_Dilation_Drugs::model()->findByPk($id);
+            if ($drug) {
+                $drug->delete();
+                Audit::add('admin-dilation-drugs', 'delete', serialize($drug));
+            }
+            $this->redirect(['dilationDrugs']);
+            return;
+        }
 
+        // Handle batch deletion via POST
         $delete_ids = Yii::app()->request->getPost('select', []);
         $transaction = Yii::app()->cbdb->beginTransaction();
         $success = true;

@@ -127,7 +127,8 @@
         </div>
     <?php } ?>
     <?php if (
-        $this->event->eventType->custom_hint_text
+        $this->event->eventType
+        && $this->event->eventType->custom_hint_text
         && $this->event->eventType->hint_position === 'TOP'
         && in_array($this->action->id, array('create', 'update'))
 ) { ?>
@@ -139,7 +140,8 @@
     <?php }
     echo $content; ?>
     <?php if (
-        $this->event->eventType->custom_hint_text
+        $this->event->eventType
+        && $this->event->eventType->custom_hint_text
         && $this->event->eventType->hint_position === 'BOTTOM'
         && in_array($this->action->id, array('create', 'update'))
 ) { ?>

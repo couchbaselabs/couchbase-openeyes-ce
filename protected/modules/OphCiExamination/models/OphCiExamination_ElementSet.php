@@ -184,6 +184,8 @@ class OphCiExamination_ElementSet extends \BaseActiveRecordVersioned
                 if (is_string($condition)) {
                     // Convert :param to $param for N1QL
                     $condition = preg_replace('/:(\w+)/', '\$$1', $condition);
+                    // Qualify field names with table alias if not already qualified
+                    $condition = preg_replace('/\b([a-z_]+)=/', 's.$1=', $condition);
                     $n1ql .= " WHERE " . $condition;
                 }
             }

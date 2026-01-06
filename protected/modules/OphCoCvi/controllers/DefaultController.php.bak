@@ -97,6 +97,19 @@ class DefaultController extends \BaseEventTypeController
     protected static $FILTER_LIST_KEY = 'OphCoCvi_list_filter';
 
 
+    /**
+     * Initialize the render QR Signature action with proper event_id extraction and validation
+     *
+     * @throws \CHttpException
+     */
+    public function initActionRenderQRSignature()
+    {
+        $event_id = $this->request->getParam('event_id');
+        if (!$event_id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+    }
+
     public function actionRenderQRSignature($event_id)
     {
         $request = \Yii::app()->getRequest();
@@ -151,12 +164,26 @@ class DefaultController extends \BaseEventTypeController
     }
 
     /**
+     * Ensure the event is setup on the controller
+     *
+     * @throws \CHttpException
+     */
+    public function initActionPrintQRSignature()
+    {
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
+    }
+
+    /**
      * @param $id
      * @return mixed|void
      */
-    public function actionPrintQRSignature($event_id)
+    public function actionPrintQRSignature($id)
     {
-        $this->printInit($event_id);
+        $this->printInit($id);
         $wk = \Yii::app()->puppeteer;
         $wk->setDocRef($this->event->docref);
         $wk->setPatient($this->event->episode->patient);
@@ -169,7 +196,7 @@ class DefaultController extends \BaseEventTypeController
             $this->event->imageDirectory,
             $this->pdf_print_suffix,
             '',
-            'http://localhost/OphCoCvi/default/renderQRSignature?event_id='.$event_id.
+            'http://localhost/OphCoCvi/default/renderQRSignature?event_id='.$id.
             '&role='.\Yii::app()->request->getParam('role')
             .'&signatory='.\Yii::app()->request->getParam('signatory')
         );
@@ -862,7 +889,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionIssue()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to issue a CVI.');
+        }
+        $this->initWithEventId($id);
         if (!$this->canIssue()) {
             throw new CHttpException(403, 'Event cannot be issued.');
         }
@@ -873,8 +904,11 @@ class DefaultController extends \BaseEventTypeController
     /**
      * @param $id
      */
-    public function actionIssue($id)
+    public function actionIssue($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to issue a CVI.');
+        }
         if ($this->getManager()->issueCvi($this->event, $this->getApp()->user->id)) {
             $this->getApp()->user->setFlash('success.cvi_issue', 'The CVI has been successfully generated.');
             //$this->redirect(array('/' . $this->event->eventType->class_name . '/default/pdfPrint/' . $id));
@@ -1086,7 +1120,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionRemoveConsentSignature()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1116,7 +1154,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionRetrieveConsentSignature()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1320,7 +1362,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionLabelPDFprint()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1639,11 +1685,20 @@ class DefaultController extends \BaseEventTypeController
         $signature_id = \Yii::app()->request->getPost('signature_id');
         $role_name = \Yii::app()->request->getPost('role_name');
 
+        if (!$signature_id) {
+            return \Yii::app()->request->isAjaxRequest ? false : null;
+        }
+
         $signature_element = \OphCoCvi_Signature::model()->findByPk($signature_id);
+        if (!$signature_element) {
+            return \Yii::app()->request->isAjaxRequest ? false : null;
+        }
+
         $signature_element->signatory_role = $role_name;
         if ($signature_element->saveAttributes(['signatory_role'])) {
             return true;
         }
+        return false;
     }
 
     public function actionDeleteSignature($event_id, $signature_id)

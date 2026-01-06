@@ -43,6 +43,9 @@ class OphCoTherapyapplication_Processor
      */
     public function __construct(Event $event)
     {
+        if (!$event->eventType) {
+            throw new Exception("Event does not have a valid event type.");
+        }
         $event_type = $event->eventType->class_name;
         if ($event_type != 'OphCoTherapyapplication') {
             throw new Exception("Passed an event of type '$event_type'");

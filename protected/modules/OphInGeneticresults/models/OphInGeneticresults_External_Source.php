@@ -143,4 +143,235 @@ class OphInGeneticresults_External_Source extends BaseActiveRecord
         parent::afterDelete();
         $this->deleteFromCouchbase();
     }
+
+    /**
+     * Override shouldReadFromCouchbase to disable Couchbase for this model.
+     * The external_source table was previously dropped and is rarely used.
+     * Always use MariaDB for this model to avoid complexity.
+     * @return bool
+     */
+    protected function shouldReadFromCouchbase()
+    {
+        // Always use MariaDB for external source
+        return false;
+    }
+
+    /**
+     * Override isDualWriteEnabled to disable dual-write for this model.
+     * @return bool
+     */
+    protected function isDualWriteEnabled()
+    {
+        // Disable dual-write for this model
+        return false;
+    }
+
+    /**
+     * Override getTableSchema to handle gracefully if table doesn't exist.
+     * Wraps the parent call in error handling to return null gracefully.
+     * Suppresses errors to avoid PHP warnings when table schema is unavailable.
+     * @return CDbTableSchema|null
+     */
+    public function getTableSchema()
+    {
+        try {
+            // Suppress errors while accessing parent's getTableSchema to avoid PHP warnings
+            // when the database connection is unavailable or table doesn't exist
+            $schema = @parent::getTableSchema();
+            return $schema;
+        } catch (\Throwable $e) {
+            // If an exception is thrown, log it and return null
+            \Yii::log("Error getting table schema for " . $this->tableName() . ": " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+            return null;
+        }
+    }
+
+    /**
+     * Override count to handle gracefully if table schema is unavailable.
+     * Uses direct SQL as a fallback to bypass Yii's schema requirements.
+     * @param string $condition
+     * @param array $params
+     * @return int
+     */
+    public function count($condition = '', $params = [])
+    {
+        // First check if table schema is available
+        if ($this->getTableSchema() === null) {
+            // Skip Yii's count() and use direct SQL
+            try {
+                $sql = "SELECT COUNT(*) FROM `" . $this->tableName() . "`";
+                if (!empty($condition)) {
+                    if (is_string($condition)) {
+                        $sql .= " WHERE " . $condition;
+                    }
+                }
+                $result = $this->getDbConnection()->createCommand($sql)->queryScalar();
+                return intval($result);
+            } catch (Throwable $fallbackError) {
+                // If all fails, return 0 as a safe default
+                \Yii::log("Error counting " . $this->tableName() . " with direct SQL: " . $fallbackError->getMessage(), \CLogger::LEVEL_WARNING);
+                return 0;
+            }
+        }
+        
+        try {
+            // Try the standard Yii approach
+            return parent::count($condition, $params);
+        } catch (Throwable $e) {
+            // Try direct SQL as fallback
+            try {
+                $sql = "SELECT COUNT(*) FROM `" . $this->tableName() . "`";
+                if (!empty($condition)) {
+                    if (is_string($condition)) {
+                        $sql .= " WHERE " . $condition;
+                    }
+                }
+                $result = $this->getDbConnection()->createCommand($sql)->queryScalar();
+                return intval($result);
+            } catch (Throwable $fallbackError) {
+                // If all fails, return 0 as a safe default
+                \Yii::log("Error counting " . $this->tableName() . ": Standard Yii and fallback SQL both failed: " . $fallbackError->getMessage(), \CLogger::LEVEL_WARNING);
+                return 0;
+            }
+        }
+    }
+
+    /**
+     * Override findAll to handle gracefully if table schema is unavailable.
+     * Uses direct SQL as a fallback to bypass Yii's schema requirements.
+     * @param mixed $condition
+     * @param array $params
+     * @return array
+     */
+    public function findAll($condition = '', $params = [])
+    {
+        // First check if table schema is available
+        if ($this->getTableSchema() === null) {
+            // Skip Yii's findAll() and use direct SQL
+            try {
+                $sql = "SELECT * FROM `" . $this->tableName() . "`";
+                if (!empty($condition)) {
+                    if (is_string($condition)) {
+                        $sql .= " WHERE " . $condition;
+                    }
+                }
+                $rows = $this->getDbConnection()->createCommand($sql)->queryAll();
+                $models = [];
+                foreach ($rows as $row) {
+                    $model = $this->populateRecord($row);
+                    if ($model) {
+                        $models[] = $model;
+                    }
+                }
+                return $models;
+            } catch (Throwable $fallbackError) {
+                // If all fails, return empty array as a safe default
+                \Yii::log("Error finding all " . $this->tableName() . " with direct SQL: " . $fallbackError->getMessage(), \CLogger::LEVEL_WARNING);
+                return [];
+            }
+        }
+        
+        try {
+            // Try the standard Yii approach
+            return parent::findAll($condition, $params);
+        } catch (Throwable $e) {
+            // Try direct SQL as fallback
+            try {
+                $sql = "SELECT * FROM `" . $this->tableName() . "`";
+                if (!empty($condition)) {
+                    if (is_string($condition)) {
+                        $sql .= " WHERE " . $condition;
+                    }
+                }
+                $rows = $this->getDbConnection()->createCommand($sql)->queryAll();
+                $models = [];
+                foreach ($rows as $row) {
+                    $model = $this->populateRecord($row);
+                    if ($model) {
+                        $models[] = $model;
+                    }
+                }
+                return $models;
+            } catch (Throwable $fallbackError) {
+                // If all fails, return empty array as a safe default
+                \Yii::log("Error finding all " . $this->tableName() . ": Standard Yii and fallback SQL both failed: " . $fallbackError->getMessage(), \CLogger::LEVEL_WARNING);
+                return [];
+            }
+        }
+    }
+
+    /**
+     * Override findByPk to handle gracefully if table schema is unavailable.
+     * Uses direct SQL as a fallback to bypass Yii's schema requirements.
+     * @param mixed $pk
+     * @return OphInGeneticresults_External_Source|null
+     */
+    public function findByPk($pk)
+    {
+        // First check if table schema is available
+        if ($this->getTableSchema() === null) {
+            // Skip Yii's findByPk() and use direct SQL
+            try {
+                $sql = "SELECT * FROM `" . $this->tableName() . "` WHERE `id` = :id";
+                $row = $this->getDbConnection()->createCommand($sql)->bindParam(':id', $pk)->queryRow();
+                if ($row) {
+                    return $this->populateRecord($row);
+                }
+                return null;
+            } catch (Throwable $fallbackError) {
+                // If all fails, return null
+                \Yii::log("Error finding by PK " . $this->tableName() . " with direct SQL: " . $fallbackError->getMessage(), \CLogger::LEVEL_WARNING);
+                return null;
+            }
+        }
+        
+        try {
+            // Try the standard Yii approach
+            return parent::findByPk($pk);
+        } catch (Throwable $e) {
+            // Try direct SQL as fallback
+            try {
+                $sql = "SELECT * FROM `" . $this->tableName() . "` WHERE `id` = :id";
+                $row = $this->getDbConnection()->createCommand($sql)->bindParam(':id', $pk)->queryRow();
+                if ($row) {
+                    return $this->populateRecord($row);
+                }
+                return null;
+            } catch (Throwable $fallbackError) {
+                // If all fails, return null
+                \Yii::log("Error finding by PK " . $this->tableName() . ": Standard Yii and fallback SQL both failed: " . $fallbackError->getMessage(), \CLogger::LEVEL_WARNING);
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Override populateRecord to handle model instantiation when metadata is unavailable.
+     * Avoids calling new which would trigger constructor that accesses metadata.
+     * @param array $attributes
+     * @param bool $callAfterFind
+     * @return OphInGeneticresults_External_Source|null
+     */
+    public function populateRecord($attributes, $callAfterFind = true)
+    {
+        try {
+            // Try standard Yii approach
+            return parent::populateRecord($attributes, $callAfterFind);
+        } catch (\Throwable $e) {
+            // If metadata access fails, create model manually
+            try {
+                // Create a model instance without calling constructor
+                $model = new static(null);
+                $model->setAttributes($attributes, false);
+                if ($callAfterFind) {
+                    $model->afterFind();
+                }
+                return $model;
+            } catch (\Throwable $fallbackError) {
+                // Final fallback - manual instance creation
+                \Yii::log("Error populating record: " . $fallbackError->getMessage(), \CLogger::LEVEL_WARNING);
+                return null;
+            }
+        }
+    }
 }

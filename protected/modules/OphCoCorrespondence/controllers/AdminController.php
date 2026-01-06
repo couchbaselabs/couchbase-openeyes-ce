@@ -500,10 +500,29 @@ class AdminController extends \ModuleAdminController
         return $errors;
     }
 
-    public function actionDeleteLetterMacros()
+    public function actionDeleteLetterMacros($id = null)
     {
-        if (!isset($_POST['id'])) {
-            return null;
+        // Support both single ID deletion from URL and batch deletion via POST
+        $ids_to_delete = array();
+        
+        if ($id !== null) {
+            // GET request: single delete by ID from URL parameter
+            if (!$macro = LetterMacro::model()->findByPk($id)) {
+                throw new CHttpException(404, 'Letter Macro not found');
+            }
+            $ids_to_delete = array($id);
+        } elseif (isset($_POST['id'])) {
+            // POST request: batch delete via POST data
+            if (empty($_POST['id'])) {
+                // No IDs provided, just return early
+                echo '0';
+                return;
+            }
+            $ids_to_delete = $_POST['id'];
+        } else {
+            // No ID provided in either GET or POST
+            echo '0';
+            return;
         }
 
         $transaction = Yii::app()->cbdb->beginTransaction();
@@ -512,10 +531,10 @@ class AdminController extends \ModuleAdminController
         try {
             //Make all the macro ids null that is equal to the macro id
             // that is being deleted in the document instance data table
-            DocumentInstanceData::model()->updateAll(['macro_id' => null], 'macro_id IN (' . implode($_POST['id']) . ')');
+            DocumentInstanceData::model()->updateAll(['macro_id' => null], 'macro_id IN (' . implode(',', $ids_to_delete) . ')');
 
             $criteria = new CDbCriteria();
-            $criteria->addInCondition('id', $_POST['id']);
+            $criteria->addInCondition('id', $ids_to_delete);
 
             $instances = LetterMacro::model()->findAll($criteria);
 
@@ -529,11 +548,22 @@ class AdminController extends \ModuleAdminController
                 $result = $result && $instance->delete();
             }
         } catch (Exception $e) {
+            Yii::log('Error in actionDeleteLetterMacros: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
             $result = false;
         }
 
         if ($result) {
             $transaction->commit();
+            
+            // Add audit log for deleted items
+            foreach ($ids_to_delete as $deleted_id) {
+                Audit::add('admin', 'delete', $deleted_id, null, array('module' => 'OphCoCorrespondence', 'model' => 'LetterMacro'));
+            }
+            
+            if ($id !== null) {
+                // Redirect back to list on successful single-item deletion via GET
+                $this->redirect('/OphCoCorrespondence/admin/letterMacros');
+            }
         } else {
             $transaction->rollback();
         }
@@ -685,7 +715,7 @@ class AdminController extends \ModuleAdminController
         }
 
         if (!$method = OphcorrespondenceInitMethod::model()->findByPk($_POST['id'])) {
-            throw new Exception("Method not found: " . $_POST['id']);
+            throw new CHttpException(404, "Method not found: " . $_POST['id']);
         }
 
         $result = array(
@@ -852,14 +882,64 @@ class AdminController extends \ModuleAdminController
 
     public function actionGetEmailBody($recipient_type = '')
     {
-        if ($recipient_type != '') {
-            $email_body = \Yii::app()->cbdb->createCommand()
-                ->select('email_body')
-                ->from('ophcocorrespondence_default_recipient_email_templates')
-                ->where('recipient_type=:recipient_type', array(':recipient_type' => $recipient_type))
-                ->queryScalar();
+        // Set response content type for plain text
+        header('Content-Type: text/plain; charset=utf-8');
+        
+        try {
+            // Validate input parameter
+            if (empty($recipient_type)) {
+                Yii::log('actionGetEmailBody: recipient_type parameter is empty', CLogger::LEVEL_WARNING);
+                echo '';
+                return;
+            }
 
-            echo $email_body;
+            // Sanitize input
+            $recipient_type = trim($recipient_type);
+            
+            // Try Couchbase first if available
+            $email_body = null;
+            $couchbase = Yii::app()->couchbase;
+            
+            if ($couchbase) {
+                try {
+                    $email_body = $couchbase->createCommand()
+                        ->select('email_body')
+                        ->from('ophcocorrespondence_default_recipient_email_templates')
+                        ->where('recipient_type=:recipient_type', array(':recipient_type' => $recipient_type))
+                        ->queryScalar();
+                    
+                    Yii::log('actionGetEmailBody: Retrieved from Couchbase for ' . $recipient_type, CLogger::LEVEL_INFO);
+                } catch (Exception $cbException) {
+                    Yii::log('actionGetEmailBody: Couchbase query failed: ' . $cbException->getMessage(), CLogger::LEVEL_WARNING);
+                    // Fall through to try regular database
+                }
+            }
+            
+            // Fallback to regular database if Couchbase fails or not available
+            if (empty($email_body)) {
+                try {
+                    $email_body = Yii::app()->db->createCommand()
+                        ->select('email_body')
+                        ->from('ophcocorrespondence_default_recipient_email_templates')
+                        ->where('recipient_type=:recipient_type', array(':recipient_type' => $recipient_type))
+                        ->queryScalar();
+                    
+                    Yii::log('actionGetEmailBody: Retrieved from MariaDB for ' . $recipient_type, CLogger::LEVEL_INFO);
+                } catch (Exception $dbException) {
+                    Yii::log('actionGetEmailBody: Database query failed: ' . $dbException->getMessage(), CLogger::LEVEL_ERROR);
+                    // Return empty response
+                    echo '';
+                    return;
+                }
+            }
+
+            // Output the email body or empty string if not found
+            echo $email_body ?: '';
+            
+        } catch (Exception $e) {
+            Yii::log('actionGetEmailBody: Unexpected error: ' . $e->getMessage() . ' ' . $e->getTraceAsString(), CLogger::LEVEL_ERROR);
+            // Return empty response on error
+            echo '';
         }
     }
 }

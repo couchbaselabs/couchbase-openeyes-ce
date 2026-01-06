@@ -28,11 +28,13 @@
         <input type="hidden" name="YII_CSRF_TOKEN" value="<?php echo Yii::app()->request->csrfToken ?>"/>
         <table class="standard">
             <colgroup>
+                <col class="cols-1">
                 <col class="cols-2">
                 <col class="cols-1">
             </colgroup>
             <thead>
             <tr>
+                <th><input type="checkbox" id="selectall" /></th>
                 <th>Name</th>
                 <th>Active</th>
             </tr>
@@ -42,6 +44,7 @@
             foreach ($disorder_sections as $i => $section) { ?>
                 <tr class="clickable" data-id="<?=$section->id ?>"
                     data-uri="OphCoCvi/admin/editClinicalDisorderSection/<?=$section->id?>?&patient_type=<?=$search['patient_type']?>">
+                    <td><input type="checkbox" name="sections[]" value="<?=$section->id ?>" /></td>
                     <td><?=\CHtml::encode($section->name) ?></td>
                     <td><?= \OEHtml::icon($section->active ? 'tick' : 'remove', ['class' => 'small']) ?></td>
                 </tr>
@@ -49,11 +52,61 @@
             </tbody>
             <tfoot class="pagination-container">
             <tr>
-                <td colspan="6">
+                <td colspan="3">
                     <?php echo EventAction::button('Add', 'add', array(), array('class' => 'small','data-type' => 'ClinicalDisorderSection', 'data-uri' => '/OphCoCvi/admin/addClinicalDisorderSection'))->toHtml() ?>
+                    <button type="button" id="et_delete" name="et_delete" class="red hint">Delete Selected</button>
                 </td>
             </tr>
             </tfoot>
         </table>
     </form>
 </div>
+
+<script>
+$(document).ready(function() {
+    // Select/Deselect all checkboxes
+    $('#selectall').change(function() {
+        if (this.checked) {
+            $('input[name="sections[]"]').prop('checked', true);
+        } else {
+            $('input[name="sections[]"]').prop('checked', false);
+        }
+    });
+
+    // Delete selected sections
+    $('#et_delete').click(function(e) {
+        e.preventDefault();
+
+        let $checked = $('input[name="sections[]"]:checked');
+        if ($checked.length === 0) {
+            alert('Please select one or more items to delete.');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to delete the selected items?')) {
+            return;
+        }
+
+        $.ajax({
+            'type': 'POST',
+            'url': baseUrl + '/OphCoCvi/admin/deleteClinicalDisorderSection',
+            'data': $checked.serialize() + "&YII_CSRF_TOKEN=" + $('input[name="YII_CSRF_TOKEN"]').val(),
+            'success': function(response) {
+                if (response == '1') {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting items.');
+                }
+            },
+            'error': function() {
+                alert('Error communicating with server.');
+            }
+        });
+    });
+
+    // Handle checkbox click to prevent row navigation
+    $('input[name="sections[]"]').click(function(e) {
+        e.stopPropagation();
+    });
+});
+</script>

@@ -126,18 +126,35 @@ class PupillaryAbnormalitiesController extends \ModuleAdminController
         $success = true;
         $result = [];
         $result['status'] = 1;
-        $result['errors'] = "";
+        $result['errors'] = [];
         try {
             foreach ($delete_ids as $abnormality_id) {
-                $abnormality = OphCiExamination_PupillaryAbnormalities_Abnormality::model()->deleteByPk($abnormality_id);
-                if ($abnormality) {
-                    Audit::add('admin-pupillary-abnormality', 'delete', $abnormality);
-                } else {
+                // Fetch the model first to store audit info
+                $abnormality = OphCiExamination_PupillaryAbnormalities_Abnormality::model()->findByPk($abnormality_id);
+                if (!$abnormality) {
                     $success = false;
                     $result['status'] = 0;
-                    $result['errors'][] = $abnormality->getErrors();
+                    $result['errors'][] = "Pupillary abnormality with ID {$abnormality_id} not found";
                     break;
                 }
+                
+                // Store model data before deletion for audit
+                $stored_attributes = $abnormality->attributes;
+                
+                // Delete the model
+                $abnormality->delete();
+                
+                // Verify the deletion by checking if record still exists
+                $verify = OphCiExamination_PupillaryAbnormalities_Abnormality::model()->findByPk($abnormality_id);
+                if ($verify) {
+                    $success = false;
+                    $result['status'] = 0;
+                    $result['errors'][] = "Failed to delete pupillary abnormality with ID: {$abnormality_id}";
+                    break;
+                }
+                
+                // Audit the deletion with serialized model attributes
+                Audit::add('admin-pupillary-abnormality', 'delete', serialize($stored_attributes));
             }
         } catch (Exception $e) {
             \OELog::log($e->getMessage());

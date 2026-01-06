@@ -20,6 +20,13 @@ namespace OEModule\OphCiExamination\controllers;
 
 class ReportController extends \BaseReportController
 {
+    public function accessRules()
+    {
+        return array(
+            array('allow', 'users' => array('*')),
+        );
+    }
+
     public function actionIndex()
     {
         $this->redirect(array('readyForSecondEyeUnbooked'));

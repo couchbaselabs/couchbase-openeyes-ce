@@ -293,6 +293,9 @@ class Element_OphDrPrescription_Details extends BaseEventTypeElement
     public function commonDrugs()
     {
         $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
+        if (!$firm || !$firm->serviceSubspecialtyAssignment) {
+            return array();
+        }
         $subspecialty_id = $firm->serviceSubspecialtyAssignment->subspecialty_id;
         $site_id = Yii::app()->session['selected_site_id'];
 

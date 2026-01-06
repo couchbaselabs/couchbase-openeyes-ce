@@ -242,23 +242,25 @@ $(document).ready(function () {
 		return false;
 	});
 
-	$('.sortable').sortable({
-		update: function (event, ui) {
-			var ids = [];
-			$('div.sortable').children('li').map(function () {
-				ids.push($(this).attr('data-attr-id'));
-			});
-			$.ajax({
-				'type': 'POST',
-				'url': OphCoTherapyapplication_sort_url,
-				'data': {order: ids},
-				'success': function (data) {
-					new OpenEyes.UI.Dialog.Alert({
-						content: 'Re-ordered'
-					}).open();
-				}
-			});
+	if ($('.sortable').length > 0) {
+		$('.sortable').sortable({
+			update: function (event, ui) {
+				var ids = [];
+				$('div.sortable').find('li').map(function () {
+					ids.push($(this).attr('data-attr-id'));
+				});
+				$.ajax({
+					'type': 'POST',
+					'url': OphCoTherapyapplication_sort_url,
+					'data': {order: ids},
+					'success': function (data) {
+						new OpenEyes.UI.Dialog.Alert({
+							content: 'Re-ordered'
+						}).open();
+					}
+				});
 
-		}
-	});
+			}
+		});
+	}
 });

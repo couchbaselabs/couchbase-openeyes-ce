@@ -73,11 +73,12 @@ class DnaExtractionStorageAdminController extends \ModuleAdminController
     public function actionGetNextLetterNumberRow()
     {
         $result = array();
-        if ((int)$_POST['box_id'] > 0) {
+        $box_id = Yii::app()->request->getPost('box_id', 0);
+        if ((int)$box_id > 0) {
             try {
                 $storage = new OphInDnaextraction_DnaExtraction_Storage();
 
-                $boxRanges = OphInDnaextraction_DnaExtraction_Box::boxMaxValues(Yii::app()->request->getPost('box_id'));
+                $boxRanges = OphInDnaextraction_DnaExtraction_Box::boxMaxValues($box_id);
                 
                 if (!$boxRanges) {
                     $result['error'] = 'Box not found';
@@ -85,8 +86,8 @@ class DnaExtractionStorageAdminController extends \ModuleAdminController
                     return;
                 }
 
-                $letterArray = $storage->generateLetterArrays(Yii::app()->request->getPost('box_id'), $boxRanges['maxletter'], $boxRanges['maxnumber']);
-                $usedBoxRows = $storage->getAllLetterNumberToBox(Yii::app()->request->getPost('box_id'));
+                $letterArray = $storage->generateLetterArrays($box_id, $boxRanges['maxletter'], $boxRanges['maxnumber']);
+                $usedBoxRows = $storage->getAllLetterNumberToBox($box_id);
 
 
                 $arrayDiff = array_filter($letterArray, function ($element) use ($usedBoxRows) {
@@ -109,6 +110,9 @@ class DnaExtractionStorageAdminController extends \ModuleAdminController
             } catch (Exception $e) {
                 $this->renderJSON(array('error' => $e->getMessage()));
             }
+        } else {
+            $result['error'] = 'Invalid box_id parameter';
+            $this->renderJSON($result);
         }
     }
 }

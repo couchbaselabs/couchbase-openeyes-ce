@@ -414,9 +414,11 @@ class SnippetController extends ModuleAdminController
     public function actionDelete()
     {
         $post = Yii::app()->request->getPost($this->admin->getModelName());
-        foreach ($post['id'] as $id) {
-            LetterString_Institution::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $id]);
-            LetterString_Site::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $id]);
+        if ($post && isset($post['id']) && is_array($post['id'])) {
+            foreach ($post['id'] as $id) {
+                LetterString_Institution::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $id]);
+                LetterString_Site::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $id]);
+            }
         }
         $this->admin->deleteModel();
     }

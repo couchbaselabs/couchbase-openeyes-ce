@@ -201,6 +201,12 @@ class RefMedicationAdminController extends BaseAdminController
 
     public function actionSave($id = null)
     {
+        // Check if this is a GET request (no POST data) and redirect to edit
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect('/'.$this->getModule()->id.'/'.$this->id.'/edit'.(!is_null($id) ? '/'.$id : ''));
+            return;
+        }
+
         if (is_null($id)) {
             $model = new Medication();
             $model->source_type = EventMedicationUse::USER_MEDICATION_SOURCE_TYPE;
@@ -430,11 +436,32 @@ class RefMedicationAdminController extends BaseAdminController
         Yii::app()->request->sendFile("refMedExport.xlsx", @file_get_contents('/tmp/refMedExport.xlsx'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', false);
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
+        // Handle GET requests with ID in URL parameter
+        if (!Yii::app()->request->isPostRequest) {
+            if (is_null($id)) {
+                throw new CHttpException(400, 'Invalid request: no ID provided');
+            }
+            $ids = array($id);
+        } else {
+            // Handle POST requests with multiple IDs
+            $medicationData = Yii::app()->request->getPost('Medication');
+            if (is_null($medicationData) || !isset($medicationData['id'])) {
+                throw new CHttpException(400, 'Invalid request: no medication IDs provided');
+            }
+            $ids = $medicationData['id'];
+        }
+
         try {
-            foreach (Yii::app()->request->getPost('Medication')['id'] as $id) {
-                $medication = Medication::model()->findByPk($id);
+            foreach ($ids as $itemId) {
+                if (is_null($itemId) || empty($itemId)) {
+                    continue;
+                }
+                $medication = Medication::model()->findByPk($itemId);
+                if (is_null($medication)) {
+                    continue;
+                }
                 /** @var Medication $medication */
                 foreach ($medication->medicationSearchIndexes as $index) {
                     $index->delete();

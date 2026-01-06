@@ -72,10 +72,31 @@ class LetterTypeController extends ModuleAdminController
 
     /**
      * Deletes rows for the model.
+     *
+     * @param int $id Optional ID for single item deletion
+     * @throws CHttpException
      */
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
         $admin = new Admin(LetterType::model(), $this);
+        
+        // Handle GET request with ID parameter
+        if (!Yii::app()->request->isPostRequest) {
+            if ($id !== null) {
+                // Get ID from URL parameter
+                $model = LetterType::model()->findByPk($id);
+                if (!$model) {
+                    throw new CHttpException(404, 'LetterType not found');
+                }
+                // For single item deletion via GET, redirect back to list
+                // as this action is designed for POST requests
+                Yii::app()->user->setFlash('error', 'Invalid delete request. Please use the delete button from the list.');
+                $this->redirect(array('list'));
+            }
+            return;
+        }
+        
+        // Handle POST requests via the Admin class
         $admin->deleteModel();
     }
 }

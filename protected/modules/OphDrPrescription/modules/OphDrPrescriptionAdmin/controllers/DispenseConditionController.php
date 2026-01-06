@@ -74,7 +74,14 @@ class DispenseConditionController extends BaseAdminController
             return;
         }
 
-        $model = $_POST['model']::model();
+        // Validate model parameter for security
+        $model_class = $_POST['model'];
+        if ($model_class !== 'OphDrPrescription_DispenseCondition') {
+            $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
+            return;
+        }
+
+        $model = $model_class::model();
 
         $ids = Yii::app()->request->getPost('select');
 
@@ -104,7 +111,14 @@ class DispenseConditionController extends BaseAdminController
             return;
         }
 
-        $model = $_POST['model']::model();
+        // Validate model parameter for security
+        $model_class = $_POST['model'];
+        if ($model_class !== 'OphDrPrescription_DispenseCondition') {
+            $this->redirect(['/OphDrPrescription/OphDrPrescriptionAdmin/dispenseCondition/index']);
+            return;
+        }
+
+        $model = $model_class::model();
         $level = ReferenceData::LEVEL_INSTITUTION;
 
         $ids = Yii::app()->request->getPost('select');

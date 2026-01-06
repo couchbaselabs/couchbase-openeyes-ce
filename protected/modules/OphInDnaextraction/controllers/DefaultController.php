@@ -171,13 +171,15 @@ class DefaultController extends BaseEventTypeController
     public function actionGetAvailableLetterNumberToBox()
     {
         $result = array();
-        if ((int)$_POST['box_id'] > '0') {
+        $box_id = Yii::app()->request->getPost('box_id');
+        
+        if ($box_id && (int)$box_id > 0) {
             $storage = new OphInDnaextraction_DnaExtraction_Storage();
             $boxModel = new OphInDnaextraction_DnaExtraction_Box();
-            $boxRanges = $boxModel->boxMaxValues($_POST['box_id']);
+            $boxRanges = $boxModel->boxMaxValues($box_id);
 
-            $letterArray = $storage->generateLetterArrays($_POST['box_id'], $boxRanges['maxletter'], $boxRanges['maxnumber']);
-            $usedBoxRows = $storage->getAllLetterNumberToBox($_POST['box_id']);
+            $letterArray = $storage->generateLetterArrays($box_id, $boxRanges['maxletter'], $boxRanges['maxnumber']);
+            $usedBoxRows = $storage->getAllLetterNumberToBox($box_id);
 
 
             $arrayDiff = array_filter($letterArray, function ($element) use ($usedBoxRows) {

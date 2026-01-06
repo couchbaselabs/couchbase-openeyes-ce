@@ -1,37 +1,19 @@
 <?php
-// Get valid IDs for testing
-require_once 'index.php';
+$pdo = new PDO('mysql:host=127.0.0.1;dbname=openeyes', 'openeyes', 'openeyes');
 
-// Get a site ID
-$site = Site::model()->find();
-if ($site) {
-    echo "Site ID: " . $site->id . " (Name: " . $site->short_name . ")\n";
-    $site_id = $site->id;
+$result = $pdo->query('SELECT id FROM patient LIMIT 1');
+$patient = $result->fetch(PDO::FETCH_ASSOC);
+echo 'Patient ID: ' . $patient['id'] . PHP_EOL;
+
+$result = $pdo->query('SELECT id FROM ophcotherapya_treatment LIMIT 1');
+$treatment = $result->fetch(PDO::FETCH_ASSOC);
+if ($treatment) {
+    echo 'Treatment ID: ' . $treatment['id'] . PHP_EOL;
 } else {
-    echo "No sites found\n";
-    exit;
+    echo 'No treatment found' . PHP_EOL;
+    // Try to find any treatment
+    $result = $pdo->query('SELECT COUNT(*) as cnt FROM ophcotherapya_treatment');
+    $count = $result->fetch(PDO::FETCH_ASSOC);
+    echo 'Total treatments in DB: ' . $count['cnt'] . PHP_EOL;
 }
-
-// Get a subspecialty ID
-$subspecialty = Subspecialty::model()->find();
-if ($subspecialty) {
-    echo "Subspecialty ID: " . $subspecialty->id . " (Name: " . $subspecialty->name . ")\n";
-    $subspecialty_id = $subspecialty->id;
-} else {
-    echo "No subspecialties found\n";
-    exit;
-}
-
-// Get a post-op drug ID
-$drug = OphTrOperationnote_PostopDrug::model()->find();
-if ($drug) {
-    echo "Drug ID: " . $drug->id . " (Name: " . $drug->name . ")\n";
-    $drug_id = $drug->id;
-} else {
-    echo "No post-op drugs found\n";
-    exit;
-}
-
-// Output the IDs
-echo "\nAdd URL: /postOpDrugMappings/add?site_id=" . $site_id . "&subspecialty_id=" . $subspecialty_id . "&drug_id=" . $drug_id . "\n";
 ?>

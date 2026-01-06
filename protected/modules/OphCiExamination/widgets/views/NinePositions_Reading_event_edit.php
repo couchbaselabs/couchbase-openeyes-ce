@@ -274,25 +274,33 @@ use OEModule\OphCiExamination\widgets\NinePositions;
                 </td>
                 <td rowspan="3">
                     <?php
-                    $this->widget('application.modules.eyedraw.OEEyeDrawWidget', [
-                        'listenerArray' => ['OpenEyes.OphCiExamination.ninePositionsEyedrawListener'],
-                        'showDrawingControls' => false,
-                        'idSuffix' => 'right_ninepositions_' . $row_count,
-                        'attribute' => 'right_eyedraw',
-                        'inputName' => $field_prefix . '[right_eyedraw]',
-                        'inputId' => $field_prefix . '_right_eyedraw_' . $row_count,
-                        'model' => $reading,
-                        'suppressGlobalJs' => $suppress_ed_globals,
-                        'side' => 'R',
-                        'mode' => 'edit',
-                        'width' => 175,
-                        'height' => 175,
-                        'toolbar' => false,
-                        'onReadyCommandArray' => [
-                            ['addDoodle', ['OrthopticEye']],
-                            ['deselectDoodles', []],
-                        ],
-                    ]); ?>
+                    // Check if eyedraw module is available
+                    $eyedrawPath = Yii::getPathOfAlias('application.modules.eyedraw');
+                    if ($eyedrawPath !== false && is_dir($eyedrawPath)) {
+                        $this->widget('application.modules.eyedraw.OEEyeDrawWidget', [
+                            'listenerArray' => ['OpenEyes.OphCiExamination.ninePositionsEyedrawListener'],
+                            'showDrawingControls' => false,
+                            'idSuffix' => 'right_ninepositions_' . $row_count,
+                            'attribute' => 'right_eyedraw',
+                            'inputName' => $field_prefix . '[right_eyedraw]',
+                            'inputId' => $field_prefix . '_right_eyedraw_' . $row_count,
+                            'model' => $reading,
+                            'suppressGlobalJs' => $suppress_ed_globals,
+                            'side' => 'R',
+                            'mode' => 'edit',
+                            'width' => 175,
+                            'height' => 175,
+                            'toolbar' => false,
+                            'onReadyCommandArray' => [
+                                ['addDoodle', ['OrthopticEye']],
+                                ['deselectDoodles', []],
+                            ],
+                        ]);
+                    } else {
+                        // Placeholder when eyedraw module is not available
+                        echo '<div style="width: 175px; height: 175px; border: 1px solid #ccc; background-color: #f5f5f5;"></div>';
+                    }
+                    ?>
                 </td>
                 <td>
                     <?php
@@ -339,25 +347,33 @@ use OEModule\OphCiExamination\widgets\NinePositions;
                 </td>
                 <td rowspan="3"><!-- canvas placeholder -->
                     <?php
-                    $this->widget('application.modules.eyedraw.OEEyeDrawWidget', [
-                        'listenerArray' => ['OpenEyes.OphCiExamination.ninePositionsEyedrawListener'],
-                        'showDrawingControls' => false,
-                        'idSuffix' => 'left_ninepositions_' . $row_count,
-                        'attribute' => 'left_eyedraw',
-                        'model' => $reading,
-                        'inputName' => $field_prefix . '[left_eyedraw]',
-                        'inputId' => $field_prefix . '_left_eyedraw_' . $row_count,
-                        'suppressGlobalJs' => $suppress_ed_globals,
-                        'side' => 'L',
-                        'mode' => 'edit',
-                        'width' => 175,
-                        'height' => 175,
-                        'toolbar' => false,
-                        'onReadyCommandArray' => [
-                            ['addDoodle', ['OrthopticEye']],
-                            ['deselectDoodles', []],
-                        ],
-                    ]); ?>
+                    // Check if eyedraw module is available
+                    $eyedrawPath = Yii::getPathOfAlias('application.modules.eyedraw');
+                    if ($eyedrawPath !== false && is_dir($eyedrawPath)) {
+                        $this->widget('application.modules.eyedraw.OEEyeDrawWidget', [
+                            'listenerArray' => ['OpenEyes.OphCiExamination.ninePositionsEyedrawListener'],
+                            'showDrawingControls' => false,
+                            'idSuffix' => 'left_ninepositions_' . $row_count,
+                            'attribute' => 'left_eyedraw',
+                            'model' => $reading,
+                            'inputName' => $field_prefix . '[left_eyedraw]',
+                            'inputId' => $field_prefix . '_left_eyedraw_' . $row_count,
+                            'suppressGlobalJs' => $suppress_ed_globals,
+                            'side' => 'L',
+                            'mode' => 'edit',
+                            'width' => 175,
+                            'height' => 175,
+                            'toolbar' => false,
+                            'onReadyCommandArray' => [
+                                ['addDoodle', ['OrthopticEye']],
+                                ['deselectDoodles', []],
+                            ],
+                        ]);
+                    } else {
+                        // Placeholder when eyedraw module is not available
+                        echo '<div style="width: 175px; height: 175px; border: 1px solid #ccc; background-color: #f5f5f5;"></div>';
+                    }
+                    ?>
                 </td>
                 <td>
                     <?php

@@ -17,12 +17,10 @@ class CaseSearchController extends BaseModuleController
     {
         return array(
             'accessControl',
-            'ajaxOnly + addParameter',
             'ajaxOnly + getSearchesByUser',
             'ajaxOnly + otherSearchUsers',
             'ajaxOnly + loadSearch',
             'ajaxOnly + deleteSearch',
-            'ajaxOnly + clear',
             'ajaxOnly + searchCommonItems',
         );
     }
@@ -222,12 +220,43 @@ class CaseSearchController extends BaseModuleController
     }
 
     /**
-     * Add a parameter to the case search. This is executed through an AJAX request.
+     * Add a parameter to the case search. This can be called:
+     * 1. Via GET without parameters to show the form
+     * 2. Via GET with a parameter JSON to validate and render partial (AJAX)
      * @throws CException
      */
     public function actionAddParameter()
     {
+        // If parameter is not provided, show the form
+        if (!isset($_GET['parameter'])) {
+            // Get the list of parameter types for display on-screen.
+            $paramList = $this->module->getParamList();
+            $this->render('addParameter', array(
+                'paramList' => $paramList,
+            ));
+            return;
+        }
+
+        // Parameter is provided - this is an AJAX call to validate and render
         $param = $_GET['parameter'];
+        
+        // Decode JSON if it's a string
+        if (is_string($param)) {
+            $param = json_decode($param, true);
+            if (!is_array($param)) {
+                http_response_code(400);
+                echo 'Invalid JSON in parameter';
+                Yii::app()->end();
+                return;
+            }
+        }
+
+        if (!isset($param['id']) || !isset($param['type']) || !isset($param['operation'])) {
+            http_response_code(400);
+            echo 'Missing required fields in parameter: id, type, operation';
+            Yii::app()->end();
+            return;
+        }
 
         $parameter = $this->buildParameterInstance(
             $param['id'],
@@ -292,6 +321,9 @@ class CaseSearchController extends BaseModuleController
          * @var $parameter CaseSearchParameter
          */
         $type = Yii::app()->request->getQuery('type');
+        if (!$type) {
+            throw new CHttpException(400, 'Missing required parameter: type');
+        }
         $parameter = new $type();
         $this->renderJSON($parameter->getOptions());
     }
@@ -367,7 +399,7 @@ class CaseSearchController extends BaseModuleController
             }
             $search_criteria = serialize($criteria_list);
             $search->search_criteria = $search_criteria;
-            $search->name = $_POST['search_name'];
+            $search->name = isset($_POST['search_name']) ? $_POST['search_name'] : '';
             $search->institution_id = $this->selectedInstitutionId;
 
             if (!$search->save()) {
@@ -500,22 +532,29 @@ class CaseSearchController extends BaseModuleController
         $start_date = null;
         $end_date = null;
         $mode = Yii::app()->request->getQuery('mode');
-        $var = $_POST['var'];
+        $var = Yii::app()->request->getPost('var');
+        
+        if (!$var) {
+            throw new CHttpException(400, 'Missing required parameter: var');
+        }
 
         $this->populateParams();
         $ids = array_column(Yii::app()->searchProvider->search($this->parameters), 'id');
 
         $variable = $this->getVariableInstance(
-            Yii::app()->params['CaseSearch']['variables']['OECaseSearch'][$var],
+            Yii::app()->params['CaseSearch']['variables']['OECaseSearch'][$var] ?? null,
             $ids
         );
 
-        if (!isset($_POST['show-all-dates']) || $_POST['show-all-dates'] !== '1') {
-            if (isset($_POST['from_date']) && $_POST['from_date']) {
-                $start_date = new DateTime($_POST['from_date']);
+        $showAllDates = Yii::app()->request->getPost('show-all-dates');
+        if (!isset($showAllDates) || $showAllDates !== '1') {
+            $fromDate = Yii::app()->request->getPost('from_date');
+            if ($fromDate) {
+                $start_date = new DateTime($fromDate);
             }
-            if (isset($_POST['to_date']) && $_POST['to_date']) {
-                $end_date = new DateTime($_POST['to_date']);
+            $toDate = Yii::app()->request->getPost('to_date');
+            if ($toDate) {
+                $end_date = new DateTime($toDate);
             }
         } else {
             $start_date = null;
@@ -585,8 +624,8 @@ class CaseSearchController extends BaseModuleController
 
     public function actionLookedAtPopup()
     {
-        $patientID = $_GET["patientID"];
-        $summaryId = $_GET["summaryId"];
+        $patientID = $_GET["patientID"] ?? null;
+        $summaryId = $_GET["summaryId"] ?? null;
         if (isset($patientID)) {
             $patient = Patient::model()->findByPk($patientID);
             if (!empty($patient)) {

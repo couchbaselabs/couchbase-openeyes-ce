@@ -204,7 +204,7 @@ if ($this->editable) {
         'currentStep' => (isset($this->event->eventType->class_name) && $this->event->eventType->class_name == 'OphCiExamination' ? $this->getCurrentStep() : ''),
         'currentFirm' => (isset($this->event->firm_id) ? $this->event->firm_id : '""'),
         // for some strange reason '' doesn't reslove to an empty str
-        'event_types' => $this->event->eventType->name
+        'event_types' => ($this->event->eventType ? $this->event->eventType->name : 'Unknown Event Type')
     ));
 }
 ?>

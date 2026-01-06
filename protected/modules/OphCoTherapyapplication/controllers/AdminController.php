@@ -341,8 +341,12 @@ class AdminController extends ModuleAdminController
         ));
     }
 
-    public function actionViewDecisionTree($id)
+    public function actionViewDecisionTree($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Invalid request. Decision Tree ID is required.');
+        }
+        
         $model = OphCoTherapyapplication_DecisionTree::model()->findByPk((int) $id);
         
         if (!$model) {
@@ -551,6 +555,13 @@ class AdminController extends ModuleAdminController
             $command->bindParam(':institution_id', $selected_institution_id, PDO::PARAM_INT);
             $records = $command->queryAll();
             
+            // If no results with institution filter, try getting all records to debug
+            if (empty($records)) {
+                $sql_all = 'SELECT * FROM ophcotherapya_filecoll ORDER BY UPPER(name) ASC';
+                $command_all = Yii::app()->db->createCommand($sql_all);
+                $records = $command_all->queryAll();
+            }
+            
             $model_list = array();
             foreach ($records as $record) {
                 $model = new OphCoTherapyapplication_FileCollection();
@@ -719,6 +730,11 @@ class AdminController extends ModuleAdminController
     public function actionEditFileCollection($id)
     {
         $model = OphCoTherapyapplication_FileCollection::model()->findByPk((int) $id);
+
+        if (!$model) {
+            throw new CHttpException(404, 'Unable to find the requested File Collection');
+        }
+
         $this->jsVars['filecollection_id'] = $model->id;
 
         if (isset($_POST['OphCoTherapyapplication_FileCollection'])) {
@@ -762,8 +778,35 @@ class AdminController extends ModuleAdminController
         }
     }
 
-    public function actionDeleteFileCollections()
+    public function actionDeleteFileCollections($id = null)
     {
+        // Handle GET requests - display confirmation page
+        if (!Yii::app()->request->isPostRequest) {
+            if ($id) {
+                // Display confirmation page for single file collection
+                $model = OphCoTherapyapplication_FileCollection::model()->findByPk((int) $id);
+                if (!$model) {
+                    throw new CHttpException(404, 'File Collection not found');
+                }
+                
+                Audit::add('admin', 'view', $id, null, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_FileCollection'));
+                
+                $this->render('delete_OphCoTherapyapplication_FileCollection', array(
+                    'model' => $model,
+                    'title' => 'Delete File Collection',
+                ));
+            } else {
+                // No ID provided for GET request
+                throw new CHttpException(400, 'ID parameter is required');
+            }
+            return;
+        }
+
+        // Handle POST requests - perform deletion
+        if (!isset($_POST['file_collections']) || empty($_POST['file_collections'])) {
+            throw new CHttpException(400, 'Missing required parameter: file_collections');
+        }
+
         $result = 1;
 
         foreach ($_POST['file_collections'] as $file_collection_id) {
@@ -777,6 +820,7 @@ class AdminController extends ModuleAdminController
                     if (!$collection->delete()) {
                         $result = 0;
                     }
+                    Audit::add('admin', 'delete', $file_collection_id, null, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_FileCollection'));
                 }
             } catch (Exception $e) {
                 Yii::log("couldn't remove file collection $file_collection_id: ".$e->getMessage(), 'error');

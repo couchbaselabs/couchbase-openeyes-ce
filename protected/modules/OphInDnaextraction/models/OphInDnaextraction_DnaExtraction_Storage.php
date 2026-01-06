@@ -62,6 +62,11 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
         $box = new OphInDnaextraction_DnaExtraction_Box();
         $boxRanges = $box->boxMaxValues($this->box_id);
 
+        if ($boxRanges === null) {
+            $this->addError($attribute, 'Selected box does not exist or has incomplete data.');
+            return;
+        }
+
         $this->setLetterRange($boxRanges['maxletter']);
 
         if ( !in_array($this->letter, $this->letterRange) ) {
@@ -78,6 +83,11 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
     {
         $box = new OphInDnaextraction_DnaExtraction_Box();
         $boxRanges = $box->boxMaxValues($this->box_id);
+
+        if ($boxRanges === null) {
+            $this->addError($attribute, 'Selected box does not exist or has incomplete data.');
+            return;
+        }
 
         $this->setNumberRange($boxRanges['maxnumber']);
 

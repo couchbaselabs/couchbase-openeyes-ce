@@ -60,15 +60,18 @@ class DnaExtractionBoxAdminController extends \ModuleAdminController
 
     public function actionSort()
     {
-        if (!empty($_POST['OphInDnaextraction_DnaExtraction_Box']['display_order'])) {
-            foreach ($_POST['OphInDnaextraction_DnaExtraction_Box']['display_order'] as $i => $id) {
-                if ($box = OphInDnaextraction_DnaExtraction_Box::model()->findByPk($id)) {
-                    $box->display_order = $i + 1;
-                    if (!$box->save()) {
-                        throw new Exception('Unable to save storage box: '.print_r($dnaName->getErrors(), true));
-                    }
-                }
-            }
+        $admin = new Admin(OphInDnaextraction_DnaExtraction_Box::model(), $this);
+        $admin->setModelDisplayName('Dna Storage Box');
+        $admin->setListFields(array(
+            'value',
+            'maxletter',
+            'maxnumber',
+            'display_order',
+        ));
+        if (Yii::app()->request->isPostRequest) {
+            $admin->sortModel();
+        } else {
+            $admin->listModel();
         }
     }
 }

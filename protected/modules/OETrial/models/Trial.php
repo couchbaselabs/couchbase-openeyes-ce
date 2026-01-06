@@ -317,9 +317,13 @@ class Trial extends BaseActiveRecordVersioned
      */
     protected function afterSave()
     {
+        // Store whether this is a new record BEFORE calling parent which will set getIsNewRecord() to false
+        $isNew = !$this->id; // If id is not set yet, this was a new record
+        
         parent::afterSave();
 
-        if ($this->getIsNewRecord()) {
+        // After saving, if the id is now set, this was a new record
+        if ($this->id && $isNew) {
             // Create a new permission assignment for the user that created the Trial
             if (array_key_exists('principal_investigator', $_SESSION) && !empty($_SESSION['principal_investigator'])) {
                 $current_user_id = $_SESSION['principal_investigator'];
@@ -330,11 +334,15 @@ class Trial extends BaseActiveRecordVersioned
             // unsetting the session, so that if it is empty for the next row it won't insert the principal investigator that was entered for the previous row for the trial import.
             unset($_SESSION['principal_investigator']);
 
-            $admin_user_group = User::model()->findAllByRoles(array('admin'));
-            if (!in_array($current_user_id, $admin_user_group)) {
-                array_push($admin_user_group, $current_user_id);
+            $admin_users = User::model()->findAllByRoles(array('admin'));
+            $admin_user_ids = array();
+            foreach ($admin_users as $user) {
+                $admin_user_ids[] = $user->id;
             }
-            foreach ($admin_user_group as $user_id) {
+            if (!in_array($current_user_id, $admin_user_ids)) {
+                $admin_user_ids[] = $current_user_id;
+            }
+            foreach ($admin_user_ids as $user_id) {
                 $newPermission = new UserTrialAssignment();
                 $newPermission->user_id = $user_id;
                 $newPermission->trial_id = $this->id;

@@ -44,6 +44,15 @@ $local_common_config = $dirname . '/protected/config/local/common.php';
 // specify how many levels of call stack should be shown in each log message
 defined('YII_TRACE_LEVEL') or define('YII_TRACE_LEVEL', 3);
 
+// Ensure sessions directory exists before Yii initialization
+$sessionsDir = $dirname . '/protected/runtime/sessions';
+if (!is_dir($sessionsDir)) {
+    if (!@mkdir($sessionsDir, 0777, true)) {
+        // If we can't create it, log a warning but continue
+        error_log("Warning: Could not create sessions directory at $sessionsDir");
+    }
+}
+
 require_once($yii);
 
 /**

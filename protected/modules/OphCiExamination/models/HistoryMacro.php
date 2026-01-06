@@ -148,7 +148,17 @@ class HistoryMacro extends \BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        try {
+            $this->saveToCouchbase();
+        } catch (\Exception $e) {
+            // Log Couchbase sync errors but don't fail the main save operation
+            \Yii::log('HistoryMacro::afterSave() - Couchbase sync failed: ' . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application.couchbase');
+            // For non-mandatory writes, continue without error
+            if (!$this->isCouchbaseWriteMandatory()) {
+                return true;
+            }
+            throw $e;
+        }
     }
 
     /**

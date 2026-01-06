@@ -111,7 +111,10 @@ foreach ($patients->getData() as $i => $SearchPatient) {
 ?>
 
 <script type="text/javascript">
-    $(document).ready(renderPopups(<?= json_encode($patientsID) ?>));
+    // Ensure jQuery is available before using it
+    if (typeof jQuery !== 'undefined' && typeof $ !== 'undefined') {
+        $(document).ready(renderPopups(<?= json_encode($patientsID) ?>));
+    }
 
     function renderPopups(ids) {
         if (ids[0]) {

@@ -779,19 +779,29 @@ trait CouchbaseModelBridge
             }
             
             return $models;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Yii::log("N1QL findAll failed: " . $e->getMessage() . ", falling back to MariaDB", \CLogger::LEVEL_WARNING);
             // Fall back to MariaDB query on error
             try {
                 $manager = \CouchbaseCutoverManager::getInstance();
                 $config = $manager->getConfig();
                 if (($config['fallback_enabled'] ?? true) && ($config['fallback_on_error'] ?? true)) {
-                    return parent::findAll($condition, $params);
+                    try {
+                        return parent::findAll($condition, $params);
+                    } catch (\Throwable $parentException) {
+                        \Yii::log("MariaDB fallback findAll failed: " . $parentException->getMessage(), \CLogger::LEVEL_ERROR);
+                        return [];
+                    }
                 }
-            } catch (\Exception $fallbackError) {
-                \Yii::log("Fallback to MariaDB failed: " . $fallbackError->getMessage(), \CLogger::LEVEL_ERROR);
-                // Try parent directly anyway
-                return parent::findAll($condition, $params);
+            } catch (\Throwable $fallbackError) {
+                \Yii::log("Fallback to MariaDB configuration check failed: " . $fallbackError->getMessage(), \CLogger::LEVEL_ERROR);
+                // Try parent directly anyway as last resort
+                try {
+                    return parent::findAll($condition, $params);
+                } catch (\Throwable $lastResortException) {
+                    \Yii::log("Last resort MariaDB findAll failed: " . $lastResortException->getMessage(), \CLogger::LEVEL_ERROR);
+                    return [];
+                }
             }
             return [];
         }

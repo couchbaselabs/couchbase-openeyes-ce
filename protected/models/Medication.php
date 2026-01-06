@@ -283,7 +283,7 @@ class Medication extends BaseActiveRecordVersioned
         $criteria->condition = "id IN (SELECT medication_id FROM medication_set_item WHERE medication_set_id IN
                                         (SELECT medication_set_id FROM medication_set_rule WHERE usage_code_id = :usage_code_id
                                             AND site_id=:site_id AND subspecialty_id=:subspecialty_id))";
-        $criteria->params = [":site_id" => $site_id, "subspecialty_id" => $subspecialty_id, ':usage_code_id' => $common_oph_id];
+        $criteria->params = [":site_id" => $site_id, ":subspecialty_id" => $subspecialty_id, ':usage_code_id' => $common_oph_id];
         $criteria->order = 'preferred_term';
         return $this->findAll($criteria);
     }

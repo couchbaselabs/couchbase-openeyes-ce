@@ -18,7 +18,13 @@
 ?>
 <?php
 $event = $this->event;
-$event_type = $event->eventType->name;
+if ($event->eventType) {
+    $event_type = $event->eventType->name;
+} else {
+    // If eventType is not available, skip rendering the event audit trail
+    // This can happen when an event doesn't have a proper event_type_id
+    return;
+}
 
 // Find all event modifications that occurred per day
 // but remove any consecutive changes by the same user on the same day

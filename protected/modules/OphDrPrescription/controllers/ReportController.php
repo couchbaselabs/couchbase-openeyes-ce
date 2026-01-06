@@ -64,15 +64,20 @@ class ReportController extends BaseReportController
     public function actionGetDrugs()
     {
         $commonDrugs = array();
-        $drugs = Element_OphDrPrescription_Details::model()->commonDrugs();
+        try {
+            $drugs = Element_OphDrPrescription_Details::model()->commonDrugs();
 
-        if ($drugs) {
-            foreach ($drugs as $drug) {
-                $commonDrugs[] = array(
-                    'id' => $drug->id,
-                    'label' => $drug->preferred_term,
-                );
+            if ($drugs) {
+                foreach ($drugs as $drug) {
+                    $commonDrugs[] = array(
+                        'id' => $drug->id,
+                        'label' => $drug->preferred_term,
+                    );
+                }
             }
+        } catch (Exception $e) {
+            // Log the error but return empty array to prevent errors
+            Yii::log('Error retrieving common drugs: ' . $e->getMessage(), CLogger::LEVEL_ERROR, 'OphDrPrescription.Report');
         }
         $this->renderJSON($commonDrugs);
         Yii::app()->end();

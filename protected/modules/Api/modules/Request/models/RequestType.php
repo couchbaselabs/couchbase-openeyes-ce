@@ -55,6 +55,11 @@ class RequestType extends CActiveRecord
         // Try the standard MariaDB save first
         $result = parent::save($runValidation, $attributes);
         
+        // Log for debugging
+        if (!$result) {
+            \Yii::log('RequestType save failed. Errors: ' . print_r($this->getErrors(), true), 'error');
+        }
+        
         // If save fails and Couchbase is available, try Couchbase
         if (!$result && method_exists($this, 'saveToCouchbase')) {
             try {
@@ -62,6 +67,7 @@ class RequestType extends CActiveRecord
                 $result = true;
             } catch (\Exception $e) {
                 // Couchbase save also failed - return false
+                \Yii::log('Couchbase save failed: ' . $e->getMessage(), 'error');
                 $result = false;
             }
         }

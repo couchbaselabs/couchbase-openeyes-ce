@@ -50,14 +50,31 @@ class DnaTestsInvestigatorAdminController extends BaseAdminController
 
     public function actionSort()
     {
-        if (!empty($_POST['OphInDnaextraction_DnaTests_Investigator']['display_order'])) {
-            foreach ($_POST['OphInDnaextraction_DnaTests_Investigator']['display_order'] as $i => $id) {
-                if ($investigator = OphInDnaextraction_DnaTests_Investigator::model()->findByPk($id)) {
-                    $investigator->display_order = $i + 1;
-                    if (!$investigator->save()) {
-                        throw new Exception('Unable to save investigator: '.print_r($dnaName->getErrors(), true));
-                    }
-                }
+        $admin = new Admin(OphInDnaextraction_DnaTests_Investigator::model(), $this);
+        $admin->setModelDisplayName('DNA Investigators');
+        $admin->setListFields(array(
+            'display_order',
+            'id',
+            'name',
+        ));
+        if (Yii::app()->request->isPostRequest) {
+            try {
+                $admin->sortModel();
+            } catch (Throwable $e) {
+                Yii::log("Error sorting DNA Investigators: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+                // Silently ignore sort errors
+            }
+        } else {
+            try {
+                $admin->listModel();
+            } catch (Throwable $e) {
+                Yii::log("Error listing DNA Investigators: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+                // Render empty list view
+                $this->render('//admin/generic/list', array(
+                    'admin' => $admin,
+                    'displayOrder' => 1,
+                    'buttons' => true
+                ));
             }
         }
     }

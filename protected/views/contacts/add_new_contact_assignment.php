@@ -169,8 +169,7 @@ $form = $this->beginWidget('CActiveForm', array(
                     Country::model()->findAll(),
                     'id',
                     'name',
-                    'code
-                        '
+                    'code'
                 ),
                 [
                     'empty' => 'None',

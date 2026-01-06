@@ -65,7 +65,7 @@ $(document).ready(function () {
     var model_name = $(this).parents('tr').data('attr-name');
 
     var enabled = 0;
-    if ($(this).attr('checked')) {
+    if ($(this).prop('checked')) {
       enabled = 1;
     }
     $.ajax({

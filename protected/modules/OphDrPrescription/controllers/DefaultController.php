@@ -72,27 +72,31 @@ class DefaultController extends BaseEventTypeController
         $model = Element_OphDrPrescription_Details::model()
             ->findBySql('SELECT * FROM et_ophdrprescription_details WHERE event_id = :id', [':id' => $id]);
 
-        $this->showAllergyWarning();
+        if ($this->patient) {
+            $this->showAllergyWarning();
+        }
 
-        $this->editable = $model->isEditableByMedication();
-        if ($this->editable == true) {
-            $this->editable = $this->userIsAdmin() || $model->draft
-            || (SettingMetadata::model()->findByAttributes(array('key' => 'enable_prescriptions_edit'))->getSettingName() === 'On');
+        if ($model) {
+            $this->editable = $model->isEditableByMedication();
+            if ($this->editable == true) {
+                $this->editable = $this->userIsAdmin() || $model->draft
+                || (SettingMetadata::model()->findByAttributes(array('key' => 'enable_prescriptions_edit'))->getSettingName() === 'On');
+            }
+
+            if ($model->edit_reason_id) {
+                $this->showReasonForEdit($model->edit_reason_id, $model->edit_reason_other);
+            }
+
+            if (!$model->isEditableByMedication()) {
+                Yii::app()->user->setFlash('alert.meds_management', 'This prescription was created from Medication Management in an Examination event. To make changes or remove, please edit the original Examination');
+            }
+            if ($model->draft) {
+                Yii::app()->user->setFlash('alert.draft', 'This prescription is a draft and can still be edited');
+            }
         }
 
         if ($this->event->delete_pending) {
             Yii::app()->user->setFlash('patient.delete_pending', 'This event is pending deletion and has been locked.');
-        }
-
-        if ($model->edit_reason_id) {
-            $this->showReasonForEdit($model->edit_reason_id, $model->edit_reason_other);
-        }
-
-        if (!$model->isEditableByMedication()) {
-            Yii::app()->user->setFlash('alert.meds_management', 'This prescription was created from Medication Management in an Examination event. To make changes or remove, please edit the original Examination');
-        }
-        if ($model->draft) {
-            Yii::app()->user->setFlash('alert.draft', 'This prescription is a draft and can still be edited');
         }
 
         return parent::actionView($id);
@@ -215,10 +219,12 @@ class DefaultController extends BaseEventTypeController
         // Get prescription details element
         $element = Element_OphDrPrescription_Details::model()->findByAttributes(array('event_id' => $this->event->id));
 
-        foreach ($element->items as $item) {
-            if ($this->patient->hasDrugAllergy($item->medication_id)) {
-                $this->showAllergyWarning();
-                break;
+        if ($element && $element->items) {
+            foreach ($element->items as $item) {
+                if ($this->patient->hasDrugAllergy($item->medication_id)) {
+                    $this->showAllergyWarning();
+                    break;
+                }
             }
         }
     }
@@ -253,6 +259,9 @@ class DefaultController extends BaseEventTypeController
      */
     protected function showAllergyWarning()
     {
+        if (!$this->patient) {
+            return;
+        }
         if ($this->patient->no_allergies_date) {
             Yii::app()->user->setFlash('info.prescription_allergy', $this->patient->getAllergiesString());
         } else {
@@ -499,8 +508,12 @@ class DefaultController extends BaseEventTypeController
         }
     }
 
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'No prescription event specified. Please provide an event ID.');
+        }
+
         $print_mode = Yii::app()->request->getParam('print_mode', null);
 
         $user = User::model()->findByPk(Yii::app()->user->id);
@@ -548,8 +561,18 @@ class DefaultController extends BaseEventTypeController
     }
 
 
-    public function actionPDFPrint($id)
+    public function actionPDFPrint($id = null)
     {
+        // If ID not provided in URL, try to get it from request parameters
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('event_id') ?: Yii::app()->request->getParam('id');
+        }
+        
+        // Validate that we have an ID
+        if (!$id) {
+            throw new Exception("Prescription event ID not provided");
+        }
+
         if (!$prescription = Element_OphDrPrescription_Details::model()->find('event_id=?', array($id))) {
             throw new Exception("Prescription not found for event id: $id");
         }
@@ -604,8 +627,16 @@ class DefaultController extends BaseEventTypeController
      *
      * @throws Exception
      */
-    public function actionDoPrint($id)
+    public function actionDoPrint()
     {
+        // Get the event ID from either URL parameter or request parameter
+        $id = Yii::app()->request->getParam('id') ?: Yii::app()->request->getParam('event_id');
+        
+        // Validate that we have an ID
+        if (!$id) {
+            throw new Exception("Prescription event ID not provided");
+        }
+
         $print_mode = Yii::app()->request->getParam('print_mode');
         if (!$prescription = Element_OphDrPrescription_Details::model()->find('event_id=?', array($id))) {
             throw new Exception("Prescription not found for event id: $id");
@@ -638,14 +669,6 @@ class DefaultController extends BaseEventTypeController
         echo '1';
     }
 
-    /**
-     * Mark a prescription element as printed - called when printing a prescription that has already
-     * been printed.
-     *
-     * @TODO: is this necessary if the print action is already marking the prescription printed?
-     *
-     * @throws Exception
-     */
     public function actionMarkPrinted()
     {
         $event_id = Yii::app()->request->getParam('event_id');

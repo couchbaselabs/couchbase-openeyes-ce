@@ -93,7 +93,10 @@ class PedigreeGene extends BaseActiveRecord
             $this->priority = 0;
         }
         
-        return parent::beforeSave();
+        if (!parent::beforeSave()) {
+            return false;
+        }
+        return true;
     }
 
     // Couchbase methods and hooks temporarily disabled for debugging

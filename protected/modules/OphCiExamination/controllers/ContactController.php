@@ -63,10 +63,6 @@ class ContactController extends \BaseController
      */
     public function actionPatientcontacts()
     {
-        if (!\Yii::app()->request->isAjaxRequest) {
-            throw new \CHttpException(400, 'Invalid request. This endpoint is for AJAX requests only.');
-        }
-        
         if (isset($_GET['filter'])) {
             $contactLabel = \ContactLabel::model()->findByPk($_GET['filter']);
             if ($contactLabel === null) {

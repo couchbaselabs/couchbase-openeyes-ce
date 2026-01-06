@@ -54,8 +54,17 @@ class DICOMFileWatcherTestController extends BaseAdminController
             $dir .= '/';
         }
 
+        // Check if directory exists before attempting to open it
+        if (!is_dir($dir)) {
+            return $retval;
+        }
+
         // open pointer to directory and read list of files
-        $d = @dir($dir) or die("getFileList: Failed opening directory $dir for reading");
+        $d = @dir($dir);
+        if ($d === false) {
+            return $retval;
+        }
+
         while (false !== ($entry = $d->read())) {
             $info = pathinfo($entry);
             $ext = $info['extension'];

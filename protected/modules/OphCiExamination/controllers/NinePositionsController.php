@@ -30,8 +30,12 @@ class NinePositionsController extends \BaseController
         ];
     }
 
-    public function actionReadingForm($patient_id, $index)
+    public function actionReadingForm($patient_id = null, $index = 0)
     {
+        if (!$patient_id) {
+            throw new \CHttpException(400, 'Patient ID is required.');
+        }
+        
         $patient = Patient::model()->findByPk($patient_id);
         if (!$patient) {
             throw new \CHttpException(404, 'Unknown Patient');

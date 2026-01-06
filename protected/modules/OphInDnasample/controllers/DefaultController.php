@@ -77,8 +77,20 @@ class DefaultController extends BaseEventTypeController
         }
     }
 
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        // Try to get ID from request if not provided as parameter
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        // If still no ID, show a helpful message
+        if ($id === null) {
+            $this->layout = false;
+            $this->renderText('<html><head><title>DNA Sample Print</title></head><body style="padding: 20px; font-family: Arial, sans-serif;"><h2>DNA Sample Print</h2><p>To print a DNA Sample event, please:</p><ol><li>Navigate to a patient record</li><li>Select a DNA Sample event</li><li>Use the Print button to print the event</li></ol></body></html>');
+            return;
+        }
+        
         parent::actionPrint($id);
         
         // Verify the event type is OphInDnasample

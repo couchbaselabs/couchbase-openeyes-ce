@@ -70,31 +70,63 @@ class PSDController extends DefaultController
      */
     public function actionGetPathStep($partial = null, $pathstep_id = null, $visit_id = null, $pathstep_type_id = null, $for_administer = false, $interactive = 1)
     {
+        $ret = array(
+            'error' => null,
+            'dom' => null,
+            'step' => null,
+            'pathway_status' => null,
+            'status_html' => null,
+            'step_html' => null,
+            'waiting_time_html' => null,
+            'wait_time_details' => null,
+        );
+
+        // Check if required parameters are provided
+        if (!$pathstep_id && !$pathstep_type_id) {
+            $ret['error'] = 'Unable to retrieve path step.';
+            $this->renderJSON($ret);
+            return;
+        }
+
+        if (!$visit_id) {
+            $ret['error'] = 'Unable to retrieve visit information.';
+            $this->renderJSON($ret);
+            return;
+        }
+
         $step = PathwayStep::model()->findByPk($pathstep_id);
         $wl_patient = WorklistPatient::model()->findByPk($visit_id);
 
         if (!$step) {
             $step = PathwayTypeStep::model()->findByPk($pathstep_type_id);
             if (!$step) {
-                throw new CHttpException(404, 'Unable to retrieve path step.');
+                $ret['error'] = 'Unable to retrieve path step.';
+                $this->renderJSON($ret);
+                return;
             }
         }
 
         $assignment_id = $step->getState('assignment_id');
 
         if (!$assignment_id) {
-            throw new CHttpException(404, 'Unable to retrieve PSD id.');
+            $ret['error'] = 'Unable to retrieve PSD id.';
+            $this->renderJSON($ret);
+            return;
         }
         $assignment = OphDrPGDPSD_Assignment::model()->find('id = :id AND active = 1', [':id' => $assignment_id]);
 
         if (!$assignment) {
-            throw new CHttpException(404, 'Unable to retrieve PSD.');
+            $ret['error'] = 'Unable to retrieve PSD.';
+            $this->renderJSON($ret);
+            return;
         }
 
         $pathway = $wl_patient->pathway;
 
         if (!$pathway) {
-            throw new CHttpException(404, 'Unable to retrieve Pathway.');
+            $ret['error'] = 'Unable to retrieve Pathway.';
+            $this->renderJSON($ret);
+            return;
         }
 
         $pathway->updateStatus();
@@ -213,6 +245,11 @@ class PSDController extends DefaultController
         $step_id = \Yii::app()->request->getParam('step_id');
         $step_type_id = \Yii::app()->request->getParam('step_type_id');
         $visit_id = \Yii::app()->request->getParam('visit_id');
+
+        if (!$step_id && !$step_type_id) {
+            throw new CHttpException(400, 'step_id or step_type_id parameter is required.');
+        }
+
         $step = PathwayStep::model()->findByPk($step_id);
         if (!$step) {
             $type_step = PathwayTypeStep::model()->findByPk($step_type_id);

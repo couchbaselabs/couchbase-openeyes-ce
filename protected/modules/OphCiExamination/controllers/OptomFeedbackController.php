@@ -24,7 +24,7 @@ class OptomFeedbackController extends \BaseEventTypeController
         return array(
             array('allow',
                 'actions' => array('list', 'optomAjaxEdit', 'getAuditEventLog'),
-                'roles' => array('Optom co-ordinator')
+                'roles' => array('Optom co-ordinator', 'admin')
             ),
         );
     }

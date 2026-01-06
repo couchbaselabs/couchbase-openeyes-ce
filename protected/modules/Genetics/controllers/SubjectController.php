@@ -344,7 +344,7 @@ class SubjectController extends BaseModuleController
     }
 
     /**
-     * Ajax search.
+     * Ajax search / patient search page.
      */
     public function actionPatientSearch()
     {
@@ -355,68 +355,74 @@ class SubjectController extends BaseModuleController
         //no PAS sync required at this stage
         $patientSearch->use_pas = false;
 
-        if ($patientSearch->getValidSearchTerm($term)) {
-            $dataProvider = $patientSearch->search($term);
+        // If AJAX request, return JSON
+        if (Yii::app()->request->isAjaxRequest) {
+            if ($patientSearch->getValidSearchTerm($term)) {
+                $dataProvider = $patientSearch->search($term);
 
-            // Filter to only include genetics patients
-            // Check if the provider has getCriteria method (CActiveDataProvider) or if it's a CArrayDataProvider
-            if (method_exists($dataProvider, 'getCriteria')) {
-                $criteria = $dataProvider->getCriteria();
-                // only genetics patient can be searched and added as a relative
-                $criteria->join .= ' JOIN genetics_patient ON t.id = genetics_patient.patient_id';
-                $dataProvider->setCriteria($criteria);
-                $dataProvider->setPagination(false);
-                $patients = $dataProvider->getData();
-            } else {
-                // If it's a CArrayDataProvider (from Couchbase), filter the results in PHP
-                $patients = array_filter($dataProvider->getData(), function($patient) {
-                    return $patient->geneticsPatient !== null;
-                });
-            }
-
-            foreach ($patients as $patient) {
-                $pi = [];
-                foreach ($patient->identifiers as $identifier) {
-                    $pi[] = [
-                        'title' => $identifier->patientIdentifierType->long_title ?? $identifier->patientIdentifierType->short_title,
-                        'value' => $identifier->value
-                    ];
+                // Filter to only include genetics patients
+                // Check if the provider has getCriteria method (CActiveDataProvider) or if it's a CArrayDataProvider
+                if (method_exists($dataProvider, 'getCriteria')) {
+                    $criteria = $dataProvider->getCriteria();
+                    // only genetics patient can be searched and added as a relative
+                    $criteria->join .= ' JOIN genetics_patient ON t.id = genetics_patient.patient_id';
+                    $dataProvider->setCriteria($criteria);
+                    $dataProvider->setPagination(false);
+                    $patients = $dataProvider->getData();
+                } else {
+                    // If it's a CArrayDataProvider (from Couchbase), filter the results in PHP
+                    $patients = array_filter($dataProvider->getData(), function($patient) {
+                        return $patient->geneticsPatient !== null;
+                    });
                 }
 
-                $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(
-                    SettingMetadata::model()->getSetting('display_primary_number_usage_code'),
-                    $patient->id,
-                    \Institution::model()->getCurrent()->id,
-                    Yii::app()->session['selected_site_id']
-                );
+                foreach ($patients as $patient) {
+                    $pi = [];
+                    foreach ($patient->identifiers as $identifier) {
+                        $pi[] = [
+                            'title' => $identifier->patientIdentifierType->long_title ?? $identifier->patientIdentifierType->short_title,
+                            'value' => $identifier->value
+                        ];
+                    }
 
-                $genetics_patient_id = null;
-                if ($patient->geneticsPatient) {
-                    $genetics_patient_id = $patient->geneticsPatient->id;
+                    $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(
+                        SettingMetadata::model()->getSetting('display_primary_number_usage_code'),
+                        $patient->id,
+                        \Institution::model()->getCurrent()->id,
+                        Yii::app()->session['selected_site_id']
+                    );
+
+                    $genetics_patient_id = null;
+                    if ($patient->geneticsPatient) {
+                        $genetics_patient_id = $patient->geneticsPatient->id;
+                    }
+
+                    $result[] = array(
+                        'id' => $patient->id,
+                        'genetics_patient_id' => $genetics_patient_id,
+                        'first_name' => $patient->first_name,
+                        'last_name' => $patient->last_name,
+                        'age' => ($patient->isDeceased() ? 'Deceased' : $patient->getAge()),
+                        'gender' => $patient->getGenderString(),
+                        'genderletter' => $patient->gender,
+                        'dob' => ($patient->dob) ? $patient->NHSDate('dob') : 'Unknown',
+                        // in script.js we override the behaviour for showing search results and its require the label key to be present
+                        'label' => $patient->first_name . ' ' . $patient->last_name . ' (' . PatientIdentifierHelper::getIdentifierPrompt($primary_identifier) . PatientIdentifierHelper::getIdentifierValue($primary_identifier) . ')',
+                        'is_deceased' => $patient->is_deceased,
+                        'patient_identifiers' => $pi,
+                        'primary_patient_identifiers' => [
+                            'title' => PatientIdentifierHelper::getIdentifierPrompt($primary_identifier),
+                            'value' => PatientIdentifierHelper::getIdentifierValue($primary_identifier)
+                        ]
+
+                    );
                 }
-
-                $result[] = array(
-                    'id' => $patient->id,
-                    'genetics_patient_id' => $genetics_patient_id,
-                    'first_name' => $patient->first_name,
-                    'last_name' => $patient->last_name,
-                    'age' => ($patient->isDeceased() ? 'Deceased' : $patient->getAge()),
-                    'gender' => $patient->getGenderString(),
-                    'genderletter' => $patient->gender,
-                    'dob' => ($patient->dob) ? $patient->NHSDate('dob') : 'Unknown',
-                    // in script.js we override the behaviour for showing search results and its require the label key to be present
-                    'label' => $patient->first_name . ' ' . $patient->last_name . ' (' . PatientIdentifierHelper::getIdentifierPrompt($primary_identifier) . PatientIdentifierHelper::getIdentifierValue($primary_identifier) . ')',
-                    'is_deceased' => $patient->is_deceased,
-                    'patient_identifiers' => $pi,
-                    'primary_patient_identifiers' => [
-                        'title' => PatientIdentifierHelper::getIdentifierPrompt($primary_identifier),
-                        'value' => PatientIdentifierHelper::getIdentifierValue($primary_identifier)
-                    ]
-
-                );
             }
+            echo CJavaScript::jsonEncode($result);
+            Yii::app()->end();
         }
-        echo CJavaScript::jsonEncode($result);
-        Yii::app()->end();
+
+        // For non-AJAX requests, render the patient search page
+        $this->render('patientSearch');
     }
 }

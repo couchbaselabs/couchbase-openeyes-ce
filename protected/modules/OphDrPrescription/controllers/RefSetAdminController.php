@@ -78,7 +78,7 @@ class RefSetAdminController extends BaseAdminController
 
     public function actionSave($id = null)
     {
-        if (is_null($id)) {
+        if (is_null($id) || $id === '') {
             $model = new MedicationSet();
         } else {
             if (!$model = MedicationSet::model()->findByPk($id)) {
@@ -107,6 +107,10 @@ class RefSetAdminController extends BaseAdminController
                 $medSetRule = new MedicationSetRule();
             } else {
                 $medSetRule = MedicationSetRule::model()->findByPk($rid);
+                if (!$medSetRule) {
+                    // Skip if rule doesn't exist
+                    continue;
+                }
                 $updated_ids[] = $rid;
             }
 
@@ -129,20 +133,35 @@ class RefSetAdminController extends BaseAdminController
         $this->redirect('/OphDrPrescription/refSetAdmin/list');
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
-        $ids_to_delete = Yii::app()->request->getPost('MedicationSet')['id'];
+        // Handle both POST requests from list page and GET requests from URL
+        $post = Yii::app()->request->getPost('MedicationSet');
+        
+        // Get IDs either from POST data or URL parameter
+        if ($post && isset($post['id'])) {
+            $ids_to_delete = $post['id'];
+        } elseif ($id !== null) {
+            $ids_to_delete = [$id];
+        } else {
+            // No ID provided
+            echo 0;
+            return;
+        }
+
         if (is_array($ids_to_delete)) {
             foreach ($ids_to_delete as $id) {
                 $model = MedicationSet::model()->findByPk($id);
                 /** @var MedicationSet $model */
-                foreach ($model->medicationSetRules as $rule) {
-                    $rule->delete();
+                if ($model) {
+                    foreach ($model->medicationSetRules as $rule) {
+                        $rule->delete();
+                    }
+                    foreach ($model->items as $i) {
+                        $i->delete();
+                    }
+                    $model->delete();
                 }
-                foreach ($model->items as $i) {
-                    $i->delete();
-                }
-                $model->delete();
             }
         }
 

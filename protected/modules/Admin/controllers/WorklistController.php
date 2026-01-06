@@ -1004,12 +1004,22 @@ class WorklistController extends BaseAdminController
     /**
      * @param $term
      */
+    /**
+     * Get list of assignees, optionally filtered by search term.
+     * Expected to be called as a JSON endpoint with optional 'term' query parameter
+     */
     public function actionGetAssignees($term = '')
     {
+        // Retrieve term from query parameters (GET request)
+        $term = Yii::app()->request->getQuery('term', $term);
+        
+        // Search users by contact first name or last name
         $users = User::model()->with('contact')->findAll(
-            'contact.first_name LIKE CONCAT(\'%\', :term, \'%\')',
+            'contact.first_name LIKE CONCAT(\'%\', :term, \'%\') OR contact.last_name LIKE CONCAT(\'%\', :term, \'%\')',
             array(':term' => $term)
         );
+        
+        // Return JSON response with user id and full name
         $this->renderJSON(
             array_map(
                 static function ($item) {
@@ -1178,12 +1188,30 @@ class WorklistController extends BaseAdminController
      */
     public function actionDeleteStep()
     {
-        $step_id = Yii::app()->request->getPost('step_id');
-        $step = PathwayTypeStep::model()->findByPk($step_id);
-        if ($step) {
-            $step->delete();
-            echo '1';
+        // Validate that this is a POST request
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Invalid request method. POST required.');
         }
+
+        // Get and validate step_id parameter
+        $step_id = Yii::app()->request->getPost('step_id');
+        if (!$step_id) {
+            throw new CHttpException(400, 'Missing required parameter: step_id');
+        }
+
+        // Find the step
+        $step = PathwayTypeStep::model()->findByPk($step_id);
+        if (!$step) {
+            throw new CHttpException(404, 'Pathway step not found with ID: ' . $step_id);
+        }
+
+        // Delete the step
+        if (!$step->delete()) {
+            throw new CHttpException(500, 'Unable to delete pathway step.');
+        }
+
+        // Return success response
+        $this->renderJSON(['success' => true, 'message' => 'Step deleted successfully']);
     }
 
     /**

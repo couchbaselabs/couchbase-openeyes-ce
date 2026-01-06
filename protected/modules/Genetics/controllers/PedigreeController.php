@@ -221,45 +221,82 @@ class PedigreeController extends BaseModuleController
 
     /**
      * Search for pedigree
-     * returns JSON for autocomplete
+     * returns JSON for autocomplete or displays search page
      */
     public function actionSearch()
     {
+        // If this is an AJAX request with a search term, return JSON
+        if (Yii::app()->request->isAjaxRequest || Yii::app()->request->getQuery('term')) {
+            $pedigree_id = Yii::app()->request->getQuery('term', null);
 
-        $pedigree_id = Yii::app()->request->getQuery('term', null);
+            if ($pedigree_id && strlen($pedigree_id) > 2) {
+                $criteria = new CDbCriteria();
+                $criteria->addSearchCondition('t.id', $pedigree_id, true);
 
-        if ($pedigree_id && strlen($pedigree_id) > 2) {
-            $criteria = new CDbCriteria();
-            $criteria->addSearchCondition('t.id', $pedigree_id, true);
+                $pedigrees = Pedigree::model()->with('gene')->findAll($criteria);
+            } else {
+                //if pedigree_id is 2 digit or less we return the exact match because of performance reasons
 
-            $pedigrees = Pedigree::model()->with('gene')->findAll($criteria);
-        } else {
-            //if pedigree_id is 2 digit or less we return the exact match because of performance reasons
+                $pedigrees = Pedigree::model()->with('gene')->findByPk($pedigree_id);
+                $pedigrees = $pedigrees ? array($pedigrees) : array();
+            }
 
-            $pedigrees = Pedigree::model()->with('gene')->findByPk($pedigree_id);
-            $pedigrees = $pedigrees ? array($pedigrees) : array();
+            $output = array();
+            foreach ($pedigrees as $pedigree) {
+                $output[] = array(
+                    'label' => $pedigree->id . ($pedigree->gene ? (" (" . $pedigree->gene->name . ")") : ''),
+                    'value' => $pedigree->id,
+                );
+            }
+
+            $this->renderJSON($output);
+
+            Yii::app()->end();
         }
-
-        $output = array();
-        foreach ($pedigrees as $pedigree) {
-            $output[] = array(
-                'label' => $pedigree->id . ($pedigree->gene ? (" (" . $pedigree->gene->name . ")") : ''),
-                'value' => $pedigree->id,
-            );
-        }
-
-        $this->renderJSON($output);
-
-        Yii::app()->end();
+        
+        // Otherwise, display the search/list page
+        $this->actionList();
     }
 
     /**
      * Deletes rows for the model.
+     * @param int $id The ID of the pedigree to delete (optional, from URL)
      */
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
         $response = 1;
         $model = Pedigree::model();
+        
+        // Handle deletion via URL parameter (GET request)
+        if (!empty($id)) {
+            $pedigree = $this->loadModel($id);
+            if (Yii::app()->request->isPostRequest) {
+                // Process the deletion
+                if (!count($pedigree->subjects)) {
+                    if (isset($pedigree->active)) {
+                        $pedigree->active = 0;
+                        if (!$pedigree->save()) {
+                            $response = 0;
+                        }
+                    } else {
+                        if (!$pedigree->delete()) {
+                            $response = 0;
+                        }
+                    }
+                } else {
+                    $response = 0;
+                }
+                echo $response;
+                return;
+            } else {
+                // GET request - show confirmation page
+                Yii::app()->user->setFlash('info', 'Are you sure you want to delete this pedigree?');
+                $this->redirect(Yii::app()->request->getUrlReferrer(false) ?: '/Genetics/pedigree/list');
+                return;
+            }
+        }
+        
+        // Handle batch deletion via POST (legacy support)
         if (Yii::app()->request->isPostRequest) {
             $post = Yii::app()->request->getPost('Pedigree', array());
             if (array_key_exists('id', $post) && is_array($post['id'])) {

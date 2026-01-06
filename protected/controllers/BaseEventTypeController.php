@@ -1507,6 +1507,10 @@ class BaseEventTypeController extends BaseModuleController
             throw new CHttpException(404, 'Event not found');
         }
 
+        if (!$this->event->eventType) {
+            throw new CHttpException(404, 'Event type not found');
+        }
+
         $this->setOpenElementsFromCurrentEvent('view');
         // Decide whether to display the 'edit' button in the template
         if ($this->editable) {
@@ -1523,7 +1527,7 @@ class BaseEventTypeController extends BaseModuleController
                 'active' => true,
             ),
         );
-        if ($this->editable) {
+        if ($this->editable && $this->event->eventType) {
             $this->event_tabs[] = array(
                 'label' => 'Edit',
                 'href' => Yii::app()->createUrl(
@@ -1537,7 +1541,7 @@ class BaseEventTypeController extends BaseModuleController
             );
         }
 
-        if ($this->checkDeleteAccess()) {
+        if ($this->checkDeleteAccess() && $this->event->eventType) {
             $this->event_actions = array(
                 EventAction::link(
                     'Delete',
@@ -1545,7 +1549,7 @@ class BaseEventTypeController extends BaseModuleController
                     array('level' => 'delete')
                 ),
             );
-        } elseif ($this->checkRequestDeleteAccess()) {
+        } elseif ($this->checkRequestDeleteAccess() && $this->event->eventType) {
             $this->event_actions = array(
                 EventAction::link(
                     'Delete',
@@ -3459,6 +3463,9 @@ class BaseEventTypeController extends BaseModuleController
 
     public function readInEventImageSettings()
     {
+        if (!isset($_GET['id'])) {
+            return;
+        }
         $this->event = Event::model()->findByPk($_GET['id']);
         if (!isset($this->event) || !isset($this->event->eventType)) {
             return;

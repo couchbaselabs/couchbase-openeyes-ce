@@ -301,12 +301,22 @@ class AdminController extends \ModuleAdminController
         echo $result;
     }
 
-    public function actionDeleteClinicalDisorders()
+    public function actionDeleteClinicalDisorders($id = null)
     {
         $result = 1;
+        $disorder_ids = [];
 
-        if (!empty($_POST['disorders'])) {
-            foreach (OphCoCvi_ClinicalInfo_Disorder::model()->findAllByPk($_POST['disorders']) as $disorder) {
+        // Support both URL parameter and POST parameter
+        if ($id !== null && $id !== '') {
+            // Handle single ID from URL parameter
+            $disorder_ids = [$id];
+        } elseif (!empty($_POST['disorders'])) {
+            // Handle array of IDs from POST parameter
+            $disorder_ids = $_POST['disorders'];
+        }
+
+        if (!empty($disorder_ids)) {
+            foreach (OphCoCvi_ClinicalInfo_Disorder::model()->findAllByPk($disorder_ids) as $disorder) {
                 try {
                     $disorder_id = $disorder->id;
                     if (!$disorder->delete()) {
@@ -514,7 +524,7 @@ class AdminController extends \ModuleAdminController
                 ->from('firm f')
                 ->join('service_subspecialty_assignment ssa', 'f.service_subspecialty_assignment_id = ssa.id')
                 ->join('subspecialty s', 'ssa.subspecialty_id = s.id')
-                ->where('f.active = 1 AND LOWER(f.name) LIKE "%' . strtolower($term) . '%"');
+                ->where('f.active = 1 AND LOWER(f.name) LIKE :term', array(':term' => '%' . strtolower($term) . '%'));
 
             if ($subspecialty_id) {
                 $command->andWhere('s.id = :id', array(':id' => $subspecialty_id));

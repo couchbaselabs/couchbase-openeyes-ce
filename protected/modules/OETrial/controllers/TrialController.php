@@ -278,7 +278,8 @@ class TrialController extends BaseModuleController
     public function actionPermissions($id = null)
     {
         if ($id === null) {
-            throw new CHttpException(400, 'Trial ID is required.');
+            $this->redirect(array('index'));
+            return;
         }
 
         $this->model = $this->loadModel($id);
@@ -351,8 +352,17 @@ class TrialController extends BaseModuleController
      */
     public function actionRemovePatient()
     {
-        $trial = $this->loadModel(Yii::app()->request->getParam('id'));
-        $trial->removePatient(Yii::app()->request->getParam('patient_id'));
+        if (!isset($_GET['id'])) {
+            $this->renderJSON(['error' => 'Trial ID is required.']);
+            return;
+        }
+        if (!isset($_GET['patient_id'])) {
+            $this->renderJSON(['error' => 'Patient ID is required.']);
+            return;
+        }
+        
+        $trial = $this->loadModel($_GET['id']);
+        $trial->removePatient($_GET['patient_id']);
     }
 
     /**
@@ -444,13 +454,15 @@ class TrialController extends BaseModuleController
 
     /**
      * @param int|null $id
-     * @throws CHttpException
+     * @throws CException
      * @throws Exception
      */
     public function actionClose($id = null)
     {
         if ($id === null) {
-            throw new CHttpException(400, 'Trial ID is required.');
+            // Redirect to trials list if no ID is provided
+            $this->redirect($this->createUrl('index'));
+            return;
         }
         $trial = $this->loadModel($id);
         $trial->close();
@@ -487,18 +499,26 @@ class TrialController extends BaseModuleController
 
     /**
      * Get a HTML list of all trials for the specified trial type.
+     * If called as AJAX (indicated by REQUEST headers), returns option elements.
+     * Otherwise, renders the full trials list page.
      * @param $type string The trial type.
      */
     public function actionGetTrialList($type = '')
     {
-        $trials = Trial::getTrialList($type);
+        // Check if this is an AJAX request
+        if (Yii::app()->request->isAjaxRequest) {
+            $trials = Trial::getTrialList($type);
 
-        // Always pass the default list option (Any)
-        echo CHtml::tag('option', array('value' => ''), CHtml::encode('Any'), true);
+            // Always pass the default list option (Any)
+            echo CHtml::tag('option', array('value' => ''), CHtml::encode('Any'), true);
 
-        // Pass all distinct trials that fall under the selected type. Perfectly OK for there to be no values here.
-        foreach ($trials as $value => $key) {
-            echo CHtml::tag('option', array('value' => $value), CHtml::encode($key), true);
+            // Pass all distinct trials that fall under the selected type. Perfectly OK for there to be no values here.
+            foreach ($trials as $value => $key) {
+                echo CHtml::tag('option', array('value' => $value), CHtml::encode($key), true);
+            }
+        } else {
+            // For non-AJAX requests, render the full index page
+            $this->actionIndex();
         }
     }
 
@@ -622,8 +642,8 @@ class TrialController extends BaseModuleController
             return;
         }
 
-        $user_id = $_POST['user_id'];
-        $trial_id = $_POST['id'];
+        $user_id = (int)$_POST['user_id'];
+        $trial_id = (int)$_POST['id'];
         $isTrue = $_POST['isTrue'];
         $column_name = $_POST['column_name'];
 
@@ -642,12 +662,15 @@ class TrialController extends BaseModuleController
         if (!$userPermission->save()) {
             throw new Exception('Unable to save principal investigator: '.print_r($userPermission->getErrors(), true));
         }
+
+        $this->renderJSON(['success' => true]);
     }
 
     public function actionRenderPopups()
     {
         if (!isset($_GET["trialId"])) {
-            // Return silently if trialId is not provided
+            // Return empty response if trialId is not provided
+            echo '';
             return;
         }
 
@@ -662,8 +685,9 @@ class TrialController extends BaseModuleController
                 }
             }
         } catch (CHttpException $e) {
-            // Return silently if trial not found (404)
+            // Return empty response if trial not found (404)
             if ($e->statusCode === 404) {
+                echo '';
                 return;
             }
             throw $e;

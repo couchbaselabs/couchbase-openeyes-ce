@@ -157,8 +157,32 @@ class DefaultController extends \CController
         $this->sendJsonResponse($this->patientJson($patient));
     }
 
-    public function actionGetEventCreationUrl($patientId, $moduleName, $firmId)
+    public function actionGetEventCreationUrl($patientId = null, $moduleName = null, $firmId = null)
     {
+        // Allow parameters to be provided in POST data if not in URL
+        if (!$patientId) {
+            $patientId = $_POST['patientId'] ?? $_GET['patientId'] ?? null;
+        }
+        if (!$moduleName) {
+            $moduleName = $_POST['moduleName'] ?? $_GET['moduleName'] ?? null;
+        }
+        if (!$firmId) {
+            $firmId = $_POST['firmId'] ?? $_GET['firmId'] ?? null;
+        }
+        
+        // If still missing required parameters, return helpful response instead of error
+        if (!$patientId || !$moduleName) {
+            $this->sendJsonResponse([
+                'message' => 'This endpoint generates event creation urls',
+                'usage' => [
+                    'url_parameters' => '/CypressHelper/default/getEventCreationUrl/{patientId}/{moduleName}/{firmId}',
+                    'post_parameters' => 'POST with patientId, moduleName, and optional firmId in body',
+                    'required_parameters' => ['patientId', 'moduleName'],
+                    'optional_parameters' => ['firmId']
+                ]
+            ], 200);
+        }
+        
         $patient = Patient::model()->findByPk($patientId);
         if (!$patient) {
             throw new \CHttpException(404, 'Patient must exist to generate event creation url.');
@@ -168,7 +192,7 @@ class DefaultController extends \CController
         ])->id;
 
         /** @var Firm $current_firm */
-        if($firmId !== "0") {
+        if($firmId !== "0" && $firmId !== null) {
             $current_firm = Firm::model()->findByPk($firmId);
         } else {
             $current_firm = $this->getApp()->session->getSelectedFirm();
@@ -294,7 +318,14 @@ class DefaultController extends \CController
         $system_setting_key = $_POST['system_setting_key'] ?? null;
 
         if (!$system_setting_key) {
-            throw new \CHttpException(400, 'system setting key must be provided');
+            $this->sendJsonResponse([
+                'message' => 'This endpoint resets a system setting to its default value',
+                'usage' => [
+                    'method' => 'POST',
+                    'required_parameters' => ['system_setting_key'],
+                    'description' => 'system_setting_key: The key of the setting to reset to its default value'
+                ]
+            ], 200);
         }
 
         // Delete the setting installation key, the setting then falls back to the value specified as default in SettingMetadata
@@ -306,14 +337,26 @@ class DefaultController extends \CController
         // ensure the change takes immediate effect for further requests
         \Yii::app()->settingCache->flush();
 
-        echo '1';
+        $this->sendJsonResponse(['message' => 'Setting reset successfully']);
     }
 
     public function actionRunSeeder()
     {
-        $seeder_class_name = $_POST['seeder_class_name'];
-        $seeder_module_name = $_POST['seeder_module_name'];
+        $seeder_class_name = $_POST['seeder_class_name'] ?? null;
+        $seeder_module_name = $_POST['seeder_module_name'] ?? null;
         $additional_data = $_POST['additional_data'] ?? [];
+        
+        if (!$seeder_class_name || !$seeder_module_name) {
+            $this->sendJsonResponse([
+                'message' => 'This endpoint runs a seeder with specified parameters',
+                'usage' => [
+                    'method' => 'POST',
+                    'required_parameters' => ['seeder_class_name', 'seeder_module_name'],
+                    'optional_parameters' => ['additional_data']
+                ]
+            ], 400);
+        }
+        
         if (!is_array($additional_data)) {
             throw new \CHttpException(400, 'additional_data must be an arrayable structure');
         }

@@ -78,13 +78,29 @@ class AttachmentDataController extends \AdminController
 
     public function actionDownload($id = null)
     {
-        $model = AttachmentData::model()->findByPK($id);
-
-        if (isset($model)) {
-            header('Content-Type: application/octet-stream');
-            echo $model->blob_data;
-        } else {
-            echo 'No file found';
+        // Validate that ID is provided
+        if (empty($id)) {
+            throw new CHttpException(400, 'Attachment ID is required');
         }
+
+        $model = AttachmentData::model()->findByPk($id);
+
+        if (!$model) {
+            throw new CHttpException(404, 'Attachment not found');
+        }
+
+        if (empty($model->blob_data)) {
+            throw new CHttpException(404, 'Attachment file is empty or not found');
+        }
+
+        // Set headers for file download
+        header('Content-Type: ' . (!empty($model->mime_type) ? $model->mime_type : 'application/octet-stream'));
+        header('Content-Disposition: attachment; filename="' . (!empty($model->upload_file_name) ? basename($model->upload_file_name) : 'attachment') . '"');
+        header('Content-Length: ' . strlen($model->blob_data));
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+
+        echo $model->blob_data;
+        Yii::app()->end();
     }
 }

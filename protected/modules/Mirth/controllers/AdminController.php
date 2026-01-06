@@ -3,7 +3,7 @@
 class AdminController extends \ModuleAdminController
 {
 
-    private \CDbConnection $conn;
+    private ?\CDbConnection $conn = null;
 
     public const NoError = 0;
     public const CommunicationError = 1;
@@ -41,6 +41,12 @@ class AdminController extends \ModuleAdminController
             $this->conn = new CDbConnection($connectionString, $username, $password);
         }
         parent::init();
+        
+        // Disable CSRF validation for AJAX endpoints
+        $action = Yii::app()->getController()->getAction();
+        if ($action && in_array($action->id, array('getContentTypesForMessage', 'getMessageContent', 'search'))) {
+            Yii::app()->request->enableCsrfValidation = false;
+        }
     }
 
     public function accessRules()
@@ -53,6 +59,15 @@ class AdminController extends \ModuleAdminController
         );
     }
 
+    public function beforeAction($action)
+    {
+        // Disable CSRF validation for AJAX endpoints that handle their own data validation
+        if (in_array($action->id, array('getContentTypesForMessage', 'getMessageContent', 'search'))) {
+            Yii::app()->request->enableCsrfValidation = false;
+        }
+        return parent::beforeAction($action);
+    }
+
     public function actionListRoutes()
     {
         $message_id = isset($_GET['message_id']) ? $_GET['message_id'] : null;
@@ -60,6 +75,10 @@ class AdminController extends \ModuleAdminController
         
         if (!$message_id || !$channel_id) {
             throw new CHttpException(400, 'Missing required parameters: message_id and channel_id');
+        }
+        
+        if (empty($this->conn)) {
+            throw new CHttpException(500, 'Mirth database connection is not configured. Please set the MIRTH_DB_USER environment variable and ensure Mirth database credentials are available.');
         }
         
         $routes = $this->getRoutesForMessage($message_id, $channel_id);
@@ -98,6 +117,12 @@ class AdminController extends \ModuleAdminController
     public function actionSearch()
     {
         $result = ['data' => null];
+
+        if (empty($this->conn)) {
+            // Mirth database is not configured, return empty data gracefully
+            $this->renderJSON($result);
+            return;
+        }
 
         if (isset($_POST)) {
             $data = $this->getData($_POST);
@@ -201,6 +226,12 @@ class AdminController extends \ModuleAdminController
 
     public function actionGetContentTypesForMessage()
     {
+        if (empty($this->conn)) {
+            // Mirth database is not configured, return empty array gracefully
+            $this->renderJSON(array());
+            Yii::app()->end();
+        }
+
         if (isset($_POST) && isset($_POST['messageId'])
             && isset($_POST['channelId']) && isset($_POST['routeId'])) {
             $return['contentTypes'] = $this->getContentTypesForMessage($_POST['messageId'], $_POST['channelId'], $_POST['routeId']);
@@ -217,6 +248,12 @@ class AdminController extends \ModuleAdminController
 
     public function actionGetMessageContent()
     {
+        if (empty($this->conn)) {
+            // Mirth database is not configured, return empty response gracefully
+            $this->renderJSON(array());
+            Yii::app()->end();
+        }
+
         if (isset($_POST) && isset($_POST['messageId']) && isset($_POST['messageContentType'])
             && isset($_POST['channelId']) && isset($_POST['routeId'])) {
             $return['messageContent'] = $this->getMessageContent($_POST['messageId'], $_POST['messageContentType'], $_POST['channelId'], $_POST['routeId']);

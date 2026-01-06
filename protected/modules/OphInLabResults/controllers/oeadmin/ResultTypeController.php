@@ -219,31 +219,60 @@ class ResultTypeController extends BaseAdminController
      */
     public function actionDelete()
     {
+        // Validate POST request
+        if (!Yii::app()->request->isPostRequest) {
+            $this->redirect('/OphInLabResults/oeadmin/resultType/list');
+            return;
+        }
+
+        $typeIds = Yii::app()->request->getPost('resultTypes', []);
+        
+        // Validate that IDs are provided
+        if (empty($typeIds)) {
+            $this->redirect('/OphInLabResults/oeadmin/resultType/list');
+            return;
+        }
+
         $transaction = Yii::app()->cbdb->beginTransaction();
         $result = [];
         $result['status'] = 1;
         $result['errors'] = [];
-        $typeIds = Yii::app()->request->getPost('resultTypes', []);
 
         $resultTypes = OphInLabResults_Type::model()->findAllByPk($typeIds);
 
         foreach ($resultTypes as $type) {
             try {
-                if (!$type->deleteMappings(ReferenceData::LEVEL_INSTITUTION)) {
-                    $result['errors'][] = $type->getErrors();
-
-                    // Clear the errors here as we don't want duplication when we try to delete the base model itself.
-                    $type->clearErrors();
-                }
-
+                // First, attempt to delete institution assignments
+                $assignmentErrors = [];
                 foreach ($type->institutionAssignments as $assignment) {
                     if (!$assignment->delete()) {
-                        $result['errors'][] = $assignment->getErrors();
+                        $assignmentErrors[] = $assignment->getErrors();
                     }
                 }
-                if (!$type->delete()) {
+                
+                if (!empty($assignmentErrors)) {
+                    $result['errors'][] = array_merge(...$assignmentErrors);
+                }
+
+                // Delete mappings (if any)
+                if (!$type->deleteMappings(ReferenceData::LEVEL_INSTITUTION)) {
+                    $typeErrors = $type->getErrors();
+                    if (!empty($typeErrors)) {
+                        $result['errors'][] = $typeErrors;
+                    }
+                    $type->clearErrors();
+                }
+                
+                // Finally, delete the type itself
+                $deleteResult = $type->delete();
+                if (!$deleteResult) {
                     $result['status'] = 0;
-                    $result['errors'][] = $type->getErrors();
+                    $typeErrors = $type->getErrors();
+                    if (!empty($typeErrors)) {
+                        $result['errors'][] = $typeErrors;
+                    } else {
+                        $result['errors'][] = 'Failed to delete result type: ' . $type->type;
+                    }
                 }
             } catch (Exception $e) {
                 $result['status'] = 0;

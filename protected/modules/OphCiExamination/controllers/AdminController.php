@@ -291,7 +291,8 @@ class AdminController extends \ModuleAdminController
     public function actionSortNoTreatmentReasons()
     {
         if (!\Yii::app()->request->isPostRequest) {
-            throw new \CHttpException(400, 'Invalid request method.');
+            // Redirect GET requests to the list page
+            $this->redirect(array('ViewAllOphCiExamination_InjectionManagementComplex_NoTreatmentReason'));
         }
         if (!empty($_POST['order'])) {
             foreach ($_POST['order'] as $i => $id) {
@@ -329,7 +330,7 @@ class AdminController extends \ModuleAdminController
 
             Audit::add('admin', 'set-reason-status', @$_POST['id'], null, array('module' => 'OphCiExamination', 'model' => 'OphCiExamination_InjectionManagementComplex_NoTreatmentReason'));
         } else {
-            throw new \Exception('Cannot find reason with id' . @$_POST['id']);
+            throw new \Exception('Cannot find reason with id ' . @$_POST['id']);
         }
     }
 
@@ -449,7 +450,8 @@ class AdminController extends \ModuleAdminController
     public function actionSortQuestions()
     {
         if (!\Yii::app()->request->isPostRequest) {
-            throw new \CHttpException(400, 'Invalid request method.');
+            // Redirect GET requests to the list page
+            $this->redirect(array('ViewOphCiExamination_InjectionManagementComplex_Question'));
         }
         if (!empty($_POST['order'])) {
             foreach ($_POST['order'] as $i => $id) {
@@ -487,7 +489,7 @@ class AdminController extends \ModuleAdminController
 
             Audit::add('admin', 'set-question-status', $_POST['id'], null, array('module' => 'OphCiExamination', 'model' => 'OphCiExamination_InjectionManagementComplex_Question'));
         } else {
-            throw new \Exception('Cannot find question with id' . @$_POST['id']);
+            throw new \Exception('Cannot find question with id: ' . @$_POST['id']);
         }
     }
 
@@ -660,7 +662,8 @@ class AdminController extends \ModuleAdminController
     public function actionReorderWorkflowSteps()
     {
         if (!\Yii::app()->request->isPostRequest) {
-            throw new \CHttpException(400, 'Invalid request method.');
+            // Redirect GET requests to the workflows list page
+            $this->redirect(array('ViewWorkflows'));
         }
 
         foreach ($_POST as $id => $position) {
@@ -870,29 +873,46 @@ class AdminController extends \ModuleAdminController
     public function actionDeleteWorkflows()
     {
         if (!empty($_POST['workflows'])) {
-            $workflow_criteria = new CDbCriteria();
-            $workflow_criteria->addInCondition('workflow_id', $_POST['workflows']);
-            $step_ids = array();
-            foreach (models\OphCiExamination_ElementSet::model()->findAll($workflow_criteria) as $step) {
-                $step_ids[] = $step->id;
-            }
-            if (!empty($step_ids)) {
-                $setitem_criteria = new CDbCriteria();
-                $setitem_criteria->addInCondition('set_id', $step_ids);
+            try {
+                $workflow_criteria = new CDbCriteria();
+                $workflow_criteria->addInCondition('workflow_id', $_POST['workflows']);
+                $step_ids = array();
+                foreach (models\OphCiExamination_ElementSet::model()->findAll($workflow_criteria) as $step) {
+                    $step_ids[] = $step->id;
+                }
+                if (!empty($step_ids)) {
+                    $setitem_criteria = new CDbCriteria();
+                    $setitem_criteria->addInCondition('set_id', $step_ids);
 
-                models\OphCiExamination_ElementSetItem::model()->deleteAll($setitem_criteria);
-                $event_stepitem_criteria = new CDbCriteria();
-                $event_stepitem_criteria->addInCondition('step_id', $step_ids);
-                models\OphCiExamination_Event_ElementSet_Assignment::model()->deleteAll($event_stepitem_criteria);
+                    models\OphCiExamination_ElementSetItem::model()->deleteAll($setitem_criteria);
+                    $event_stepitem_criteria = new CDbCriteria();
+                    $event_stepitem_criteria->addInCondition('step_id', $step_ids);
+                    models\OphCiExamination_Event_ElementSet_Assignment::model()->deleteAll($event_stepitem_criteria);
+                }
+                
+                // Delete workflow rules first
+                $rule_criteria = new CDbCriteria();
+                $rule_criteria->addInCondition('workflow_id', $_POST['workflows']);
+                models\OphCiExamination_Workflow_Rule::model()->deleteAll($rule_criteria);
+                
+                // Delete element sets
+                $set_criteria = new CDbCriteria();
+                $set_criteria->addInCondition('workflow_id', $_POST['workflows']);
+                models\OphCiExamination_ElementSet::model()->deleteAll($set_criteria);
+                
+                // Finally delete the workflows
+                $workflow = new CDbCriteria();
+                $workflow->addInCondition('id', $_POST['workflows']);
+                $result = models\OphCiExamination_Workflow::model()->deleteAll($workflow);
+                if ($result === false) {
+                    throw new \Exception('Unable to remove Workflow : ' . print_r(models\OphCiExamination_Workflow::model()->getErrors(), true));
+                }
+                echo 1;
+            } catch (\Exception $e) {
+                \Yii::log('Error in actionDeleteWorkflows: ' . $e->getMessage(), \CLogger::LEVEL_ERROR);
+                echo json_encode(['message' => 'Error deleting workflow: ' . $e->getMessage()]);
+                throw $e;
             }
-            models\OphCiExamination_ElementSet::model()->deleteAll($workflow_criteria);
-            models\OphCiExamination_Workflow_Rule::model()->deleteAll($workflow_criteria);
-            $workflow = new CDbCriteria();
-            $workflow->addInCondition('id', $_POST['workflows']);
-            if (!models\OphCiExamination_Workflow::model()->deleteAll($workflow)) {
-                throw new \Exception('Unable to remove Workflow : ' . print_r(models\OphCiExamination_Workflow::model()->getErrors(), true));
-            }
-            echo 1;
         }
     }
 
@@ -907,7 +927,7 @@ class AdminController extends \ModuleAdminController
             throw new \CHttpException(400, 'Missing required parameters: workflow_id, element_set_id, and step_name are required');
         }
         
-        $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id));
+        $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=:workflow_id and id=:element_set_id', array(':workflow_id' => $workflow_id, ':element_set_id' => $element_set_id));
         if (!$step) {
             throw new \Exception('Unknown element set ' . $element_set_id . ' for workflow ' . $workflow_id);
         }
@@ -931,7 +951,7 @@ class AdminController extends \ModuleAdminController
             throw new \CHttpException(400, 'Missing required parameters: workflow_id and element_set_id');
         }
         
-        $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id));
+        $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=:workflow_id and id=:element_set_id', array(':workflow_id' => $workflow_id, ':element_set_id' => $element_set_id));
         if (!$step) {
             throw new \Exception('Unknown element set ' . $element_set_id . ' for workflow ' . $workflow_id);
         }
@@ -1144,9 +1164,20 @@ class AdminController extends \ModuleAdminController
         ));
     }
 
-    public function actionDeleteWorkflowRules()
+    public function actionDeleteWorkflowRules($id = null)
     {
-        if (is_array(@$_POST['workflowrules'])) {
+        // Support single ID deletion from URL
+        if ($id !== null) {
+            if ($rule = models\OphCiExamination_Workflow_Rule::model()->findByPk($id)) {
+                if (!$rule->delete()) {
+                    throw new \Exception('Unable to delete workflow rule: ' . print_r($rule->getErrors(), true));
+                }
+            } else {
+                throw new \CHttpException(404, "Workflow rule not found: $id");
+            }
+        }
+        // Support batch deletion via POST
+        elseif (is_array(@$_POST['workflowrules'])) {
             foreach ($_POST['workflowrules'] as $rule_id) {
                 if ($rule = models\OphCiExamination_Workflow_Rule::model()->findByPk($rule_id)) {
                     if (!$rule->delete()) {
@@ -1609,6 +1640,10 @@ class AdminController extends \ModuleAdminController
 
     public function actionChangeWorkflowStepActiveStatus()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
+        
         $workflow_id = Yii::app()->request->getPost('workflow_id');
         $element_set_id = Yii::app()->request->getPost('element_set_id');
         

@@ -270,28 +270,55 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionView($id)
     {
-        if ($this->event != null && $this->event->id > 0) {
-            $this->iolRefValues = Element_OphInBiometry_IolRefValues::Model()->findAllByAttributes(
-                array(
-                    'event_id' => $this->event->id,
-                )
-            );
-            $this->selectionValues = Element_OphInBiometry_Selection::Model()->findAllByAttributes(
-                array(
-                    'event_id' => $this->event->id,
-                )
-            );
-        }
-        $this->setFlashMessage($id);
+        try {
+            // Try to load the event first
+            if (!$this->event && $id) {
+                $this->event = Event::model()->findByPk($id);
+            }
+            
+            // If event still not found, throw proper exception
+            if (!$this->event) {
+                throw new CHttpException(404, 'Event not found');
+            }
+            
+            // Check if event has a valid eventType
+            if (!$this->event->eventType) {
+                // EventType might be missing, log it and throw a more informative error
+                Yii::log('Event ' . $id . ' has no valid eventType. event_type_id: ' . $this->event->event_type_id, CLogger::LEVEL_ERROR);
+                throw new CHttpException(404, 'Event type not found - Please ensure the biometry module is properly configured');
+            }
+            
+            if ($this->event && $this->event->id > 0) {
+                $this->iolRefValues = Element_OphInBiometry_IolRefValues::Model()->findAllByAttributes(
+                    array(
+                        'event_id' => $this->event->id,
+                    )
+                );
+                $this->selectionValues = Element_OphInBiometry_Selection::Model()->findAllByAttributes(
+                    array(
+                        'event_id' => $this->event->id,
+                    )
+                );
+            }
+            $this->setFlashMessage($id);
 
-        parent::actionView($id);
+            parent::actionView($id);
+        } catch (CHttpException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Yii::log('Error in OphInBiometry actionView: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            throw new CHttpException(500, 'An error occurred while viewing the biometry event');
+        }
     }
 
     /**
      * @param int $id
      */
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'No event ID provided for printing.');
+        }
         parent::actionPrint($id);
     }
 

@@ -29,43 +29,47 @@ class ContactController extends \BaseController
      */
     public function actionAutocomplete()
     {
-        if (\Yii::app()->request->isAjaxRequest) {
-            $criteria = new \CDbCriteria();
-            $criteria->join = "left join contact_label cl on cl.id = t.contact_label_id ";
-            $criteria->join .= "left join address ad on ad.contact_id = t.id";
-            if (isset($_GET['term']) && $term = strtolower($_GET['term'])) {
-                $criteria->addSearchCondition('LOWER(last_name)', $term, true, 'OR');
-                $criteria->addSearchCondition('LOWER(first_name)', $term, true, 'OR');
-                $criteria->addSearchCondition('LOWER(cl.name)', $term, true, 'OR');
-                $criteria->addSearchCondition('LOWER(t.national_code)', $term, true, 'OR');
-                $criteria->addSearchCondition('LOWER(ad.address1)', $term, true, 'OR');
-                $criteria->addSearchCondition('LOWER(ad.address2)', $term, true, 'OR');
-                $criteria->addSearchCondition('LOWER(ad.postcode)', $term, true, 'OR');
-                $criteria->addSearchCondition('LOWER(last_name)', $term, true, 'OR');
-            }
-            if (isset($_GET['filter'])) {
-                $contact_label_id = $_GET['filter'];
-                if ($contact_label_id != 'false') {
-                    $contact_label = \ContactLabel::model()->findByPk($contact_label_id);
+        if (!\Yii::app()->request->isAjaxRequest) {
+            throw new \CHttpException(400, "Bad Request: This action only accepts AJAX requests.");
+        }
+        
+        $criteria = new \CDbCriteria();
+        $criteria->join = "left join contact_label cl on cl.id = t.contact_label_id ";
+        $criteria->join .= "left join address ad on ad.contact_id = t.id";
+        if (isset($_GET['term']) && $term = strtolower($_GET['term'])) {
+            $criteria->addSearchCondition('LOWER(last_name)', $term, true, 'OR');
+            $criteria->addSearchCondition('LOWER(first_name)', $term, true, 'OR');
+            $criteria->addSearchCondition('LOWER(cl.name)', $term, true, 'OR');
+            $criteria->addSearchCondition('LOWER(t.national_code)', $term, true, 'OR');
+            $criteria->addSearchCondition('LOWER(ad.address1)', $term, true, 'OR');
+            $criteria->addSearchCondition('LOWER(ad.address2)', $term, true, 'OR');
+            $criteria->addSearchCondition('LOWER(ad.postcode)', $term, true, 'OR');
+            $criteria->addSearchCondition('LOWER(last_name)', $term, true, 'OR');
+        }
+        if (isset($_GET['filter'])) {
+            $contact_label_id = $_GET['filter'];
+            if ($contact_label_id != 'false') {
+                $contact_label = \ContactLabel::model()->findByPk($contact_label_id);
+                if ($contact_label !== null) {
                     $criteria->addCondition(array(
                         'cl.name = ' . '"' . $contact_label->name . '"'
                     ));
                 }
             }
-            $criteria->addCondition(array('cl.is_private = 0'));
-            $criteria->addCondition(array('t.active = 1'));
-            $criteria->order = 'cl.name';
-
-            // Limit results
-            $criteria->limit = '200';
-
-            $contacts = \Contact::model()->findAll($criteria);
-            $return = array();
-            foreach ($contacts as $contact) {
-                $return[] = $this->contactStructure($contact);
-            }
-            $this->renderJSON($return);
         }
+        $criteria->addCondition(array('cl.is_private = 0'));
+        $criteria->addCondition(array('t.active = 1'));
+        $criteria->order = 'cl.name';
+
+        // Limit results
+        $criteria->limit = '200';
+
+        $contacts = \Contact::model()->findAll($criteria);
+        $return = array();
+        foreach ($contacts as $contact) {
+            $return[] = $this->contactStructure($contact);
+        }
+        $this->renderJSON($return);
     }
 
     /**
@@ -75,7 +79,12 @@ class ContactController extends \BaseController
     {
         if (\Yii::app()->request->isAjaxRequest) {
             if (isset($_GET['filter'])) {
-                $contactLabelName = \ContactLabel::model()->findByPk($_GET['filter'])->name;
+                $contactLabel = \ContactLabel::model()->findByPk($_GET['filter']);
+                if ($contactLabel === null) {
+                    $this->renderJSON([]);
+                    return;
+                }
+                $contactLabelName = $contactLabel->name;
                 $criteria = new \CDbCriteria();
 
                 if (isset($_GET['term']) && $term = strtolower($_GET['term'])) {
@@ -136,11 +145,11 @@ class ContactController extends \BaseController
             'phone_number' => $contact->primary_phone ?? '',
             'mobile_number' => $contact->mobile_phone ?? '',
             'contact_label' => $contact->label ? $contact->label->name : "",
-            'address_line1' => $contact->address->address1 ?? '',
-            'address_line2' => $contact->address->address2 ?? '',
-            'city' => $contact->address->city ?? '',
-            'postcode' => $contact->address->postcode ?? '',
-            'country_id' => $contact->address->country_id ?? '',
+            'address_line1' => $contact->address ? $contact->address->address1 : '',
+            'address_line2' => $contact->address ? $contact->address->address2 : '',
+            'city' => $contact->address ? $contact->address->city : '',
+            'postcode' => $contact->address ? $contact->address->postcode : '',
+            'country_id' => $contact->address ? $contact->address->country_id : '',
         );
 
         if ($user) {
@@ -242,12 +251,11 @@ class ContactController extends \BaseController
 
             $data = array();
             foreach ($users as $i => $user) {
-                if ($user->contact === null) {
-                    $user->contact = new \Contact();
+                if ($user->contact !== null) {
+                    $data[$i] = $this->contactStructure($user->contact, $user);
+                    $data[$i]['user_id'] = $user->id;
+                    $data[$i]['type'] = "Contact";
                 }
-                $data[$i] = $this->contactStructure($user->contact, $user);
-                $data[$i]['user_id'] = $user->id;
-                $data[$i]['type'] = "Contact";
             }
 
             $this->renderJSON($data);
@@ -259,7 +267,7 @@ class ContactController extends \BaseController
         $return = array();
         $patient_id = Yii::app()->request->getQuery('code');
 
-        if (strlen($patient_id) === 0) {
+        if (!$patient_id || strlen($patient_id) === 0) {
             return [];
         }
 

@@ -21,9 +21,9 @@ class MergeLensDataController extends BaseAdminController
         // we need to run only if operation note module is installed
         if (isset(Yii::app()->modules["OphTrOperationnote"])) {
             // get all iol_type_ids from existing cataract elements
-            $existing_cataract = $this->dbConnection->createCommand('SELECT distinct iol_type_id FROM et_ophtroperationnote_cataract WHERE iol_type_id IS NOT NULL')->queryAll();
+            $existing_cataract = Yii::app()->db->createCommand('SELECT distinct iol_type_id FROM et_ophtroperationnote_cataract WHERE iol_type_id IS NOT NULL')->queryAll();
             // we need to drop the old foreign key
-            $this->dbConnection->createCommand("ALTER TABLE et_ophtroperationnote_cataract DROP FOREIGN KEY et_ophtroperationnote_cataract_iol_type_id_fk")->query();
+            Yii::app()->db->createCommand("ALTER TABLE et_ophtroperationnote_cataract DROP FOREIGN KEY et_ophtroperationnote_cataract_iol_type_id_fk")->query();
 
             foreach ($existing_cataract as $existing) {
                 $IOL_data = OphTrOperationnote_IOLType::model()->findByPk($existing['iol_type_id']);
@@ -66,11 +66,13 @@ class MergeLensDataController extends BaseAdminController
                     }
                 }
             }
-            $this->dbConnection->createCommand("ALTER TABLE et_ophtroperationnote_cataract ADD CONSTRAINT et_ophtroperationnote_cataract_iol_type_id_fk FOREIGN KEY (iol_type_id) REFERENCES ophinbiometry_lenstype_lens(id)")->query();
+            Yii::app()->db->createCommand("ALTER TABLE et_ophtroperationnote_cataract ADD CONSTRAINT et_ophtroperationnote_cataract_iol_type_id_fk FOREIGN KEY (iol_type_id) REFERENCES ophinbiometry_lenstype_lens(id)")->query();
         }
         $setting = SettingInstallation::model()->find("`key`='opnote_lens_migration_link'");
-        $setting->value = 'off';
-        $setting->save();
+        if ($setting) {
+            $setting->value = 'off';
+            $setting->save();
+        }
         $this->redirect(array('/OphInBiometry/lensTypeAdmin/list'));
     }
 }

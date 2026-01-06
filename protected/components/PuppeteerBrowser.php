@@ -105,6 +105,9 @@ class PuppeteerBrowser extends CApplicationComponent
         $patient_dobs = array();
 
         foreach ($this->patients as $patient) {
+            if (!$patient) {
+                continue;
+            }
             $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(
                 SettingMetadata::model()->getSetting('display_primary_number_usage_code'),
                 $patient->id, $this->institution_id, $this->site_id

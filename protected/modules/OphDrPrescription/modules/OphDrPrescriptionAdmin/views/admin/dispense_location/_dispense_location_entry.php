@@ -10,8 +10,8 @@
     </td>
     <td class="reorder">
         <span>↑↓</span>
-        <?= CHtml::hiddenField(CHtml::modelName($model) . "[display_order][]", $data_id) ?>
-        <?= CHtml::hiddenField(CHtml::modelName($model) . "[id][]", $data_id) ?>
+        <?= CHtml::hiddenField(CHtml::modelName($model) . "[display_order][]", $data_id, ['id' => false]) ?>
+        <?= CHtml::hiddenField(CHtml::modelName($model) . "[id][]", $data_id, ['id' => false]) ?>
     </td>
     <td data-test="dispense-location-name"><?= $name ?></td>
     <td><?= $display_order ?></td>

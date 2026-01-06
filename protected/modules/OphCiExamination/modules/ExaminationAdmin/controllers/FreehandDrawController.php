@@ -182,6 +182,7 @@ class FreehandDrawController extends \ModuleAdminController
 
         if (!$pks) {
             echo 0;
+            return;
         }
 
         $transaction = Yii::app()->cbdb->beginTransaction();

@@ -900,7 +900,16 @@ class CouchbaseDbCommand
         
         // Convert and execute via Couchbase
         $this->_n1ql = $this->convertToN1QL($this->_sql);
-        return $this->_connection->query($this->_n1ql, $params);
+        try {
+            return $this->_connection->query($this->_n1ql, $params);
+        } catch (CDbException $e) {
+            // If Couchbase keyspace is not found, fall back to MariaDB
+            if (strpos($e->getMessage(), 'Keyspace not found') !== false) {
+                Yii::log("CouchbaseDbCommand: Keyspace not found, falling back to MariaDB for query: " . substr($this->_sql, 0, 200), CLogger::LEVEL_WARNING);
+                return $this->executeViaMariaDb($params);
+            }
+            throw $e;
+        }
     }
     
     /**
@@ -1059,6 +1068,21 @@ class CouchbaseDbCommand
             $results = $this->_connection->query($this->_n1ql, $params);
             // Return count of affected documents
             return is_array($results) ? count($results) : 1;
+        } catch (CDbException $e) {
+            // If Couchbase keyspace is not found, fall back to MariaDB
+            if (strpos($e->getMessage(), 'Keyspace not found') !== false) {
+                Yii::log("CouchbaseDbCommand: Keyspace not found in execute, falling back to MariaDB for query: " . substr($this->_sql, 0, 200), CLogger::LEVEL_WARNING);
+                $db = \Yii::app()->db;
+                if ($db && $db->getActive()) {
+                    $command = $db->createCommand($this->_sql);
+                    foreach ($params as $name => $value) {
+                        $command->bindValue($name, $value);
+                    }
+                    return $command->execute();
+                }
+            }
+            Yii::log("Execute failed: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            throw $e;
         } catch (Exception $e) {
             Yii::log("Execute failed: " . $e->getMessage(), CLogger::LEVEL_ERROR);
             throw $e;
@@ -1152,7 +1176,7 @@ class CouchbaseDbCommand
         }
         
         // Clinical/module tables
-        if (preg_match('/^et_|^oph|^element_|^worklist_definition_mapping|^worklist_definition_mapping_value|^worklist_patient_attribute|^worklist_wait_time_specialty/', $tableName)) {
+        if (preg_match('/^et_|^oph|^element_|^worklist_definition_mapping|^worklist_definition_mapping_value|^worklist_patient_attribute|^worklist_wait_time_specialty|^media_data/', $tableName)) {
             return 'clinical';
         }
         

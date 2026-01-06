@@ -86,7 +86,7 @@ class OphInDnaextraction_DnaExtraction_Box extends BaseActiveRecord
     public function boxMaxValues($boxID)
     {
         $boxMaxValues = Yii::app()->cbdb->createCommand()
-            ->select('id, value, maxletter, maxnumber')
+            ->select('id, `value`, maxletter, maxnumber')
             ->from('ophindnaextraction_dnaextraction_box')
             ->where('id =:id', array(':id' => $boxID))
             ->queryRow();
@@ -134,6 +134,14 @@ class OphInDnaextraction_DnaExtraction_Box extends BaseActiveRecord
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        try {
+            // Try to delete from Couchbase if the method exists
+            if (method_exists($this, 'deleteFromCouchbase')) {
+                $this->deleteFromCouchbase();
+            }
+        } catch (Exception $e) {
+            // Log Couchbase deletion errors but don't fail the delete
+            Yii::log('Warning: Failed to delete box from Couchbase: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+        }
     }
 }

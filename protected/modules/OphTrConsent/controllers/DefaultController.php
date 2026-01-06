@@ -229,9 +229,13 @@ class DefaultController extends BaseEventTypeController
         }
     }
 
-    public function actionElementForm($id, $patient_id, $previous_id = null, $event_id = null)
+    public function actionElementForm($id = null, $patient_id = null, $previous_id = null, $event_id = null)
     {
         // first prevent invalid requests
+        if ($id === null || $patient_id === null) {
+            throw new CHttpException(400, 'ElementType ID and Patient ID are required');
+        }
+        
         $element_type = ElementType::model()->findByPk($id);
         if (!$element_type) {
             throw new CHttpException(404, 'Unknown ElementType');
@@ -488,10 +492,14 @@ class DefaultController extends BaseEventTypeController
     /**
      * Print action.
      *
-     * @param int $id event id
+     * @param int $id event id (optional)
      */
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required to print consent form');
+        }
+        
         $this->printInit($id);
         $this->layout = '//layouts/print';
 
@@ -509,8 +517,12 @@ class DefaultController extends BaseEventTypeController
         $this->render($print_filename, array('elements' => $elements, 'css_class' => isset($_GET['vi']) && $_GET['vi'] ? 'impaired' : 'normal'));
     }
 
-    public function actionPDFPrint($id)
+    public function actionPDFPrint($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        
         if (@$_GET['vi']) {
             $this->pdf_print_suffix = 'vi';
             $this->print_args = '?vi=1';
@@ -605,7 +617,8 @@ class DefaultController extends BaseEventTypeController
 
         $criteria->addCondition(array("LOWER(concat_ws(' ',first_name,last_name)) LIKE :term"));
 
-        $params[':term'] = '%' . strtolower(strtr($_GET['term'], array('%' => '\%'))) . '%';
+        $term = Yii::app()->request->getParam('term', '');
+        $params[':term'] = '%' . strtolower(strtr($term, array('%' => '\%'))) . '%';
 
         $criteria->params = $params;
         $criteria->order = 'first_name, last_name';
@@ -640,8 +653,18 @@ class DefaultController extends BaseEventTypeController
         $this->renderJSON($users);
     }
 
-    public function actionDoPrint($id)
+    public function actionDoPrint($id = null)
     {
+        // If id is not provided as a route parameter, try to get it from GET
+        if ($id === null) {
+            $id = Yii::app()->request->getQuery('id');
+        }
+        
+        // If still no id, throw an error
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required');
+        }
+        
         if (!$type = Element_OphTrConsent_Type::model()->find('event_id=?', array($id))) {
             throw new Exception("Consent form not found for event id: $id");
         }
@@ -663,8 +686,11 @@ class DefaultController extends BaseEventTypeController
         echo '1';
     }
 
-    public function actionMarkPrinted($id)
+    public function actionMarkPrinted($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required');
+        }
         if ($type = Element_OphTrConsent_Type::model()->find('event_id=?', array($id))) {
             $type->print = 0;
             $type->draft = 0;
@@ -678,7 +704,7 @@ class DefaultController extends BaseEventTypeController
     {
         $event_id = $this->request->getParam('event_id');
         if ($event_id === null) {
-            $this->getEvent()->id;
+            $event_id = $this->event->id;
         }
         $this->initWithEventId($event_id);
 
@@ -743,6 +769,11 @@ class DefaultController extends BaseEventTypeController
     {
         $event_id = $this->request->getParam('event_id');
 
+        // Validate that event_id is provided
+        if (!$event_id) {
+            throw new CHttpException(400, 'The event_id parameter is required');
+        }
+
         $transaction = Yii::app()->cbdb->beginTransaction();
 
         $withdrawal_element_criteria = new CDbCriteria();
@@ -773,7 +804,11 @@ class DefaultController extends BaseEventTypeController
     {
         $event_id = $this->request->getParam('event_id');
         if ($event_id === null) {
-            $this->getEvent()->id;
+            if ($this->event) {
+                $event_id = $this->event->id;
+            } else {
+                throw new CHttpException(400, 'Event ID is required');
+            }
         }
         $this->initWithEventId($event_id);
 
@@ -806,6 +841,11 @@ class DefaultController extends BaseEventTypeController
     public function actionRemoveConfirm()
     {
         $event_id = $this->request->getParam('event_id');
+
+        // Validate that event_id is provided
+        if (!$event_id) {
+            throw new CHttpException(400, 'The event_id parameter is required');
+        }
 
         $transaction = Yii::app()->cbdb->beginTransaction();
 
@@ -1233,8 +1273,13 @@ class DefaultController extends BaseEventTypeController
         $this->renderJSON($benefits);
     }
 
-    public function actionComplications($id)
+    public function actionComplications($id = null)
     {
+        if ($id === null) {
+            $this->renderJSON([]);
+            return;
+        }
+
         $extra_proc = OphTrConsent_Extra_Procedure::model()->findByPk($id);
         if (!$extra_proc) {
             throw new Exception("Unknown procedure: $id");
@@ -1248,7 +1293,11 @@ class DefaultController extends BaseEventTypeController
 
     public function initActionSign()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required');
+        }
+        $this->initWithEventId($id);
     }
 
     public function actionSign($id)

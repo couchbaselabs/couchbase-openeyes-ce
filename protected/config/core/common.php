@@ -468,9 +468,13 @@ $config = array(
                 'OphInDnaextraction/<controller:\w+>/<action:\w+>/<id:\d+>' => 'OphInDnaextraction/<controller>/<action>',
                 'OphInDnaextraction/<controller:\w+>/<action:\w+>' => 'OphInDnaextraction/<controller>/<action>',
 
-                // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCiExamination, OphCoCvi, OphDrPrescription, OphDrPGDPSD, OphCoTherapyapplication, OphTrLaser, or OphTrOperationbooking)
-                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>',
-                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
+                // OphCoCorrespondence admin routes - bypass ExaminationAdmin for OphCoCorrespondence
+                'OphCoCorrespondence/admin/<action:\w+>/<id:\d+>' => 'OphCoCorrespondence/Admin/<action>',
+                'OphCoCorrespondence/admin/<action:\w+>' => 'OphCoCorrespondence/Admin/<action>',
+
+                // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCiExamination, OphCoCvi, OphDrPrescription, OphDrPGDPSD, OphCoTherapyapplication, OphTrLaser, OphTrOperationbooking, or OphCoCorrespondence)
+                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|OphCoCorrespondence|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>',
+                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|OphCoCorrespondence|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
                 '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>' => '<module>/oeadmin/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>',

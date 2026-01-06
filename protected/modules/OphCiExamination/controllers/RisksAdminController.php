@@ -173,15 +173,26 @@ class RisksAdminController extends \ModuleAdminController
         $model->validate();
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
-        foreach ($_POST['OEModule\OphCiExamination\models\OphCiExaminationRisk'] as $item) {
-            foreach ($item as $id) {
-                if (!$model = OphCiExaminationRisk::model()->findByPk($id)) {
-                    throw new \CHttpException(404);
-                }
+        // Support single ID deletion from URL
+        if ($id !== null) {
+            if (!$model = OphCiExaminationRisk::model()->findByPk($id)) {
+                throw new \CHttpException(404);
+            }
+            
+            $model->delete();
+        }
+        // Support batch deletion via POST
+        elseif (is_array(@$_POST['OEModule\OphCiExamination\models\OphCiExaminationRisk'])) {
+            foreach ($_POST['OEModule\OphCiExamination\models\OphCiExaminationRisk'] as $item) {
+                foreach ($item as $id) {
+                    if (!$model = OphCiExaminationRisk::model()->findByPk($id)) {
+                        throw new \CHttpException(404);
+                    }
 
-                $model->delete();
+                    $model->delete();
+                }
             }
         }
 
@@ -216,6 +227,9 @@ class RisksAdminController extends \ModuleAdminController
                 );
             }
             echo \CJSON::encode($return);
+        } else {
+            // For non-AJAX requests, redirect to the list action
+            $this->redirect('/' . $this->getModule()->id . '/' . $this->id . '/list');
         }
     }
 }

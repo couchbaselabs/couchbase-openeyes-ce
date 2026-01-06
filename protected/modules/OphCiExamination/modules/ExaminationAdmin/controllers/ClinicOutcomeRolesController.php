@@ -122,10 +122,34 @@ class ClinicOutcomeRolesController extends \ModuleAdminController
     }
 
   /**
-   * Deletes the selected models
+   * Deletes the selected models or a single model via GET request
    */
     public function actionDelete()
     {
+        $request = Yii::app()->getRequest();
+        $id = $request->getParam('id');
+        
+        // Extract ID from URL path if not in query parameters
+        if (!$id && Yii::app()->request->pathInfo) {
+            $pathParts = explode('/', Yii::app()->request->pathInfo);
+            if (count($pathParts) >= 4 && is_numeric($pathParts[count($pathParts) - 1])) {
+                $id = $pathParts[count($pathParts) - 1];
+            }
+        }
+        
+        // Handle GET request - show confirmation page
+        if ($request->isGetRequest && $id) {
+            $model = OphCiExamination_ClinicOutcome_Role::model()->findByPk((int)$id);
+            if (!$model) {
+                throw new Exception('OphCiExamination_ClinicOutcome_Role not found with id ' . $id);
+            }
+            $this->render('/clinicoutcomeroles/delete', [
+                'model' => $model,
+            ]);
+            return;
+        }
+        
+        // Handle POST request - perform deletion
         $delete_ids = isset($_POST['select']) ? $_POST['select'] : [];
         $transaction = Yii::app()->cbdb->beginTransaction();
         $success = true;

@@ -97,6 +97,19 @@ class DefaultController extends \BaseEventTypeController
     protected static $FILTER_LIST_KEY = 'OphCoCvi_list_filter';
 
 
+    /**
+     * Initialize the render QR Signature action with proper event_id extraction and validation
+     *
+     * @throws \CHttpException
+     */
+    public function initActionRenderQRSignature()
+    {
+        $event_id = $this->request->getParam('event_id');
+        if (!$event_id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+    }
+
     public function actionRenderQRSignature($event_id)
     {
         $request = \Yii::app()->getRequest();
@@ -862,7 +875,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionIssue()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to issue a CVI.');
+        }
+        $this->initWithEventId($id);
         if (!$this->canIssue()) {
             throw new CHttpException(403, 'Event cannot be issued.');
         }
@@ -873,8 +890,11 @@ class DefaultController extends \BaseEventTypeController
     /**
      * @param $id
      */
-    public function actionIssue($id)
+    public function actionIssue($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to issue a CVI.');
+        }
         if ($this->getManager()->issueCvi($this->event, $this->getApp()->user->id)) {
             $this->getApp()->user->setFlash('success.cvi_issue', 'The CVI has been successfully generated.');
             //$this->redirect(array('/' . $this->event->eventType->class_name . '/default/pdfPrint/' . $id));
@@ -1086,7 +1106,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionRemoveConsentSignature()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1147,10 +1171,9 @@ class DefaultController extends \BaseEventTypeController
     public function initActionPrint()
     {
         $id = $this->request->getParam('id');
-        if (!$id) {
-            throw new CHttpException(400, 'Event ID is required.');
+        if ($id) {
+            $this->initWithEventId($id);
         }
-        $this->initWithEventId($id);
     }
 
     /**
@@ -1158,8 +1181,15 @@ class DefaultController extends \BaseEventTypeController
      *
      * @param int $id event id
      */
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        if (!$id) {
+            $id = $this->request->getParam('id');
+        }
+        if (!$id) {
+            echo "Event ID is required for printing.";
+            return;
+        }
         $this->printInit($id);
 
         if (\Yii::app()->request->getParam('sign')) {
@@ -1481,6 +1511,12 @@ class DefaultController extends \BaseEventTypeController
         $element = new Element_OphCoCvi_ClinicalInfo();
 
         $patient_type = \Yii::app()->request->getPost("patient_type");
+        
+        // If patient_type is not provided via POST, try GET or use default (ADULT = 0)
+        if ($patient_type === null) {
+            $patient_type = \Yii::app()->request->getParam("patient_type", OphCoCvi_ClinicalInfo_Disorder_Section::PATIENT_TYPE_ADULT);
+        }
+        
         $diagnosis_not_covered_list = \Yii::app()->request->getPost("diagnosis_not_covered_list");
 
         if (!is_null(\Yii::app()->request->getPost("transfer_data"))) {
@@ -1544,11 +1580,37 @@ class DefaultController extends \BaseEventTypeController
         parent::actionPDFPrint($event_id);
     }
 
-    public function actionDeleteDiagnosisNotCoveredElement($data_id)
+    /**
+     * Delete a diagnosis not covered element by ID
+     * 
+     * @param int|null $data_id The ID of the diagnosis not covered element to delete
+     * @throws \CHttpException
+     */
+    public function actionDeleteDiagnosisNotCoveredElement($data_id = null)
     {
-        if (isset($data_id)) {
-            OphCoCvi_ClinicalInfo_Diagnosis_Not_Covered::model()->deleteByPk($data_id);
+        // Try to get data_id from request if not provided as parameter
+        if (!$data_id) {
+            $data_id = $this->request->getParam('data_id');
+        }
+        
+        if (!$data_id) {
+            throw new \CHttpException(400, 'Data ID is required.');
+        }
+        
+        // Validate that the data_id is numeric
+        if (!is_numeric($data_id)) {
+            throw new \CHttpException(400, 'Invalid Data ID format.');
+        }
+        
+        $diagnosis = OphCoCvi_ClinicalInfo_Diagnosis_Not_Covered::model()->findByPk($data_id);
+        if (!$diagnosis) {
+            throw new \CHttpException(404, 'Diagnosis not found.');
+        }
+        
+        if ($diagnosis->delete()) {
             return true;
+        } else {
+            throw new \CHttpException(500, 'Unable to delete diagnosis.');
         }
     }
 
@@ -1639,11 +1701,20 @@ class DefaultController extends \BaseEventTypeController
         $signature_id = \Yii::app()->request->getPost('signature_id');
         $role_name = \Yii::app()->request->getPost('role_name');
 
+        if (!$signature_id) {
+            return \Yii::app()->request->isAjaxRequest ? false : null;
+        }
+
         $signature_element = \OphCoCvi_Signature::model()->findByPk($signature_id);
+        if (!$signature_element) {
+            return \Yii::app()->request->isAjaxRequest ? false : null;
+        }
+
         $signature_element->signatory_role = $role_name;
         if ($signature_element->saveAttributes(['signatory_role'])) {
             return true;
         }
+        return false;
     }
 
     public function actionDeleteSignature($event_id, $signature_id)

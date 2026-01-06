@@ -47,8 +47,12 @@
                 <tr>
                     <th>Event type</th>
                     <td class="large-text">
-                        <i class="oe-i-e <?php echo $this->event->eventType->getEventIconCssClass()?>"></i>
-                        <?php echo $this->event->eventType->name ?> <?php echo Helper::convertDate2NHS($this->event->event_date)?>
+                        <?php if ($this->event->eventType): ?>
+                            <i class="oe-i-e <?php echo $this->event->eventType->getEventIconCssClass()?>"></i>
+                            <?php echo $this->event->eventType->name ?> <?php echo Helper::convertDate2NHS($this->event->event_date)?>
+                        <?php else: ?>
+                            <span class="text-muted">Event type unavailable</span> <?php echo Helper::convertDate2NHS($this->event->event_date)?>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <tr>

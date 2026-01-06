@@ -97,7 +97,7 @@ class OphCiExaminationRisk extends \BaseActiveRecordVersioned
     {
         return array(
             'medicationSets' => array(self::MANY_MANY, \MedicationSet::class, 'ophciexamination_risk_tag(risk_id, medication_set_id)'),
-            'risk_institution' => array(self::HAS_MANY, 'OphCiExaminationRisk_Institution', 'risk_id'),
+            'risk_institution' => array(self::HAS_MANY, 'OEModule\OphCiExamination\models\OphCiExaminationRisk_Institution', 'risk_id'),
             'institutions' => array(self::MANY_MANY, 'Institution', 'ophciexamination_risk_institution(risk_id,institution_id)'),
             'subspecialty' => array(self::BELONGS_TO, 'Subspecialty', 'subspecialty_id'),
             'firm' => array(self::BELONGS_TO, 'Firm', 'firm_id'),

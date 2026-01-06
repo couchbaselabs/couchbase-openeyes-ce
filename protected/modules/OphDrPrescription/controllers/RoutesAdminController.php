@@ -70,19 +70,44 @@ class RoutesAdminController extends BaseAdminController
         $admin->editModel();
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
-
+        // Handle both POST requests from list page and GET requests from URL
         $post = Yii::app()->request->getPost('MedicationRoute');
-        $attribute_ids_array = $post['id'];
+        
+        // Get IDs either from POST data or URL parameter
+        if ($post && isset($post['id'])) {
+            $attribute_ids_array = $post['id'];
+        } elseif ($id !== null) {
+            $attribute_ids_array = [$id];
+        } else {
+            // No ID provided
+            echo 0;
+            return;
+        }
 
         $result = 1;
         foreach ($attribute_ids_array as $key => $id) {
-            if ($route = MedicationRoute::model()->findByPk($id)) {
-                $route->is_active = 0;
-                if (!$route->save()) {
+            try {
+                $route = MedicationRoute::model()->findByPk($id);
+                if ($route) {
+                    // Set deleted_date for soft delete
+                    $route->deleted_date = date('Y-m-d H:i:s');
+                    
+                    // Disable validation on save to avoid issues with has_laterality validation
+                    if ($route->save(false)) {
+                        Yii::log('Successfully deleted route ' . $id . ' (soft delete)', CLogger::LEVEL_INFO);
+                    } else {
+                        Yii::log('Failed to save deleted_date for route ' . $id, CLogger::LEVEL_ERROR);
+                        $result = 0;
+                    }
+                } else {
+                    Yii::log('Route not found with ID: ' . $id, CLogger::LEVEL_WARNING);
                     $result = 0;
                 }
+            } catch (Exception $e) {
+                Yii::log('Exception while deleting route ' . $id . ': ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+                $result = 0;
             }
         }
         echo $result;

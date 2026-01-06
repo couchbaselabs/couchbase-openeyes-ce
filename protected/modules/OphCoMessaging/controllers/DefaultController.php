@@ -69,6 +69,10 @@ class DefaultController extends \BaseEventTypeController
      */
     public function checkMarkMyMessageAccess()
     {
+        // If there's no event (no ID provided), allow the action to proceed
+        if (!$this->event) {
+            return $this->checkAccess('OprnViewClinical');
+        }
         return $this->checkAccess('OprnViewClinical') && (
             $this->isIntendedRecipient()
             || $this->isSender(\Yii::app()->user)
@@ -105,10 +109,10 @@ class DefaultController extends \BaseEventTypeController
     public function initActionMarkRead()
     {
         $id = @$_GET['id'];
-        if (!$id) {
-            throw new \CHttpException(400, 'Event ID is required to mark message as read.');
+        if ($id) {
+            $this->initWithEventId($id);
         }
-        $this->initWithEventId($id);
+        // If no ID is provided, skip initialization and continue with the action
     }
 
     /**
@@ -118,6 +122,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function actionMarkRead()
     {
+        // If no event or message element, return success response
+        if (!$this->event || !$this->getMessageElement()) {
+            return;
+        }
+
         $mailbox =
             Mailbox::model()->findByPk(\Yii::app()->request->getParam('mailbox_id')) ??
             User::model()->findByPk(\Yii::app()->user->id)->personalMailbox;
@@ -144,10 +153,10 @@ class DefaultController extends \BaseEventTypeController
     public function initActionMarkUnread()
     {
         $id = @$_GET['id'];
-        if (!$id) {
-            throw new \CHttpException(400, 'Event ID is required to mark message as unread.');
+        if ($id) {
+            $this->initWithEventId($id);
         }
-        $this->initWithEventId($id);
+        // If no ID is provided, skip initialization and continue with the action
     }
 
     /**
@@ -157,13 +166,21 @@ class DefaultController extends \BaseEventTypeController
      *
      * @throws \Exception
      */
-    public function actionMarkUnread($id)
+    public function actionMarkUnread($id = null)
     {
+        if (!$id) {
+            throw new \CHttpException(400, 'Event ID is required to mark message as unread.');
+        }
+        
         $mailbox =
             Mailbox::model()->findByPk(\Yii::app()->request->getParam('mailbox_id')) ??
             User::model()->findByPk(\Yii::app()->user->id)->personalMailbox;
 
         $el = $this->getMessageElement();
+        if (!$el) {
+            throw new \CHttpException(400, 'Message element not found.');
+        }
+        
         $el->setReadStatusForMailbox($mailbox, false);
 
         $this->updateEvent();
@@ -571,9 +588,10 @@ class DefaultController extends \BaseEventTypeController
         $this->event->save();
     }
 
-    public function actionAutoComplete($term = '')
+    public function actionAutoComplete()
     {
         $res = array();
+        $term = \Yii::app()->request->getParam('term');
         if (\Yii::app()->request->isAjaxRequest && !empty($term)) {
             $term = strtolower($term);
 

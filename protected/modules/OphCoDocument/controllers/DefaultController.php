@@ -273,6 +273,10 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionFileUpload()
     {
+        if (empty($_FILES)) {
+            $this->render('fileUpload');
+            return;
+        }
         foreach ($_FILES as $file) {
             $return_data = array();
             foreach (array('single_document_id', 'left_document_id', 'right_document_id') as $file_key) {

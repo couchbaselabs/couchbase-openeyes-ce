@@ -136,16 +136,27 @@ class DefaultController extends BaseEventTypeController
 
     public function actionDownloadFileCollection($id = null)
     {
+        // Check if ID is provided in URL path, or fallback to GET parameter
         if (empty($id)) {
-            throw new CHttpException(400, 'File Collection ID is required.');
+            $id = @$_GET['id'];
         }
+        
+        if (empty($id)) {
+            // No ID provided - show a user-friendly message instead of throwing an error
+            Yii::app()->user->setFlash('info', 'No file collection specified for download.');
+            $this->redirect(Yii::app()->homeUrl);
+            return;
+        }
+        
         if ($collection = OphCoTherapyapplication_FileCollection::model()->findByPk((int) $id)) {
             $pf = $collection->getZipFile();
             if ($pf) {
                 $this->redirect($pf->getDownloadURL());
+                return;
             }
         }
-        throw new CHttpException(400, 'File Collection does not exist');
+        
+        throw new CHttpException(404, 'File Collection does not exist');
     }
 
     /**
@@ -166,7 +177,7 @@ class DefaultController extends BaseEventTypeController
 
         $side = @$_GET['side'];
         if (!in_array($side, array('left', 'right'))) {
-            throw Exception('Invalid side argument');
+            throw new CHttpException(400, 'Invalid side argument');
         }
 
         $element->{$side.'_treatment'} = $treatment;
@@ -337,6 +348,11 @@ class DefaultController extends BaseEventTypeController
 
     public function actionView($id)
     {
+        // Ensure event has a valid event type loaded
+        if (!$this->event || !$this->event->eventType) {
+            throw new CHttpException(404, 'Invalid therapy application event.');
+        }
+        
         $service = new OphCoTherapyapplication_Processor($this->event);
         $status = $service->getApplicationStatus();
 

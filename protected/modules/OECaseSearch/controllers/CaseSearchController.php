@@ -19,8 +19,6 @@ class CaseSearchController extends BaseModuleController
             'accessControl',
             'ajaxOnly + getSearchesByUser',
             'ajaxOnly + otherSearchUsers',
-            'ajaxOnly + loadSearch',
-            'ajaxOnly + deleteSearch',
             'ajaxOnly + clear',
             'ajaxOnly + searchCommonItems',
         );
@@ -332,9 +330,14 @@ class CaseSearchController extends BaseModuleController
      * @throws CHttpException
      * @throws CException
      */
-    public function actionLoadSearch($id)
+    public function actionLoadSearch($id = null)
     {
         $preview = $_GET['preview'] ?? null;
+
+        if ($id === null) {
+            echo '<tbody></tbody>';
+            Yii::app()->end();
+        }
 
         $search = SavedSearch::model()->findByPk($id);
         if (!$search) {
@@ -399,6 +402,7 @@ class CaseSearchController extends BaseModuleController
             $search->search_criteria = $search_criteria;
             $search->name = isset($_POST['search_name']) ? $_POST['search_name'] : '';
             $search->institution_id = $this->selectedInstitutionId;
+            $search->created_user_id = Yii::app()->user->id;
 
             if (!$search->save()) {
                 Yii::log(var_export($search->getErrors(), true));
@@ -415,8 +419,18 @@ class CaseSearchController extends BaseModuleController
      * @throws CHttpException
      * @throws CDbException
      */
-    public function actionDeleteSearch(int $id)
+    public function actionDeleteSearch($id = null)
     {
+        // Get ID from parameter or query string
+        if ($id === null) {
+            $id = Yii::app()->request->getQuery('id');
+        }
+
+        // Validate ID parameter
+        if (!$id || !is_numeric($id)) {
+            throw new CHttpException(400, 'ID parameter is required and must be numeric.');
+        }
+
         $search = SavedSearch::model()->findByPk($id);
 
         if (!$search) {
@@ -428,6 +442,14 @@ class CaseSearchController extends BaseModuleController
         }
         if (!$search->delete()) {
             throw new CHttpException(500, 'Unable to delete saved search - Unknown error occurred.');
+        }
+
+        // For AJAX requests, return JSON response
+        if (Yii::app()->request->isAjaxRequest) {
+            echo json_encode(['success' => true, 'message' => 'Search deleted successfully']);
+        } else {
+            // For non-AJAX requests, redirect back to the index page
+            $this->redirect('/OECaseSearch/caseSearch/index');
         }
     }
 

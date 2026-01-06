@@ -90,6 +90,9 @@ class PendingApplications
     public function emailCsvFile($recipients, $institution_id = null)
     {
         if (!is_array($recipients)) {
+            if ($recipients === null || $recipients === '') {
+                return false; // No recipients configured
+            }
             $recipients = explode(';', $recipients);
         }
         $csv = $this->pendingApplicationsCSV($institution_id);

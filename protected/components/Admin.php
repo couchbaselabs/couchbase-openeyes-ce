@@ -650,6 +650,10 @@ class Admin
                         }
                         throw new CHttpException(500, $errorMessage);
                     }
+                } catch (CDbException $e) {
+                    // Log database-specific exceptions
+                    Yii::log('Database error saving '.$this->modelName.': ' . $e->getMessage(), CLogger::LEVEL_ERROR, 'database');
+                    throw new CHttpException(500, 'Unable to save '.$this->modelName.': ' . $e->getMessage());
                 } catch (Exception $e) {
                     if ($e instanceof CHttpException) {
                         throw $e;
@@ -689,7 +693,7 @@ class Admin
         $response = 1;
         if (Yii::app()->request->isPostRequest) {
             $post = Yii::app()->request->getPost($this->modelName);
-            if (array_key_exists('id', $post) && is_array($post['id'])) {
+            if ($post && array_key_exists('id', $post) && is_array($post['id'])) {
                 foreach ($post['id'] as $id) {
                     $model = $this->model->findByPk($id);
                     if (!$model) {

@@ -126,6 +126,11 @@ return array (
       'read_source' => 'mariadb',
       'percentage' => 0,
     ),
+    'OphCoTherapyapplication_Treatment' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
     'OphCoDocument_Sub_Types' => 
     array (
       'read_source' => 'mariadb',

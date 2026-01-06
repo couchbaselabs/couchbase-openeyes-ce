@@ -131,8 +131,18 @@ class AdminController extends BaseAdminController
 
     public function actionDeletePGDPSDs()
     {
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request method. POST request required.');
+        }
+
         $result = 1;
         $pgdpsd_data = Yii::app()->request->getParam('PGDPSDs', array());
+        
+        // Validate that PGDPSDs parameter is provided and not empty
+        if (empty($pgdpsd_data)) {
+            throw new CHttpException(400, 'Invalid request. PGDPSDs parameter is required.');
+        }
+
         $deactivated = array();
         if ($pgdpsd_data) {
             $pgdpsds = OphDrPGDPSD_PGDPSD::model()->findAllByPK($pgdpsd_data);

@@ -40,7 +40,7 @@ class DefaultController extends BaseAdminController
                     $site_subspec_drug->delete();
                     echo 'success';
                 } else {
-                    $this->render('/default/errorpage', array('errormessage' => 'recordmissing'));
+                    $this->render('/default/errorpage', array('errorMessage' => 'recordmissing'));
                 }
             }
         }
@@ -98,30 +98,20 @@ class DefaultController extends BaseAdminController
         );
     }
 
-    public function actionDrugType()
-    {
-        $this->genericAdmin(
-            'Edit drug types',
-            'DrugType',
-            array(
-                'extra_fields' => array(
-                    array('field' => 'tag_id',
-                    'type' => 'lookup',
-                    'model' => 'Tag')
-                ),
-                'div_wrapper_class' => 'cols-5',
-            )
-        );
-    }
-
     public function actionDispenseCondition()
     {
-        $this->render('/admin/dispense_condition/index');
+        $dispense_conditions = OphDrPrescription_DispenseCondition::model()->findAll();
+        $this->render('/admin/dispense_condition/index', [
+            'dispense_conditions' => $dispense_conditions
+        ]);
     }
 
     public function actionDispenseLocation()
     {
-        $this->render('/admin/dispense_location/index');
+        $dispense_locations = OphDrPrescription_DispenseLocation::model()->findAll();
+        $this->render('/admin/dispense_location/index', [
+            'dispense_locations' => $dispense_locations
+        ]);
     }
 
 }

@@ -73,10 +73,64 @@ class EffectAdminController extends BaseAdminController
 
     /**
      * Deletes rows for the model.
+     *
+     * @param null $id
+     *
+     * @throws CHttpException
      */
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
-        $admin = new Admin(OphInGeneticresults_Test_Effect::model(), $this);
-        $admin->deleteModel();
+        $modelClass = 'OphInGeneticresults_Test_Effect';
+        
+        // Handle GET requests with ID in URL parameter
+        if (!Yii::app()->request->isPostRequest) {
+            if (is_null($id)) {
+                throw new CHttpException(400, 'Invalid request: no ID provided');
+            }
+            $ids = array($id);
+        } else {
+            // Handle POST requests with multiple IDs
+            $modelData = Yii::app()->request->getPost($modelClass);
+            if (is_null($modelData) || !isset($modelData['id'])) {
+                throw new CHttpException(400, 'Invalid request: no effect IDs provided');
+            }
+            $ids = $modelData['id'];
+        }
+
+        $response = 1;
+        $model = OphInGeneticresults_Test_Effect::model();
+        foreach ($ids as $itemId) {
+            if (is_null($itemId) || empty($itemId)) {
+                continue;
+            }
+            
+            try {
+                $effect = $model->findByPk($itemId);
+                if ($effect) {
+                    $attributes = $effect->getAttributes();
+                    if (isset($effect->active)) {
+                        $effect->active = 0;
+                        if (!$effect->save()) {
+                            $response = 0;
+                        }
+                    } else {
+                        if (!$effect->delete()) {
+                            $response = 0;
+                        }
+                    }
+                    if ($response == 1) {
+                        Audit::add(get_class($effect), 'delete', serialize($attributes), get_class($effect) . ' deleted');
+                    }
+                } else {
+                    // Effect not found, treat as success
+                    Yii::log('Effect ' . $itemId . ' not found (may have already been deleted)', CLogger::LEVEL_INFO, 'application.delete');
+                }
+            } catch (Exception $e) {
+                Yii::log('Exception deleting effect ' . $itemId . ': ' . $e->getMessage() . ' (' . get_class($e) . ')', CLogger::LEVEL_ERROR, 'application.delete');
+                $response = 0;
+            }
+        }
+
+        echo $response;
     }
 }

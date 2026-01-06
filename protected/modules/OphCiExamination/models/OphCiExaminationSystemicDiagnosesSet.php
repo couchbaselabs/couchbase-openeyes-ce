@@ -135,8 +135,13 @@ class OphCiExaminationSystemicDiagnosesSet extends \BaseActiveRecordVersioned
         $criteria->compare('created_date', $this->created_date, true);
 
         if ($current_institution_only) {
-            $criteria->addCondition('institution_id = :institution_id');
-            $criteria->params[':institution_id'] = \Yii::app()->session['selected_institution_id'];
+            // Check if we have a valid institution_id from session
+            $institutionId = \Yii::app()->session['selected_institution_id'] ?? null;
+            if ($institutionId) {
+                $criteria->addCondition('institution_id = :institution_id');
+                $criteria->params[':institution_id'] = $institutionId;
+            }
+            // Note: If no institution_id, we'll return all records regardless of institution
         }
 
         return new \CActiveDataProvider($this, array(
