@@ -1325,7 +1325,7 @@ class AdminController extends BaseAdminController
         ));
     }
 
-    public function actionLDAPConfig($id = false)
+    public function actionLdapconfig($id = false)
     {
         Audit::add('admin-LDAP-Config', 'list');
         $ldap_configs = LDAPConfig::model()->findAll();
@@ -1335,7 +1335,7 @@ class AdminController extends BaseAdminController
         ));
     }
 
-    public function actionEditLDAPConfig()
+    public function actionEditldapconfig()
     {
         $request = Yii::app()->request;
         if ($request->isPostRequest) {
@@ -2493,21 +2493,33 @@ class AdminController extends BaseAdminController
 
     public function actionDeleteFirms()
     {
-        $result = 1;
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Bad Request: This action requires a POST request');
+        }
 
-        if (!empty($_POST['firms'])) {
-            foreach (Firm::model()->findAllByPk($_POST['firms']) as $firm) {
-                try {
+        $result = 1;
+        $transaction = Yii::app()->cbdb->beginTransaction();
+
+        try {
+            if (!empty($_POST['firms'])) {
+                foreach (Firm::model()->findAllByPk($_POST['firms']) as $firm) {
                     $firm_id = $firm->id;
                     if (!$firm->delete()) {
                         $result = 0;
                     } else {
                         Audit::add('admin-Firm', 'delete', $firm_id);
                     }
-                } catch (Exception $e) {
-                    $result = 0;
                 }
             }
+
+            if ($result === 1) {
+                $transaction->commit();
+            } else {
+                $transaction->rollback();
+            }
+        } catch (Exception $e) {
+            $transaction->rollback();
+            $result = 0;
         }
 
         echo $result;
@@ -2731,8 +2743,14 @@ class AdminController extends BaseAdminController
 
     public function actionDeleteCommissioningBodyTypes()
     {
+        // Validate input to prevent deleting all records
+        if (!isset($_POST['commissioning_body_type']) || !is_array($_POST['commissioning_body_type']) || count($_POST['commissioning_body_type']) === 0) {
+            echo '0';
+            return;
+        }
+
         $criteria = new CDbCriteria();
-        $criteria->addInCondition('id', @$_POST['commissioning_body_type']);
+        $criteria->addInCondition('id', $_POST['commissioning_body_type']);
 
         foreach (CommissioningBodyType::model()->findAll($criteria) as $cbt) {
             if (!$cbt->delete()) {
