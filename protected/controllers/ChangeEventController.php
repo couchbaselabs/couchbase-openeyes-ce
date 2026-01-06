@@ -148,7 +148,7 @@ class ChangeEventController extends BaseController
         }
         $transaction = $this->app->db->beginTransaction();
         try {
-            $episode = $this->current_episode;
+            $episode = $this->getCurrent_episode();
             if ($episode->isNewRecord) {
                 // The first change event for this patient
                 $episode->save();

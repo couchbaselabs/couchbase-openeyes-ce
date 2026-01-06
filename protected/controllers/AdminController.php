@@ -3427,10 +3427,19 @@ class AdminController extends BaseAdminController
     public function actionChangeVersionCheck()
     {
         $setting_installation = SettingInstallation::model()->findByAttributes(['key' => "auto_version_check"]);
-        $setting_value = $setting_installation ? $setting_installation->value : 0;
+        $setting_value = $setting_installation ? (int)$setting_installation->value : 0;
         
         if (Yii::app()->request->isPostRequest) {
-            $value = $_POST['value'] ?? null;
+            $post_value = $_POST['value'] ?? null;
+            // Handle both numeric (0/1) and string ('enable'/'disable') values
+            if (in_array($post_value, ['enable', 1, '1'], true)) {
+                $value = 1;
+            } elseif (in_array($post_value, ['disable', 0, '0'], true)) {
+                $value = 0;
+            } else {
+                $value = (int)$post_value;
+            }
+            
             if (!$setting_installation) {
                 $setting_installation = new SettingInstallation();
                 $setting_installation->key = "auto_version_check";

@@ -18,6 +18,17 @@
     <h1>Version Check Settings</h1>
 </div>
 
+<?php if (Yii::app()->user->hasFlash('success')) : ?>
+    <div class="flash-success">
+        <?= Yii::app()->user->getFlash('success'); ?>
+    </div>
+<?php endif; ?>
+<?php if (Yii::app()->user->hasFlash('error')) : ?>
+    <div class="error">
+        <?= Yii::app()->user->getFlash('error'); ?>
+    </div>
+<?php endif; ?>
+
 <?php
 $form = $this->beginWidget('BaseEventTypeCActiveForm', array(
     'id' => 'changeVersionCheckForm',

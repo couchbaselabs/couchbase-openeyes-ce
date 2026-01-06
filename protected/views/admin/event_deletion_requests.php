@@ -19,52 +19,62 @@
 ?>
 
 <div class="cols-7">
-    <form id="admin_event_deletion_requests">
-        <select id="select-institution">
-            <?php foreach ($institutions as $institution) {
-                if ($institution['id'] === $selected_institution) {
-                    echo "<option value=\"{$institution['id']}\" selected>{$institution['name']}</option>";
-                } else {
-                    echo "<option value=\"{$institution['id']}\">{$institution['name']}</option>";
-                }
-            } ?>
-        </select>
+    <?php if (empty($institutions)): ?>
+        <div class="alert alert-info">
+            <p>No institutions available. Please check your institution access permissions.</p>
+        </div>
+    <?php else: ?>
+    <select id="select-institution">
+        <?php foreach ($institutions as $institution) {
+            if ($institution['id'] === $selected_institution) {
+                echo "<option value=\"{$institution['id']}\" selected>{$institution['name']}</option>";
+            } else {
+                echo "<option value=\"{$institution['id']}\">{$institution['name']}</option>";
+            }
+        } ?>
+    </select>
+    <?php endif; ?>
 
-        <input type="hidden" name="YII_CSRF_TOKEN"
-               value="<?php echo Yii::app()->request->csrfToken?>" />
-        <table class="standard">
-            <thead>
-                <tr>
-                    <th>Date/time</th>
-                    <th>User</th>
-                    <th>Event</th>
-                    <th>Reason</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+    <table class="standard">
+        <thead>
+            <tr>
+                <th>Date/time</th>
+                <th>User</th>
+                <th>Event</th>
+                <th>Reason</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
 
-            <tbody>
-            <?php
-            foreach ($events as $i => $event) {?>
-                <tr data-id="<?php echo $event->id?>"
-                    data-uri="admin/viewDeletionRequest/<?php echo $event->id?>">
-                    <td>
-                        <?php echo $event->NHSDate('last_modified_date')?>
-                        <?php echo substr($event->last_modified_date, 11, 5)?>
-                    </td>
-                    <td><?php echo $event->usermodified->fullName?></td>
-                    <td>
-                        <a href="<?php echo Yii::app()->createUrl('/'.$event->eventType->class_name.'/default/view/'.$event->id)?>">
-                            <?php echo $event->eventType->name?>
-                            <?php echo $event->id?></a>
-                    </td>
-                    <td><?php echo $event->delete_reason?></td>
-                    <td>
+        <tbody>
+        <?php if (empty($events)): ?>
+            <tr>
+                <td colspan="5" class="text-center">No events pending deletion</td>
+            </tr>
+        <?php else: foreach ($events as $i => $event) {?>
+            <tr data-id="<?php echo $event->id?>"
+                data-uri="admin/viewDeletionRequest/<?php echo $event->id?>">
+                <td>
+                    <?php echo $event->NHSDate('last_modified_date')?>
+                    <?php echo substr($event->last_modified_date, 11, 5)?>
+                </td>
+                <td><?php echo $event->usermodified ? $event->usermodified->fullName : 'Unknown'?></td>
+                <td>
+                    <a href="<?php echo Yii::app()->createUrl('/'.$event->eventType->class_name.'/default/view/'.$event->id)?>">
+                        <?php echo $event->eventType ? $event->eventType->name : 'Unknown'?>
+                        <?php echo $event->id?></a>
+                </td>
+                <td><?php echo $event->delete_reason?></td>
+                <td>
+                    <form method="post" class="deletion-request-form">
+                        <input type="hidden" name="event_id" value="<?php echo $event->id?>" />
+                        <input type="hidden" name="YII_CSRF_TOKEN"
+                               value="<?php echo Yii::app()->request->csrfToken?>" />
                         <?=\CHtml::submitButton(
                             'Approve',
                             [
                                 'class' => 'button large',
-                                'id' => 'et_approve',
+                                'id' => 'et_approve_' . $event->id,
                                 'name' => 'approve'
                             ]
                         );?>
@@ -72,16 +82,16 @@
                             'Reject',
                             [
                                 'class' => 'button large',
-                                'id' => 'et_reject',
+                                'id' => 'et_reject_' . $event->id,
                                 'name' => 'reject'
                             ]
                         );?>
-                    </td>
-                </tr>
-            <?php }?>
-            </tbody>
-        </table>
-    </form>
+                    </form>
+                </td>
+            </tr>
+        <?php } endif; ?>
+        </tbody>
+    </table>
 </div>
 <script type="text/javascript">
     $(document).ready(function() {

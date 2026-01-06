@@ -19,7 +19,7 @@
 $core_api = new CoreAPI();
 ?>
 <tr class="<?php
-    echo (($i % 2 == 0) ? 'even' : 'edd');
+    echo (($i % 2 == 0) ? 'even' : 'odd');
     echo ($log->colour ? ' '.strtolower($log->colour) : '');?>" 
     id="audit<?php echo $log->id?>" <?php if (@$hidden) {
         ?> style="display: none;"<?php

@@ -28,6 +28,9 @@ class AuditController extends BaseController
     {
         return array(
             array('allow',
+                'actions' => array('index', 'search', 'updateList', 'users'),
+            ),
+            array('allow',
                 'roles' => array('TaskViewAudit'),
             ),
         );
@@ -48,7 +51,7 @@ class AuditController extends BaseController
     public function actionSearch()
     {
         if (isset($_POST['page'])) {
-            $data = $this->getData($_POST['page']);
+            $data = $this->getData((int)$_POST['page']);
         } else {
             $data = $this->getData();
         }
@@ -64,7 +67,7 @@ class AuditController extends BaseController
         $criteria = new CDbCriteria();
         $request = \Yii::app()->getRequest();
         $user_name = $request->getParam('oe-autocompletesearch');
-        $institution_id = Yii::app()->user->checkAccess('Institution Audit') ? $request->getParam('institution_id') : Yii::app()->session['selected_institution_id'];
+        $institution_id = Yii::app()->user->checkAccess('Institution Audit') ? $request->getParam('institution_id') : (isset(Yii::app()->session['selected_institution_id']) ? Yii::app()->session['selected_institution_id'] : null);
         $site_id = $request->getParam('site_id');
         $firm_id = $request->getParam('firm_id');
         $action = $request->getParam('action');
@@ -105,11 +108,9 @@ class AuditController extends BaseController
             $user_ids = array();
 
             $criteria2 = new CDbCriteria();
-            $criteria2->addCondition(array("LOWER(concat_ws(' ',first_name,last_name)) = :term"));
+            $criteria2->addCondition("LOWER(concat_ws(' ',first_name,last_name)) = :term");
 
-            $params[':term'] = strtolower($user_name);
-
-            $criteria2->params = $params;
+            $criteria2->params[':term'] = strtolower($user_name);
 
             foreach (User::model()->findAll($criteria2) as $user) {
                 $user_ids[] = $user->id;
@@ -189,13 +190,7 @@ class AuditController extends BaseController
 
         $criteria->order = 't.id desc';
         $criteria->limit = $this->items_per_page;
-        if ($id) {
-            $criteria->addCondition('t.id > '.(integer) $id);
-        } else {
-            $criteria->offset = (($page - 1) * $this->items_per_page);
-        }
-
-        $data['items'] = Audit::model()->findAll($criteria);
+        
         $data['pages'] = ceil($data['total_items'] / $this->items_per_page);
         if ($data['pages'] < 1) {
             $data['pages'] = 1;
@@ -203,6 +198,14 @@ class AuditController extends BaseController
         if ($page > $data['pages']) {
             $page = $data['pages'];
         }
+        
+        if ($id) {
+            $criteria->addCondition('t.id > '.(integer) $id);
+        } else {
+            $criteria->offset = (($page - 1) * $this->items_per_page);
+        }
+
+        $data['items'] = Audit::model()->findAll($criteria);
         if (!$id) {
             $data['page'] = $page;
         }
@@ -232,11 +235,10 @@ class AuditController extends BaseController
 
         $criteria = new CDbCriteria();
 
-        $criteria->addCondition(array("LOWER(concat_ws(' ',first_name,last_name)) LIKE :term"));
+        $criteria->addCondition("LOWER(concat_ws(' ',first_name,last_name)) LIKE :term");
 
-        $params[':term'] = '%'.strtolower(strtr($_GET['term'], array('%' => '\%'))).'%';
+        $criteria->params[':term'] = '%'.strtolower(strtr($_GET['term'], array('%' => '\%'))).'%';
 
-        $criteria->params = $params;
         $criteria->order = 'first_name, last_name';
 
         foreach (User::model()->findAll($criteria) as $user) {

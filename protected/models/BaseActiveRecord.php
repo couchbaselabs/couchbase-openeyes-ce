@@ -106,6 +106,17 @@ class BaseActiveRecord extends CActiveRecord
     }
 
     /**
+     * Returns the model instance for query chaining.
+     * This method can be overridden by subclasses to apply active/inactive filtering.
+     *
+     * @return $this
+     */
+    public function active()
+    {
+        return $this;
+    }
+
+    /**
      * Shortened name of this model class, useful for namespaced modules.
      *
      * @return string
