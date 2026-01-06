@@ -214,23 +214,33 @@ $(document).ready(function() {
             'type': 'POST',
             'url': '/OphCoCorrespondence/oeadmin/internalReferralSettings/updateToLocationList',
             'data': data,
+			'dataType': 'json',
 			'beforeSend':function (){
             	$('#internal_referral_to_location .loader').show();
                 $('#internal_referral_to_location span.error').fadeOut(500);
 			},
-            'success': function (data) {
-			    // jQuery already parses JSON responses, so check if it's a string first
-			    if (typeof data === 'string') { data = JSON.parse(data); }
-
-                if(data.success === true){
-                    $('#internal_referral_to_location span.saved').show();
-                    $('#internal_referral_to_location span.saved').fadeOut(3000);
-                } else {
-                    $('#internal_referral_to_location span.error').show();
-                    if(data.message){
-                        $('#internal_referral_to_location span.error').text(data.message);
-                    }
-                }
+            'success': function (responseData) {
+			    // Handle response - jQuery with explicit dataType: 'json' will auto-parse
+			    try {
+				    // Ensure we have an object
+				    var data = responseData;
+				    if (typeof data === 'string') { 
+					    data = JSON.parse(data); 
+				    }
+	
+	                if(data.success === true){
+	                    $('#internal_referral_to_location span.saved').show();
+	                    $('#internal_referral_to_location span.saved').fadeOut(3000);
+	                } else {
+	                    $('#internal_referral_to_location span.error').show();
+	                    if(data.message){
+	                        $('#internal_referral_to_location span.error').text(data.message);
+	                    }
+	                }
+			    } catch (e) {
+				    $('#internal_referral_to_location span.error').show();
+				    $('#internal_referral_to_location span.error').text('Error processing response: ' + e.message);
+			    }
             },
 			'error': function(){
                 $('#internal_referral_to_location span.error').show();
