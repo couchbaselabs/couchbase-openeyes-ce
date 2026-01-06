@@ -206,25 +206,27 @@ class EventImageController extends BaseController
         $criteria->order = 'eye_id DESC';
 
         $model = EventImage::model()->find($criteria);
-        if (isset($model)) {
-            $file_mod_time = strtotime($model->last_modified_date);
-            $headers = $this->getRequestHeaders();
+        if (!isset($model)) {
+            throw new CHttpException(404, 'Event image not found');
+        }
 
-            header('Content-type: image/jpeg');
-            header('Cache-Control: private, immutable, max-age=31536000');
-            // Check if the client is validating his cache and if it is current.
-            if (isset($headers['If-Modified-Since']) && (strtotime($headers['If-Modified-Since']) == $file_mod_time)) {
-                // Client's cache IS current, so we just respond '304 Not Modified'.
-                header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $file_mod_time) . ' GMT', true, 304);
-            } else {
-                $image_data = $model->image_data;
-                // Image not cached or cache outdated, we respond '200 OK' and output the image.
-                header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $file_mod_time) . ' GMT', true, 200);
+        $file_mod_time = strtotime($model->last_modified_date);
+        $headers = $this->getRequestHeaders();
 
-                header('Content-transfer-encoding: binary');
-                header('Content-length: ' . strlen($image_data));
-                echo $image_data;
-            }
+        header('Content-type: image/jpeg');
+        header('Cache-Control: private, immutable, max-age=31536000');
+        // Check if the client is validating his cache and if it is current.
+        if (isset($headers['If-Modified-Since']) && (strtotime($headers['If-Modified-Since']) == $file_mod_time)) {
+            // Client's cache IS current, so we just respond '304 Not Modified'.
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $file_mod_time) . ' GMT', true, 304);
+        } else {
+            $image_data = $model->image_data;
+            // Image not cached or cache outdated, we respond '200 OK' and output the image.
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $file_mod_time) . ' GMT', true, 200);
+
+            header('Content-transfer-encoding: binary');
+            header('Content-length: ' . strlen($image_data));
+            echo $image_data;
         }
     }
 
