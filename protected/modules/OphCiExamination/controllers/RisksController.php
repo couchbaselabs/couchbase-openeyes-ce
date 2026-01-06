@@ -55,8 +55,9 @@ class RisksController extends \BaseController
      * @deprecated
      */
 
-    public function actionForTags($tag_ids = '')
+    public function actionForTags()
     {
+        $tag_ids = \Yii::app()->request->getParam('tag_ids', '');
         if (empty($tag_ids)) {
             echo \CJSON::encode(array());
             return;
@@ -64,8 +65,9 @@ class RisksController extends \BaseController
         echo \CJSON::encode($this->riskIdsForTagIds(explode(",", $tag_ids)));
     }
 
-    public function actionForSets($set_ids = '')
+    public function actionForSets()
     {
+        $set_ids = \Yii::app()->request->getParam('set_ids', '');
         if (empty($set_ids)) {
             echo \CJSON::encode(array());
             return;
@@ -88,8 +90,9 @@ class RisksController extends \BaseController
         );
     }
 
-    public function actionForRefMedication($id = null)
+    public function actionForRefMedication()
     {
+        $id = \Yii::app()->request->getParam('id', null);
         if ($id === null) {
             echo \CJSON::encode(array());
             return;
@@ -130,8 +133,9 @@ class RisksController extends \BaseController
      * @deprecated
      */
 
-    public function actionForMedicationDrugIds($ids = '')
+    public function actionForMedicationDrugIds()
     {
+        $ids = \Yii::app()->request->getParam('ids', '');
         if (empty($ids)) {
             echo \CJSON::encode(array());
             return;
