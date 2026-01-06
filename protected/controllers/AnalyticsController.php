@@ -1736,6 +1736,14 @@ class AnalyticsController extends BaseController
 
         $time_interval_unit = $time_interval['unit'];
         $time_interval_num = $time_interval['num'];
+        
+        // Validate that queries are properly initialized
+        if (is_null($reading_query)) {
+            throw new CException("Invalid plot type: " . $plot_type);
+        }
+        if (is_null($op_query)) {
+            throw new CException("Invalid subspecialty: " . $subspecialty);
+        }
 
         return Yii::app()->cbdb->createCommand()
             ->select(

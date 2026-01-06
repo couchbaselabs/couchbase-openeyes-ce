@@ -36,7 +36,7 @@
         </tr>
         <?php } ?>
         <tr class="draggablelist-empty" style="display: none">
-            <td colspan="2" class="text-center">(drag items here)</td>
+            <td colspan="3" class="text-center">(drag items here)</td>
         </tr>
     </tbody>
 </table>
