@@ -76,6 +76,7 @@ class InternalReferralSettingsController extends ModuleAdminController
 
         try {
             $is_ok = true;
+            $site = null;
 
             //now we save the new ones
             foreach ($locations_post as $location_post) {
@@ -102,7 +103,7 @@ class InternalReferralSettingsController extends ModuleAdminController
 
                 $message = null;
                 // we just return the first error now
-                if ($site->getErrors()) {
+                if ($site && $site->getErrors()) {
                     $message = array_shift($site->getErrors());
                     $message = $message[0];
                 }
