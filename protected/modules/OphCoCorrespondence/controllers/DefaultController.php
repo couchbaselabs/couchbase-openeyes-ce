@@ -244,7 +244,7 @@ class DefaultController extends BaseEventTypeController
             if ($macro->cc_patient) {
                 if ($patient->isDeceased()) {
                     $data['alert'] = "Warning: the patient cannot be cc'd because they are deceased.";
-                } elseif ($patient->contact->address) {
+                } elseif ($patient->contact && $patient->contact->address) {
                     $cc['text'][] = $patient->getLetterAddress(array(
                         'include_name' => true,
                         'include_label' => true,
@@ -656,7 +656,10 @@ class DefaultController extends BaseEventTypeController
         }
         
         if ($id === null) {
-            throw new CHttpException(400, 'Event ID is required for print action. Please navigate to a correspondence event and use the print button.');
+            // No ID provided - render an error message via view instead of throwing exception
+            $this->layout = false;
+            $this->renderText('<html><head><title>Correspondence Print</title></head><body style="padding: 20px; font-family: Arial, sans-serif;"><h2>Correspondence Print</h2><p>To print a correspondence letter, please:</p><ol><li>Navigate to a patient record</li><li>Select a Correspondence event</li><li>Use the Print button to print the letter</li></ol></body></html>');
+            return;
         }
         $this->actionPrintForRecipient($id);
     }
@@ -915,7 +918,8 @@ class DefaultController extends BaseEventTypeController
     public function actionDoPrintAndView($id = null)
     {
         if ($id === null) {
-            throw new CHttpException(400, 'Event ID is required for print and view action.');
+            $this->renderJSON(['error' => 'Event ID is required for print and view action.']);
+            return;
         }
         if ($this->setPrintForEvent($id)) {
             $this->redirect(array('default/view/' . $id));
@@ -1010,12 +1014,22 @@ class DefaultController extends BaseEventTypeController
      * @param $firm_id
      * @throws Exception when firm not found by ID
      */
-    public function actionGetSalutationByFirm($firm_id)
+    public function actionGetSalutationByFirm($firm_id = null)
     {
+        if ($firm_id === null) {
+            $firm_id = Yii::app()->request->getParam('firm_id');
+        }
+        
+        if (empty($firm_id)) {
+            $this->renderJSON(['error' => 'Missing required parameter: firm_id']);
+            return;
+        }
+        
         $firm = Firm::model()->findByPk($firm_id);
 
         if (!$firm) {
-            throw new Exception(Firm::contextLabel() . " not found. ID: $firm_id");
+            $this->renderJSON(['error' => Firm::contextLabel() . " not found. ID: $firm_id"]);
+            return;
         }
         $user = User::model()->with('contact')->findByPk($firm->consultant_id);
 
