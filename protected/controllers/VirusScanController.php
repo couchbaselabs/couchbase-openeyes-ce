@@ -57,7 +57,7 @@ class VirusScanController extends BaseController
 
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(getcwd() . '/protected/files/'));
         foreach ($iterator as $file) {
-            if ($file->isDir() || str_contains($file, 'quarantine')) continue;
+            if ($file->isDir() || str_contains($file->getPathname(), 'quarantine')) continue;
             $file_paths[] = $file->getPathname();
         }
 

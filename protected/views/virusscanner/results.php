@@ -6,15 +6,16 @@
 </div>
 <div class="oe-full-content">
     <div class="cols-9">
-            <form action="/VirusScan/removeInfectedFiles">
-                <?php
-                echo CHtml::hiddenField('scan_id', $data['scan_id']);
-                echo CHtml::submitButton(
-                    'Remove Infected Files',
-                    array('class' => 'button red hint')
-                );
-                ?>
-            </form>
+            <?php
+            echo CHtml::form(array('virusScan/removeInfectedFiles'), 'post');
+            echo CHtml::hiddenField('scan_id', $data['scan_id']);
+            echo CHtml::submitButton(
+                'Remove Infected Files',
+                array('class' => 'button red hint')
+            );
+            echo CHtml::endForm();
+            ?>
+
 
             <?php
             $dataProvider = new CActiveDataProvider('VirusScanItem', array(
