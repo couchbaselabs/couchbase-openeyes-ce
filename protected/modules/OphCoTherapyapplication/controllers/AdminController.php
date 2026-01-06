@@ -152,6 +152,11 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteDiagnoses()
     {
+        // Validate that diagnoses parameter is provided and not empty
+        if (!isset($_POST['diagnoses']) || empty($_POST['diagnoses'])) {
+            throw new CHttpException(400, 'Missing required parameter: diagnoses');
+        }
+
         foreach (OphCoTherapyapplication_TherapyDisorder::model()->findAllByPK($_POST['diagnoses']) as $diagnosis) {
             $parent_id = $diagnosis->parent_id;
             $disorder_id = $diagnosis->disorder_id;
@@ -301,11 +306,19 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteTreatments()
     {
+        // Validate that treatments parameter is provided
+        if (!isset($_POST['treatments']) || empty($_POST['treatments'])) {
+            echo '0'; // Return failure if no treatments specified
+            return;
+        }
+
         $result = 1;
 
         foreach (OphCoTherapyapplication_Treatment::model()->findAllByPK($_POST['treatments']) as $treatment) {
             if (!$treatment->delete()) {
                 $result = 0;
+            } else {
+                Audit::add('admin', 'delete', $treatment->id, null, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_Treatment'));
             }
         }
 
@@ -524,10 +537,31 @@ class AdminController extends ModuleAdminController
         $criteria = new CDbCriteria();
         $criteria->condition = 'institution_id is null OR institution_id = :institution_id';
         $criteria->params = array(':institution_id' => Yii::app()->session['selected_institution_id']);
+        $criteria->order = 'UPPER(name) ASC';
+
+        $model_list = OphCoTherapyapplication_FileCollection::model()->findAll($criteria);
+        
+        // Fallback to direct database query if no results and Couchbase might be in use
+        if (empty($model_list)) {
+            $selected_institution_id = Yii::app()->session['selected_institution_id'];
+            $sql = 'SELECT * FROM ophcotherapya_filecoll 
+                    WHERE institution_id IS NULL OR institution_id = :institution_id
+                    ORDER BY UPPER(name) ASC';
+            $command = Yii::app()->db->createCommand($sql);
+            $command->bindParam(':institution_id', $selected_institution_id, PDO::PARAM_INT);
+            $records = $command->queryAll();
+            
+            $model_list = array();
+            foreach ($records as $record) {
+                $model = new OphCoTherapyapplication_FileCollection();
+                $model->setAttributes($record, false);
+                $model_list[] = $model;
+            }
+        }
 
         $this->render('list_OphCoTherapyapplication_FileCollection', array(
                 'model_class' => 'OphCoTherapyapplication_FileCollection',
-                'model_list' => OphCoTherapyapplication_FileCollection::model()->findAll($criteria),
+                'model_list' => $model_list,
                 'title' => 'File Collections',
         ));
     }
@@ -550,6 +584,10 @@ class AdminController extends ModuleAdminController
     public function actionViewOphCoTherapyapplication_FileCollection($id)
     {
         $model = OphCoTherapyapplication_FileCollection::model()->findByPk((int) $id);
+
+        if (!$model) {
+            throw new CHttpException(404, 'Unable to find the requested File Collection');
+        }
 
         Audit::add('admin', 'view', $id, null, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_FileCollection'));
 
@@ -698,20 +736,29 @@ class AdminController extends ModuleAdminController
     public function actionRemoveFileCollection_File()
     {
         try {
-            $collection = OphCoTherapyapplication_FileCollection::model()->findByPk(@$_GET['filecollection_id']);
-            if (!$collection) {
-                $this->renderJSON(array('success' => false));
+            // Validate required parameters
+            $filecollection_id = isset($_GET['filecollection_id']) ? (int)$_GET['filecollection_id'] : null;
+            $file_id = isset($_GET['file_id']) ? (int)$_GET['file_id'] : null;
+            
+            if (!$filecollection_id || !$file_id) {
+                $this->renderJSON(array('success' => false, 'error' => 'Missing required parameters'));
                 return;
             }
             
-            if ($collection->removeFileById(@$_GET['file_id'])) {
+            $collection = OphCoTherapyapplication_FileCollection::model()->findByPk($filecollection_id);
+            if (!$collection) {
+                $this->renderJSON(array('success' => false, 'error' => 'Collection not found'));
+                return;
+            }
+            
+            if ($collection->removeFileById($file_id)) {
                 $this->renderJSON(array('success' => true));
             } else {
-                $this->renderJSON(array('success' => false));
+                $this->renderJSON(array('success' => false, 'error' => 'Failed to remove file'));
             }
         } catch (Exception $e) {
-            Yii::log("couldn't remove file (".@$_GET['file_id'].') from collection ('.@$_GET['filecollection_id'].')'.$e->getMessage(), 'error');
-            $this->renderJSON(array('success' => false));
+            Yii::log("couldn't remove file (".(@$_GET['file_id']).') from collection ('.(@$_GET['filecollection_id']).'): '.$e->getMessage(), 'error');
+            $this->renderJSON(array('success' => false, 'error' => 'An error occurred while removing the file'));
         }
     }
 
@@ -806,6 +853,11 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteEmailRecipients()
     {
+        // Validate that this is a POST request and email_recipients parameter is provided
+        if (!isset($_POST['email_recipients']) || empty($_POST['email_recipients'])) {
+            throw new CHttpException(400, 'Missing required parameter: email_recipients');
+        }
+
         $result = 1;
 
         foreach (OphCoTherapyapplication_Email_Recipient::model()->findAllByPK($_POST['email_recipients']) as $email_recipient) {

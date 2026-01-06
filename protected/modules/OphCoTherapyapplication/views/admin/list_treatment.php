@@ -38,7 +38,7 @@
                     <tr class="clickable" data-id="<?php echo $model->id?>" data-uri="OphCoTherapyapplication/admin/editTreatment/<?php echo $model->id?>">
                         <td><input type="checkbox" name="treatments[]" value="<?php echo $model->id?>" /></td>
                         <td>
-                            <?php echo $model->name?>
+                            <?php echo $model->getName()?>
                         </td>
                     </tr>
                 <?php }?>
