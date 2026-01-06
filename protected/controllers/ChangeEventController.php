@@ -222,6 +222,12 @@ class ChangeEventController extends BaseController
             return;
         }
         
+        // Check if event has an episode and the episode has a status
+        if (!$event->episode || !$event->episode->status) {
+            $this->renderJSON([]);
+            return;
+        }
+        
         $workflow = \OEModule\OphCiExamination\models\OphCiExamination_Workflow_Rule::model()->findWorkflowCascading(
             $firm_id, $event->episode->status->id
         );
