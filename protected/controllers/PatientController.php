@@ -484,7 +484,6 @@ class PatientController extends BaseController
         }
 
         echo json_encode($plans);
-        Yii::app()->end();
     }
 
         /**
