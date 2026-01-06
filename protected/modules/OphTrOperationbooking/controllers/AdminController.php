@@ -464,9 +464,8 @@ class AdminController extends ModuleAdminController
 
         Audit::add('admin', 'list', null, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Waiting_List_Contact_Rule'));
 
-        // TEMPORARY: Don't pass institution_id to test if data exists
         $this->render('/admin/waiting_list_contact_rules/index', array(
-            'data' => OphTrOperationbooking_Waiting_List_Contact_Rule::model()->findAllAsTree(null, true, 'text', null),
+            'data' => OphTrOperationbooking_Waiting_List_Contact_Rule::model()->findAllAsTree(null, true, 'text', Institution::model()->getCurrent()->id),
         ));
     }
 
