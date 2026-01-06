@@ -188,96 +188,81 @@ class DefaultController extends BaseEventTypeController
 
             $macro->substitute($patient);
 
-        if ($macro->recipient && $macro->recipient->name === 'Patient') {
-            $data['sel_address_target'] = 'Patient' . $patient->id;
-            $contact = $patient;
-            if ($patient->isDeceased()) {
-                $this->renderJSON(array('error' => 'DECEASED'));
+            if ($macro->recipient && $macro->recipient->name === 'Patient') {
+                $data['sel_address_target'] = 'Patient' . $patient->id;
+                $contact = $patient;
+                if ($patient->isDeceased()) {
+                    $this->renderJSON(array('error' => 'DECEASED'));
 
-                return;
+                    return;
+                }
             }
-        }
 
-        if ($macro->recipient && ($macro->recipient->name === SettingMetadata::model()->getSetting('gp_label') || $macro->recipient->name === 'GP')) {
-            if ($contact = $patient->gp ?: $patient->practice) {
-                $data['sel_address_target'] = get_class($contact) . $contact->id;
+            if ($macro->recipient && ($macro->recipient->name === SettingMetadata::model()->getSetting('gp_label') || $macro->recipient->name === 'GP')) {
+                if ($contact = $patient->gp ?: $patient->practice) {
+                    $data['sel_address_target'] = get_class($contact) . $contact->id;
+                }
             }
-        }
 
-        if ($macro->recipient && $macro->recipient->name === 'Optometrist') {
-            $contact = $patient->getPatientOptometrist();
+            if ($macro->recipient && $macro->recipient->name === 'Optometrist') {
+                $contact = $patient->getPatientOptometrist();
+                if (isset($contact)) {
+                    $data['sel_address_target'] = get_class($contact) . $contact->id;
+                }
+            }
+
             if (isset($contact)) {
-                $data['sel_address_target'] = get_class($contact) . $contact->id;
-            }
-        }
-
-        if (isset($contact)) {
-            $address = $contact->getLetterAddress(array(
-                'patient' => $patient,
-                'include_name' => true,
-                'include_label' => true,
-                'delimiter' => "\n",
-            ));
-
-            if ($address) {
-                $data['text_ElementLetter_address'] = $address;
-            } else {
-                $data['alert'] = 'The contact does not have a valid address.';
-                $data['text_ElementLetter_address'] = '';
-            }
-
-            $data['text_ElementLetter_introduction'] = $contact->getLetterIntroduction(array(
-                'nickname' => $macro->use_nickname,
-            ));
-        }
-
-        $data['check_ElementLetter_use_nickname'] = $macro->use_nickname;
-
-        if ($macro->body) {
-            $data['text_ElementLetter_body'] = $macro->body;
-        }
-
-        $cc = array(
-            'text' => array(),
-            'targets' => array(),
-        );
-        if ($macro->cc_patient) {
-            if ($patient->isDeceased()) {
-                $data['alert'] = "Warning: the patient cannot be cc'd because they are deceased.";
-            } elseif ($patient->contact->address) {
-                $cc['text'][] = $patient->getLetterAddress(array(
+                $address = $contact->getLetterAddress(array(
+                    'patient' => $patient,
                     'include_name' => true,
                     'include_label' => true,
-                    'delimiter' => ', ',
-                    'include_prefix' => true,
+                    'delimiter' => "\n",
                 ));
-                $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="Patient' . $patient->id . '" />';
-            } else {
-                $data['alert'] = 'Letters to the '
-                    . \SettingMetadata::model()->getSetting('gp_label')
-                    . " should be cc'd to the patient, but this patient does not have a valid address.";
+
+                if ($address) {
+                    $data['text_ElementLetter_address'] = $address;
+                } else {
+                    $data['alert'] = 'The contact does not have a valid address.';
+                    $data['text_ElementLetter_address'] = '';
+                }
+
+                $data['text_ElementLetter_introduction'] = $contact->getLetterIntroduction(array(
+                    'nickname' => $macro->use_nickname,
+                ));
             }
-        }
 
-        /**
-         * @var $cc_contact Gp|Practice
-         */
-        if ($macro->cc_doctor && $cc_contact = $patient->gp ?: $patient->practice) {
-            $cc['text'][] = $cc_contact->getLetterAddress(array(
-                'patient' => $patient,
-                'include_name' => true,
-                'include_label' => true,
-                'delimiter' => ', ',
-                'include_prefix' => true,
-            ));
-            $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="' . get_class(
-                    $cc_contact
-                ) . $cc_contact->id . '" />';
-        }
+            $data['check_ElementLetter_use_nickname'] = $macro->use_nickname;
 
-        if ($macro->cc_optometrist) {
-            $cc_contact = $contact = $patient->getPatientOptometrist();
-            if ($cc_contact) {
+            if ($macro->body) {
+                $data['text_ElementLetter_body'] = $macro->body;
+            }
+
+            $cc = array(
+                'text' => array(),
+                'targets' => array(),
+            );
+            if ($macro->cc_patient) {
+                if ($patient->isDeceased()) {
+                    $data['alert'] = "Warning: the patient cannot be cc'd because they are deceased.";
+                } elseif ($patient->contact->address) {
+                    $cc['text'][] = $patient->getLetterAddress(array(
+                        'include_name' => true,
+                        'include_label' => true,
+                        'delimiter' => ', ',
+                        'include_prefix' => true,
+                    ));
+                    $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="Patient' . $patient->id . '" />';
+                } else {
+                    $data['alert'] = 'Letters to the '
+                        . \SettingMetadata::model()->getSetting('gp_label')
+                        . " should be cc'd to the patient, but this patient does not have a valid address.";
+                }
+            }
+
+            /**
+             * @var $cc_contact Gp|Practice
+             */
+            if ($macro->cc_doctor && $cc_contact = $patient->gp ?: $patient->practice) {
                 $cc['text'][] = $cc_contact->getLetterAddress(array(
                     'patient' => $patient,
                     'include_name' => true,
@@ -285,55 +270,70 @@ class DefaultController extends BaseEventTypeController
                     'delimiter' => ', ',
                     'include_prefix' => true,
                 ));
-                $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="'
-                    . get_class($cc_contact)
-                    . $cc_contact->id . '" />';
+                $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="' . get_class(
+                        $cc_contact
+                    ) . $cc_contact->id . '" />';
             }
-        }
 
-        if ($macro->cc_drss) {
-            $commissioningbodytype = CommissioningBodyType::model()->find('shortname = ?', array('CCG'));
-            if ($commissioningbodytype && $commissioningbody = $patient->getCommissioningBodyOfType(
-                    $commissioningbodytype
-                )) {
-                $drss = null;
-                foreach ($commissioningbody->services as $service) {
-                    if ($service->type->shortname === 'DRSS') {
-                        $cc['text'][] = $service->getLetterAddress(array(
-                            'include_name' => true,
-                            'include_label' => true,
-                            'delimiter' => ', ',
-                            'include_prefix' => true,
-                        ));
-                        $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="CommissioningBodyService' . $service->id . '" />';
-                        break;
+            if ($macro->cc_optometrist) {
+                $cc_contact = $contact = $patient->getPatientOptometrist();
+                if ($cc_contact) {
+                    $cc['text'][] = $cc_contact->getLetterAddress(array(
+                        'patient' => $patient,
+                        'include_name' => true,
+                        'include_label' => true,
+                        'delimiter' => ', ',
+                        'include_prefix' => true,
+                    ));
+                    $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="'
+                        . get_class($cc_contact)
+                        . $cc_contact->id . '" />';
+                }
+            }
+
+            if ($macro->cc_drss) {
+                $commissioningbodytype = CommissioningBodyType::model()->find('shortname = ?', array('CCG'));
+                if ($commissioningbodytype && $commissioningbody = $patient->getCommissioningBodyOfType(
+                        $commissioningbodytype
+                    )) {
+                    $drss = null;
+                    foreach ($commissioningbody->services as $service) {
+                        if ($service->type->shortname === 'DRSS') {
+                            $cc['text'][] = $service->getLetterAddress(array(
+                                'include_name' => true,
+                                'include_label' => true,
+                                'delimiter' => ', ',
+                                'include_prefix' => true,
+                            ));
+                            $cc['targets'][] = '<input type="hidden" name="CC_Targets[]" value="CommissioningBodyService' . $service->id . '" />';
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        $data['textappend_ElementLetter_cc'] = implode("\n", $cc['text']);
-        $data['elementappend_cc_targets'] = implode("\n", $cc['targets']);
-        $data['sel_letter_type_id'] = $macro->letter_type_id;
+            $data['textappend_ElementLetter_cc'] = implode("\n", $cc['text']);
+            $data['elementappend_cc_targets'] = implode("\n", $cc['targets']);
+            $data['sel_letter_type_id'] = $macro->letter_type_id;
 
-        $macroInitAssocContent = MacroInitAssociatedContent::model()->findAllByAttributes(
-            array('macro_id' => $macro->id),
-            array('order' => 'display_order asc')
-        );
-        $data['associated_content'] = '';
-        $data['checkAttachmentFileExist'] = 0;
+            $macroInitAssocContent = MacroInitAssociatedContent::model()->findAllByAttributes(
+                array('macro_id' => $macro->id),
+                array('order' => 'display_order asc')
+            );
+            $data['associated_content'] = '';
+            $data['checkAttachmentFileExist'] = 0;
 
-        if ($macroInitAssocContent !== null) {
-            $data['associated_content'] = $this->renderPartial('event_associated_content', array(
-                'init_associated_content' => $macroInitAssocContent,
-                'patient' => $patient,
-                'api' => Yii::app()->moduleAPI->get('OphCoCorrespondence'),
-            ), true);
-        } else {
-            $data['associated_content'] = $this->renderPartial('event_associated_content_select', array(
-                'patient' => $patient,
-                'api' => Yii::app()->moduleAPI->get('OphCoCorrespondence')
-            ), true);
+            if ($macroInitAssocContent !== null) {
+                $data['associated_content'] = $this->renderPartial('event_associated_content', array(
+                    'init_associated_content' => $macroInitAssocContent,
+                    'patient' => $patient,
+                    'api' => Yii::app()->moduleAPI->get('OphCoCorrespondence'),
+                ), true);
+            } else {
+                $data['associated_content'] = $this->renderPartial('event_associated_content_select', array(
+                    'patient' => $patient,
+                    'api' => Yii::app()->moduleAPI->get('OphCoCorrespondence')
+                ), true);
         }
 
             $this->renderJSON($data);
