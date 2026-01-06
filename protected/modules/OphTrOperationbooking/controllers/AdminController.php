@@ -208,6 +208,15 @@ class AdminController extends ModuleAdminController
 
     public function actionTestLetterContactRules()
     {
+        // If not a POST request or AJAX request, render the index view
+        if (empty($_POST) && empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+            $this->jsVars['OE_rule_model'] = 'LetterContactRule';
+            $this->render('/admin/letter_contact_rule/index', array(
+                'data' => OphTrOperationbooking_Letter_Contact_Rule::model()->findAllAsTree(),
+            ));
+            return;
+        }
+
         $site_id = @$_POST['lcr_site_id'];
         $subspecialty_id = @$_POST['lcr_subspecialty_id'];
         $theatre_id = @$_POST['lcr_theatre_id'];
@@ -232,7 +241,7 @@ class AdminController extends ModuleAdminController
     public function actionEditLetterContactRule($id)
     {
         if (!$rule = OphTrOperationbooking_Letter_Contact_Rule::model()->findByPk($id)) {
-            throw new Exception("Letter contact rule not found: $id");
+            throw new CHttpException(404, "Letter contact rule not found: $id");
         }
 
         $errors = array();
@@ -261,7 +270,7 @@ class AdminController extends ModuleAdminController
     public function actionDeleteLetterContactRule($id)
     {
         if (!$rule = OphTrOperationbooking_Letter_Contact_Rule::model()->findByPk($id)) {
-            throw new Exception("Letter contact rule not found: $id");
+            throw new CHttpException(404, "Letter contact rule not found: $id");
         }
 
         $errors = array();
@@ -327,6 +336,15 @@ class AdminController extends ModuleAdminController
 
     public function actionTestLetterWarningRules()
     {
+        // If not a POST request or AJAX request, render the index view
+        if (empty($_POST) && empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+            $this->jsVars['OE_rule_model'] = 'LetterWarningRule';
+            $this->render('/admin/letter_warning_rules/index', array(
+                'data' => OphTrOperationbooking_Admission_Letter_Warning_Rule::model()->findAllAsTree(),
+            ));
+            return;
+        }
+
         $site_id = @$_POST['lcr_site_id'];
         $subspecialty_id = @$_POST['lcr_subspecialty_id'];
         $theatre_id = @$_POST['lcr_theatre_id'];
@@ -338,8 +356,6 @@ class AdminController extends ModuleAdminController
         $criteria->addCondition('rule_type_id = :rule_type_id');
         $criteria->params[':rule_type_id'] = @$_POST['lcr_rule_type_id'];
         $criteria->order = 'rule_order asc';
-
-        $rule_ids = array();
 
         foreach (OphTrOperationbooking_Admission_Letter_Warning_Rule::model()->findAll($criteria) as $rule) {
             if ($rule->applies($site_id, $is_child, $theatre_id, $subspecialty_id, $firm_id)) {
@@ -413,8 +429,12 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteLetterWarningRule($id)
     {
+        if (empty($id)) {
+            throw new CHttpException(400, "Letter warning rule ID is required");
+        }
+
         if (!$rule = OphTrOperationbooking_Admission_Letter_Warning_Rule::model()->findByPk($id)) {
-            throw new Exception("Letter warning rule not found: $id");
+            throw new CHttpException(404, "Letter warning rule not found: $id");
         }
 
         $errors = array();
@@ -733,6 +753,37 @@ class AdminController extends ModuleAdminController
         Audit::add('admin', 'view', $id, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Name_Rule'));
 
         $this->render('/admin/name_rule/edit', array(
+            'rule' => $rule,
+            'errors' => $errors,
+        ));
+    }
+
+    /**
+     * @param $id
+     * @throws Exception
+     */
+    public function actionDeleteOperationNameRule($id)
+    {
+        if (!$rule = OphTrOperationbooking_Operation_Name_Rule::model()->findByPk($id)) {
+            throw new Exception("Operation name rule not found: $id");
+        }
+
+        $errors = array();
+
+        if (!empty($_POST)) {
+            if (@$_POST['delete']) {
+                if (!$rule->delete()) {
+                    $errors = $rule->getErrors();
+                } else {
+                    Audit::add('admin', 'delete', $id, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Name_Rule'));
+                    $this->redirect(array('/OphTrOperationbooking/admin/viewOperationNameRules'));
+                }
+            }
+        }
+
+        Audit::add('admin', 'view', $id, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Name_Rule'));
+
+        $this->render('/admin/name_rule/delete', array(
             'rule' => $rule,
             'errors' => $errors,
         ));
@@ -1450,6 +1501,11 @@ class AdminController extends ModuleAdminController
             }
         }
 
+        if (empty($session_ids)) {
+            echo '0';
+            return;
+        }
+
         $criteria = new CDbCriteria();
         $criteria->addInCondition('t.session_id', $session_ids);
         $criteria->addCondition('booking_cancellation_date is null');
@@ -1501,6 +1557,11 @@ class AdminController extends ModuleAdminController
             foreach ($this->getSequences(true) as $sequence) {
                 $sequence_ids[] = $sequence->id;
             }
+        }
+
+        if (empty($sequence_ids)) {
+            echo '0';
+            return;
         }
 
         $criteria = new CDbCriteria();
