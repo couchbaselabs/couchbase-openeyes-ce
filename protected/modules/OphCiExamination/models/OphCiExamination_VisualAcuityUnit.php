@@ -158,11 +158,12 @@ class OphCiExamination_VisualAcuityUnit extends \BaseActiveRecordVersioned
     }
 
     public function getInitVaTicks($va_unit){
+        $va_ticks = array();
         foreach ($va_unit->selectableValues as $value) {
             $va_ticks[] = array($this->getAdjustedVA($value->base_value), $value->value);
         }
 
-        if ($va_ticks[0][1] !== 'NPL') {
+        if (!empty($va_ticks) && $va_ticks[0][1] !== 'NPL') {
             array_unshift($va_ticks, [$this->getAdjustedVA(4), 'CF']);
             array_unshift($va_ticks, [$this->getAdjustedVA(3), 'HM']);
             array_unshift($va_ticks, [$this->getAdjustedVA(2), 'PL']);
