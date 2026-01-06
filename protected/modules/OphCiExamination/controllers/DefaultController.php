@@ -493,16 +493,25 @@ class DefaultController extends \BaseEventTypeController
         $instrument_id = @$_GET['instrument_id'];
         $side = @$_GET['side'];
         $index = @$_GET['index'];
-        $instrument = models\OphCiExamination_Instrument::model()->findByPk($instrument_id);
-        if ($instrument) {
-            if ($scale = $instrument->scale) {
-                $value = new models\OphCiExamination_IntraocularPressure_Value();
-                $this->renderPartial(
-                    '_qualitative_scale',
-                    ['name' => $name, 'value' => $value, 'scale' => $scale, 'side' => $side, 'index' => $index]
-                );
-            }
+        
+        if (empty($instrument_id)) {
+            throw new \CHttpException(400, 'Missing required parameter: instrument_id');
         }
+        
+        $instrument = models\OphCiExamination_Instrument::model()->findByPk($instrument_id);
+        if (!$instrument) {
+            throw new \CHttpException(404, 'Instrument not found: ' . $instrument_id);
+        }
+        
+        if (!$scale = $instrument->scale) {
+            throw new \CHttpException(404, 'Scale not found for instrument: ' . $instrument_id);
+        }
+        
+        $value = new models\OphCiExamination_IntraocularPressure_Value();
+        $this->renderPartial(
+            '_qualitative_scale',
+            ['name' => $name, 'value' => $value, 'scale' => $scale, 'side' => $side, 'index' => $index]
+        );
     }
 
     public function actionSearchInstitutions($term = '')
@@ -694,33 +703,40 @@ class DefaultController extends \BaseEventTypeController
     {
         $isAjax = \Yii::app()->request->getParam('ajax', false);
 
-        if (\Yii::app()->request->isAjaxRequest || $isAjax) {
-            $select = array();
-            $term = \Yii::app()->request->getParam('term', false);
-
-            $element_id = \Yii::app()->request->getParam('element_id', null);
-            $operation_note_id = \Yii::app()->request->getParam('operation_note_id', null);
-            $eye_id = \Yii::app()->request->getParam('eye_id', null);
-
-            $firm = \Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
-            $subspecialty_id = $firm->serviceSubspecialtyAssignment ? $firm->serviceSubspecialtyAssignment->subspecialty_id : null;
-
-            if (isset($_GET['term']) && strlen($term = $_GET['term']) > 0) {
-                $select_values = models\OphCiExamination_PostOpComplications::model()->getPostOpComplicationsList(
-                    $element_id,
-                    $operation_note_id,
-                    $subspecialty_id,
-                    $eye_id,
-                    $term
-                );
-
-                foreach ($select_values as $select_value) {
-                    $select[] = array('value' => $select_value->id, 'label' => $select_value->name);
-                }
-            }
-
-            echo \CJSON::encode($select);
+        if (!(\Yii::app()->request->isAjaxRequest || $isAjax)) {
+            throw new \CHttpException(400, 'This action requires an AJAX request');
         }
+
+        $select = array();
+        $term = \Yii::app()->request->getParam('term', false);
+
+        $element_id = \Yii::app()->request->getParam('element_id', null);
+        $operation_note_id = \Yii::app()->request->getParam('operation_note_id', null);
+        $eye_id = \Yii::app()->request->getParam('eye_id', null);
+
+        $firm = \Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
+        if (!$firm) {
+            echo \CJSON::encode(array('success' => false, 'error' => 'Selected firm not found'));
+            return;
+        }
+
+        $subspecialty_id = $firm->serviceSubspecialtyAssignment ? $firm->serviceSubspecialtyAssignment->subspecialty_id : null;
+
+        if (isset($_GET['term']) && strlen($term = $_GET['term']) > 0) {
+            $select_values = models\OphCiExamination_PostOpComplications::model()->getPostOpComplicationsList(
+                $element_id,
+                $operation_note_id,
+                $subspecialty_id,
+                $eye_id,
+                $term
+            );
+
+            foreach ($select_values as $select_value) {
+                $select[] = array('value' => $select_value->id, 'label' => $select_value->name);
+            }
+        }
+
+        echo \CJSON::encode($select);
     }
 
     /**
@@ -733,7 +749,14 @@ class DefaultController extends \BaseEventTypeController
         $is_ajax = $this->getApp()->request->getParam('ajax', false);
         $cvi_api = $this->getApp()->moduleAPI->get('OphCoCvi');
 
-        if ($cvi_api && ($this->getApp()->request->isAjaxRequest || $is_ajax)) {
+        // Ensure this is an AJAX request
+        if (!($this->getApp()->request->isAjaxRequest || $is_ajax)) {
+            header('HTTP/1.1 400 Bad Request');
+            echo \CJSON::encode(array('success' => 'false', 'error' => 'This action requires an AJAX request'));
+            return;
+        }
+
+        if ($cvi_api) {
             if (empty($element_id)) {
                 echo \CJSON::encode(array('success' => 'false', 'error' => 'element_id is required'));
                 return;
@@ -752,6 +775,8 @@ class DefaultController extends \BaseEventTypeController
             } else {
                 echo \CJSON::encode(array('success' => 'false', 'error' => 'Failed to save element'));
             }
+        } else {
+            echo \CJSON::encode(array('success' => 'false', 'error' => 'OphCoCvi module API not available'));
         }
     }
 
@@ -1048,9 +1073,10 @@ class DefaultController extends \BaseEventTypeController
      */
     public function actionStep($id = null)
     {
-        // If no ID is provided, redirect to home or show an error
+        // If no ID is provided, redirect to home
         if (!$id) {
-            throw new \CHttpException(400, 'Event ID is required to access this page.');
+            header('Location: ' . Yii::app()->createAbsoluteUrl('/'));
+            exit;
         }
 
         $this->validateWorklistPatientRequest();
@@ -1402,7 +1428,8 @@ class DefaultController extends \BaseEventTypeController
     public function actionGetDisorder()
     {
         if (!@$_GET['disorder_id']) {
-            return;
+            $this->renderJSON(array('success' => false, 'error' => 'Disorder ID is required'));
+            Yii::app()->end();
         }
         if (!$disorder = \Disorder::model()->findByPk(@$_GET['disorder_id'])) {
             $this->renderJSON(array('success' => false, 'error' => 'Unable to find disorder: ' . @$_GET['disorder_id']));
@@ -2341,9 +2368,14 @@ class DefaultController extends \BaseEventTypeController
         if ($element->outcome_id == \OEModule\OphCiExamination\models\Element_OphCiExamination_Safeguarding::CONFIRM_SAFEGUARDING_CONCERNS) {
             $risk_entry = new \OEModule\OphCiExamination\models\HistoryRisksEntry();
 
-            $risk_entry->risk_id = \OEModule\OphCiExamination\models\OphCiExaminationRisk::model()->findByAttributes(
+            $safeguarding_risk = \OEModule\OphCiExamination\models\OphCiExaminationRisk::model()->findByAttributes(
                 array('name' => 'Safeguarding')
-            )->id;
+            );
+            if (!$safeguarding_risk) {
+                echo \CJSON::encode(array("success" => false, "errors" => array("safeguarding_risk" => array("Safeguarding risk not found in the database"))));
+                return;
+            }
+            $risk_entry->risk_id = $safeguarding_risk->id;
             $risk_entry->comments = $element->outcome_comments;
             $risk_entry->has_risk = 1;
 
@@ -2928,9 +2960,8 @@ class DefaultController extends \BaseEventTypeController
     {
         if (empty($assessment_ids)) {
             Yii::app()->clientScript->scriptMap['*.js'] = false;
-            header('Content-Type: application/json');
-            echo json_encode(['error' => 'No assessment IDs provided']);
-            Yii::app()->end();
+            http_response_code(400);
+            $this->renderJSON(['errorMessages' => ['No assessment IDs provided']]);
         }
         
         $assessment_ids = json_decode($assessment_ids);
@@ -3017,6 +3048,7 @@ class DefaultController extends \BaseEventTypeController
 
     public function actionGetAttachment($assessment_ids = null)
     {
+        $this->layout = false;
         $event_ids = [];
         
         if ($assessment_ids) {
@@ -3030,7 +3062,7 @@ class DefaultController extends \BaseEventTypeController
             }
         }
 
-        $this->widget(
+        echo $this->widget(
             'application.modules.OphGeneric.widgets.Attachment',
             [
                 'event_ids' => $event_ids,
@@ -3038,7 +3070,8 @@ class DefaultController extends \BaseEventTypeController
                 'element' => null,
                 'show_titles' => true,
                 'is_examination' => true,
-            ]
+            ],
+            true
         );
     }
 
