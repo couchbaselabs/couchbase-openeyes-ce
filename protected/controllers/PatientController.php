@@ -484,6 +484,7 @@ class PatientController extends BaseController
         }
 
         echo json_encode($plans);
+        Yii::app()->end();
     }
 
         /**
@@ -500,8 +501,10 @@ class PatientController extends BaseController
         $new_plan = $request->getPost('new_plan');
         $patient_id = $request->getPost('patient_id');
 
-        $transaction = \Yii::app()->cbdb->beginTransaction();
+        $transaction = null;
         try {
+            $transaction = \Yii::app()->cbdb->beginTransaction();
+            
             if ($new_plan) {
                 $display_order = (is_array($plan_ids) ? count($plan_ids) + 1 : 1);
                 $plan_name = strip_tags($new_plan);
@@ -528,12 +531,17 @@ class PatientController extends BaseController
                 }
             }
 
-            $transaction->commit();
+            if ($transaction) {
+                $transaction->commit();
+            }
         } catch (Exception $exception) {
-            \Yii::log($exception);
-            $transaction->rollback();
+            \Yii::log('PlansProblems update failed: ' . $exception->getMessage());
+            if ($transaction) {
+                $transaction->rollback();
+            }
+            header("HTTP/1.0 500 Internal Server Error");
+            die(json_encode(['error' => $exception->getMessage()]));
         }
-
 
         echo $this->actionGetPlansProblems($patient_id);
     }
