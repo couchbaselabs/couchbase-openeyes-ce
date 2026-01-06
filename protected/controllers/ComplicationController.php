@@ -18,19 +18,10 @@
 
 /**
  * ComplicationController
- * This controller provides the /complication/list route by delegating to the oeadmin version
+ * This controller provides the /complication/list route
  */
 class ComplicationController extends BaseAdminController
 {
-    /**
-     * Redirect all actions to the oeadmin controller
-     */
-    public function __call($name, $parameters)
-    {
-        $oeadminController = new \OeadminComplicationController();
-        return call_user_func_array(array($oeadminController, $name), $parameters);
-    }
-
     public function actionList()
     {
         $criteria = new CDbCriteria();
@@ -38,8 +29,7 @@ class ComplicationController extends BaseAdminController
 
         if (Yii::app()->request->isPostRequest) {
             if ($search['query']) {
-                $criteria->addCondition('name = :query', 'OR');
-                $criteria->addCondition('id = :query', 'OR');
+                $criteria->addCondition('(name = :query OR id = :query)');
                 $criteria->params[':query'] = $search['query'];
             }
 
