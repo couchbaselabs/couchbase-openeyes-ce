@@ -442,7 +442,7 @@ $config = array(
                 'OphDrPGDPSD/admin/<action:\w+>' => 'OphDrPGDPSD/Admin/<action>',
 
                 // OphCoTherapyapplication admin routes - bypass ExaminationAdmin for OphCoTherapyapplication
-                'OphCoTherapyapplication/admin/<action:\w+>/<id:\d+>' => 'OphCoTherapyapplication/Admin/<action>?id=<id>',
+                'OphCoTherapyapplication/admin/<action:\w+>/<id:\d+>' => 'OphCoTherapyapplication/Admin/<action>',
                 'OphCoTherapyapplication/admin/<action:\w+>' => 'OphCoTherapyapplication/Admin/<action>',
 
                 // OphTrLaser admin routes - bypass ExaminationAdmin for OphTrLaser
@@ -454,16 +454,16 @@ $config = array(
                 'OphTrOperationbooking/admin/<action:\w+>' => 'OphTrOperationbooking/Admin/<action>',
 
                 // OphInDnaextraction routes - handle path parameters as query parameters
-                'OphInDnaextraction/<controller:\w+>/<action:\w+>/<id:\d+>' => 'OphInDnaextraction/<controller>/<action>?id=<id>',
+                'OphInDnaextraction/<controller:\w+>/<action:\w+>/<id:\d+>' => 'OphInDnaextraction/<controller>/<action>',
                 'OphInDnaextraction/<controller:\w+>/<action:\w+>' => 'OphInDnaextraction/<controller>/<action>',
 
                 // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCoCvi, OphDrPrescription, OphDrPGDPSD, OphCoTherapyapplication, OphTrLaser, or OphTrOperationbooking)
-                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>?id=<id>',
+                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>',
                 '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
-                '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>?id=<id>',
+                '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>' => '<module>/oeadmin/<controller>/<action>',
-                '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>?id=<id>',
-                'oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'oeadmin/<controller>/<action>?id=<id>',
+                '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>',
+                'oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'oeadmin/<controller>/<action>',
                 'oeadmin/<controller:\w+>/<action:\w+>' => 'oeadmin/<controller>/<action>',
                 // Support direct access to oeadmin controllers without the oeadmin prefix
                 'benefit/<action:\w+>/<id:\d+>' => 'oeadmin/benefit/<action>',
@@ -493,7 +493,7 @@ $config = array(
                 'uniqueCodes/<action:\w+>/<id:\d+>' => 'oeadmin/uniqueCodes/<action>',
                 'uniqueCodes/<action:\w+>' => 'oeadmin/uniqueCodes/<action>',
                 '<controller:\w+>/<id:\d+>' => '<controller>/view',
-                '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>?id=<id>',
+                '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
                 '<controller:\w+>/<action:\w+>' => '<controller>/<action>',
                 '<controller:\w+>/<action:\w+>/<hospital_num:\d+>' => 'patient/results',
             ),
