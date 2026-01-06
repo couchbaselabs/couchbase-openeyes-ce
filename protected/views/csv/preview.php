@@ -32,7 +32,7 @@
             echo CHtml::link('Back to upload page', '/csv/upload?context=' . $context ,['class' => 'button large',]);
         }
         else{
-            if (!empty($table)){ ?>
+            if (!empty($table) && isset($table[0])){ ?>
                 <div style="overflow: auto">
                     <table class="standard highlight-rows">
                         <tr>
@@ -55,6 +55,8 @@
                 </div>
                 <?php
                 echo CHtml::submitButton('Import', [ 'class' => 'button large']);
+            } else if (isset($csv_id) && $csv_id !== null) {
+                echo '<div class="alert alert-warning">No data rows found in the CSV file. Please ensure your CSV file contains data rows.</div>';
             }
             echo CHtml::link('Cancel', '/csv/upload?context=' . $context, ['class' => 'button large',]);
         }

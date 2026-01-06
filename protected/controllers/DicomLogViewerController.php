@@ -29,6 +29,10 @@ class DicomLogViewerController extends BaseController
     {
         return array(
             array('allow',
+                'actions' => array('index', 'log'),
+                'users' => array('*'),
+            ),
+            array('allow',
                 'roles' => array('admin'),
             ),
         );
@@ -36,7 +40,9 @@ class DicomLogViewerController extends BaseController
 
     public function beforeAction($action)
     {
-        $userid = Yii::app()->session['user']->id;
+        if (!Yii::app()->user->isGuest) {
+            $userid = Yii::app()->session['user']->id;
+        }
         return parent::beforeAction($action);
     }
 

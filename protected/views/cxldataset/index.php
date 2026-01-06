@@ -25,6 +25,12 @@
     <nav class="oe-full-side-panel">
         <h3>Select Date range for CXL Dataset</h3>
 
+        <?php if (isset($error) && !empty($error)): ?>
+            <div class="alert alert-danger" style="margin-bottom: 20px;">
+                <strong>Error:</strong> <?php echo CHtml::encode($error); ?>
+            </div>
+        <?php endif; ?>
+
         <div class="search-filters theatre-diaries">
             <form method="post" action="/CxlDataset/Generate" id="nod-export-filter" class="clearfix">
                 <input type="hidden" name="YII_CSRF_TOKEN" value="<?php echo Yii::app()->request->csrfToken ?>"/>

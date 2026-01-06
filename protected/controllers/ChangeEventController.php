@@ -127,7 +127,7 @@ class ChangeEventController extends BaseController
     protected function setFirmFromSession()
     {
         if (!$firm_id = $this->app->session->get('selected_firm_id')) {
-            throw new HttpException('Firm not selected');
+            throw new CHttpException(400, 'Firm not selected');
         }
         if (!$this->firm || $this->firm->id != $firm_id) {
             $this->firm = Firm::model()->findByPk($firm_id);

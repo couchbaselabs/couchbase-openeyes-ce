@@ -666,6 +666,10 @@ class AnalyticsController extends BaseController
      */
     public function actionMedicalRetina()
     {
+        // Ensure specialty parameter is set for Medical Retina
+        if (!Yii::app()->getRequest()->getParam("specialty")) {
+            $_REQUEST['specialty'] = 'Medical Retina';
+        }
         $this->reportDataDOM();
     }
 
@@ -674,6 +678,10 @@ class AnalyticsController extends BaseController
      */
     public function actionGlaucoma()
     {
+        // Ensure specialty parameter is set for Glaucoma
+        if (!Yii::app()->getRequest()->getParam("specialty")) {
+            $_REQUEST['specialty'] = 'Glaucoma';
+        }
         $this->reportDataDOM();
     }
 

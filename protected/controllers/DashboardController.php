@@ -26,11 +26,7 @@ class DashboardController extends BaseDashboardController
         return array(
             array('allow',
                 'actions' => array('index', 'printSvg'),
-                'expression' => 'Yii::app()->user->isSurgeon()',
-            ),
-            array('allow',
-                'actions' => array('index', 'printSvg'),
-                'roles' => array('admin'),
+                'roles' => array('*'),
             ),
             array('allow',
                 'actions' => array('oescape'),

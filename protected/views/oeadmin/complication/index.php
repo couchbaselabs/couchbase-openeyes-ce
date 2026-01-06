@@ -82,8 +82,8 @@
             <tbody>
             <?php
             foreach ($complications as $key => $complication) { ?>
-                <tr id="$key" class="clickable" data-id="<?php echo $complication->id ?>"
-                    data-uri="oeadmin/complication/edit/<?php echo $complication->id ?>?returnUri=">
+                <tr id="complication-<?php echo $key; ?>" class="clickable" data-id="<?php echo $complication->id ?>"
+                    data-uri="complication/edit/<?php echo $complication->id ?>?returnUri=">
                     <td>
                         <?php if ($this->isComplicationDeletable($complication)) : ?>
                             <input type="checkbox" name="select[]" value="<?php echo $complication->id ?>" id="select[<?=$complication->id ?>]"/>
@@ -107,7 +107,7 @@
                         'Add',
                         [
                             'class' => 'button large',
-                            'data-uri' => '/oeadmin/complication/edit',
+                            'data-uri' => '/complication/edit',
                             'name' => 'add',
                             'id' => 'et_add'
                         ]
@@ -118,7 +118,7 @@
                             'class' => 'button large',
                             'name' => 'delete',
                             'data-object' => 'benefit',
-                            'data-uri' => '/oeadmin/complication/delete',
+                            'data-uri' => '/complication/delete',
                             'id' => 'et_delete'
                         ]
                     ); ?>

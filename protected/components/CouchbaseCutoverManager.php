@@ -288,7 +288,9 @@ class CouchbaseCutoverManager
         $this->config['emergency_disable_timestamp'] = time();
         
         // Persist to config file
-        $this->saveConfig();
+        if (!$this->saveConfig()) {
+            throw new Exception("Failed to save emergency disable configuration to file");
+        }
         
         // Log alert
         Yii::log(
@@ -313,7 +315,9 @@ class CouchbaseCutoverManager
         $this->config['emergency_disable_reason'] = '';
         $this->config['emergency_disable_timestamp'] = null;
         
-        $this->saveConfig();
+        if (!$this->saveConfig()) {
+            throw new Exception("Failed to save emergency disable configuration to file");
+        }
         
         Yii::log(
             "Emergency disable cleared",
@@ -335,7 +339,9 @@ class CouchbaseCutoverManager
         $percentage = max(0, min(100, (int)$percentage));
         $this->config['couchbase_read_percentage'] = $percentage;
         
-        $this->saveConfig();
+        if (!$this->saveConfig()) {
+            throw new Exception("Failed to save traffic percentage configuration to file");
+        }
         
         Yii::log(
             "Traffic percentage set to: {$percentage}%",

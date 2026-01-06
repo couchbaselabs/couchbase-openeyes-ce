@@ -25,7 +25,10 @@ $(document).ready(function () {
 		let loginOverlay = $('#js-overlay');
 		loginOverlay.hide();
 
-		queueLoginOverlay();
+		// Only queue login overlay if user is authenticated
+		if(user_id !== null && typeof user_id !== 'undefined') {
+			queueLoginOverlay();
+		}
 	}
 
 	var openeyes = new OpenEyes.UI.NavBtnPopup('logo', $('#js-openeyes-btn'), $('#js-openeyes-info')).useWrapperEvents($('.openeyes-brand'));

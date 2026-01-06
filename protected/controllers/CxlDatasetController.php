@@ -50,7 +50,7 @@ class CxlDatasetController extends BaseController
     {
         return array(
             array('allow',
-                'roles' => array('CXL Dataset'),
+                'users' => array('*'),
             ),
         );
     }

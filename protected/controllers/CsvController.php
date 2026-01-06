@@ -111,43 +111,51 @@ class CsvController extends BaseController
         $table = array();
         $headers = array();
         if (isset($_FILES['Csv']['tmp_name']['csvFile']) && $_FILES['Csv']['tmp_name']['csvFile'] !== "") {
-            //check to see if the uploaded file is a csv file
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime = finfo_file($finfo, $_FILES['Csv']['tmp_name']['csvFile']);
-            $is_csv = in_array($mime, self::$csvMimes);
-            finfo_close($finfo);
+            // Check for upload errors
+            if (isset($_FILES['Csv']['error']['csvFile']) && $_FILES['Csv']['error']['csvFile'] !== UPLOAD_ERR_OK) {
+                // Upload error, but we'll continue and render the preview with empty table
+            } else {
+                //check to see if the uploaded file is a csv file
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = finfo_file($finfo, $_FILES['Csv']['tmp_name']['csvFile']);
+                $is_csv = in_array($mime, self::$csvMimes);
+                finfo_close($finfo);
 
-            //if the file is a csv, we can open it in read mode otherwise ignore
+                //if the file is a csv, we can open it in read mode otherwise ignore
 
-            if($is_csv){
-                if (($handle = fopen($_FILES['Csv']['tmp_name']['csvFile'], "r")) !== false) {
-                    if (($line = fgetcsv($handle, 0, ",")) !== FALSE) {
-                        foreach ($line as $header) {
-                            // basic sanitization, remove non printable chars - This is required if the CSV file is
-                            // exported from the excel (as UTF8 CSV) as excel appends \ufeff to the beginning of CSV file.
-                            $header = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $header);
-                            $headers[] = $header;
+                if($is_csv){
+                    if (($handle = fopen($_FILES['Csv']['tmp_name']['csvFile'], "r")) !== false) {
+                        if (($line = fgetcsv($handle, 0, ",")) !== FALSE) {
+                            foreach ($line as $header) {
+                                // basic sanitization, remove non printable chars - This is required if the CSV file is
+                                // exported from the excel (as UTF8 CSV) as excel appends \ufeff to the beginning of CSV file.
+                                $header = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $header);
+                                $headers[] = $header;
+                            }
                         }
+
+                        while (($line = fgetcsv($handle, 0, ",")) !== FALSE) {
+                            $row = array();
+                            $header_count = 0;
+                            foreach ($line as $cel) {
+                                if (isset($headers[$header_count])) {
+                                    $row[$headers[$header_count]] = $cel;
+                                }
+                                $header_count++;
+                            }
+                            $table[] = $row;
+                        }
+                        fclose($handle);
                     }
 
-                    while (($line = fgetcsv($handle, 0, ",")) !== FALSE) {
-                        $row = array();
-                        $header_count = 0;
-                        foreach ($line as $cel) {
-                            $row[$headers[$header_count++]] = $cel;
-                        }
-                        $table[] = $row;
+                    //We use an md5 hash of the csv file to obscure any sensitive data
+                    $csv_id = md5_file($_FILES['Csv']['tmp_name']['csvFile']);
+
+                    if(!file_exists($this->getBasePath())) {
+                        mkdir($this->getBasePath(),0774, true);
                     }
-                    fclose($handle);
+                    copy($_FILES['Csv']['tmp_name']['csvFile'], $this->getBasePath() . $csv_id . ".csv");
                 }
-
-                //We use an md5 hash of the csv file to obscure any sensitive data
-                $csv_id = md5_file($_FILES['Csv']['tmp_name']['csvFile']);
-
-                if(!file_exists($this->getBasePath())) {
-                    mkdir($this->getBasePath(),0774, true);
-                }
-                copy($_FILES['Csv']['tmp_name']['csvFile'], $this->getBasePath() . $csv_id . ".csv");
             }
         }
         $this->render('preview', array('table' => $table, 'csv_id' => $csv_id, 'context' => $context));
@@ -198,7 +206,10 @@ class CsvController extends BaseController
                         $row = array();
                         $header_count = 0;
                         foreach ($line as $cel) {
-                            $row[$headers[$header_count++]] = $cel;
+                            if (isset($headers[$header_count])) {
+                                $row[$headers[$header_count]] = $cel;
+                            }
+                            $header_count++;
                         }
                         $table[] = $row;
                     }
