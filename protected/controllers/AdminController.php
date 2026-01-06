@@ -1859,28 +1859,43 @@ class AdminController extends BaseAdminController
 
     public function actionDeletePatientIdentifierTypes()
     {
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Bad Request: This action requires a POST request');
+        }
+
+        $ids = Yii::app()->request->getPost('patient_identifier_types');
+
+        if (empty($ids)) {
+            throw new CHttpException(400, 'Bad Request: Required parameter (patient_identifier_types) is missing');
+        }
+
         $criteria = new CDbCriteria();
-        $criteria->addInCondition('id', Yii::app()->request->getPost('patient_identifier_types'));
+        $criteria->addInCondition('id', $ids);
 
         $transaction = Yii::app()->cbdb->beginTransaction();
+        $errors = array();
+
         try {
             foreach (PatientIdentifierType::model()->findAll($criteria) as $pit) {
                 if (!$pit->delete()) {
-                    $transaction->rollback();
-                    echo '0';
-                    return;
+                    $errors[] = 'Failed to delete patient identifier type: ' . $pit->short_title;
+                } else {
+                    Audit::add('admin-PatientIdentifierType', 'delete', $pit->id);
                 }
             }
-            $transaction->commit();
         } catch (Exception $exception) {
-            $transaction->rollback();
-            echo '0';
-            return;
+            $errors[] = $exception->getMessage();
         }
 
-        Audit::add('admin-PatientIdentifierType', 'delete');
-
-        echo '1';
+        if (!empty($errors)) {
+            $transaction->rollback();
+            Yii::app()->user->setFlash('warning.failure', 'Error deleting patient identifier types: ' . implode(', ', $errors));
+            echo '0';
+        } else {
+            $transaction->commit();
+            Yii::app()->user->setFlash('success', 'Patient identifier types deleted successfully.');
+            echo '1';
+        }
     }
 
     public function savePatientIdentifierDisplayPreferences($usage_type, $institution_id, $site_id)
@@ -1949,8 +1964,8 @@ class AdminController extends BaseAdminController
         Audit::add('admin-Site', 'list');
 
         $criteria = new CDbCriteria();
-        $criteria->join = 'JOIN contact ON contact_id = contact.id'
-            . ' join address on address.contact_id = contact.id';
+        $criteria->join = 'JOIN contact ON t.contact_id = contact.id'
+            . ' JOIN address ON address.contact_id = contact.id';
 
         if (!$this->checkAccess('admin')) {
             $criteria->compare('institution_id', Yii::app()->session['selected_institution_id']);
