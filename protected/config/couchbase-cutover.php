@@ -51,6 +51,11 @@ return array (
       'read_source' => 'couchbase',
       'percentage' => 100,
     ),
+    'OphTrIntravitrealinjection_SkinDrug' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
   ),
   'user_targeting' => 
   array (

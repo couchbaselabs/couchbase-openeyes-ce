@@ -207,21 +207,33 @@ class AdminController extends ModuleAdminController
 
     public function setJSVars()
     {
-        $laser_procs = Yii::app()->cbdb->createCommand()
-            ->select('ol.id, ol.procedure_id, p.term')
-            ->from('ophtrlaser_laserprocedure ol')
-            ->join('proc p', 'p.id = ol.procedure_id')
-            ->order('p.term')
-            ->queryAll();
-        $all_procs = Yii::app()->cbdb->createCommand()
-            ->select('p.id procedure_id, p.term')
-            ->from('proc p')
-            ->leftJoin('ophtrlaser_laserprocedure ol', 'p.id = ol.procedure_id')
-            ->where('ol.id IS NULL')
-            ->group('p.id, p.term')
-            ->order('p.term')
-            ->queryAll();
-        $this->jsVars['laser_procs'] = $laser_procs;
-        $this->jsVars['all_procs'] = $all_procs;
+        try {
+            $laser_procs = Yii::app()->cbdb->createCommand()
+                ->select('ol.id, ol.procedure_id, p.term')
+                ->from('ophtrlaser_laserprocedure ol')
+                ->join('proc p', 'p.id = ol.procedure_id')
+                ->order('p.term')
+                ->queryAll();
+        } catch (Exception $e) {
+            Yii::log('Failed to retrieve laser procedures: ' . $e->getMessage(), CLogger::LEVEL_WARNING, 'application.OphTrLaser');
+            $laser_procs = array();
+        }
+
+        try {
+            $all_procs = Yii::app()->cbdb->createCommand()
+                ->select('p.id procedure_id, p.term')
+                ->from('proc p')
+                ->leftJoin('ophtrlaser_laserprocedure ol', 'p.id = ol.procedure_id')
+                ->where('ol.id IS NULL')
+                ->group('p.id, p.term')
+                ->order('p.term')
+                ->queryAll();
+        } catch (Exception $e) {
+            Yii::log('Failed to retrieve available procedures: ' . $e->getMessage(), CLogger::LEVEL_WARNING, 'application.OphTrLaser');
+            $all_procs = array();
+        }
+
+        $this->jsVars['laser_procs'] = $laser_procs ?: array();
+        $this->jsVars['all_procs'] = $all_procs ?: array();
     }
 }

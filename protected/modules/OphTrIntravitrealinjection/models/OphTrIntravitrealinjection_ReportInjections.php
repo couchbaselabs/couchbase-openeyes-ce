@@ -75,7 +75,7 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
     public function run()
     {
         $user_id = Yii::app()->user->id;
-        $this->setInstitutionAndSite($user_id);
+        $this->setInstitutionAndSite();
 
         if (!$this->date_from) {
             $this->date_from = date('Y-m-d', strtotime('-1 year'));
@@ -93,6 +93,10 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
         if (!Yii::app()->getAuthManager()->checkAccess('Report', $user_id)) {
             $this->given_by_id = $user_id;
         }
+
+        $user = null;
+        $drug = null;
+        $pre_antisept_drug = null;
 
         if ($this->given_by_id) {
             if (!$user = User::model()->findByPk($this->given_by_id)) {
@@ -116,18 +120,18 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
             $this->injections = $this->getSummaryInjections(
                 $this->date_from,
                 $this->date_to,
-                @$user,
-                @$drug,
-                @$pre_antisept_drug
+                $user,
+                $drug,
+                $pre_antisept_drug
             );
             $this->view = '_summary_injections';
         } else {
             $this->injections = $this->getInjections(
                 $this->date_from,
                 $this->date_to,
-                @$user,
-                @$drug,
-                @$pre_antisept_drug
+                $user,
+                $drug,
+                $pre_antisept_drug
             );
             $this->view = '_injections';
         }

@@ -1426,6 +1426,9 @@ class DefaultController extends BaseEventTypeController
         if ($request->isPostRequest) {
             $data = $request->getRestParams();
             try {
+                if (!isset($data['event_id']) || empty($data['event_id'])) {
+                    throw new Exception('event_id is required.');
+                }
                 $withdrawal = \Element_OphTrConsent_Withdrawal::model()->find("event_id = ?", [$data['event_id']]);
                 if ($withdrawal) {
                     $withdrawal->setAttributes($data);
