@@ -59,7 +59,7 @@ class BookingController extends OphTrOperationbookingEventController
         // setup the Operation that we are concerned with
         if ($this->operation_required) {
             if (!$this->operation = Element_OphTrOperationbooking_Operation::model()->find('event_id = ?', array($this->event->id))) {
-                throw new Exception('Operation not found');
+                throw new CHttpException(404, 'Operation not found');
             }
         }
     }
@@ -88,7 +88,7 @@ class BookingController extends OphTrOperationbookingEventController
                 $firm->name = 'Emergency List';
             } else {
                 if (!$firm = Firm::model()->findByPk(@$_GET['firm_id'])) {
-                    throw new Exception('Unknown firm id: '.$_GET['firm_id']);
+                    throw new CHttpException(400, 'Unknown firm id: '.$_GET['firm_id']);
                 }
             }
         } else {
@@ -133,7 +133,7 @@ class BookingController extends OphTrOperationbookingEventController
 
                 if (!empty($_POST['Booking']['element_id'])) {
                     if (!$operation = Element_OphTrOperationbooking_Operation::model()->findByPk($_POST['Booking']['element_id'])) {
-                        throw new Exception('Operation not found: '.$_POST['Booking']['element_id']);
+                        throw new CHttpException(400, 'Operation not found: '.$_POST['Booking']['element_id']);
                     }
 
                     $transaction = Yii::app()->cbdb->beginTransaction();
@@ -256,14 +256,13 @@ class BookingController extends OphTrOperationbookingEventController
         $errors = array();
 
         if (!empty($_POST)) {
-            if (strlen($_POST['cancellation_comment']) > 200) {
+            $comment = isset($_POST['cancellation_comment']) ? $_POST['cancellation_comment'] : null;
+            if ($comment && strlen($comment) > 200) {
                 $errors[] = 'Comments must be 200 characters max';
             }
-            if (!$reason = OphTrOperationbooking_Operation_Cancellation_Reason::model()->findByPk($_POST['cancellation_reason'])) {
+            if (!$reason = OphTrOperationbooking_Operation_Cancellation_Reason::model()->findByPk(@$_POST['cancellation_reason'])) {
                 $errors[] = 'Please select a rescheduling reason';
             } else {
-                $comment = isset($_POST['cancellation_comment']) ? $_POST['cancellation_comment'] : null;
-
                 $is_cancelled = $operation->cancel($_POST['cancellation_reason'], $comment, false, true)['result'];
 
                 if ($is_cancelled) {
