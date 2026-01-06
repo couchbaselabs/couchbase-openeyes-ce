@@ -86,6 +86,12 @@ class AnalyticsController extends BaseController
         $ret = null;
         $this->checkAuth();
         $this->obtainFilters();
+        
+        // Validate that required filter parameters are set
+        if (empty($this->filters['specialty'])) {
+            throw new CHttpException(400, 'Specialty parameter is required');
+        }
+        
         $ti = $this->filters['time_interval'];
 
         if ($this->filters['specialty'] === 'Glaucoma') {
@@ -469,7 +475,7 @@ class AnalyticsController extends BaseController
 
     public function actionAnalyticsReports()
     {
-        $this->render('/analytics/analytics_report', null);
+        $this->renderPartial('/analytics/analytics_report', null, false, true);
     }
 
     /**
