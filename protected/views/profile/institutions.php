@@ -31,13 +31,19 @@
     <?php
     foreach ($user->authentications as $i => $user_authentication) {
         $active = false;
-        if ($user_authentication->institutionAuthentication->institution->id === Institution::model()->getCurrent()->id) {
-            $active = true;
+        // Check if institutionAuthentication exists before accessing its properties
+        if ($user_authentication->institutionAuthentication && $user_authentication->institutionAuthentication->institution) {
+            if ($user_authentication->institutionAuthentication->institution->id === Institution::model()->getCurrent()->id) {
+                $active = true;
+            }
+            $institution_name = $user_authentication->institutionAuthentication->institution->name;
+        } else {
+            $institution_name = 'Unknown Institution';
         }
         ?>
         <tr>
             <td><input type="checkbox"<?= !$active ? ' disabled' : '' ?> readonly name="institutions[<?= $i ?>]"<?= $active ? ' checked' : '' ?>/></td>
-            <td><?= $user_authentication->institutionAuthentication->institution->name ?></td>
+            <td><?= $institution_name ?></td>
         </tr>
     <?php }?>
     </tbody>
