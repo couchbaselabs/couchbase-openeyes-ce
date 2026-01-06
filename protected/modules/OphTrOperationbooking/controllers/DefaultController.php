@@ -1007,6 +1007,20 @@ class DefaultController extends OphTrOperationbookingEventController
             if (!empty($default_types)) {
                 $elements = BaseEventTypeElement::model()->resolveElementClasses($default_types);
             }
+            
+            // If still empty, instantiate default element classes directly
+            if (empty($elements)) {
+                $element_classes = array(
+                    'Element_OphTrOperationbooking_Diagnosis',
+                    'Element_OphTrOperationbooking_Operation',
+                );
+                foreach ($element_classes as $class) {
+                    if (class_exists($class)) {
+                        $element = new $class();
+                        $elements[] = $element;
+                    }
+                }
+            }
         }
         
         foreach ($elements as $key => $element) {
