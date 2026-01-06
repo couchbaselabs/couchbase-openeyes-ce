@@ -754,8 +754,11 @@ class DefaultController extends BaseEventTypeController
      * @param boolean $return_recipient_html
      * @throws Exception
      */
-    public function actionPDFPrint($id)
+    public function actionPDFPrint($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required for PDF print action.');
+        }
         $this->printInit($id);
         $this->layout = '//layouts/print';
         $this->generatePDF($this->event);
@@ -1128,6 +1131,10 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionGetDraftPrintRecipients($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
         if ($id === null) {
             $this->renderJSON(['error' => 'Event ID is required']);
             return;
