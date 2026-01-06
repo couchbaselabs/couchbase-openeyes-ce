@@ -391,7 +391,7 @@ class TheatreDiaryController extends BaseModuleController
             $subspecialty_id = ServiceSubspecialtyAssignment::model()->find(
                 'service_id=?',
                 array($_POST['service_id'])
-            )->subspecialty_id ?? null;
+            )?->subspecialty_id ?? null;
         }
 
         if (isset($subspecialty_id)) {
@@ -509,7 +509,7 @@ class TheatreDiaryController extends BaseModuleController
 
 
             $old_comments = $session->comments;
-            $session->comments = $_POST['comments_' . $session->id];
+            $session->comments = isset($_POST['comments_' . $session->id]) ? $_POST['comments_' . $session->id] : null;
             if ($session->comments != $old_comments) {
                 $comments_is_changed = true;
             }
