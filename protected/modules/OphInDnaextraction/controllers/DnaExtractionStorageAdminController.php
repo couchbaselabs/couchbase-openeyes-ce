@@ -74,30 +74,41 @@ class DnaExtractionStorageAdminController extends \ModuleAdminController
     {
         $result = array();
         if ((int)$_POST['box_id'] > 0) {
-            $storage = new OphInDnaextraction_DnaExtraction_Storage();
+            try {
+                $storage = new OphInDnaextraction_DnaExtraction_Storage();
 
-            $boxRanges = OphInDnaextraction_DnaExtraction_Box::boxMaxValues(Yii::app()->request->getPost('box_id'));
-            $letterArray = $storage->generateLetterArrays(Yii::app()->request->getPost('box_id'), $boxRanges['maxletter'], $boxRanges['maxnumber']);
-            $usedBoxRows = $storage->getAllLetterNumberToBox(Yii::app()->request->getPost('box_id'));
-
-
-            $arrayDiff = array_filter($letterArray, function ($element) use ($usedBoxRows) {
-                return !in_array($element, $usedBoxRows);
-            });
-
-            foreach ($arrayDiff as $key => $val) {
-                if ($val['letter'] == "0") {
-                    $result['letter'] = "You have not specified a maximum letter value.";
-                    $result['number'] = "You have not specified a maximum number value.";
-                } else {
-                    $result['letter'] = $val['letter'];
-                    $result['number'] = $val['number'];
+                $boxRanges = OphInDnaextraction_DnaExtraction_Box::boxMaxValues(Yii::app()->request->getPost('box_id'));
+                
+                if (!$boxRanges) {
+                    $result['error'] = 'Box not found';
+                    $this->renderJSON($result);
+                    return;
                 }
 
-                break;
-            }
+                $letterArray = $storage->generateLetterArrays(Yii::app()->request->getPost('box_id'), $boxRanges['maxletter'], $boxRanges['maxnumber']);
+                $usedBoxRows = $storage->getAllLetterNumberToBox(Yii::app()->request->getPost('box_id'));
 
-            $this->renderJSON($result);
+
+                $arrayDiff = array_filter($letterArray, function ($element) use ($usedBoxRows) {
+                    return !in_array($element, $usedBoxRows);
+                });
+
+                foreach ($arrayDiff as $key => $val) {
+                    if ($val['letter'] == "0") {
+                        $result['letter'] = "You have not specified a maximum letter value.";
+                        $result['number'] = "You have not specified a maximum number value.";
+                    } else {
+                        $result['letter'] = $val['letter'];
+                        $result['number'] = $val['number'];
+                    }
+
+                    break;
+                }
+
+                $this->renderJSON($result);
+            } catch (Exception $e) {
+                $this->renderJSON(array('error' => $e->getMessage()));
+            }
         }
     }
 }
