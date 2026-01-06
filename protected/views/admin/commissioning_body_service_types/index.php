@@ -32,7 +32,7 @@
             <tbody>
                 <?php foreach (CommissioningBodyServiceType::model()->findAll(array('order' => 'name asc')) as $i => $cb) {?>
                     <tr class="clickable" data-id="<?php echo $cb->id?>" data-uri="admin/editCommissioningBodyServiceType?commissioning_body_service_type_id=<?php echo $cb->id?>">
-                        <td><input type="checkbox" name="commissioning_body_service_type[]" value="<?php echo $cb->id?>" class="wards" /></td>
+                        <td><input type="checkbox" name="commissioning_body_service_type[]" value="<?php echo $cb->id?>" class="commissioning_body_service_type" /></td>
                         <td><?php echo $cb->shortname?></td>
                         <td><?php echo $cb->name?></td>
                     </tr>
@@ -93,9 +93,9 @@
 </div>
 
 <script type="text/javascript">
-    $('li.even .column_code, li.even .column_name, li.even .column_type, li.even .column_address, li.odd .column_code, li.odd .column_name, li.odd .column_type, li.odd .column_address').click(function(e) {
+    $('tr.clickable').click(function(e) {
         e.preventDefault();
-        window.location.href = baseUrl+'/admin/editCommissioningBodyServiceType?commissioning_body_service_type_id='+$(this).parent().attr('data-attr-id');
+        window.location.href = baseUrl+'/admin/editCommissioningBodyServiceType?commissioning_body_service_type_id='+$(this).data('id');
     });
 
     $('#et_add_commissioning_body_service_type').click(function(e) {
@@ -104,7 +104,7 @@
     });
 
     $('#checkall').click(function(e) {
-        $('input[name="commissioning_body_service_type[]"]').attr('checked',$(this).is(':checked') ? 'checked' : false);
+        $('input[name="commissioning_body_service_type[]"]').prop('checked', $(this).is(':checked'));
     });
 
     $('#et_delete_commissioning_body_service_type').click(function(e) {
