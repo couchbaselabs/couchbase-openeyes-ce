@@ -26,6 +26,11 @@ class ImagenetController extends BaseController
     {
         $user = Yii::app()->user;
 
+        if (!$user || $user->getIsGuest()) {
+            $this->redirect(Yii::app()->homeUrl);
+            return;
+        }
+
         if (!$user->getState('imagenet_enabled')) {
             $user->setState('imagenet_enabled', 'on');
         } else {
@@ -33,6 +38,9 @@ class ImagenetController extends BaseController
         }
 
         $returnUrl = Yii::app()->request->urlReferrer ?: Yii::app()->homeUrl;
+        if (empty($returnUrl)) {
+            $returnUrl = Yii::app()->homeUrl;
+        }
         $this->redirect($returnUrl);
     }
 }
