@@ -360,18 +360,39 @@ class ProfileController extends BaseController
     public function actionDeleteSites()
     {
         $user = User::model()->findByPk(Yii::app()->user->id);
+        
+        if (!$user) {
+            Yii::log('User not found for site deletion', 'error', 'ProfileController.actionDeleteSites');
+            return;
+        }
+
+        if (empty($_POST['sites'])) {
+            return;
+        }
+
         $transaction = Yii::app()->cbdb->beginTransaction();
-        if (!empty($_POST['sites'])) {
+        try {
             foreach ($_POST['sites'] as $site_id) {
+                // Validate site_id is numeric
+                if (!is_numeric($site_id)) {
+                    throw new Exception('Invalid site ID: ' . $site_id);
+                }
+
                 if ($us = UserSite::model()->find('user_id=? and site_id=?', array($user->id, $site_id))) {
                     if (!$us->delete()) {
                         throw new Exception('Unable to delete UserSite: ' . print_r($us->getErrors(), true));
                     }
                 }
             }
+            $transaction->commit();
             echo 'success';
+        } catch (Exception $e) {
+            if ($transaction->isActive) {
+                $transaction->rollback();
+            }
+            Yii::log('Error deleting UserSites: ' . $e->getMessage(), 'error', 'ProfileController.actionDeleteSites');
+            throw $e;
         }
-        $transaction->commit();
     }
 
     public function actionAddSite()
@@ -483,7 +504,9 @@ class ProfileController extends BaseController
 
     public function actionSignature()
     {
-        $user = User::model()->findByPk(Yii::app()->user->id);
+        if (!$user = User::model()->findByPk(Yii::app()->user->id)) {
+            throw new CHttpException(404, 'User not found');
+        }
 
         $this->render('/profile/signature', array(
             'user' => $user,
@@ -568,44 +591,48 @@ class ProfileController extends BaseController
         return $display_theme_setting;
     }
     /**
-     * Changes the worklist auto synce interval of the current user
-     *
-     * @param string $sync_interval What to set the user's sync interval to
-     * @param string $key setting key
+     * Display list of worklist sync intervals and handle updates
      */
-    public function actionChangeWorklistSyncInterval($sync_interval = null, $key = null)
+    public function actionChangeWorklistSyncInterval()
     {
-        Yii::app()->clientScript->scriptMap['jquery.js'] = false;
-        header('Content-Type: application/json');
+        // Get parameters from either GET or POST (supports both worklist AJAX GET and modal form POST)
+        $sync_interval = Yii::app()->request->getParam('sync_interval');
+        $key = Yii::app()->request->getParam('key');
         
-        if ($sync_interval === null || $key === null) {
-            // If parameters are missing, return a JSON error response
-            echo json_encode(['status' => 'error', 'message' => 'Missing required parameters']);
+        // If we have both parameters, this is an AJAX request to update the sync interval
+        if ($sync_interval !== null && $key !== null) {
+            Yii::app()->clientScript->scriptMap['jquery.js'] = false;
+            header('Content-Type: application/json');
+            
+            try {
+                $result = self::updateWorklistSyncInterval(Yii::app()->user->id, $sync_interval, $key);
+                echo json_encode(['status' => 'success', 'message' => 'Sync interval updated']);
+            } catch (Exception $e) {
+                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+            }
             return;
         }
         
-        try {
-            $result = self::changeWorklistSyncInterval(Yii::app()->user->id, $sync_interval, $key);
-            
-            // Return JSON response for AJAX requests
-            echo json_encode(['status' => 'success', 'message' => 'Sync interval updated']);
-        } catch (Exception $e) {
-            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-        }
+        // Display the list page for regular page requests
+        $user = User::model()->findByPk(Yii::app()->user->id);
+        $this->render('/profile/changeWorklistSyncInterval', array(
+            'user' => $user,
+        ));
     }
 
     /**
-     * Changes the display theme of the given user and returns the SettingUser object (if it exists)
+     * Updates the worklist sync interval for the given user and returns the SettingUser object (if it exists)
      *
-     * @param int $user_id The ID of the user to change the display theme for
-     * @param int $sync_interval What to set the user's theme to
-     * @return SettingUser The setting if the theme was set (otherwise null)
+     * @param int $user_id The ID of the user to change the sync interval for
+     * @param int $sync_interval What to set the user's sync interval to
+     * @param string $key The setting key
+     * @return SettingUser The setting if the sync interval was set (otherwise null)
      */
-    public static function changeWorklistSyncInterval($user_id, $sync_interval, $key)
+    public static function updateWorklistSyncInterval($user_id, $sync_interval, $key)
     {
         $auto_sync_setting = SettingUser::model()->find(
-            "user_id = :user_id AND `key` = '$key'",
-            array('user_id' => $user_id)
+            "user_id = :user_id AND `key` = :key",
+            array('user_id' => $user_id, ':key' => $key)
         );
 
         if ($sync_interval) {
