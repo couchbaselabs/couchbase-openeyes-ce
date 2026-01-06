@@ -881,31 +881,70 @@ class WorklistController extends BaseAdminController
         $position = Yii::app()->request->getPost('position');
         $step_data = Yii::app()->request->getPost('step_data') ?: array();
 
+        // Validate required parameters
+        if (!$id) {
+            $this->renderJSON(
+                ['error' => 'Missing required parameter: id'],
+                400
+            );
+            return;
+        }
+
+        if (!$pathway_id) {
+            $this->renderJSON(
+                ['error' => 'Missing required parameter: visit_id (pathway_id)'],
+                400
+            );
+            return;
+        }
+
         $step = PathwayStepType::model()->findByPk($id);
+        
+        // Validate that the step exists
+        if (!$step) {
+            $this->renderJSON(
+                ['error' => 'Pathway step type not found with ID: ' . $id],
+                404
+            );
+            return;
+        }
+
+        // Validate that the pathway exists
+        $pathway = PathwayType::model()->findByPk($pathway_id);
+        if (!$pathway) {
+            $this->renderJSON(
+                ['error' => 'Pathway type not found with ID: ' . $pathway_id],
+                404
+            );
+            return;
+        }
+
         // priority for firm_id: user input > template > current firm id
         $step_data['firm_id'] = $step_data['firm_id'] ?? ($step ? $step->getState('firm_id') : null) ?? Yii::app()->session['selected_firm_id'];
         // if the template has subspecialty_id, then setup for the step
         if ($step && $step->getState('subspecialty_id')) {
             $step_data['subspecialty_id'] = $step->getState('subspecialty_id');
         }
-        $new_step = null;
-        if ($step) {
-            $new_step = $step->createNewStepForPathwayType($pathway_id, $step_data, (int)$position);
+        
+        $new_step = $step->createNewStepForPathwayType($pathway_id, $step_data, (int)$position);
+
+        if (!$new_step) {
+            $this->renderJSON(
+                ['error' => 'Unable to create new step for pathway type'],
+                500
+            );
+            return;
         }
 
-        if ($new_step) {
-            $pathway = PathwayType::model()->findByPk($pathway_id);
-            $this->renderJSON(
-                [
-                    'step_html' => $this->renderPartial(
-                        '_clinical_pathway_admin',
-                        ['pathway_type' => $pathway],
-                        true
-                    )
-                ]
-            );
-        }
-        throw new CHttpException(500, 'Unable to add step to pathway.');
+        $this->renderJSON(
+            [
+                'step_html' => $this->renderPartial(
+                    '_clinical_pathway_admin',
+                    ['pathway_type' => $pathway],
+                    true
+                )
+            ]
+        );
     }
 
     /**
