@@ -103,10 +103,12 @@ class RisksAssignmentController extends BaseAssignmentController
 
     /**
      * Returns the consultants by subspecialty
-     * @param null $subspecialty_id
      */
-    public function actionGetFirmsBySubspecialty($subspecialty_id = null, $runtime_selectable = null)
+    public function actionGetFirmsBySubspecialty()
     {
+        $subspecialty_id = \Yii::app()->request->getParam('subspecialty_id', null);
+        $runtime_selectable = \Yii::app()->request->getParam('runtime_selectable', null);
+        
         $firms = \Firm::model()->getList(Yii::app()->session['selected_institution_id'], $subspecialty_id, null, $runtime_selectable);
         echo \CJSON::encode($firms);
 
