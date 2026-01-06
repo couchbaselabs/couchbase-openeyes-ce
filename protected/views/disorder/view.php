@@ -16,7 +16,7 @@ echo CHtml::link(
 ) . ' ';
 ?>
 
-<h1>View Disorder #<?php echo $model->id; ?></h1>
+<h1>View Disorder #<?php echo CHtml::encode($model->id); ?></h1>
 
 <table class="standard highlight-rows">
     <tbody>
