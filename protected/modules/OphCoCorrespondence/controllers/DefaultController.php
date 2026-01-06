@@ -986,13 +986,14 @@ class DefaultController extends BaseEventTypeController
      * @param $site_id
      * @param null $subspecialty_id
      */
-    public function actionGetConsultantsBySiteAndSubspecialty(
-        $site_id = null,
-        $subspecialty_id = null,
-        $check_service_firms_filter_setting = false
-    ) {
+    public function actionGetConsultantsBySiteAndSubspecialty()
+    {
+        $site_id = Yii::app()->request->getParam('site_id');
+        $subspecialty_id = Yii::app()->request->getParam('subspecialty_id');
+        $check_service_firms_filter_setting = Yii::app()->request->getParam('check_service_firms_filter_setting', false);
+        
         // Use the currently selected site if not provided
-        if ($site_id === null) {
+        if (empty($site_id)) {
             $site_id = Yii::app()->session['selected_site_id'];
         }
 
