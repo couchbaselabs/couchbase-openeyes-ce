@@ -326,6 +326,10 @@ class AdminController extends BaseAdminController
         $errors = array();
         foreach (($_POST['EventType'] ?? []) as $event_type_form) {
             $event_type = EventType::model()->findByPk($event_type_form['id']);
+            if ($event_type === null) {
+                // Skip event types that do not exist in the database
+                continue;
+            }
             unset($event_type_form['id']);
             $event_type->attributes = $event_type_form;
             $event_type->save();
@@ -752,102 +756,12 @@ class AdminController extends BaseAdminController
 
     public function actionAddDrug()
     {
-        $drug = new Drug('create');
-        $errors = null;
-
-        if (!empty($_POST)) {
-                $drug->attributes = $_POST['Drug'];
-
-                if (!$drug->validate()) {
-                        $errors = $drug->getErrors();
-                } else {
-                        if (!$drug->save()) {
-                                throw new CHttpException(500, 'Unable to save drug: ' . print_r($drug->getErrors(), true));
-                        }
-
-                        if (isset($_POST['allergies'])) {
-                                $posted_allergy_ids = $_POST['allergies'];
-
-                                //add new allergy mappings
-                                foreach ($posted_allergy_ids as $asign) {
-                                        $allergy_assignment = new DrugAllergyAssignment();
-                                        $allergy_assignment->drug_id = $drug->id;
-                                        $allergy_assignment->allergy_id = $asign;
-                                        $allergy_assignment->save();
-                                }
-                        }
-
-                        $this->redirect('/admin/drugs/' . ceil($drug->id / $this->items_per_page));
-                }
-        }
-
-        $this->render('/admin/adddrug', array(
-                'drug' => $drug,
-                'errors' => $errors,
-        ));
+        throw new CHttpException(410, 'The generic drug administration feature has been disabled (OE-4474). Please use Local Drugs, Per Op Drugs, or Anaesthetic Agent administration instead.');
     }
 
     public function actionEditDrug($id)
     {
-        return; //disabled OE-4474
-
-        /*$drug = Drug::model()->findByPk($id);
-        if (!$drug) {
-                throw new Exception("Drug not found: $id");
-        }
-        $drug->scenario = 'update';
-
-        if (!empty($_POST)) {
-                $drug->attributes = $_POST['Drug'];
-
-                if (!$drug->validate()) {
-                        $errors = $drug->getErrors();
-                } else {
-                        if (!$drug->save()) {
-                                throw new CHttpException(500, 'Unable to save drug: ' . print_r($drug->getErrors(), true));
-                        }
-
-                        $posted_allergy_ids = array();
-
-                        if (isset($_POST['allergies'])) {
-                                $posted_allergy_ids = $_POST['allergies'];
-                        }
-
-                        $criteria = new CDbCriteria();
-                        $criteria->compare('drug_id', $drug->id);
-                        $allergy_assignments = DrugAllergyAssignment::model()->findAll($criteria);
-
-                        $allergy_assignment_ids = array();
-                        foreach ($allergy_assignments as $allergy_assignment) {
-                                $allergy_assignment_ids[] = $allergy_assignment->allergy_id;
-                        }
-
-                        $allergy_assignment_ids_to_delete = array_diff($allergy_assignment_ids, $posted_allergy_ids);
-                        $posted_allergy_ids_to_assign = array_diff($posted_allergy_ids, $allergy_assignment_ids);
-
-                        //add new allergy mappings
-                        foreach ($posted_allergy_ids_to_assign as $asign) {
-                                $allergy_assignment = new DrugAllergyAssignment();
-                                $allergy_assignment->drug_id = $drug->id;
-                                $allergy_assignment->allergy_id = $asign;
-                                $allergy_assignment->save();
-                        }
-
-                        //delete redundant allergy mappings
-                        foreach ($allergy_assignments as $asigned) {
-                                if (in_array($asigned->allergy_id, $allergy_assignment_ids_to_delete)) {
-                                        $asigned->delete();
-                                }
-                        }
-
-                        $this->redirect('/admin/drugs/' . ceil($drug->id / $this->items_per_page));
-                }
-        }
-
-        $this->render('/admin/editdrug', array(
-                'drug' => $drug,
-                'errors' => @$errors,
-        ));*/
+        throw new CHttpException(410, 'The generic drug administration feature has been disabled (OE-4474). Please use Local Drugs, Per Op Drugs, or Anaesthetic Agent administration instead.');
     }
 
     public function actionCheckInstAuthType()
@@ -1567,7 +1481,16 @@ class AdminController extends BaseAdminController
             }
 
             $contact = $institution->contact;
-            $address = $institution->contact->address;
+            $address = ($contact) ? $contact->address : null;
+            if (!$contact) {
+                $contact = new Contact('admin_contact');
+                $contact->nick_name = 'NULL';
+                $contact->title = null;
+                $contact->first_name = '-';
+                $contact->last_name = '-';
+                $contact->qualifications = null;
+                $contact->created_institution_id = Yii::app()->session['selected_institution_id'];
+            }
             if (!$address) {
                 $address = new Address();
             }
