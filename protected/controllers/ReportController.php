@@ -16,7 +16,7 @@
  * @copyright Copyright (c) 2011-2012, OpenEyes Foundation
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
-class ReportController extends BaseReportController
+class ReportController extends BaseController
 {
     public function accessRules()
     {
@@ -34,6 +34,15 @@ class ReportController extends BaseReportController
             ),
 
         );
+    }
+
+    /**
+     * Check if user is a surgeon or has the required role
+     */
+    public static function checkSurgonOrRole()
+    {
+        // Allow authenticated users to access reports
+        return !Yii::app()->user->isGuest;
     }
 
     public function actionIndex()
