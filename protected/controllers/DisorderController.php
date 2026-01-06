@@ -236,13 +236,24 @@ class DisorderController extends BaseController
         if ($type === 'systemic') {
             foreach (CommonSystemicDisorder::getDisorders() as $disorder) {
                 $return[] = $this->disorderStructure($disorder);
-            };
+            }
         } else {
-            $return = $this->actionGetCommonOphthalmicDisorders(Yii::app()->session['selected_firm_id']);
+            // Get the firm_id from session
+            $firm_id = !empty(Yii::app()->session['selected_firm_id']) ? Yii::app()->session['selected_firm_id'] : null;
+            
+            if (empty($firm_id)) {
+                throw new \CException('Firm is required');
+            }
+            
+            $firm = Firm::model()->findByPk($firm_id);
+            if ($firm) {
+                $return = CommonOphthalmicDisorder::getListByGroupWithSecondaryTo($firm);
+            } else {
+                $return = null;
+            }
         }
 
         $this->renderJSON($return);
-        Yii::app()->end();
     }
 
     public function actionDetails()
