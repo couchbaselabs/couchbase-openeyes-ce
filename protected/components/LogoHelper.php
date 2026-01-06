@@ -59,7 +59,7 @@ class LogoHelper
                     // get logos for site
                     $requested_logo[$logoLevel] = $site->logo;
                 }
-                if(isset($institution->logo_id) && !empty($institution->logo->$logo_type)) {
+                else if(isset($institution->logo_id) && !empty($institution->logo->$logo_type)) {
                     // get logos for institution
                     $requested_logo[$logoLevel] = $institution->logo;
                 } else {
