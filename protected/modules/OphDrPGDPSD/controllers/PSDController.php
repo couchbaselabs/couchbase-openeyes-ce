@@ -31,8 +31,17 @@ class PSDController extends DefaultController
             'success' => 0
         );
         $assignment_id = \Yii::app()->request->getParam('assignment_id', null);
+        
+        if (!$assignment_id) {
+            throw new CHttpException(400, 'assignment_id parameter is required.');
+        }
+        
         $assignment = OphDrPGDPSD_Assignment::model()->findByPk($assignment_id);
-        if ($assignment && intval($assignment->status) === $assignment::STATUS_TODO) {
+        if (!$assignment) {
+            throw new CHttpException(404, 'Assignment not found.');
+        }
+        
+        if (intval($assignment->status) === $assignment::STATUS_TODO) {
             $transaction = \Yii::app()->cbdb->beginTransaction();
             $assignment->active = 0;
             $assignment->save();
@@ -43,6 +52,8 @@ class PSDController extends DefaultController
                 $ret['success'] = 1;
                 Audit::add('PSD Assignment', 'removed assignment', "Assignment id: {$assignment_id}");
             }
+        } else {
+            throw new CHttpException(400, 'Assignment cannot be removed. Assignment must be in TODO status.');
         }
         $this->renderJSON($ret);
     }
@@ -57,7 +68,7 @@ class PSDController extends DefaultController
      * @throws CHttpException
      * @throws Exception
      */
-    public function actionGetPathStep($partial, $pathstep_id, $visit_id, $pathstep_type_id, $for_administer = false, $interactive = 1)
+    public function actionGetPathStep($partial = null, $pathstep_id = null, $visit_id = null, $pathstep_type_id = null, $for_administer = false, $interactive = 1)
     {
         $step = PathwayStep::model()->findByPk($pathstep_id);
         $wl_patient = WorklistPatient::model()->findByPk($visit_id);
@@ -184,7 +195,7 @@ class PSDController extends DefaultController
 
         $wl_patient = WorklistPatient::model()->findByPk($visit_id);
 
-        if ($wl_patient && !$wl_patient->pathway->start_time) {
+        if ($wl_patient && $wl_patient->pathway && !$wl_patient->pathway->start_time) {
             $wl_patient->pathway->start_time = date('Y-m-d H:i:s');
             $wl_patient->pathway->save();
         }
