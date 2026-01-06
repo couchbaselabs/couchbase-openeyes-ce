@@ -861,6 +861,14 @@ class AnalyticsController extends BaseController
         $vf_data = array();
 
         $vf_list = $this->queryAllMdForPatient($patient_id);
+        // Ensure vf_list contains two array elements to prevent null access errors
+        if (!isset($vf_list[0]) || !is_array($vf_list[0])) {
+            $vf_list[0] = array();
+        }
+        if (!isset($vf_list[1]) || !is_array($vf_list[1])) {
+            $vf_list[1] = array();
+        }
+        
         foreach (array('left', 'right') as $side) {
             $eye_id = $side === 'left' ? Eye::LEFT : Eye::RIGHT;
 
