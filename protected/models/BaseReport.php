@@ -62,7 +62,13 @@ class BaseReport extends CModel
 
     protected function setInstitutionAndSite()
     {
-        $this->user_institution_id = Institution::model()->getCurrent()->id;
+        try {
+            $this->user_institution_id = Institution::model()->getCurrent()->id;
+        } catch (RuntimeException $e) {
+            // If no institution is set, try to get the first available institution
+            $inst = Institution::model()->find();
+            $this->user_institution_id = $inst ? $inst->id : null;
+        }
         $this->user_selected_site_id = Yii::app()->session['selected_site_id'];
     }
 

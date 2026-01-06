@@ -28,8 +28,7 @@ $form = $this->beginWidget(
     ]
 ) ?>
 
-<form id="leaflets" method="POST">
-    <input type="hidden" name="YII_CSRF_TOKEN" value="<?php echo Yii::app()->request->csrfToken ?>"/>
+<input type="hidden" name="YII_CSRF_TOKEN" value="<?php echo Yii::app()->request->csrfToken ?>"/>
     <div class="cols-7">
         <table class="standard cols-full" id="finding-table">
             <colgroup>
@@ -82,7 +81,6 @@ $form = $this->beginWidget(
             </tfoot>
         </table>
     </div>
-</form>
 <?php $this->endWidget() ?>
 
 <script type="text/template" id="finding-row-template" style="display:none">
@@ -95,8 +93,7 @@ $form = $this->beginWidget(
     ?>
 </script>
 
-<script
-type = "text/javascript" >
+<script type="text/javascript">
     $(document).ready(function () {
         $('.sortable').sortable({
             stop: function (e, ui) {
@@ -105,20 +102,15 @@ type = "text/javascript" >
                 });
             }
         });
+
+        // Add a new row to the table using the template
+        $('#et_admin-add').on('click', function () {
+            let $table = $('#finding-table tbody');
+            let $data = {
+                key: $table.find('tr').length,
+            };
+            let tr = Mustache.render($('#finding-row-template').text(), $data);
+            $table.append(tr);
+        });
     });
-
-$('#et_sort').on('click', function () {
-    $('#definition-list').attr('action', $(this).data('uri')).submit();
-})
-
-// Add a new row to the table using the template
-$('#et_admin-add').on('click', function () {
-    $('#definition-list').attr('action', $(this).data('uri')).submit();
-    let $table = $('#finding-table tbody');
-    let $data = {
-        key: $table.find('tr').length,
-    };
-    let tr = Mustache.render($('#finding-row-template').text(), $data);
-    $table.append(tr);
-})
 </script>

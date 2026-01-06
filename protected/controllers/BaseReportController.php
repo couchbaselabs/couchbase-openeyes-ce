@@ -89,35 +89,49 @@ class BaseReportController extends BaseController
 
     public function actionRunReport()
     {
-        if (!empty($_POST)) {
-            if ($this->module) {
-                $report_class = $this->module->id.'_Report'.$_POST['report-name'];
-            } else {
-                $report_class = 'Report'.$_POST['report-name'];
+        try {
+            if (!empty($_POST)) {
+                if ($this->module) {
+                    $report_class = $this->module->id.'_Report'.$_POST['report-name'];
+                } else {
+                    $report_class = 'Report'.$_POST['report-name'];
+                }
+
+                $report = new $report_class();
+                if (isset($_POST[$report_class])) {
+                    $report->attributes = $_POST[$report_class];
+                } else {
+                    $report->attributes = $_POST;
+                }
+
+                if (!$report->validate()) {
+                    $this->renderJSON($report->errors);
+
+                    return;
+                }
+
+                $post = $_POST;
+                unset($post['YII_CSRF_TOKEN']);
+                Audit::add('Reports', 'display', "<pre>" . print_r($post, true) . "</pre>", null, ['model' => $report_class]);
+
+                $report->run();
+
+                $reportView = $report->getView();
+                $reportData = array('report' => $report);
+                $reportHtml = $this->renderPartial($reportView, $reportData, true);
+
+                $this->renderJSON(array(
+                    '_report' => $reportHtml,
+                ));
             }
-
-            $report = new $report_class();
-            if (isset($_POST[$report_class])) {
-                $report->attributes = $_POST[$report_class];
-            } else {
-                $report->attributes = $_POST;
-            }
-
-            if (!$report->validate()) {
-                $this->renderJSON($report->errors);
-
-                return;
-            }
-
-            $post = $_POST;
-            unset($post['YII_CSRF_TOKEN']);
-            Audit::add('Reports', 'display', "<pre>" . print_r($post, true) . "</pre>", null, ['model' => $report_class]);
-
-            $report->run();
-
-            $this->renderJSON(array(
-                '_report' => $this->renderPartial($report->getView(), array('report' => $report), true),
-            ));
+        } catch (Exception $e) {
+            Yii::log('Report error: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString(), CLogger::LEVEL_ERROR);
+            header('HTTP/1.1 500 Internal Server Error');
+            $this->renderJSON(array('error' => $e->getMessage(), 'debug' => $e->getTraceAsString()));
+        } catch (Throwable $e) {
+            Yii::log('Report fatal error: ' . $e->getMessage() . ' | Stack: ' . $e->getTraceAsString(), CLogger::LEVEL_ERROR);
+            header('HTTP/1.1 500 Internal Server Error');
+            $this->renderJSON(array('error' => $e->getMessage(), 'debug' => $e->getTraceAsString()));
         }
     }
 

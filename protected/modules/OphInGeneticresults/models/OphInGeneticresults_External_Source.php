@@ -304,15 +304,22 @@ class OphInGeneticresults_External_Source extends BaseActiveRecord
      * Override findByPk to handle gracefully if table schema is unavailable.
      * Uses direct SQL as a fallback to bypass Yii's schema requirements.
      * @param mixed $pk
+     * @param string $condition
+     * @param array $params
      * @return OphInGeneticresults_External_Source|null
      */
-    public function findByPk($pk)
+    public function findByPk($pk, $condition = '', $params = [])
     {
         // First check if table schema is available
         if ($this->getTableSchema() === null) {
             // Skip Yii's findByPk() and use direct SQL
             try {
                 $sql = "SELECT * FROM `" . $this->tableName() . "` WHERE `id` = :id";
+                if (!empty($condition)) {
+                    if (is_string($condition)) {
+                        $sql .= " AND " . $condition;
+                    }
+                }
                 $row = $this->getDbConnection()->createCommand($sql)->bindParam(':id', $pk)->queryRow();
                 if ($row) {
                     return $this->populateRecord($row);
@@ -327,11 +334,16 @@ class OphInGeneticresults_External_Source extends BaseActiveRecord
         
         try {
             // Try the standard Yii approach
-            return parent::findByPk($pk);
+            return parent::findByPk($pk, $condition, $params);
         } catch (Throwable $e) {
             // Try direct SQL as fallback
             try {
                 $sql = "SELECT * FROM `" . $this->tableName() . "` WHERE `id` = :id";
+                if (!empty($condition)) {
+                    if (is_string($condition)) {
+                        $sql .= " AND " . $condition;
+                    }
+                }
                 $row = $this->getDbConnection()->createCommand($sql)->bindParam(':id', $pk)->queryRow();
                 if ($row) {
                     return $this->populateRecord($row);

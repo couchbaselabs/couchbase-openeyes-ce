@@ -293,10 +293,14 @@ class DefaultController extends OphTrOperationbookingEventController
      */
     public function actionCheckProcedureEUR()
     {
+        if (!isset($_GET['procedure_id'])) {
+            throw new CHttpException(400, 'Required parameter procedure_id is missing');
+        }
+        
         $subspecialty_id = $this->firm->getSubspecialtyID();
         $selected_proc = $_GET['procedure_id'];
         $procedure_list = ProcedureSubspecialtyAssignment::model()->getEURProcedureListFromSubspecialty($subspecialty_id);
-        if ($procedure_list[$selected_proc] == 1) {
+        if (isset($procedure_list[$selected_proc]) && $procedure_list[$selected_proc] == 1) {
             $this->renderJSON(true);
         }
         $this->renderJSON(false);
@@ -660,7 +664,13 @@ class DefaultController extends OphTrOperationbookingEventController
      */
     public function actionVerifyProcedures()
     {
-        $this->setPatient(@$_REQUEST['patient_id']);
+        $patient_id = isset($_REQUEST['patient_id']) ? $_REQUEST['patient_id'] : null;
+        if (!$patient_id) {
+            echo \CJSON::encode(array('error' => 'patient_id is required'));
+            return;
+        }
+        
+        $this->setPatient($patient_id);
 
         $resp = array(
                 'previousProcedures' => false,
@@ -703,7 +713,7 @@ class DefaultController extends OphTrOperationbookingEventController
 
                     // check operation still valid, and that it is for a matching eye.
                     if (
-                        !$op->operation_cancellation_date &&
+                        $op && !$op->operation_cancellation_date &&
                             ($op->eye_id == Eye::BOTH || $eye->id == Eye::BOTH || $op->eye_id == $eye->id)
                     ) {
                         foreach ($op->procedures as $existing_proc) {

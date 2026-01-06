@@ -69,7 +69,7 @@ $consent_type_criteria->with = ['type'];
 $consent_type_criteria->compare('t.event_id', $this->event->id);
 $consent_type = Element_OphTrConsent_Type::model()->find($consent_type_criteria);
 
-if ($signature === null && $has_withdrawal === null && $has_confirm === null &&
+if ($consent_type && $signature === null && $has_withdrawal === null && $has_confirm === null &&
         (
             strcmp($consent_type->type->name, "1. Patient agreement to investigation or treatment for adults with mental capacity to give valid consent") == 0 ||
             strcmp($consent_type->type->name, "1. Patient agreement to investigation or treatment") == 0 ||
@@ -113,7 +113,7 @@ if ($et) {
         <div class="alert-box alert with-icon">
             This event is pending deletion and has been locked.
         </div>
-    <?php } elseif (Element_OphTrConsent_Type::model()->find('event_id=?', array($this->event->id))->draft) {?>
+    <?php } elseif (($consent_form = Element_OphTrConsent_Type::model()->find('event_id=?', array($this->event->id))) && $consent_form->draft) {?>
         <div class="alert-box alert with-icon">
             This consent form is a draft and can still be edited
         </div>

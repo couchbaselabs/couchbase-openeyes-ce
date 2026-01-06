@@ -25,7 +25,12 @@
                 <th>Institutions</th>
             </thead>
             <tbody>
-            <?php foreach ($model_list as $i => $model) { ?>
+            <?php if (empty($model_list)) { ?>
+                <tr>
+                    <td colspan="2">No laser procedures configured</td>
+                </tr>
+            <?php } else {
+                foreach ($model_list as $i => $model) { ?>
                 <tr class="clickable" data-id="<?= $model->id ?>"
                     data-uri="OphTrLaser/admin/editLaserProcedure/<?= $model->id ?>">
                     <td><?= $model->procedure?->term ?? 'N/A' ?></td>
@@ -34,7 +39,7 @@
                         echo $institutions ? CHtml::encode(implode(', ', $institutions)) : 'N/A'; ?>
                     </td>
                 </tr>
-            <?php } ?>
+            <?php } } ?>
             </tbody>
             <tfoot>
             <tr>

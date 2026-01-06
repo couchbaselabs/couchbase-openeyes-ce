@@ -74,66 +74,73 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
 
     public function run()
     {
-        $user_id = Yii::app()->user->id;
-        $this->setInstitutionAndSite();
+        try {
+            $user_id = Yii::app()->user->id;
+            $this->setInstitutionAndSite();
 
-        if (!$this->date_from) {
-            $this->date_from = date('Y-m-d', strtotime('-1 year'));
-        } else {
-            $this->date_from = date('Y-m-d', strtotime($this->date_from));
-        }
-
-        if (!$this->date_to) {
-            $this->date_to = date('Y-m-d');
-        } else {
-            $this->date_to = date('Y-m-d', strtotime($this->date_to));
-        }
-
-        //If user does NOT have the RBAC role 'Report' then select the current user
-        if (!Yii::app()->getAuthManager()->checkAccess('Report', $user_id)) {
-            $this->given_by_id = $user_id;
-        }
-
-        $user = null;
-        $drug = null;
-        $pre_antisept_drug = null;
-
-        if ($this->given_by_id) {
-            if (!$user = User::model()->findByPk($this->given_by_id)) {
-                throw new Exception('User not found: ' . $this->given_by_id);
+            if (!$this->date_from) {
+                $this->date_from = date('Y-m-d', strtotime('-1 year'));
+            } else {
+                $this->date_from = date('Y-m-d', strtotime($this->date_from));
             }
-        }
 
-        if ($this->drug_id) {
-            if (!$drug = OphTrIntravitrealinjection_Treatment_Drug::model()->findByPk($this->drug_id)) {
-                throw new Exception('Drug not found: ' . $this->drug_id);
+            if (!$this->date_to) {
+                $this->date_to = date('Y-m-d');
+            } else {
+                $this->date_to = date('Y-m-d', strtotime($this->date_to));
             }
-        }
 
-        if ($this->pre_antisept_drug_id) {
-            if (!$pre_antisept_drug = OphTrIntravitrealinjection_AntiSepticDrug::model()->findByPk($this->pre_antisept_drug_id)) {
-                throw new Exception('Drug not found: ' . $this->pre_antisept_drug_id);
+            //If user does NOT have the RBAC role 'Report' then select the current user
+            if (!Yii::app()->getAuthManager()->checkAccess('Report', $user_id)) {
+                $this->given_by_id = $user_id;
             }
-        }
 
-        if ($this->summary) {
-            $this->injections = $this->getSummaryInjections(
-                $this->date_from,
-                $this->date_to,
-                $user,
-                $drug,
-                $pre_antisept_drug
-            );
-            $this->view = '_summary_injections';
-        } else {
-            $this->injections = $this->getInjections(
-                $this->date_from,
-                $this->date_to,
-                $user,
-                $drug,
-                $pre_antisept_drug
-            );
-            $this->view = '_injections';
+            $user = null;
+            $drug = null;
+            $pre_antisept_drug = null;
+
+            if ($this->given_by_id) {
+                if (!$user = User::model()->findByPk($this->given_by_id)) {
+                    throw new Exception('User not found: ' . $this->given_by_id);
+                }
+            }
+
+            if ($this->drug_id) {
+                if (!$drug = OphTrIntravitrealinjection_Treatment_Drug::model()->findByPk($this->drug_id)) {
+                    throw new Exception('Drug not found: ' . $this->drug_id);
+                }
+            }
+
+            if ($this->pre_antisept_drug_id) {
+                if (!$pre_antisept_drug = OphTrIntravitrealinjection_AntiSepticDrug::model()->findByPk($this->pre_antisept_drug_id)) {
+                    throw new Exception('Drug not found: ' . $this->pre_antisept_drug_id);
+                }
+            }
+
+            if ($this->summary) {
+                $this->injections = $this->getSummaryInjections(
+                    $this->date_from,
+                    $this->date_to,
+                    $user,
+                    $drug,
+                    $pre_antisept_drug
+                );
+                $this->view = '_summary_injections';
+            } else {
+                $this->injections = $this->getInjections(
+                    $this->date_from,
+                    $this->date_to,
+                    $user,
+                    $drug,
+                    $pre_antisept_drug
+                );
+                $this->view = '_injections';
+            }
+        } catch (Exception $e) {
+            Yii::log('Report injection error: ' . $e->getMessage() . ' (' . get_class($e) . ')', CLogger::LEVEL_ERROR);
+            // Set empty results on error
+            $this->injections = array();
+            $this->view = $this->summary ? '_summary_injections' : '_injections';
         }
     }
 
@@ -168,55 +175,56 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
 
     protected function getInjections($date_from, $date_to, $given_by_user, $drug, $pre_antisept_drug)
     {
-        $patient_data = array();
-        $where = '';
-        $command = Yii::app()->cbdb->createCommand()
-            ->select(
-                'p.id as patient_id, treat.left_drug_id, treat.right_drug_id, treat.left_number, treat.right_number, e.id,
+        try {
+            $patient_data = array();
+            $where = '';
+            $command = Yii::app()->cbdb->createCommand()
+                ->select(
+                    'p.id as patient_id, treat.left_drug_id, treat.right_drug_id, treat.left_number, treat.right_number, e.id,
 						e.event_date, c.first_name, c.last_name, e.created_date, p.gender, p.dob, eye.name AS eye, site.name as site_name'
-            )
-            ->from('et_ophtrintravitinjection_treatment treat')
-            ->join('event e', 'e.id = treat.event_id')
-            ->join('episode ep', 'e.episode_id = ep.id')
-            ->join('patient p', 'ep.patient_id = p.id')
-            ->join('contact c', 'p.contact_id = c.id')
-            ->join('eye', 'eye.id = treat.eye_id')
-            ->join('et_ophtrintravitinjection_site insite', 'insite.event_id = treat.event_id')
-            ->leftJoin('site', 'insite.site_id = site.id')
-            ->order('p.id, e.event_date asc');
-        // for debug
-        if ($this->patient_id) {
-            $where = 'ep.patient_id = :pat_id and e.deleted = 0 and ep.deleted = 0 and e.event_date >= :from_date and e.event_date < (:to_date + interval 1 day)';
-            $params = array(':from_date' => $date_from, ':to_date' => $date_to, ':pat_id' => $this->patient_id);
-        } else {
-            $where = 'e.deleted = 0 and ep.deleted = 0 and e.event_date >= :from_date and e.event_date < (:to_date + interval 1 day)';
-            $params = array(':from_date' => $date_from, ':to_date' => $date_to);
-        }
+                )
+                ->from('et_ophtrintravitinjection_treatment treat')
+                ->join('event e', 'e.id = treat.event_id')
+                ->join('episode ep', 'e.episode_id = ep.id')
+                ->join('patient p', 'ep.patient_id = p.id')
+                ->join('contact c', 'p.contact_id = c.id')
+                ->join('eye', 'eye.id = treat.eye_id')
+                ->join('et_ophtrintravitinjection_site insite', 'insite.event_id = treat.event_id')
+                ->leftJoin('site', 'insite.site_id = site.id')
+                ->order('p.id, e.event_date asc');
+            // for debug
+            if ($this->patient_id) {
+                $where = 'ep.patient_id = :pat_id and e.deleted = 0 and ep.deleted = 0 and e.event_date >= :from_date and e.event_date < (:to_date + interval 1 day)';
+                $params = array(':from_date' => $date_from, ':to_date' => $date_to, ':pat_id' => $this->patient_id);
+            } else {
+                $where = 'e.deleted = 0 and ep.deleted = 0 and e.event_date >= :from_date and e.event_date < (:to_date + interval 1 day)';
+                $params = array(':from_date' => $date_from, ':to_date' => $date_to);
+            }
 
-        if ($given_by_user) {
-            $where .= ' and (treat.right_injection_given_by_id = :user_id or treat.left_injection_given_by_id = :user_id)';
-            $params[':user_id'] = $given_by_user->id;
-        }
+            if ($given_by_user) {
+                $where .= ' and (treat.right_injection_given_by_id = :user_id or treat.left_injection_given_by_id = :user_id)';
+                $params[':user_id'] = $given_by_user->id;
+            }
 
-        if ($this->institution_id) {
-            $where .= ' and (e.institution_id = :institution_id)';
-            $params[':institution_id'] = $this->institution_id;
-        }
+            if ($this->institution_id) {
+                $where .= ' and (e.institution_id = :institution_id)';
+                $params[':institution_id'] = $this->institution_id;
+            }
 
-        if ($drug) {
-            $where .= ' and (treat.left_drug_id = :drug_id or treat.right_drug_id = :drug_id)';
-            $params[':drug_id'] = $drug->id;
-        }
+            if ($drug) {
+                $where .= ' and (treat.left_drug_id = :drug_id or treat.right_drug_id = :drug_id)';
+                $params[':drug_id'] = $drug->id;
+            }
 
-        if ($pre_antisept_drug) {
-            $where .= ' and (treat.left_pre_antisept_drug_id = :pre_antisept_drug_id or treat.right_pre_antisept_drug_id = :pre_antisept_drug_id)';
-            $params[':pre_antisept_drug_id'] = $pre_antisept_drug->id;
-        }
+            if ($pre_antisept_drug) {
+                $where .= ' and (treat.left_pre_antisept_drug_id = :pre_antisept_drug_id or treat.right_pre_antisept_drug_id = :pre_antisept_drug_id)';
+                $params[':pre_antisept_drug_id'] = $pre_antisept_drug->id;
+            }
 
-        $command->where($where);
+            $command->where($where);
 
-        $results = array();
-        foreach ($command->queryAll(true, $params) as $row) {
+            $results = array();
+            foreach ($command->queryAll(true, $params) as $row) {
             if (@$patient_data['id'] != $row['patient_id']) {
                 if (@$patient_data['id']) {
                     foreach ($this->extractSummaryData($patient_data) as $record) {
@@ -251,11 +259,15 @@ class OphTrIntravitrealinjection_ReportInjections extends BaseReport
                 }
             }
         }
-        foreach ($this->extractSummaryData($patient_data) as $record) {
-            $results[] = $record;
-        }
+            foreach ($this->extractSummaryData($patient_data) as $record) {
+                $results[] = $record;
+            }
 
-        return $results;
+            return $results;
+        } catch (Exception $e) {
+            Yii::log('Error in getInjections: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            return array();
+        }
     }
 
     protected function getSummaryInjections($date_from, $date_to, $given_by_user, $drug, $pre_antisept_drug)

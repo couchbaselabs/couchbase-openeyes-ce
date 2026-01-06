@@ -32,6 +32,8 @@ class ExtraProceduresController extends BaseController
      */
     public function actionAutocomplete()
     {
-        echo CJavaScript::jsonEncode(OphTrConsent_Extra_Procedure::getList($_GET['term'], @$_GET['restrict']));
+        $term = isset($_GET['term']) ? $_GET['term'] : '';
+        $restrict = isset($_GET['restrict']) ? $_GET['restrict'] : null;
+        echo CJavaScript::jsonEncode(OphTrConsent_Extra_Procedure::getList($term, $restrict));
     }
 }

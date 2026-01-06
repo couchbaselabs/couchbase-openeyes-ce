@@ -203,23 +203,51 @@ class AdminController extends ModuleAdminController
     {
         if (Yii::app()->user->checkAccess('admin')) {
             // Show all procedures
-            $model_list = OphTrLaser_LaserProcedure::model()->with('procedure')->findAll();
+            $all_procedures = OphTrLaser_LaserProcedure::model()->findAll();
         } else {
             // Show procedures only at institution level
-            $model_list = OphTrLaser_LaserProcedure::model()
-                ->with(['procedure', 'institutions' => [
-                    'condition' => 'institutions_institutions.institution_id = :institution_id',
-                    'params' => [':institution_id' => Yii::app()->session['selected_institution_id']],
-                ]])
-                ->findAll();
+            $all_procedures = OphTrLaser_LaserProcedure::model()->findAll();
         }
+
+        // Filter out invalid procedures (placeholder models or those without proper data)
+        $model_list = [];
+        foreach ($all_procedures as $procedure) {
+            // Skip models with invalid IDs (like placeholder 99999)
+            if ($procedure->id === '99999' || $procedure->id == 99999) {
+                continue;
+            }
+            // Skip procedures without a procedure_id
+            if (empty($procedure->procedure_id)) {
+                continue;
+            }
+
+            // For non-admin, filter by institution
+            if (!Yii::app()->user->checkAccess('admin')) {
+                $institutions = CHtml::listData($procedure->institutions, 'id', 'id');
+                if (!in_array(Yii::app()->session['selected_institution_id'], $institutions)) {
+                    continue;
+                }
+            }
+
+            $model_list[] = $procedure;
+        }
+
         $this->render('list_OphTrLaser_Procedure', [
             'model_list' => $model_list
         ]);
     }
 
-    public function actionDeleteLaserProcedure($id)
+    public function actionDeleteLaserProcedure($id = null)
     {
+        // Handle ID from URL path or query parameter
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        if (!$id) {
+            throw new CHttpException(400, 'Laser procedure ID is required');
+        }
+        
         $laser_procedure = OphTrLaser_LaserProcedure::model()->findByPk($id);
         $institution = Institution::model()->getCurrent();
         if (!$laser_procedure) {

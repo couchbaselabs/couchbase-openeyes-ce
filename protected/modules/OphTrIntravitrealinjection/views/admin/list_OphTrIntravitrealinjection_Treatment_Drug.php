@@ -44,7 +44,7 @@
             <tbody>
             <?php foreach ($model_list as $i => $model) { ?>
                 <tr class="clickable" data-id="<?php echo $model->id ?>"
-                    data-uri="OphTrIntravitrealinjection/admin/editTreatmentDrug/<?php echo $model->id ?>">
+                    data-uri="OphTrIntravitrealinjection/admin/editTreatmentDrug?id=<?php echo $model->id ?>">
                     <td><input type="checkbox" name="treatment_drugs[]" value="<?php echo $model->id ?>"/></td>
                     <td>
                         <?php echo $model->name ?>

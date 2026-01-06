@@ -387,6 +387,9 @@ $config = array(
                 'OphTrOperationbooking/waitingList/filterSetStatus',
                 'OphTrOperationbooking/waitingList/filterSetSiteId',
                 'OphTrOperationbooking/waitingList/filterSetHosNum',
+                'OphTrOperationbooking/admin/testLetterContactRules',
+                'OphTrOperationbooking/admin/testLetterWarningRules',
+                'OphTrOperationbooking/admin/testWaitingListContactRules',
                 'worklist/addComment',
                 'worklist/deleteComment',
                 'worklist/changePathwayStatus',
@@ -472,9 +475,13 @@ $config = array(
                 'OphCoCorrespondence/admin/<action:\w+>/<id:\d+>' => 'OphCoCorrespondence/Admin/<action>',
                 'OphCoCorrespondence/admin/<action:\w+>' => 'OphCoCorrespondence/Admin/<action>',
 
-                // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCiExamination, OphCoCvi, OphDrPrescription, OphDrPGDPSD, OphCoTherapyapplication, OphTrLaser, OphTrOperationbooking, or OphCoCorrespondence)
-                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|OphCoCorrespondence|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>',
-                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|OphCoCorrespondence|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
+                // OphTrIntravitrealinjection admin routes - bypass ExaminationAdmin for OphTrIntravitrealinjection
+                'OphTrIntravitrealinjection/admin/<action:\w+>/<id:\d+>' => 'OphTrIntravitrealinjection/Admin/<action>?id=<id>',
+                'OphTrIntravitrealinjection/admin/<action:\w+>' => 'OphTrIntravitrealinjection/Admin/<action>',
+
+                // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCiExamination, OphCoCvi, OphDrPrescription, OphDrPGDPSD, OphCoTherapyapplication, OphTrLaser, OphTrOperationbooking, OphCoCorrespondence, or OphTrIntravitrealinjection)
+                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|OphCoCorrespondence|OphTrIntravitrealinjection|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>',
+                '<module:(?!OphCiExamination|OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication|OphTrLaser|OphTrOperationbooking|OphCoCorrespondence|OphTrIntravitrealinjection|PASAPI)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
                 '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>' => '<module>/oeadmin/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>',

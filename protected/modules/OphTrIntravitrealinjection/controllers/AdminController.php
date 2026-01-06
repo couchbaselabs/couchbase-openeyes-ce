@@ -100,26 +100,48 @@ class AdminController extends ModuleAdminController
      */
     public function actionSortTreatmentDrugs()
     {
-        if (!\Yii::app()->request->isPostRequest) {
-            throw new CHttpException(400, 'Invalid request method.');
-        }
-        if (!empty($_POST['order'])) {
-            foreach ($_POST['order'] as $i => $id) {
-                if ($drug = OphTrIntravitrealinjection_Treatment_Drug::model()->findByPk($id)) {
-                    $drug->display_order = $i + 1;
-                    if (!$drug->save()) {
-                        throw new Exception('Unable to save drug: ' . print_r($drug->getErrors(), true));
+        if (\Yii::app()->request->isPostRequest) {
+            if (!empty($_POST['order'])) {
+                foreach ($_POST['order'] as $i => $id) {
+                    if ($drug = OphTrIntravitrealinjection_Treatment_Drug::model()->findByPk($id)) {
+                        $drug->display_order = $i + 1;
+                        if (!$drug->save()) {
+                            throw new Exception('Unable to save drug: ' . print_r($drug->getErrors(), true));
+                        }
                     }
                 }
             }
+        } else {
+            // For GET requests, display the sortable list
+            $model_list = OphTrIntravitrealinjection_Treatment_Drug::model()->findAll(array('order' => 'display_order asc'));
+            $this->jsVars['OphTrIntravitrealinjection_sort_url'] = $this->createUrl('sortTreatmentDrugs');
+
+            Audit::add('admin', 'list', null, null, array('module' => 'OphTrIntravitrealinjection', 'model' => 'OphTrIntravitrealinjection_Treatment_Drug'));
+
+            $this->render('sort_OphTrIntravitrealinjection_Treatment_Drug', array(
+                'model_list' => $model_list,
+                'title' => 'Sort Treatment Drugs',
+                'model_class' => 'OphTrIntravitrealinjection_Treatment_Drug',
+            ));
         }
     }
 
     public function actionDeleteTreatmentDrugs()
     {
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request method.');
+        }
+
+        $treatment_drugs = Yii::app()->request->getPost('treatment_drugs', []);
+        
+        if (empty($treatment_drugs)) {
+            echo 0;
+            return;
+        }
+
         $result = 1;
 
-        foreach (OphTrIntravitrealinjection_Treatment_Drug::model()->findAllByPk($_POST['treatment_drugs']) as $drug) {
+        foreach (OphTrIntravitrealinjection_Treatment_Drug::model()->findAllByPk($treatment_drugs) as $drug) {
             if (!$drug->delete()) {
                 $result = 0;
             }
@@ -187,14 +209,47 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteInjectionUsers()
     {
-        $injection_users_ids = Yii::app()->request->getPost('injection_users', []);
-
-        foreach ($injection_users_ids as $injection_user_id) {
-            if (!OphTrIntravitrealinjection_InjectionUser::model()->deleteByPk($injection_user_id)) {
-                throw new Exception('Unable to delete injection user: ', true);
-            }
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request method.');
         }
 
-        echo 1;
+        $injection_users_ids = Yii::app()->request->getPost('injection_users', []);
+        $success = 1;
+        
+        if (empty($injection_users_ids)) {
+            echo $success;
+            return;
+        }
+
+        try {
+            foreach ($injection_users_ids as $injection_user_id) {
+                try {
+                    $model = OphTrIntravitrealinjection_InjectionUser::model()->findByPk($injection_user_id);
+                    if (!$model) {
+                        Yii::log('Injection user not found with id: ' . $injection_user_id, CLogger::LEVEL_WARNING);
+                        continue;
+                    }
+                    
+                    // Disable Couchbase sync for deletion to avoid sync errors
+                    if (method_exists($model, 'disableCouchbaseSync')) {
+                        $model->disableCouchbaseSync();
+                    }
+                    
+                    if (!$model->delete()) {
+                        Yii::log('Failed to delete injection user with id: ' . $injection_user_id, CLogger::LEVEL_ERROR);
+                        $success = 0;
+                    }
+                } catch (Exception $e) {
+                    Yii::log('Error deleting injection user ' . $injection_user_id . ': ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+                    // Log error but continue processing other users
+                    $success = 0;
+                }
+            }
+        } catch (Exception $e) {
+            Yii::log('Unexpected error in actionDeleteInjectionUsers: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            $success = 0;
+        }
+
+        echo $success;
     }
 }

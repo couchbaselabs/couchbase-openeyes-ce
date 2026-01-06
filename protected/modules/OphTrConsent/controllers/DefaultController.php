@@ -704,7 +704,11 @@ class DefaultController extends BaseEventTypeController
     {
         $event_id = $this->request->getParam('event_id');
         if ($event_id === null) {
-            $event_id = $this->event->id;
+            if ($this->event) {
+                $event_id = $this->event->id;
+            } else {
+                throw new CHttpException(400, 'Event ID is required');
+            }
         }
         $this->initWithEventId($event_id);
 
@@ -1260,8 +1264,13 @@ class DefaultController extends BaseEventTypeController
         return [];
     }
 
-    public function actionBenefits($id)
+    public function actionBenefits($id = null)
     {
+        if ($id === null) {
+            $this->renderJSON([]);
+            return;
+        }
+
         $extra_proc = OphTrConsent_Extra_Procedure::model()->findByPk($id);
         if (!$extra_proc) {
             throw new Exception("Unknown procedure: $id");
@@ -1447,7 +1456,10 @@ class DefaultController extends BaseEventTypeController
                 "protected_file_id" => $pf->id,
             ]);
         } else {
-            throw new CHttpException(400, "Bad request");
+            $this->renderJSON([
+                "success" => false,
+                "message" => "No file provided.",
+            ]);
         }
     }
 
@@ -1521,7 +1533,7 @@ class DefaultController extends BaseEventTypeController
 
     public function actionSaveWithdrawal()
     {
-        $code = 1;
+        $code = 0;
         $message = '';
 
         $request = Yii::app()->request;
@@ -1539,6 +1551,8 @@ class DefaultController extends BaseEventTypeController
                     if (!$withdrawal->save()) {
                         throw new Exception("Could not save withdrawal. Please contact support for assistance.");
                     }
+                    $code = 1;
+                    $message = 'Withdrawal saved successfully.';
                 } else {
                     throw new Exception('Something went wrong trying to add the withdrawal. Please try again or contact support for assistance');
                 }
@@ -1546,6 +1560,8 @@ class DefaultController extends BaseEventTypeController
                 $code = 0;
                 $message = $e->getMessage();
             }
+        } else {
+            $message = 'This endpoint only accepts POST requests.';
         }
         $this->renderJSON(['code' => $code, 'message' => $message]);
     }

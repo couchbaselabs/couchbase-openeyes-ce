@@ -95,7 +95,7 @@ class ExtraProceduresController extends BaseAdminController
             $procedure->aliases = $extra_proc_data['aliases'];
             // set benefits
             $benefits = [];
-            if (isset($extra_proc_benefits)) {
+            if (isset($extra_proc_benefits) && is_array($extra_proc_benefits) && !empty($extra_proc_benefits)) {
                 $criteria = new \CDbCriteria();
                 $criteria->addInCondition('id', array_values($extra_proc_benefits));
                 $benefits = Benefit::model()->findAll($criteria);
@@ -105,7 +105,7 @@ class ExtraProceduresController extends BaseAdminController
 
             // set complications
             $complications = [];
-            if (isset($extra_proc_complications)) {
+            if (isset($extra_proc_complications) && is_array($extra_proc_complications) && !empty($extra_proc_complications)) {
                 $criteria = new \CDbCriteria();
                 $criteria->addInCondition('id', array_values($extra_proc_complications));
                 $complications = Complication::model()->findAll($criteria);
@@ -148,10 +148,23 @@ class ExtraProceduresController extends BaseAdminController
      */
     public function actionDelete()
     {
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request method.');
+        }
+
         $procedures = \Yii::app()->request->getPost('select', []);
-        print_r($procedures);
-        exit();
+        
+        if (!is_array($procedures) || empty($procedures)) {
+            echo 'No procedures selected for deletion.';
+            return;
+        }
+
         foreach ($procedures as $procedure_id) {
+            if (!is_numeric($procedure_id)) {
+                echo 'Invalid procedure ID.';
+                return;
+            }
+
             $procedure = OphTrConsent_Extra_Procedure::model()->findByPk($procedure_id);
 
             if ($procedure && $this->isProcedureDeletable($procedure)) {

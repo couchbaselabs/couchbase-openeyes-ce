@@ -28,8 +28,20 @@ class ConsentLayoutsController extends BaseAdminController
         $this->render('/oeadmin/consent_layouts/index', []);
     }
 
-    public function actionGetLayoutElements($type_id)
+    public function actionGetLayoutElements($type_id = null)
     {
+        if ($type_id === null) {
+            $type_id = \Yii::app()->request->getParam('type_id');
+        }
+
+        if ($type_id === null) {
+            $this->renderJSON([
+                'success' => 0,
+                'message' => 'type_id parameter is required'
+            ]);
+            return;
+        }
+
         $criteria = new CDbCriteria();
         $criteria->addCondition('type_id = :type_id');
         $criteria->params[':type_id'] = $type_id;
@@ -40,6 +52,10 @@ class ConsentLayoutsController extends BaseAdminController
         $rows = '';
         if ($elements) {
             foreach ($elements as $key => $element) {
+                // Eager load the element relationship to ensure element->name is available
+                if (!isset($element->element)) {
+                    $element->element = ElementType::model()->findByPk($element->element_id);
+                }
                 $rows .= $this->renderPartial(
                     '/oeadmin/consent_layouts/_row',
                     [
@@ -96,22 +112,34 @@ class ConsentLayoutsController extends BaseAdminController
 
     public function actionDeleteLayoutElements()
     {
-        if (\Yii::app()->request->isPostRequest) {
-            $id = \Yii::app()->request->getPost('row_id');
-            $type_id = \Yii::app()->request->getPost('type_id');
-            $assessment = OphTrConsent_Type_Assessment::model()
-                ->findByAttributes([
-                    'id' => $id,
-                    'type_id' => $type_id
-                ]);
-            if ($assessment) {
-                $assessment->delete();
-            }
-
-            $this->renderJSON([
-                'success' => 1
-            ]);
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new CHttpException(400, 'Invalid request method. POST required.');
         }
+
+        $id = \Yii::app()->request->getPost('row_id');
+        $type_id = \Yii::app()->request->getPost('type_id');
+
+        if (!$id || !$type_id) {
+            throw new CHttpException(400, 'Invalid request. Missing required parameters: row_id and type_id.');
+        }
+
+        $assessment = OphTrConsent_Type_Assessment::model()
+            ->findByAttributes([
+                'id' => $id,
+                'type_id' => $type_id
+            ]);
+
+        if (!$assessment) {
+            throw new CHttpException(404, 'Assessment not found.');
+        }
+
+        if (!$assessment->delete()) {
+            throw new CHttpException(500, 'Failed to delete assessment.');
+        }
+
+        $this->renderJSON([
+            'success' => 1
+        ]);
     }
 
     public function actionSortAssessments()

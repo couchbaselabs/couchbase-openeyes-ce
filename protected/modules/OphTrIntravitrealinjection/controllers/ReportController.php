@@ -36,14 +36,22 @@ class ReportController extends BaseReportController
         $this->render('injections');
     }
 
-    public function actionArvoPresentation($startDate, $endDate)
+    public function actionArvoPresentation($startDate = null, $endDate = null)
     {
         // this is a fixed report for now, need to be updated
+        
+        // Set default date range if not provided (last 30 days)
+        if ($endDate === null) {
+            $endDate = date('Y-m-d');
+        }
+        if ($startDate === null) {
+            $startDate = date('Y-m-d', strtotime('-30 days'));
+        }
 
         $leftSummary = array('superior' => 0, 'inferior' => 0, 'neutral' => 0);
         $rightSummary = array('superior' => 0, 'inferior' => 0, 'neutral' => 0);
 
-        $dataValues = Yii::app()->cbdb->createCommand("SELECT left_eyedraw, right_eyedraw
+        $dataValues = Yii::app()->cbdb->createCommand("SELECT eoa.left_eyedraw, eoa.right_eyedraw
 														FROM et_ophtrintravitinjection_anteriorseg eoa
 														JOIN event e ON e.id=eoa.event_id
 														WHERE e.event_date>='".$startDate."'

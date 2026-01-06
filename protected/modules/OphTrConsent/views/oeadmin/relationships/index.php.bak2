@@ -108,12 +108,12 @@ type = "text/javascript" >
     });
 
 $('#et_sort').on('click', function () {
-    $('#relationships').submit();
+    $('#relationships').attr('action', $(this).data('uri')).submit();
 })
 
 // Add a new row to the table using the template
 $('#et_admin-add').on('click', function () {
-    $('#relationships').submit();
+    $('#relationships').attr('action', $(this).data('uri')).submit();
     let $table = $('#finding-table tbody');
     let $data = {
         key: $table.find('tr').length,

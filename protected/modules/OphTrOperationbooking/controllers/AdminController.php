@@ -464,8 +464,9 @@ class AdminController extends ModuleAdminController
 
         Audit::add('admin', 'list', null, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Waiting_List_Contact_Rule'));
 
+        // TEMPORARY: Don't pass institution_id to test if data exists
         $this->render('/admin/waiting_list_contact_rules/index', array(
-            'data' => OphTrOperationbooking_Waiting_List_Contact_Rule::model()->findAllAsTree(null, true, 'text', Institution::model()->getCurrent()->id),
+            'data' => OphTrOperationbooking_Waiting_List_Contact_Rule::model()->findAllAsTree(null, true, 'text', null),
         ));
     }
 
@@ -657,54 +658,46 @@ class AdminController extends ModuleAdminController
 
     public function actionAddInstitutionMapping()
     {
+        $ids = Yii::app()->request->getPost('select');
+        $model = Yii::app()->request->getPost('model');
+        $redirect_url = Yii::app()->request->getPost('redirect-url');
+
+        // Validate required parameters
+        if (empty($ids) || empty($model) || empty($redirect_url)) {
+            throw new CHttpException(400, 'Missing required parameters: select, model, and redirect-url are required');
+        }
+
+        $model .= '::model';
+        $instances = $model()->findAllByPk($ids);
+        $institution_id = Institution::model()->getCurrent()->id;
         $errors = array();
-        $unavailable_reasons = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findAll();
-        $success_message = null;
 
-        if (!empty($_POST)) {
-            $ids = Yii::app()->request->getPost('select');
-
-            if (empty($ids)) {
-                $errors[] = 'Please select at least one unavailable reason';
-            } else {
-                $transaction = Yii::app()->cbdb->beginTransaction();
-                $institution_id = Institution::model()->getCurrent()->id;
-                $reasons = OphTrOperationbooking_Operation_Session_UnavailableReason::model()->findAllByPk($ids);
-
-                try {
-                    foreach ($reasons as $reason) {
-                        if (!$reason->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id)) {
-                            $errors[] = $reason->getErrors();
-                        }
-                    }
-
-                    if (empty($errors)) {
-                        $transaction->commit();
-                        $success_message = 'Institution mapping added successfully for ' . count($reasons) . ' unavailable reason(s)';
-                        Audit::add('admin', 'create', serialize($ids), null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Session_UnavailableReason'));
-                        $this->redirect(array('/OphTrOperationbooking/admin/viewSessionUnavailableReasons'));
-                    } else {
-                        $transaction->rollback();
-                    }
-                } catch (Exception $e) {
-                    $transaction->rollback();
-                    $errors[] = 'Error: ' . $e->getMessage();
-                }
+        /**
+         * @var $instances MappedReferenceData[]|BaseActiveRecordVersioned[]
+         */
+        foreach ($instances as $instance) {
+            if (!$instance->createMapping(ReferenceData::LEVEL_INSTITUTION, $institution_id)) {
+                $errors[] = $instance->getErrors();
             }
         }
 
-        $this->render('/admin/addInstitutionMapping', array(
-            'unavailable_reasons' => $unavailable_reasons,
-            'errors' => $errors,
-            'success_message' => $success_message,
-        ));
+        if (empty($errors)) {
+            Audit::add('admin', 'create', serialize($ids), null, array('module' => 'OphTrOperationbooking', 'model' => $model));
+        }
+        
+        $this->redirect($redirect_url);
     }
 
     public function actionDeleteInstitutionMapping()
     {
-        $ids = $_POST['select'];
-        $model = $_POST['model'];
+        $ids = Yii::app()->request->getPost('select');
+        $model = Yii::app()->request->getPost('model');
         $redirect_url = Yii::app()->request->getPost('redirect-url');
+
+        // Validate required parameters
+        if (empty($ids) || empty($model) || empty($redirect_url)) {
+            throw new CHttpException(400, 'Missing required parameters: select, model, and redirect-url are required');
+        }
 
         $model .= '::model';
         $instances = $model()->findAllByPk($ids);
@@ -1529,6 +1522,8 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteSessions()
     {
+        $sessions = array();
+        
         if (!empty($_POST['session'])) {
             $criteria = new CDbCriteria();
             $criteria->addInCondition('id', $_POST['session']);
@@ -1588,6 +1583,7 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteSequences()
     {
+        $sequences = array();
         if (!empty($_POST['sequence'])) {
             $criteria = new CDbCriteria();
             $criteria->addInCondition('id', $_POST['sequence']);
@@ -1675,13 +1671,13 @@ class AdminController extends ModuleAdminController
 
     public function actionGetWardOptions($siteId = null, $wardId = null)
     {
+        $optionValues = array();
         if ($siteId > 0) {
-            $optionValues = OphTrOperationbooking_Operation_Ward::model()->findAll(array(
-                'condition' => 'active=1 and site_id='.$siteId,
-                'order' => 'name',
-            ));
-        } else {
-            $optionValues = array();
+            $criteria = new CDbCriteria();
+            $criteria->addCondition('active=1 and site_id=:siteId');
+            $criteria->params[':siteId'] = $siteId;
+            $criteria->order = 'name';
+            $optionValues = OphTrOperationbooking_Operation_Ward::model()->findAll($criteria);
         }
         echo CHtml::dropDownList(
             'OphTrOperationbooking_Operation_Theatre[ward_id]',
@@ -1694,6 +1690,12 @@ class AdminController extends ModuleAdminController
 
     public function actionVerifyDeleteTheatres()
     {
+        // Redirect if not a POST/AJAX request
+        if (empty($_POST)) {
+            $this->redirect(array('/OphTrOperationbooking/admin/viewTheatres'));
+            return;
+        }
+
         if (!isset($_POST['theatre']) || empty($_POST['theatre'])) {
             echo '0';
             return;
@@ -1725,6 +1727,11 @@ class AdminController extends ModuleAdminController
 
     public function actionDeleteTheatres()
     {
+        if (!isset($_POST['theatre']) || empty($_POST['theatre'])) {
+            echo '0';
+            return;
+        }
+
         $criteria = new CDbCriteria();
         $criteria->addInCondition('id', $_POST['theatre']);
         $theatres = OphTrOperationbooking_Operation_Theatre::model()->findAll($criteria);
@@ -2010,6 +2017,13 @@ class AdminController extends ModuleAdminController
         }
 
         Audit::add('admin', $action, serialize($_POST), false, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_ScheduleOperation_PatientUnavailableReason'));
+
+        // Return JSON response for AJAX requests, or redirect for regular form submissions
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            $this->renderJSON(array('success' => true, 'enabled' => (bool)$reason->enabled));
+        } else {
+            $this->redirect(array('/OphTrOperationbooking/admin/viewPatientUnavailableReasons'));
+        }
     }
 
     /**

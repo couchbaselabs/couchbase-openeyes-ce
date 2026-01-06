@@ -38,9 +38,15 @@ class BaseTree extends BaseActiveRecordVersioned
         }
         $criteria->order = 'rule_order asc';
         if ($institution_id) {
-            $criteria->with = 'institutions';
-            $criteria->addCondition('institutions_institutions.institution_id = :institution_id');
-            $criteria->params[':institution_id'] = $institution_id;
+            // Use subquery to check if institution mapping exists for this rule
+            // Get the mapping model class and table name
+            $mapping_model = get_class($this) . '_Institution';
+            if (class_exists($mapping_model)) {
+                $mapping_table = $mapping_model::model()->tableName();
+                $mapping_col = $this->tableName() . '_id';
+                $criteria->addCondition("t.id IN (SELECT {$mapping_col} FROM {$mapping_table} WHERE institution_id = :institution_id)");
+                $criteria->params[':institution_id'] = $institution_id;
+            }
         }
 
         if ($first && $parent) {

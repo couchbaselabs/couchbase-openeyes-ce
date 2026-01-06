@@ -179,42 +179,80 @@ class TemplateController extends BaseAdminController
         ));
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
         $result = [];
         $result['status'] = 1;
-        $result['errors'] = "";
+        $result['errors'] = [];
 
-        if (!empty($_POST['templates'])) {
+        // Handle direct ID parameter (e.g., /delete/1 or /delete?id=1)
+        if ($id === null && !empty($_POST['templates'])) {
+            // Handle POST data with templates array (bulk delete from list page)
             foreach (OphTrConsent_Template::model()->findAllByPk($_POST['templates']) as $consent_template) {
-                $templateProcedures = \OphTrConsent_TemplateProcedure::model()->findAll('template_id = :template_id', array(':template_id' => $consent_template->id));
-                foreach ($templateProcedures as $templateProcedure) {
-                    try {
-                        if (!$templateProcedure->delete()) {
-                            $result['status'] = 0;
-                            $result['errors'][] = $templateProcedure->getErrors();
-                        } else {
-                            Audit::add('admin-templateprocedure', 'delete', $templateProcedure);
-                        }
-                    } catch (Exception $e) {
-                        $result['status'] = 0;
-                        $result['errors'][] = "TemplateProcedure: " . $templateProcedure->name . " is in use";
-                    }
-                }
-                try {
-                    if (!$consent_template->delete()) {
-                        $result['status'] = 0;
-                        $result['errors'][] = $consent_template->getErrors();
-                    } else {
-                        Audit::add('admin-template', 'delete', $consent_template);
-                    }
-                } catch (Exception $e) {
-                    $result['status'] = 0;
-                    $result['errors'][] = "Template: " . $consent_template->name . " is in use";
-                }
+                $this->deleteTemplate($consent_template, $result);
             }
+        } elseif ($id !== null) {
+            // Handle direct ID parameter
+            $consent_template = OphTrConsent_Template::model()->findByPk((int)$id);
+            if (!$consent_template) {
+                $result['status'] = 0;
+                $result['errors'][] = "Template not found with id " . $id;
+            } else {
+                $this->deleteTemplate($consent_template, $result);
+            }
+        } else {
+            // Neither ID parameter nor POST data provided
+            $result['status'] = 1; // Still return success for backward compatibility
         }
 
         $this->renderJSON($result);
+    }
+
+    /**
+     * Helper function to delete a template and its related procedures
+     * @param OphTrConsent_Template $consent_template
+     * @param array &$result Reference to result array to track errors
+     */
+    private function deleteTemplate($consent_template, &$result)
+    {
+        try {
+            // Store the ID in a local variable to avoid overloaded property issues
+            $templateId = (int)$consent_template->id;
+            
+            \Yii::log("Deleting template ID: " . $templateId, \CLogger::LEVEL_INFO, 'application');
+            
+            // First, delete all related template procedures using direct SQL
+            $db = Yii::app()->db;
+            $command = $db->createCommand('DELETE FROM ophtrconsent_template_procedure WHERE template_id = :template_id');
+            $command->bindParam(':template_id', $templateId, PDO::PARAM_INT);
+            $affectedRows = $command->execute();
+            
+            \Yii::log("Deleted $affectedRows template procedures for template ID $templateId", \CLogger::LEVEL_INFO, 'application');
+            
+            // Audit the deletion of procedures (execute() returns number of rows affected or 0)
+            if ($affectedRows > 0) {
+                Audit::add('admin-templateprocedure', 'delete', "Deleted $affectedRows procedure assignments for template " . $templateId);
+            }
+            
+            // Now delete the template itself using direct SQL
+            $command = $db->createCommand('DELETE FROM ophtrconsent_template WHERE id = :id');
+            $command->bindParam(':id', $templateId, PDO::PARAM_INT);
+            $affectedRows = $command->execute();
+            
+            \Yii::log("DELETE FROM ophtrconsent_template WHERE id = $templateId returned $affectedRows rows", \CLogger::LEVEL_INFO, 'application');
+            
+            // execute() returns number of rows affected, should be >= 1 for successful deletion
+            if ($affectedRows > 0) {
+                Audit::add('admin-template', 'delete', $consent_template);
+            } else {
+                // No rows were deleted - either template doesn't exist or already deleted
+                $result['status'] = 0;
+                $result['errors'][] = "Template with ID " . $templateId . " not found or already deleted (0 rows affected)";
+            }
+        } catch (Exception $e) {
+            $result['status'] = 0;
+            $result['errors'][] = "Template deletion error: " . $e->getMessage();
+            \Yii::log("Template deletion error: " . $e->getMessage(), \CLogger::LEVEL_ERROR, 'application');
+        }
     }
 }
