@@ -8,6 +8,10 @@ class DefaultController extends \BaseEventTypeController
 {
     public $show_element_sidebar = false;
 
+    protected static $action_types = array(
+        'index' => self::ACTION_TYPE_VIEW,
+    );
+
     public function actionView($id)
     {
         parent::actionView($id);
@@ -60,3 +64,4 @@ class DefaultController extends \BaseEventTypeController
     }
 
 }
+
