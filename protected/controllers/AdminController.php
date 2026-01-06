@@ -2460,34 +2460,37 @@ class AdminController extends BaseAdminController
 
     public function actionDeleteDataSources()
     {
-        if (!empty($_POST['source'])) {
-            foreach ($_POST['source'] as $source_id) {
-                if (Institution::model()->find('source_id=?', array($source_id))) {
-                    echo '0';
-                    return;
-                }
-                if (Site::model()->find('source_id=?', array($source_id))) {
-                    echo '0';
-                    return;
-                }
-                if (Person::model()->find('source_id=?', array($source_id))) {
-                    echo '0';
-                    return;
-                }
-            }
-
-            foreach ($_POST['source'] as $source_id) {
-                $source = ImportSource::model()->findByPk($source_id);
-                if ($source) {
-                    if (!$source->delete()) {
-                        throw new CHttpException(500, 'Unable to delete import source: ' . print_r($source->getErrors(), true));
-                    }
-                }
-            }
-
-            Audit::add('admin-DataSource', 'delete');
+        // Validate input to prevent deleting all records
+        if (!isset($_POST['source']) || !is_array($_POST['source']) || count($_POST['source']) === 0) {
+            echo '0';
+            return;
         }
 
+        foreach ($_POST['source'] as $source_id) {
+            if (Institution::model()->find('source_id=?', array($source_id))) {
+                echo '0';
+                return;
+            }
+            if (Site::model()->find('source_id=?', array($source_id))) {
+                echo '0';
+                return;
+            }
+            if (Person::model()->find('source_id=?', array($source_id))) {
+                echo '0';
+                return;
+            }
+        }
+
+        foreach ($_POST['source'] as $source_id) {
+            $source = ImportSource::model()->findByPk($source_id);
+            if ($source) {
+                if (!$source->delete()) {
+                    throw new CHttpException(500, 'Unable to delete import source: ' . print_r($source->getErrors(), true));
+                }
+            }
+        }
+
+        Audit::add('admin-DataSource', 'delete');
         echo '1';
     }
 
@@ -2752,12 +2755,20 @@ class AdminController extends BaseAdminController
         $criteria = new CDbCriteria();
         $criteria->addInCondition('id', $_POST['commissioning_body_type']);
 
+        $deleted_count = 0;
         foreach (CommissioningBodyType::model()->findAll($criteria) as $cbt) {
             if (!$cbt->delete()) {
                 echo '0';
 
                 return;
             }
+            $deleted_count++;
+        }
+
+        // Verify at least one record was deleted
+        if ($deleted_count === 0) {
+            echo '0';
+            return;
         }
 
         Audit::add('admin-CommissioningBodyType', 'delete');
@@ -2907,27 +2918,42 @@ class AdminController extends BaseAdminController
 
     public function actionVerifyDeleteCommissioningBodyServices()
     {
-        // Currently no foreign keys to this table
-        if (isset($_POST['commissioning_body_service']) && is_array($_POST['commissioning_body_service']) && count($_POST['commissioning_body_service']) > 0) {
-            // Services can be safely deleted if no foreign keys exist
-            echo '1';
-        } else {
+        // Check if services are selected
+        if (!isset($_POST['commissioning_body_service']) || !is_array($_POST['commissioning_body_service']) || count($_POST['commissioning_body_service']) == 0) {
             // No services selected or invalid request
-            echo '1';
+            echo '0';
+            return;
         }
+
+        // Currently no foreign keys to this table, so all services can be safely deleted
+        echo '1';
     }
 
     public function actionDeleteCommissioningBodyServices()
     {
-        $criteria = new CDbCriteria();
-        $criteria->addInCondition('id', @$_POST['commissioning_body_service']);
+        // Validate input to prevent deleting all records
+        if (!isset($_POST['commissioning_body_service']) || !is_array($_POST['commissioning_body_service']) || count($_POST['commissioning_body_service']) === 0) {
+            echo '0';
+            return;
+        }
 
+        $criteria = new CDbCriteria();
+        $criteria->addInCondition('id', $_POST['commissioning_body_service']);
+
+        $deleted_count = 0;
         foreach (CommissioningBodyService::model()->findAll($criteria) as $cbs) {
             if (!$cbs->delete()) {
                 echo '0';
 
                 return;
             }
+            $deleted_count++;
+        }
+
+        // Verify at least one record was deleted
+        if ($deleted_count === 0) {
+            echo '0';
+            return;
         }
 
         Audit::add('admin-CommissioningBodyService', 'delete');
@@ -3013,12 +3039,18 @@ class AdminController extends BaseAdminController
 
     public function actionDeleteCommissioningBodyServiceTypes()
     {
+        // Validate input to prevent deleting all records
+        if (!isset($_POST['commissioning_body_service_type']) || !is_array($_POST['commissioning_body_service_type']) || count($_POST['commissioning_body_service_type']) === 0) {
+            echo '0';
+            return;
+        }
+
         $criteria = new CDbCriteria();
-        $criteria->addInCondition('id', @$_POST['commissioning_body_service_type']);
+        $criteria->addInCondition('id', $_POST['commissioning_body_service_type']);
 
         $er = CommissioningBodyServiceType::model()->deleteAll($criteria);
-        if (!$er) {
-            throw new CHttpException(500, 'Unable to delete CommissioningBodyServiceTypes: ' . print_r($er->getErrors(), true));
+        if ($er === false) {
+            throw new CHttpException(500, 'Unable to delete CommissioningBodyServiceTypes');
         }
 
         Audit::add('admin-CommissioningBodyServiceType', 'delete');
@@ -3029,6 +3061,24 @@ class AdminController extends BaseAdminController
     public function actionEventDeletionRequests()
     {
         $selected_institution = Yii::app()->request->getQuery('selected_institution', Yii::app()->session['selected_institution_id']);
+        
+        // Handle POST requests from the form (approve/reject buttons)
+        if (Yii::app()->request->isPostRequest) {
+            $event_id = Yii::app()->request->getPost('event_id');
+            
+            if (!$event_id) {
+                throw new CHttpException(400, 'Event ID is required');
+            }
+            
+            if (isset($_POST['approve'])) {
+                $this->redirect(array('/admin/approveEventDeletionRequest', 'id' => $event_id));
+                return;
+            } elseif (isset($_POST['reject'])) {
+                $this->redirect(array('/admin/rejectEventDeletionRequest', 'id' => $event_id));
+                return;
+            }
+        }
+        
         $events = Event::model()->findAll(
             array(
                 'order' => 'last_modified_date asc',
