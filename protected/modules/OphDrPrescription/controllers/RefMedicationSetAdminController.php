@@ -20,6 +20,12 @@ class RefMedicationSetAdminController extends BaseAdminController
     public function actionList()
     {
         $ref_set_id = Yii::app()->request->getParam('ref_set_id');
+        
+        if (!$ref_set_id) {
+            $this->redirect('/OphDrPrescription/refSetAdmin/list');
+            return;
+        }
+        
         $medSet = MedicationSet::model()->findByPk($ref_set_id);
 
         if (!$medSet) {
@@ -119,11 +125,18 @@ class RefMedicationSetAdminController extends BaseAdminController
 
     public function actionDelete()
     {
-        $ids_to_delete = Yii::app()->request->getPost('MedicationSetItem')['id'];
+        $postedData = Yii::app()->request->getPost('MedicationSetItem');
+        if (!$postedData || !isset($postedData['id'])) {
+            throw new CHttpException(400, 'Invalid request. Missing medication set item IDs.');
+        }
+        
+        $ids_to_delete = $postedData['id'];
         if (is_array($ids_to_delete)) {
             foreach ($ids_to_delete as $id) {
                 $model = MedicationSetItem::model()->findByPk($id);
-                $model->delete();
+                if ($model) {
+                    $model->delete();
+                }
             }
         }
 
