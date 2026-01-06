@@ -84,11 +84,25 @@ if (@$disabled) {
     <?php if ($is_mapping) {
         foreach ($model::model()->enumerateSupportedLevels() as $level) { ?>
             <td>
-                <?php if ($row->hasMapping($level, $model::model()->getIdForLevel($level))) { ?>
-                    <i class="oe-i tick small"></i>
-                <?php } else { ?>
+                <?php 
+                try {
+                    $levelId = $model::model()->getIdForLevel($level);
+                    if ($row->hasMapping($level, $levelId)) { 
+                        ?>
+                        <i class="oe-i tick small"></i>
+                        <?php 
+                    } else { 
+                        ?>
+                        <i class="oe-i remove small"></i>
+                        <?php 
+                    } 
+                } catch (Exception $e) {
+                    // If we can't determine the level ID (e.g., no specialty/firm context), skip the check
+                    ?>
                     <i class="oe-i remove small"></i>
-                <?php } ?>
+                    <?php 
+                }
+                ?>
             </td>
         <?php }
     } ?>
