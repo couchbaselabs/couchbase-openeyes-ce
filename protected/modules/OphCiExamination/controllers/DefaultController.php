@@ -3178,7 +3178,21 @@ class DefaultController extends \BaseEventTypeController
 
     public static function getMedicationManagementEditable($patient_id, $event_date)
     {
+        $error_messages = array();
+        
         $patient = \Patient::model()->findByPk($patient_id);
+        if (!$patient) {
+            $error_messages[] = 'Patient not found';
+            return array('errorMessages' => $error_messages);
+        }
+        
+        // Validate event_date format
+        $event_datetime = DateTime::createFromFormat('d M Y', $event_date);
+        if (!$event_datetime) {
+            $error_messages[] = 'Invalid event date format';
+            return array('errorMessages' => $error_messages);
+        }
+        
         $api = \Yii::app()->moduleAPI->get('OphCiExamination');
         $latest_mm_datetime = null;
         $latest_mh_datetime = null;
@@ -3195,10 +3209,6 @@ class DefaultController extends \BaseEventTypeController
         $latest_med_element_datetime = max($latest_mm_datetime, $latest_mh_datetime);
 
         $current_datetime = new DateTime();
-
-        $event_datetime = DateTime::createFromFormat('d M Y', $event_date);
-
-        $error_messages = array();
 
         if ($latest_med_element_datetime > $event_datetime) {
             $error_messages[] = 'Patient has a more recent event with a medication element';
