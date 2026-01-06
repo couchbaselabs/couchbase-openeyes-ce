@@ -113,8 +113,6 @@ $config = [
                 'OphCiExamination/ExaminationAdmin/freehandDraw/<action:\w+>' => '/OphCiExamination/ExaminationAdmin/FreehandDraw/<action>',
                 'OphCiExamination/ExaminationAdmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>?id=<id>',
                 'OphCiExamination/ExaminationAdmin/<controller:\w+>/<action:\w+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>',
-                'OphCiExamination/admin/<action:\w+>/<id:\d+>' => '/OphCiExamination/admin/<action>?id=<id>',
-                'OphCiExamination/admin/<action:\w+>' => '/OphCiExamination/admin/<action>',
                 'OphCiExamination/admin/<controller:\w+>/<action:\w+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>',
                 'OphCiExamination/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '/OphCiExamination/ExaminationAdmin/<controller>/<action>?id=<id>',
             ]
