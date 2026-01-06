@@ -36,7 +36,7 @@ class ProtectedFileController extends BaseController
             throw new CHttpException(404, 'File not found');
         }
         if (!file_exists($file->getPath())) {
-            throw new CException('File not found on filesystem: '.$file->getPath());
+            throw new CHttpException(404, 'File not found on filesystem: '.$file->getPath());
         }
         header('Content-Description: File Transfer');
         header('Content-Type: '.$file->mimetype);
@@ -57,7 +57,7 @@ class ProtectedFileController extends BaseController
         $filepath = $file->getPath();
 
         if (!file_exists($file->getPath())) {
-            throw new CException('File not found on filesystem: '.$file->getPath());
+            throw new CHttpException(404, 'File not found on filesystem: '.$file->getPath());
         }
         header('Content-Type: '.$file->mimetype);
 
@@ -71,7 +71,8 @@ class ProtectedFileController extends BaseController
                 $this->dumpImageAs($rotated, $mime);
                 $size = ob_get_length();
                 header("Content-length: " . $size);
-                ob_flush();
+                ob_end_flush();
+                return;
             }
         }
 
@@ -80,14 +81,18 @@ class ProtectedFileController extends BaseController
         readfile($filepath);
     }
 
-    public function actionThumbnail($id, $dimensions, $name)
+    public function actionThumbnail($id = null, $dimensions = null, $name = null)
     {
+        if (!$id || !$dimensions) {
+            throw new CHttpException(400, 'Invalid parameters. Required: id, dimensions');
+        }
         if (!$file = ProtectedFile::model()->findByPk($id)) {
             throw new CHttpException(404, 'File not found');
         }
-        if (!$thumbnail = $file->getThumbnail($dimensions, true)) {
+        if (!$file->getThumbnail($dimensions, true)) {
             throw new CHttpException(404, 'Thumbnail not available');
         }
+        $thumbnail = $file->getThumbnail($dimensions, true);
         header('Content-Type: '.$file->mimetype);
         header('Content-Length: '.$thumbnail['size']);
         ob_clean();

@@ -74,9 +74,13 @@ class CommonSystemicDisorderController extends BaseAdminController
         if (!$JSON_string || !array_key_exists('JSON_string', $JSON_string)) {
             $json_error = true;
         }
-        $JSON = json_decode(str_replace("'", '"', $JSON_string['JSON_string']), true);
-        if (json_last_error() != 0) {
-            $json_error = true;
+        
+        $JSON = [];
+        if (!$json_error) {
+            $JSON = json_decode(str_replace("'", '"', $JSON_string['JSON_string']), true);
+            if (json_last_error() != 0) {
+                $json_error = true;
+            }
         }
 
         if (!$json_error) {

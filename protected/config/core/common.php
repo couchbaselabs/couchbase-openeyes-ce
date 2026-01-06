@@ -99,6 +99,7 @@ $config = array(
         'application.widgets.*',
         'application.widgets.interfaces.*',
         'application.controllers.*',
+        'application.controllers.oeadmin.*',
         'application.helpers.*',
         'application.gii.*',
         'system.gii.generators.module.*',
@@ -118,12 +119,19 @@ $config = array(
         'OEModule' => 'application.modules',
     ),
 
+    // Controller map for oeadmin controllers
+    'controllerMap' => array(
+        'anaestheticAgentMapping' => array(
+            'class' => 'AnaestheticAgentMappingController',
+        ),
+    ),
+
     // Application components
     'components' => array(
         'assetManager' => array(
             'class' => 'AssetManager',
             // Use symbolic links to publish the assets when in debug mode.
-            'linkAssets' => defined('YII_DEBUG') && YII_DEBUG,
+            'linkAssets' => false,
         ),
         'authManager' => array(
             'class' => 'application.components.CouchbaseAuthManagerShim',
@@ -378,6 +386,7 @@ $config = array(
             'rules' => array(
                 '' => 'site/index',
                 'patient/viewpas/<pas_key:\d+>' => 'patient/viewpas',
+                'patient/getCitoUrl/<hos_num:\d+>' => 'patient/getCitoUrl',
                 'file/view/<id:\d+>/<dimensions:\d+(x\d+)?>/<name:\w+\.\w+>' => 'protectedFile/thumbnail',
                 'file/view/<id:\d+>/<name:\w+\.\w+>' => 'protectedFile/view',
                 
@@ -400,6 +409,23 @@ $config = array(
                 '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>' => '<module>/oeadmin/<controller>/<action>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>',
+                'oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'oeadmin/<controller>/<action>',
+                'oeadmin/<controller:\w+>/<action:\w+>' => 'oeadmin/<controller>/<action>',
+                // Support direct access to oeadmin controllers without the oeadmin prefix
+                'examinationElementAttributes/<action:\w+>/<id:\d+>' => 'oeadmin/examinationElementAttributes/<action>',
+                'examinationElementAttributes/<action:\w+>' => 'oeadmin/examinationElementAttributes/<action>',
+                'anaestheticAgentDefaults/<action:\w+>/<id:\d+>' => 'oeadmin/anaestheticAgentDefaults/<action>',
+                'anaestheticAgentDefaults/<action:\w+>' => 'oeadmin/anaestheticAgentDefaults/<action>',
+                'anaestheticAgentMapping/<action:\w+>/<id:\d+>' => 'oeadmin/anaestheticAgentMapping/<action>',
+                'anaestheticAgentMapping/<action:\w+>' => 'oeadmin/anaestheticAgentMapping/<action>',
+                'commonSystemicDisorder/<action:\w+>/<id:\d+>' => 'oeadmin/commonSystemicDisorder/<action>',
+                'commonSystemicDisorder/<action:\w+>' => 'oeadmin/commonSystemicDisorder/<action>',
+                'commonSystemicDisorderGroup/<action:\w+>/<id:\d+>' => 'oeadmin/commonSystemicDisorderGroup/<action>',
+                'commonSystemicDisorderGroup/<action:\w+>' => 'oeadmin/commonSystemicDisorderGroup/<action>',
+                'anaestheticAgentDefaults/<action:\w+>/<id:\d+>' => 'oeadmin/anaestheticAgentDefaults/<action>',
+                'anaestheticAgentDefaults/<action:\w+>' => 'oeadmin/anaestheticAgentDefaults/<action>',
+                'eventLog/<action:\w+>/<id:\d+>' => 'oeadmin/eventLog/<action>',
+                'eventLog/<action:\w+>' => 'oeadmin/eventLog/<action>',
                 '<controller:\w+>/<id:\d+>' => '<controller>/view',
                 '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
                 '<controller:\w+>/<action:\w+>' => '<controller>/<action>',

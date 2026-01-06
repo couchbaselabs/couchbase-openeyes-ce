@@ -178,8 +178,34 @@ class AssetManager extends CAssetManager
      */
     public function getPublishedPathOfAlias($alias = null)
     {
-        return $this->publish(Yii::getPathOfAlias($alias ?: static::BASE_PATH_ALIAS), true, -1);
+        // Suppress warnings during publish to handle symlink failures gracefully
+        return @$this->publish(Yii::getPathOfAlias($alias ?: static::BASE_PATH_ALIAS), true, -1);
     }
+
+    /**
+     * Override publish method to handle symlink errors gracefully.
+     * Temporarily disables symlink and uses copying instead.
+     *
+     * @param string $path The path to the asset.
+     * @param bool $forceCopy Whether to force copying.
+     * @param int $level The directory level to publish.
+     * @param bool $hashByName Whether to hash by name.
+     * @return string The published path.
+     */
+    public function publish($path, $forceCopy = false, $level = -1, $hashByName = false)
+    {
+        // Temporarily disable symlink to avoid "No such file or directory" errors
+        $originalLinkAssets = $this->linkAssets;
+        $this->linkAssets = false;
+        
+        try {
+            return parent::publish($path, $forceCopy, $level, $hashByName);
+        } finally {
+            // Restore original setting
+            $this->linkAssets = $originalLinkAssets;
+        }
+    }
+
 
     /**
      * Creates an absolute URL to a published asset. Eg: '/path/to/hash/asset.gif?cachebusted'.
