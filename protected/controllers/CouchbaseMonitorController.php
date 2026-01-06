@@ -125,37 +125,17 @@ class CouchbaseMonitorController extends BaseController
     }
     
     /**
-     * Get health status for both databases
+     * Get health status for Couchbase database
      * 
      * @return array Health status
      */
     protected function getHealthStatus()
     {
         $status = [
-            'mariadb' => ['status' => 'unknown', 'latency' => 0],
             'couchbase' => ['status' => 'unknown', 'latency' => 0],
         ];
         
-        // Check MariaDB
-        try {
-            $start = microtime(true);
-            Yii::app()->cbdb->createCommand("SELECT 1")->queryScalar();
-            $latency = (microtime(true) - $start) * 1000;
-            
-            $status['mariadb'] = [
-                'status' => 'healthy',
-                'latency' => round($latency, 2),
-                'status_class' => $this->getStatusClass($latency),
-            ];
-        } catch (Exception $e) {
-            $status['mariadb'] = [
-                'status' => 'error',
-                'error' => $e->getMessage(),
-                'status_class' => 'danger',
-            ];
-        }
-        
-        // Check Couchbase
+        // Check Couchbase (MariaDB has been completely removed)
         try {
             if (!Yii::app()->hasComponent('couchbase')) {
                 $status['couchbase'] = [
@@ -164,6 +144,7 @@ class CouchbaseMonitorController extends BaseController
                 ];
             } else {
                 $start = microtime(true);
+                // Use a simple N1QL query to test connection
                 Yii::app()->couchbase->query("SELECT 1");
                 $latency = (microtime(true) - $start) * 1000;
                 
@@ -289,12 +270,12 @@ class CouchbaseMonitorController extends BaseController
             return ['error' => 'Couchbase not configured'];
         }
         
-        $adapter = Yii::app()->couchbase;
+        $couchbase = Yii::app()->couchbase;
         
         foreach ($tables as $table => $config) {
             $modelClass = $config['model'];
             
-            if (!class_exists($modelClass)) {
+            if (!class_exists($modelClass) || !method_exists($modelClass, 'model')) {
                 continue;
             }
             
@@ -302,10 +283,21 @@ class CouchbaseMonitorController extends BaseController
                 // Get MariaDB count
                 $mysqlCount = $modelClass::model()->count();
                 
-                // Get Couchbase count
+                // Get Couchbase count using N1QL query
+                $cbCount = 0;
                 try {
-                    $cbCount = $adapter->count($config['scope'], $table);
+                    $query = "SELECT COUNT(*) as cnt FROM `openeyes`.`{$config['scope']}`.`{$table}`";
+                    $result = $couchbase->query($query);
+                    
+                    // Extract count from result
+                    if ($result) {
+                        $rows = $result->rows();
+                        if (!empty($rows) && isset($rows[0]->cnt)) {
+                            $cbCount = (int)$rows[0]->cnt;
+                        }
+                    }
                 } catch (Exception $e) {
+                    Yii::log("Failed to count {$table} in Couchbase: " . $e->getMessage(), CLogger::LEVEL_WARNING, 'couchbaseMonitor');
                     $cbCount = 0;
                 }
                 
@@ -321,6 +313,7 @@ class CouchbaseMonitorController extends BaseController
                     'status_class' => $diff === 0 ? 'success' : ($diffPercent < 1 ? 'warning' : 'danger'),
                 ];
             } catch (Exception $e) {
+                Yii::log("Error checking sync status for {$table}: " . $e->getMessage(), CLogger::LEVEL_ERROR, 'couchbaseMonitor');
                 $status[$table] = [
                     'error' => $e->getMessage(),
                     'status_class' => 'danger',
