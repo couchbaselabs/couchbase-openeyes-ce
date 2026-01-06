@@ -84,8 +84,12 @@ class UserIdentity extends CUserIdentity
     {
         if (isset($this->available_authentications[$type])) {
             if (count($this->available_authentications[$type]) > 1) {
-                Audit::add('login', 'login-failed', null, "User has multiple UserAuthentications of type $type for, Site: $this->site_id, Institution: $this->institution_id, Username: $this->username");
-                return [false, "Multiple credentials found, please contact an admin."];
+                // Instead of failing, select the first active authentication
+                Audit::add('login', 'login-failed-multi', null, "User has multiple UserAuthentications of type $type for, Site: $this->site_id, Institution: $this->institution_id, Username: $this->username - using first");
+                // Sort by ID to ensure consistent selection
+                usort($this->available_authentications[$type], function($a, $b) {
+                    return $a->id <=> $b->id;
+                });
             }
             $user_authentication = $this->available_authentications[$type][0];
             if (!isset($user_authentication->institution_authentication_id)) {
