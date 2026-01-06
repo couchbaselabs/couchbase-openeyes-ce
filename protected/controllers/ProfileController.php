@@ -814,34 +814,56 @@ class ProfileController extends BaseController
     {
         $template_ids = Yii::app()->request->getPost('template_ids');
 
-        $transaction = Yii::app()->cbdb->beginTransaction();
-
-        foreach ($template_ids as $template_id) {
-            $template = EventTemplate::model()->findByPk($template_id);
-
-            if ($template === null) {
-                $transaction->rollback();
-                $this->renderJSON(['success' => false, 'message' => "Template with ID $template_id not found"]);
-            }
-
-            if (!$template->opnote_templates->delete()) {
-                $transaction->rollback();
-                $this->renderJSON(['success' => false]);
-            }
-
-            if (!$template->user_assignment->delete()) {
-                $transaction->rollback();
-                $this->renderJSON(['success' => false]);
-            }
-
-            if (!$template->delete()) {
-                $transaction->rollback();
-                $this->renderJSON(['success' => false]);
-            }
+        // Validate input: template_ids must be an array
+        if (empty($template_ids) || !is_array($template_ids)) {
+            $this->renderJSON(['success' => false, 'message' => 'No template IDs provided']);
+            return;
         }
 
-        $transaction->commit();
-        $this->renderJSON(['success' => true]);
+        $transaction = Yii::app()->cbdb->beginTransaction();
+
+        try {
+            foreach ($template_ids as $template_id) {
+                // Validate template_id is numeric
+                if (!is_numeric($template_id)) {
+                    throw new Exception('Invalid template ID: ' . $template_id);
+                }
+
+                $template = EventTemplate::model()->findByPk($template_id);
+
+                if ($template === null) {
+                    throw new Exception("Template with ID $template_id not found");
+                }
+
+                // Delete related opnote_templates if they exist
+                if (isset($template->opnote_templates) && $template->opnote_templates !== null) {
+                    if (!$template->opnote_templates->delete()) {
+                        throw new Exception('Unable to delete opnote_templates: ' . print_r($template->getErrors(), true));
+                    }
+                }
+
+                // Delete related user_assignment if it exists
+                if (isset($template->user_assignment) && $template->user_assignment !== null) {
+                    if (!$template->user_assignment->delete()) {
+                        throw new Exception('Unable to delete user_assignment: ' . print_r($template->getErrors(), true));
+                    }
+                }
+
+                // Delete the template itself
+                if (!$template->delete()) {
+                    throw new Exception('Unable to delete template: ' . print_r($template->getErrors(), true));
+                }
+            }
+
+            $transaction->commit();
+            $this->renderJSON(['success' => true]);
+        } catch (Exception $e) {
+            if ($transaction->isActive) {
+                $transaction->rollback();
+            }
+            Yii::log('Error deleting event templates: ' . $e->getMessage(), 'error', 'ProfileController.actionDeleteEventTemplates');
+            $this->renderJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     protected function getNotSelectedFirmList(User $user)
