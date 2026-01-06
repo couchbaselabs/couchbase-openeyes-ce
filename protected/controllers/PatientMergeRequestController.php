@@ -307,7 +307,8 @@ class PatientMergeRequestController extends BaseController
     public function actionMerge($id = null)
     {
         if ($id === null) {
-            throw new CHttpException(400, 'Merge Request ID is required.');
+            $this->redirect(array('index'));
+            return;
         }
         $merge_request = $this->loadModel($id);
 
