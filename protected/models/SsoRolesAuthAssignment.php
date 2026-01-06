@@ -22,7 +22,7 @@
  *
  * @property int $id
  * @property int $sso_role_id
- * @property int $authitem_name
+ * @property string $authitem_role
  */
 
 class SsoRolesAuthAssignment extends BaseActiveRecordVersioned
@@ -60,8 +60,8 @@ class SsoRolesAuthAssignment extends BaseActiveRecordVersioned
     public function relations()
     {
         return array(
-            'sso_roles_assignment' => array(self::HAS_MANY, 'SsoRoles', 'id'),
-            'sso_authitem_assignment' => array(self::HAS_MANY, 'AuthItem', 'name'),
+            'sso_role' => array(self::BELONGS_TO, 'SsoRoles', 'sso_role_id'),
+            'authitem' => array(self::BELONGS_TO, 'AuthItem', 'authitem_role'),
         );
     }
 
