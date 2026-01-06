@@ -632,18 +632,25 @@ class Admin
                 if ( empty($this->model->id) ){
                     $this->model->id = null;
                 }
-                if (!$this->model->save(false)) {
-                    $errors = $this->model->getErrors();
-                    $errorMessage = 'Unable to save '.$this->modelName.': ';
-                    foreach ($errors as $attribute => $messages) {
-                        foreach ($messages as $message) {
-                            $errorMessage .= $attribute . ': ' . $message . '; ';
+                try {
+                    if (!$this->model->save(false)) {
+                        $errors = $this->model->getErrors();
+                        $errorMessage = 'Unable to save '.$this->modelName.': ';
+                        foreach ($errors as $attribute => $messages) {
+                            foreach ($messages as $message) {
+                                $errorMessage .= $attribute . ': ' . $message . '; ';
+                            }
                         }
+                        if (empty($errorMessage) || $errorMessage === 'Unable to save '.$this->modelName.': ') {
+                            $errorMessage = 'Unable to save '.$this->modelName.': Unknown database error';
+                        }
+                        throw new CHttpException(500, $errorMessage);
                     }
-                    if (empty($errorMessage) || $errorMessage === 'Unable to save '.$this->modelName.': ') {
-                        $errorMessage = 'Unable to save '.$this->modelName.': Unknown database error';
+                } catch (Exception $e) {
+                    if ($e instanceof CHttpException) {
+                        throw $e;
                     }
-                    throw new CHttpException(500, $errorMessage);
+                    throw new CHttpException(500, 'Unable to save '.$this->modelName.': ' . $e->getMessage());
                 }
                 $this->audit('edit', $this->model->id);
                 if ($redirect){

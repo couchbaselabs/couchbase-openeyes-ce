@@ -736,8 +736,20 @@ class AdminController extends \ModuleAdminController
             throw new \CHttpException('404', 'Could not find item set');
         }
 
+        // Try to get POST data from the model-specific key first (for backwards compatibility)
         $post = \Yii::app()->request->getPost('OEModule_OphCiExamination_models_OphCiExamination_ElementSetItem', []);
-        $item->attributes = array_shift($post);
+        
+        // If no data in the model-specific key, get flat POST data (direct from form/AJAX)
+        if (empty($post)) {
+            $post_data = $_POST;
+            // Remove CSRF token from the data before setting attributes
+            unset($post_data['YII_CSRF_TOKEN']);
+            if (!empty($post_data)) {
+                $item->attributes = $post_data;
+            }
+        } else {
+            $item->attributes = array_shift($post);
+        }
 
         if (!$item->save()) {
             throw new \Exception('Unable to update element set item: ' . print_r($item->getErrors(), true));

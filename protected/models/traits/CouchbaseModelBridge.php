@@ -702,7 +702,13 @@ trait CouchbaseModelBridge
             $rows = $this->executeN1ql($n1ql);
             
             if (empty($rows)) {
-                return null;
+                // Fallback: try searching by id field if USE KEYS doesn't find it
+                \Yii::log("N1QL findByPk: USE KEYS didn't find document, trying field search for {$collection}#{$pk}", \CLogger::LEVEL_WARNING);
+                $n1ql = $this->buildN1qlSelect() . " WHERE `id` = {$pk} LIMIT 1";
+                $rows = $this->executeN1ql($n1ql);
+                if (empty($rows)) {
+                    return null;
+                }
             }
             
             return $this->hydrateModel($rows[0]);

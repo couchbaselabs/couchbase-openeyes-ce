@@ -242,7 +242,7 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
     }
 
     // Check if SQL is available; if not, fall back to Couchbase for models that support it
-    if (!$this->isSqlAvailable() && method_exists($this, 'isDualWriteEnabled')) {
+    if (!$this->isSqlAvailable() && method_exists($this, 'saveToCouchbase')) {
         // SQL is not available, but model supports Couchbase, so skip SQL and use Couchbase
         if ($runValidation && !$this->validate()) {
             return false;
@@ -265,8 +265,18 @@ class BaseActiveRecordVersioned extends BaseActiveRecord
         // Mark as no longer a new record after getting an ID
         $this->setIsNewRecord(false);
         
-        // Manually trigger afterSave to sync to Couchbase
-        $this->afterSave();
+        // Temporarily enable dual-write to force Couchbase save when SQL is unavailable
+        $originalDualWrite = \Yii::app()->params['enable_dual_write'] ?? false;
+        \Yii::app()->params['enable_dual_write'] = true;
+        
+        try {
+            // Save directly to Couchbase
+            $this->saveToCouchbase();
+        } finally {
+            // Restore original dual-write setting
+            \Yii::app()->params['enable_dual_write'] = $originalDualWrite;
+        }
+        
         return true;
     }
 

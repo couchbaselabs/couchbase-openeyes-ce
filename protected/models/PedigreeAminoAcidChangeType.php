@@ -100,6 +100,8 @@ class PedigreeAminoAcidChangeType extends BaseActiveRecord
         return parent::save($runValidation, $attributes, $allow_overriding);
     }
 
+
+    /**
      * @return string the Couchbase scope name
      */
     public function couchbaseScope(): string

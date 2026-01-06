@@ -211,6 +211,22 @@ class GeneticsPatient extends BaseActiveRecord
     }
 
     /**
+     * Catch database errors before save
+     */
+    protected function beforeSave()
+    {
+        if (!parent::beforeSave()) {
+            return false;
+        }
+        
+        // Log the model attributes before saving
+        $attributes = $this->getAttributes();
+        Yii::log('GeneticsPatient::beforeSave() - Attributes: ' . print_r($attributes, true), CLogger::LEVEL_INFO);
+        
+        return true;
+    }
+
+    /**
      * @return string The Couchbase scope name for this model
      */
     public function couchbaseScope(): string

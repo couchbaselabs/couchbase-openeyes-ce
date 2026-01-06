@@ -110,7 +110,12 @@ class RequestTypeController extends \AdminController
      */
     public function actionIndex()
     {
-        $dataProvider = new CActiveDataProvider('RequestType');
+        $dataProvider = new CActiveDataProvider('RequestType', array(
+            'pagination' => array(
+                'pageSize' => 10,
+            ),
+        ));
+        
         $this->render('index', array(
             'dataProvider' => $dataProvider,
             'title' => 'Request type'

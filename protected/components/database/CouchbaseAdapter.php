@@ -143,6 +143,7 @@ class CouchbaseAdapter implements DatabaseAdapterInterface
             
             // OphCiExamination lookup/reference tables
             'ophciexamination_correctiontype' => 'reference',
+            'ophciexamination_instrument' => 'reference',
             'ophciexamination_medication_stop_reason' => 'reference',
             'ophciexamination_stereoacuity_method' => 'reference',
             
