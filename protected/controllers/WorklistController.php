@@ -1949,9 +1949,21 @@ class WorklistController extends BaseController
         $position = $_POST['selected_values'][1]['value'];
         $pathway_type = PathwayType::model()->findByPk($id);
         $visit_id = Yii::app()->request->getPost('target_pathway_id');
+        
+        if (!$visit_id) {
+            throw new CHttpException(400, 'Missing required parameter: target_pathway_id');
+        }
+        
         $wl_patient = WorklistPatient::model()->findByPk($visit_id);
+        
+        if (!$wl_patient) {
+            throw new CHttpException(404, 'WorklistPatient not found.');
+        }
 
         if (!$wl_patient->pathway) {
+            if (!$wl_patient->worklist || !$wl_patient->worklist->worklist_definition || !$wl_patient->worklist->worklist_definition->pathway_type) {
+                throw new CHttpException(500, 'Unable to initialize pathway: worklist or pathway type missing.');
+            }
             $wl_patient->worklist->worklist_definition->pathway_type->instancePathway($wl_patient);
             $wl_patient->refresh();
         }
@@ -2032,6 +2044,10 @@ class WorklistController extends BaseController
         }
         
         $wl_patient = WorklistPatient::model()->findByPk($post['visit_id']);
+        if (!$wl_patient) {
+            $this->renderJSON(['error' => 'Worklist patient not found'], 404);
+            return;
+        }
         $step_id = $post['pathstep_id'];
         $pathway_instanced = false;
         if ($post['pathstep_id'] === 'comment') {

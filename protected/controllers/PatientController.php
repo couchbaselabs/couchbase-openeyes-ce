@@ -79,7 +79,7 @@ class PatientController extends BaseController
             ),
             array(
                 'allow',
-                'actions' => array('addAllergy', 'removeAllergy', 'generateAllergySelect', 'addRisk', 'removeRisk'),
+                'actions' => array('addAllergy', 'removeAllergy', 'generateAllergySelect', 'addRisk', 'removeRisk', 'getRisks'),
                 // TODO: check how to add new roles!!!
                 'roles' => array('OprnEditAllergy'),
             ),
@@ -1396,6 +1396,24 @@ class PatientController extends BaseController
     {
         PatientRiskAssignment::model()->deleteByPk(@$_GET['assignment_id']);
         echo 'success';
+    }
+
+    /**
+    * Get all risks as JSON for form population.
+    */
+    public function actionGetRisks()
+    {
+        $risks = Risk::model()->findAll(array('order' => 'name'));
+        $result = array();
+        foreach ($risks as $risk) {
+            $result[] = array(
+                'id' => $risk->id,
+                'name' => $risk->name,
+                'other' => ($risk->name === 'Other' ? 1 : 0)
+            );
+        }
+        echo CJavaScript::jsonEncode($result);
+        Yii::app()->end();
     }
 
         /**

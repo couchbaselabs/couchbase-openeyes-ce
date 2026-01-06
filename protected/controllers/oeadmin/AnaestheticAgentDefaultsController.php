@@ -118,7 +118,7 @@ class AnaestheticAgentDefaultsController extends BaseAdminController
                         ':site_id' => $siteId,
                         ':subspecialty_id' => $subspecialtyId,
                     );
-                    $currentSSAA = SiteSubspecialtyAnaestheticAgent::model()->findall($criteria);
+                    $currentSSAA = SiteSubspecialtyAnaestheticAgent::model()->findAll($criteria);
                     if (!$currentSSAA) {
                         $newSSAA = new SiteSubspecialtyAnaestheticAgent();
                         $newSSAA->subspecialty_id = $subspecialtyId;
@@ -143,6 +143,7 @@ class AnaestheticAgentDefaultsController extends BaseAdminController
     {
         if (Yii::app()->request->isAjaxRequest) {
             $criteria = new CDbCriteria();
+            $params = array();
             if (isset($_GET['term'])) {
                 $term = $_GET['term'];
                 $criteria->addCondition(

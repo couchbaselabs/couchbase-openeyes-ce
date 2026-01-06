@@ -932,7 +932,37 @@ class BaseActiveRecord extends CActiveRecord
     public function getNextHighestDisplayOrder($increase_by = 10)
     {
         if ($this->hasAttribute('display_order')) {
-            return Yii::app()->cbdb->createCommand()
+            // Determine which database connection to use
+            $db = Yii::app()->db; // Default to MariaDB
+            
+            // Check CouchbaseCutoverManager for explicit Couchbase routing
+            $shouldUseCouchbase = false;
+            $modelClass = (new \ReflectionClass($this))->getShortName();
+            
+            if (class_exists('CouchbaseCutoverManager')) {
+                try {
+                    $manager = \CouchbaseCutoverManager::getInstance();
+                    $config = $manager->getConfig();
+                    
+                    // Only route to Couchbase if configured for this specific model
+                    // AND we're not in emergency_disable mode
+                    if (!$config['emergency_disable'] && $config['enabled']) {
+                        // Check if this model is explicitly configured for Couchbase reads
+                        if (isset($config['models'][$modelClass]) && 
+                            $config['models'][$modelClass]['read_source'] === 'couchbase') {
+                            $shouldUseCouchbase = true;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Fall back to MariaDB on error
+                }
+            }
+            
+            if ($shouldUseCouchbase) {
+                $db = Yii::app()->cbdb;
+            }
+            
+            return $db->createCommand()
                     ->select('MAX(display_order)')
                     ->from($this->tableName())
                     ->queryScalar() + $increase_by;

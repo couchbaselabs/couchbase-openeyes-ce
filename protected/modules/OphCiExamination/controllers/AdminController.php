@@ -163,10 +163,11 @@ class AdminController extends \ModuleAdminController
             $post_attributes = $_POST[\CHtml::modelName($model)];
             if (Yii::app()->user->checkAccess('admin')) {
                 // Only admins can create instances at installation level
-                if (isset($post_attributes['institutions'])) {
+                if (isset($post_attributes['institutions']) && !empty($post_attributes['institutions'])) {
                     $institutions = $post_attributes['institutions'];
                 } else {
-                    $institutions = [];
+                    // Default to current institution if none explicitly selected
+                    $institutions = [Yii::app()->session['selected_institution_id']];
                 }
             } else {
                 // Save instance only at instition level
@@ -595,6 +596,10 @@ class AdminController extends \ModuleAdminController
 
         $et_exam = \EventType::model()->find('class_name=?', array('OphCiExamination'));
 
+        if (!$et_exam) {
+            throw new \Exception('Unknown examination event type');
+        }
+
         $criteria = new CDbCriteria();
         $criteria->addCondition('t.event_type_id = :event_type_id');
         $criteria->addNotInCondition('t.id', $element_type_ids);
@@ -673,6 +678,10 @@ class AdminController extends \ModuleAdminController
 
         $et_exam = \EventType::model()->find('class_name=?', array('OphCiExamination'));
 
+        if (!$et_exam) {
+            throw new \Exception('Unknown examination event type');
+        }
+
         if (!$element_type = \ElementType::model()->find('event_type_id = ? and id = ?', array($et_exam->id, @$_POST['element_type_id']))) {
             throw new \Exception('Unknown examination element type: ' . @$_POST['element_type_id']);
         }
@@ -730,10 +739,18 @@ class AdminController extends \ModuleAdminController
 
     public function actionAddworkflowStep()
     {
+        // Handle GET requests - display the form
         if (!\Yii::app()->request->isPostRequest) {
-            throw new \Exception('Invalid request method: POST request required');
+            // Get list of workflows for dropdown
+            $workflows = models\OphCiExamination_Workflow::model()->findAll(array('order' => 'name asc'));
+            
+            $this->render('add_workflow_step', array(
+                'workflows' => $workflows,
+            ));
+            return;
         }
 
+        // Handle POST requests - create the workflow step
         if (!$workflow = models\OphCiExamination_Workflow::model()->findByPk(@$_POST['workflow_id'])) {
             throw new \Exception('Workflow not found: ' . @$_POST['workflow_id']);
         }
@@ -761,11 +778,18 @@ class AdminController extends \ModuleAdminController
             throw new \Exception('Unable to save element set: ' . print_r($set->getErrors(), true));
         }
 
-        $this->renderJSON(array(
-            'id' => $set->id,
-            'position' => $set->position,
-            'name' => $set->name,
-        ));
+        // Check if this is an AJAX request - if so, return JSON
+        if (\Yii::app()->request->isAjaxRequest) {
+            $this->renderJSON(array(
+                'id' => $set->id,
+                'position' => $set->position,
+                'name' => $set->name,
+            ));
+        } else {
+            // Regular form submission - redirect to admin list
+            \Yii::app()->user->setFlash('success', 'Workflow step added successfully');
+            $this->redirect(array('viewWorkflows'));
+        }
     }
 
     public function actionRemoveWorkflowStep()
@@ -914,7 +938,16 @@ class AdminController extends \ModuleAdminController
             
             $workflows = [];
             if (!empty($workflowIds)) {
-                $wfN1ql = "SELECT META().id AS _key, w.* FROM `{$bucket}`.`{$scope}`.`ophciexamination_workflow` AS w WHERE w.id IN [" . implode(',', array_unique($workflowIds)) . "]";
+                // Properly quote workflow IDs for N1QL (handle both numeric and string IDs)
+                $quotedIds = array_map(function($id) {
+                    if (is_numeric($id)) {
+                        return $id;
+                    }
+                    // Escape double quotes by doubling them (N1QL standard)
+                    $escaped = str_replace('"', '""', $id);
+                    return '"' . $escaped . '"';
+                }, array_unique($workflowIds));
+                $wfN1ql = "SELECT META().id AS _key, w.* FROM `{$bucket}`.`{$scope}`.`ophciexamination_workflow` AS w WHERE w.id IN [" . implode(',', $quotedIds) . "]";
                 $wfRows = $adapter->query($wfN1ql);
                 foreach ($wfRows as $wfRow) {
                     $wfData = isset($wfRow['w']) ? $wfRow['w'] : $wfRow;

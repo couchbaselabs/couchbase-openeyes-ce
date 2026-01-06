@@ -23,7 +23,23 @@ class SubspecialtySubsectionsController extends BaseAdminController
     {
         $model = SubspecialtySubsection::model();
         $subspecialty_id = Yii::app()->request->getParam('subspecialty_id');
-        $model_list = $subspecialty_id ? $model->findAll('subspecialty_id = :subspecialty_id', [':subspecialty_id' => $subspecialty_id]) : [];
+        
+        // Query directly using the MariaDB connection to avoid Couchbase errors
+        $model_list = [];
+        if ($subspecialty_id) {
+            $command = Yii::app()->db->createCommand()
+                ->select('*')
+                ->from('subspecialty_subsection')
+                ->where('subspecialty_id = :subspecialty_id', [':subspecialty_id' => $subspecialty_id])
+                ->order('display_order ASC');
+            
+            $rows = $command->queryAll();
+            foreach ($rows as $row) {
+                $subsection = new SubspecialtySubsection();
+                $subsection->setAttributes($row, false);
+                $model_list[] = $subsection;
+            }
+        }
 
         $assetManager = Yii::app()->getAssetManager();
         $assetManager->registerScriptFile('/js/oeadmin/OpenEyes.admin.js');

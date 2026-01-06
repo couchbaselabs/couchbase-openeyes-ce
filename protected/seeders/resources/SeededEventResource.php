@@ -62,11 +62,18 @@ class SeededEventResource extends SeededResource
 
     protected function toFullArray(): array
     {
+        $patient = $this->instance->episode && $this->instance->episode->patient 
+            ? $this->instance->episode->patient 
+            : null;
+            
         $data = [
             'id' => $this->instance->id,
             'urls' => $this->urlsArray(),
-            'patient' => SeededPatientResource::from($this->instance->episode->patient)->toArray()
         ];
+        
+        if ($patient) {
+            $data['patient'] = SeededPatientResource::from($patient)->toArray();
+        }
 
         if ($this->with_elements) {
             $data['elements'] = array_map(
@@ -85,14 +92,15 @@ class SeededEventResource extends SeededResource
 
     protected function toSummaryArray(): array
     {
-        return array_merge(
-            [
-                'patient_id' => $this->instance->episode->patient->id,
-            ],
-            [
-                'urls' => $this->urlsArray()
-            ]
-        );
+        $summary = [
+            'urls' => $this->urlsArray()
+        ];
+        
+        if ($this->instance->episode && $this->instance->episode->patient) {
+            $summary['patient_id'] = $this->instance->episode->patient->id;
+        }
+        
+        return $summary;
     }
 
     protected function urlsArray(): array

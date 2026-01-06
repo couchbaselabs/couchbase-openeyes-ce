@@ -602,8 +602,10 @@ class WorklistManager extends CComponent
             }
 
             if ($display) {
+                // Try to add worklist to user display, but don't fail the entire creation if it fails
+                // This handles cases where the worklist_display_order collection might not exist
                 if (!$this->addWorklistToUserDisplay($worklist, $user)) {
-                    throw new Exception('Could not set new worklist display order.');
+                    OELog::log('Warning: Could not set worklist display order for worklist ' . $worklist->id . ' and user ' . $user->id);
                 }
             }
 

@@ -168,7 +168,15 @@ class PracticeController extends BaseController
      */
     public function actionCreateAssociate()
     {
+        $duplicateCheckOutput = null;
+        $contact = new Contact('manage_practice');
+        $address = new Address('manage_practice');
+        $practice = new Practice('manage_practice');
+        $gp = new Gp('manage_practice');
+        $gpIdProviderNoList = array();
+        
         if (isset($_POST['Contact'], $_POST['gp_data_retrieved'])) {
+            // AJAX submission from patient creation form with GP data
             $contactPractice = new Contact('manage_practice');
             $address = new Address('manage_practice');
             $practice = new Practice('manage_practice');
@@ -233,22 +241,58 @@ class PracticeController extends BaseController
             } else {
                 echo CJSON::encode(array('error' =>  CHtml::errorSummary(array($contactPractice, $practice, $address))));
             }
-        } else {
-            // Handle GET requests - initialize models and render view
-            $contact = new Contact('manage_practice');
-            $address = new Address('manage_practice');
-            $practice = new Practice('manage_practice');
-            $gp = new Gp('manage_practice');
+        } elseif (isset($_POST['Contact'])) {
+            // Handle regular form submission (e.g., from direct page access) without GP data
+            $contact->first_name = $_POST['Contact']['first_name'];
+            $contact->created_institution_id = Yii::app()->session['selected_institution_id'];
+            $address->attributes = $_POST['Address'];
+            $practice->attributes = $_POST['Practice'];
+
+            $this->performAjaxValidation(array($practice, $contact, $address, $gp));
             
-            $this->render('create', array(
-                'model' => $practice,
-                'address' => $address,
-                'contact' => $contact,
-                'gp' => $gp,
-                'duplicateCheckOutput' => null,
-                'gpIdProviderNoList' => array(),
-            ));
+            if ($contact->validate(array('first_name')) and $practice->validate(array('phone')) and $address->validate(array('address1', 'city', 'postcode', 'country'))) {
+                // Check for duplicate practice based on practice name, phone, address1, city, postcode and country.
+                $duplicateCheckOutput = Yii::app()->cbdb->createCommand()
+                    ->select('c1.first_name, p.phone, a.address1, a.city, a.postcode, a.country_id')
+                    ->from('practice p')
+                    ->join('contact c1', 'c1.id = p.contact_id')
+                    ->join('address a', 'a.contact_id = c1.id')
+                    ->where(
+                        'LOWER(c1.first_name) = LOWER(:first_name) and LOWER(p.phone) = LOWER(:phone) and LOWER(a.address1) = LOWER(:address1) and LOWER(a.city) = LOWER(:city) and a.postcode = :postcode and a.country_id = :country_id',
+                        array(':first_name'=> $contact->first_name, ':phone'=> $practice->phone,':address1'=>$address->address1,
+                        ':city'=>$address->city,
+                        ':postcode'=>$address->postcode,
+                        ':country_id'=>$address->country_id)
+                    )
+                    ->queryAll();
+
+                $isDuplicate = count($duplicateCheckOutput);
+
+                if ($isDuplicate === 0) {
+                    list($contact, $practice, $address) = $this->performPracticeSave(
+                        $contact,
+                        $practice,
+                        $address,
+                        $gpIdProviderNoList,
+                        false
+                    );
+                }
+            } else {
+                $contact->validate(array('first_name'));
+                $practice->validate(array('phone'));
+                $address->validate(array('address1', 'city', 'postcode', 'country'));
+            }
         }
+        
+        // Render view (for GET requests or after POST)
+        $this->render('create', array(
+            'model' => $practice,
+            'address' => $address,
+            'contact' => $contact,
+            'gp' => $gp,
+            'duplicateCheckOutput' => $duplicateCheckOutput,
+            'gpIdProviderNoList' => $gpIdProviderNoList,
+        ));
     }
 
     public function performGpSave(Contact $contact, Gp $gp, $isAjax = false)
@@ -258,6 +302,10 @@ class PracticeController extends BaseController
 
         try {
             if ($contact->save()) {
+                // Verify that contact has a valid ID after save
+                if (!$contact->getPrimaryKey()) {
+                    throw new CException("Failed to generate ID for contact during save");
+                }
                 // No need to re-set these values if they already exist.
                 if ($gp->contact_id === null) {
                     $gp->contact_id = $contact->getPrimaryKey();
@@ -314,6 +362,10 @@ class PracticeController extends BaseController
         try {
             // Contact validation must be done before calling performPracticeSave
             if ($contact->save(false)) {
+                // Verify that contact has a valid ID after save
+                if (!$contact->getPrimaryKey()) {
+                    throw new CException("Failed to generate ID for contact during save");
+                }
                 $practice->contact_id = $contact->getPrimaryKey();
                 $address->contact_id = $contact->id;
                 if ($practice->save()) {

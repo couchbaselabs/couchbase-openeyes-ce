@@ -297,6 +297,10 @@ class Site extends BaseActiveRecordVersioned
 
     public function getCorrespondenceName()
     {
+        if (!$this->institution) {
+            return $this->name;
+        }
+
         if ($this->institution->short_name) {
             $display_query = SettingMetadata::model()->findByAttributes(array('key' => 'display_institution_name'));
             $display_institution = $display_query ? $display_query->getSettingName() : 'Off';

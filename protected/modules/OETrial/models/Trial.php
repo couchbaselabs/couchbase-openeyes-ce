@@ -33,12 +33,8 @@ use OE\factories\models\traits\HasFactory;
  */
 class Trial extends BaseActiveRecordVersioned
 {
-    // Temporarily disabled CouchbaseModelBridge - Trial should use MariaDB only for now
-    // use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
-
-    // Couchbase-related methods are deprecated - Trial uses MariaDB only
-    // couchbaseScope() and couchbaseCollection() have been removed as they are no longer needed
 
     /**
      * The success return code for addUserPermission()
@@ -86,6 +82,44 @@ class Trial extends BaseActiveRecordVersioned
     }
 
     /**
+     * Override findByPk to check Couchbase as fallback when MariaDB doesn't have the record
+     * @param mixed $pk Primary key value
+     * @param string $condition Additional condition
+     * @param array $params Parameters
+     * @return Trial|null The model instance or null if not found
+     */
+    public function findByPk($pk, $condition = '', $params = [])
+    {
+        // First try the parent findByPk (which may check MariaDB or Couchbase based on config)
+        $model = parent::findByPk($pk, $condition, $params);
+        
+        // If not found and MariaDB is being used for reads, try Couchbase as fallback
+        if ($model === null && !$this->shouldReadFromCouchbase()) {
+            try {
+                // Try to load from Couchbase directly as fallback
+                $adapter = $this->getCouchbaseAdapter();
+                $doc = $adapter->findByPk($this->couchbaseCollection(), $pk);
+                
+                if ($doc) {
+                    // Create a new instance and populate it with Couchbase data
+                    $model = new self();
+                    $model->setAttributes($doc);
+                    $model->setIsNewRecord(false);
+                }
+            } catch (\Exception $e) {
+                // Log but don't throw - fallback failed, return null
+                \Yii::log(
+                    "Trial Couchbase fallback lookup failed for ID {$pk}: " . $e->getMessage(),
+                    \CLogger::LEVEL_WARNING,
+                    'application.trial'
+                );
+            }
+        }
+        
+        return $model;
+    }
+
+    /**
      * @return array validation rules for model attributes.
      */
     public function rules()
@@ -104,6 +138,16 @@ class Trial extends BaseActiveRecordVersioned
             array('closed_date', 'closedDateValidator', 'on' => 'manual'),
             array('description, last_modified_date, created_date, ethics_number', 'safe'),
         );
+    }
+
+    /**
+     * Override getDbConnection to ensure Trial uses MariaDB
+     * Trial model is configured to use MariaDB only, not Couchbase
+     * @return CDbConnection
+     */
+    public function getDbConnection()
+    {
+        return Yii::app()->db;
     }
 
     /**
@@ -239,8 +283,6 @@ class Trial extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        // Temporarily disabled - Trial should use MariaDB for now
-        // $this->saveToCouchbase();
 
         if ($this->getIsNewRecord()) {
             // Create a new permission assignment for the user that created the Trial
@@ -286,8 +328,6 @@ class Trial extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        // Temporarily disabled - Trial should use MariaDB for now
-        // $this->deleteFromCouchbase();
     }
 
     /**

@@ -955,7 +955,7 @@ class CouchbaseDbCommand
         }
         
         // These functions cannot be auto-converted and require MariaDB fallback
-        // Note: GROUP_CONCAT, FIND_IN_SET, SUBSTRING_INDEX, TIMESTAMPDIFF are now converted
+        // Note: GROUP_CONCAT, FIND_IN_SET, SUBSTRING_INDEX are now converted
         $unsupportedFunctions = [
             'FIELD(',      // MySQL FIELD() for custom ordering
             'ELT(',        // MySQL ELT() for element selection
@@ -973,6 +973,8 @@ class CouchbaseDbCommand
             'UNION',       // UNION queries (not properly supported in N1QL conversion)
             'SUBSTRING(',  // MySQL SUBSTRING - N1QL has different syntax
             'UNSIGNED',    // MySQL type casting - not supported in N1QL
+            'TIMESTAMPDIFF', // MySQL TIMESTAMPDIFF - N1QL DATE_DIFF_STR has compatibility issues
+            'CURDATE(',    // MySQL CURDATE - N1QL conversion produces invalid syntax
         ];
         
         foreach ($unsupportedFunctions as $func) {
@@ -1128,7 +1130,8 @@ class CouchbaseDbCommand
         
         // Core tables - only main entity tables, not lookup/reference tables
         $coreTables = ['patient', 'episode', 'event', 'user', 'contact', 'address', 
-                       'institution', 'site', 'firm', 'person', 'gp', 'practice'];
+                       'institution', 'site', 'firm', 'person', 'gp', 'practice',
+                       'worklist_definition', 'worklist_display_order', 'worklist_filter'];
         if (in_array($tableName, $coreTables)) {
             return 'core';
         }
@@ -1143,9 +1146,19 @@ class CouchbaseDbCommand
             return 'admin';
         }
         
+        // Worklist scope tables
+        if (preg_match('/^worklist_definition_display_context$/', $tableName)) {
+            return 'worklist';
+        }
+        
         // Clinical/module tables
-        if (preg_match('/^et_|^oph|^element_/', $tableName)) {
+        if (preg_match('/^et_|^oph|^element_|^worklist_definition_mapping|^worklist_definition_mapping_value|^worklist_patient_attribute|^worklist_wait_time_specialty/', $tableName)) {
             return 'clinical';
+        }
+        
+        // Reference tables (includes event_type, event_group, worklist, worklist_attribute, etc.)
+        if (preg_match('/^worklist_/', $tableName)) {
+            return 'reference';
         }
         
         // Default to reference (includes event_type, event_group, etc.)

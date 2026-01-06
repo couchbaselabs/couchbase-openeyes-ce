@@ -76,6 +76,18 @@ class PatientIdentifierTypeController extends BaseAdminController
         if (Yii::app()->request->isPostRequest) {
             $patient_identifier_type->attributes = Yii::app()->request->getPost('PatientIdentifierType');
 
+            // Ensure institution_id is properly converted to MariaDB ID if needed
+            if ($patient_identifier_type->institution_id) {
+                $institution = Institution::model()->findByPk($patient_identifier_type->institution_id);
+                if (!$institution && is_numeric($patient_identifier_type->institution_id)) {
+                    // Try to find by name as fallback
+                    $institution = Institution::model()->find('name = ?', array($patient_identifier_type->institution_id));
+                }
+                if ($institution) {
+                    $patient_identifier_type->institution_id = $institution->id;
+                }
+            }
+
             if (!$patient_identifier_type->save()) {
                 $errors = $patient_identifier_type->getErrors();
             }

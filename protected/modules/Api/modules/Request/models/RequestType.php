@@ -57,7 +57,8 @@ class RequestType extends CActiveRecord
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return [
-            ['request_type, title_full, title_short, default_routine_name, default_request_queue', 'required'],
+            ['request_type, title_full, title_short', 'required'],
+            ['default_routine_name, default_request_queue', 'safe'],
             ['request_type, title_full, title_short, default_request_queue', 'length', 'max' => 45],
             ['default_routine_name', 'length', 'max' => 50],
             // The following rule is used by search().

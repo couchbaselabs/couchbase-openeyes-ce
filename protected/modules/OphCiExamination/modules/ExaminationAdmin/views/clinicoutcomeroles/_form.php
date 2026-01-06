@@ -52,6 +52,26 @@
             </td>
         </tr>
         <tr>
+            <td>Display Order</td>
+            <td class="cols-full">
+                <?=\CHtml::activeNumberField(
+                    $model,
+                    'display_order',
+                    ['class' => 'cols-full']
+                ); ?>
+            </td>
+        </tr>
+        <tr>
+            <td>Requires Comment</td>
+            <td class="cols-full">
+                <?=\CHtml::activeCheckBox(
+                    $model,
+                    'requires_comment',
+                    []
+                ); ?>
+            </td>
+        </tr>
+        <tr>
             <td>Active</td>
             <td class="cols-full">
                 <?=\CHtml::activeCheckBox(

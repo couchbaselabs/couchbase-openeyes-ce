@@ -536,7 +536,10 @@ class Firm extends BaseActiveRecordVersioned
     public function beforeSave()
     {
         if ($this->subspecialty_id) {
-            $this->service_subspecialty_assignment_id = ServiceSubspecialtyAssignment::model()->find('subspecialty_id=?', array($this->subspecialty_id))->id;
+            $ssa = ServiceSubspecialtyAssignment::model()->find('subspecialty_id=?', array($this->subspecialty_id));
+            if ($ssa) {
+                $this->service_subspecialty_assignment_id = $ssa->id;
+            }
         }
 
         if ($this->service_email === "") {
@@ -610,7 +613,7 @@ class Firm extends BaseActiveRecordVersioned
     {
         // get the service_subspeciality_assignment_id from the service_id
         $serviceSubspecialityAssignmentId = ServiceSubspecialtyAssignment::model()->find('subspecialty_id = ?', array($this->subspecialty_id));
-        if ($this->can_own_an_episode && $this->service_email != '') {
+        if ($serviceSubspecialityAssignmentId && $this->can_own_an_episode && $this->service_email != '') {
             // check if there is an email already existing for this subspeciality
             $criteria = new CDbCriteria();
             $criteria->addCondition('service_subspecialty_assignment_id = :service_subspecialty_assignment_id and service_email IS NOT NULL');
@@ -624,24 +627,26 @@ class Firm extends BaseActiveRecordVersioned
                 $this->addError('service_email', 'Email already set for another service of this specialty.');
             }
         }
-        $criteria = new CDbCriteria();
-        $criteria->addCondition('name = :name AND service_subspecialty_assignment_id = :service_subspecialty_assignment_id');
-        $criteria->params[':name'] = $this->name;
-        $criteria->params[':service_subspecialty_assignment_id'] = $serviceSubspecialityAssignmentId->id;
+        if ($serviceSubspecialityAssignmentId) {
+            $criteria = new CDbCriteria();
+            $criteria->addCondition('name = :name AND service_subspecialty_assignment_id = :service_subspecialty_assignment_id');
+            $criteria->params[':name'] = $this->name;
+            $criteria->params[':service_subspecialty_assignment_id'] = $serviceSubspecialityAssignmentId->id;
 
-        if (!$this->isNewRecord) {
-            $criteria->addCondition("id != :id");
-            $criteria->params[":id"] = $this->id;
-        }
+            if (!$this->isNewRecord) {
+                $criteria->addCondition("id != :id");
+                $criteria->params[":id"] = $this->id;
+            }
 
-        if (isset($this->institution)) {
-            $firm = $this->findAllAtLevels(ReferenceData::LEVEL_ALL, $criteria, $this->institution);
-        } else {
-            $firm = $this->findAll($criteria);
-        }
+            if (isset($this->institution)) {
+                $firm = $this->findAllAtLevels(ReferenceData::LEVEL_ALL, $criteria, $this->institution);
+            } else {
+                $firm = $this->findAll($criteria);
+            }
 
-        if (count($firm) >= 1) {
-            $this->addError('name', 'A firm set with the name ' . $this->name . ' already exists with the following settings: ' . ($firm[0]->institution_id ? $firm[0]->institution->name . ', ' : 'All Institutions, ') . ($serviceSubspecialityAssignmentId ? $serviceSubspecialityAssignmentId->service->name . ', ' . $serviceSubspecialityAssignmentId->subspecialty->name : ''));
+            if (count($firm) >= 1) {
+                $this->addError('name', 'A firm set with the name ' . $this->name . ' already exists with the following settings: ' . ($firm[0]->institution_id ? $firm[0]->institution->name . ', ' : 'All Institutions, ') . ($serviceSubspecialityAssignmentId ? $serviceSubspecialityAssignmentId->service->name . ', ' . $serviceSubspecialityAssignmentId->subspecialty->name : ''));
+            }
         }
         return parent::beforeValidate();
     }

@@ -8,6 +8,7 @@
  * @property string $title_full
  * @property string $title_short
  * @property string $title_abbreviated
+ * @property string $dicom_modality_code
  *
  * The followings are the available model relations:
  * @property AttachmentData[] $attachmentDatas
@@ -42,10 +43,11 @@ class AttachmentType extends CActiveRecord
         // will receive user inputs.
         return [
             ['attachment_type', 'required'],
-            ['attachment_type, title_full, title_short, title_abbreviated', 'length', 'max' => 45],
+            ['attachment_type, title_full, title_short, title_abbreviated, dicom_modality_code', 'length', 'max' => 45],
             // The following rule is used by search().
             // @todo Please remove those attributes that should not be searched.
-            ['attachment_type, title_full, title_short, title_abbreviated', 'safe', 'on' => 'search'],
+            ['attachment_type, title_full, title_short, title_abbreviated, dicom_modality_code', 'safe', 'on' => 'search'],
+            ['dicom_modality_code', 'safe'],
         ];
     }
 
@@ -71,6 +73,7 @@ class AttachmentType extends CActiveRecord
             'title_full' => 'Title Full',
             'title_short' => 'Title Short',
             'title_abbreviated' => 'Title Abbreviated',
+            'dicom_modality_code' => 'Dicom Modality Code',
         ];
     }
 
@@ -96,6 +99,7 @@ class AttachmentType extends CActiveRecord
         $criteria->compare('title_full', $this->title_full, true);
         $criteria->compare('title_short', $this->title_short, true);
         $criteria->compare('title_abbreviated', $this->title_abbreviated, true);
+        $criteria->compare('dicom_modality_code', $this->dicom_modality_code, true);
 
         return new CActiveDataProvider($this, [
             'criteria' => $criteria,

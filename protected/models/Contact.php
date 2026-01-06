@@ -82,7 +82,9 @@ class Contact extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Temporarily disabled: Couchbase sync is breaking relation queries (HAS_MANY relations don't embed)
+        // Contact::locations and other HAS_MANY relations are not retrieved correctly from Couchbase
+        // $this->saveToCouchbase();
     }
 
     /**
@@ -91,7 +93,8 @@ class Contact extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Temporarily disabled: Couchbase sync is breaking relation queries
+        // $this->deleteFromCouchbase();
     }
 
     /**
@@ -127,6 +130,19 @@ class Contact extends BaseActiveRecordVersioned
             ];
         }
         
+        // Embed contact locations
+        if ($this->locations) {
+            $data['locations'] = [];
+            foreach ($this->locations as $location) {
+                $data['locations'][] = [
+                    'id' => (int)$location->id,
+                    'contact_id' => (int)$location->contact_id,
+                    'site_id' => $location->site_id ? (int)$location->site_id : null,
+                    'institution_id' => $location->institution_id ? (int)$location->institution_id : null,
+                ];
+            }
+        }
+        
         return $data;
     }
 
@@ -160,7 +176,7 @@ class Contact extends BaseActiveRecordVersioned
                 'safe'),
             array('first_name, last_name, created_institution_id', 'required', 'on' => array('manualAddPatient', 'referral', 'self_register', 'other_register', 'manage_gp')),
             array('title, maiden_name', 'match', 'pattern' => '/^[a-zA-Z]+([\',. -]?[a-zA-Z -]*)*$/', 'message' => 'Invalid {attribute} entered.', 'except' => 'hscic_import'),
-            array('first_name, last_name', 'parenthesisValidator', 'except' => 'team_contact'),
+            array('first_name, last_name', 'parenthesisValidator', 'except' => array('team_contact', 'manage_practice')),
             array('first_name, last_name', 'required', 'on' => array('manage_gp_role_req', 'pasapi_import')),
             array('contact_label_id', 'required', 'on' => array('manage_gp_role_req'), 'message' => 'Please select a Role.'),
             array('primary_phone', 'requiredValidator'),

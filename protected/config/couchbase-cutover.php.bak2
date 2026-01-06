@@ -51,52 +51,12 @@ return array (
       'read_source' => 'mariadb',
       'percentage' => 0,
     ),
-    'Contact' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
-    'Practice' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
     'OphTrIntravitrealinjection_SkinDrug' => 
     array (
       'read_source' => 'mariadb',
       'percentage' => 0,
     ),
     'OphTrOperationbooking_Whiteboard_Settings' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
-    'SubspecialtySubsection' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
-    'SiteSubspecialtyAnaestheticAgent' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
-    'PathwayType' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
-    'User' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
-    'EmailTemplate' => 
-    array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
-    ),
-    'HistoryMacro' => 
     array (
       'read_source' => 'mariadb',
       'percentage' => 0,

@@ -204,13 +204,32 @@ class DefaultController extends \CController
             $lookup_attributes = json_decode($lookup_attributes, true) ?: [];
         }
         
-        $model_instance = ModelFactory::factoryFor($model_class)
-            ->useExisting($lookup_attributes)
-            ->create();
+        try {
+            // Check if the class exists before attempting to create factory
+            // Use error suppression since autoloader may trigger PHP warnings
+            $classExists = @class_exists($model_class, true);
+            if (!$classExists) {
+                throw new \CHttpException(400, "Model class '$model_class' does not exist");
+            }
+            
+            $model_instance = ModelFactory::factoryFor($model_class)
+                ->useExisting($lookup_attributes)
+                ->create();
 
-        $this->sendJsonResponse([
-            'model' => GenericModelResource::from($model_instance)->toArray()
-        ]);
+            $this->sendJsonResponse([
+                'model' => GenericModelResource::from($model_instance)->toArray()
+            ]);
+        } catch (\Exception $e) {
+            // Send JSON error response even if exception occurs
+            $status = 500;
+            if ($e instanceof \CHttpException) {
+                $status = $e->statusCode;
+            }
+            $this->sendJsonResponse(
+                ['message' => $e->getMessage(), 'trace' => $e->getTrace()],
+                $status
+            );
+        }
     }
 
     public function actionCreateModels()
@@ -231,7 +250,7 @@ class DefaultController extends \CController
 
         $this->applyStatesTo($model_factory, $_POST['states'] ?? []);
 
-        $model_factory->count($_POST['count'] ? (int) $_POST['count'] : 1);
+        $model_factory->count(($_POST['count'] ?? null) ? (int) $_POST['count'] : 1);
 
         $instances = $model_factory->create($_POST['attributes'] ?? []);
 
@@ -310,7 +329,15 @@ class DefaultController extends \CController
         $elements = $_POST['elements'] ?? null;
 
         if (!$draft_id) {
-            throw new \CHttpException(400, 'draft_id must be provided');
+            $this->sendJsonResponse([
+                'message' => 'This endpoint adds elements to a draft examination',
+                'usage' => [
+                    'method' => 'POST',
+                    'required_parameters' => ['draft_id'],
+                    'optional_parameters' => ['elements']
+                ],
+                'description' => 'draft_id: The ID of the EventDraft to update. elements: Array of element types to add (e.g., ["Risks"])'
+            ], 400);
         }
 
         $draft = \EventDraft::model()->findByPk($draft_id);

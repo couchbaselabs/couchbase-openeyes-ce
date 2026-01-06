@@ -136,6 +136,12 @@ class TeamController extends BaseAdminController
         $users = array_key_exists('user', $team_data) ? $team_data['user'] : array();
         $child_teams = array_key_exists('team_assign', $team_data) ? $team_data['team_assign'] : array();
 
+        // Automatically assign the creator as OWNER if creating a new team with no users assigned
+        if ($team->isNewRecord && empty($users)) {
+            $current_user_id = Yii::app()->user->id;
+            $users = array(array('id' => $current_user_id, 'task' => Team::TASK_OWNER));
+        }
+
         if ($contact_attributes) {
             $team_attributes['email'] = $contact_attributes['email'];
         }
@@ -186,15 +192,24 @@ class TeamController extends BaseAdminController
 
         $owned_or_managed_team_ids = [];
 
-        if ($current_user->checkAccess('Super Team Manager')) {
+        // Show all teams if user is admin, Super Team Manager, or has team access
+        if ($current_user->checkAccess('Super Team Manager') || $current_user->checkAccess('admin')) {
+            // For admins, get all teams without scope restrictions
+            $allTeams = Team::model()->resetScope()->findAll();
             $owned_or_managed_team_ids = array_map(static function ($team) {
                 return $team->id;
-            }, Team::model()->findAll());
+            }, $allTeams);
         } else {
             $owned_or_managed_team_ids = Team::getTeamIdsForUser($current_user->id, Team::ADMIN_VISIBLE_TASKS);
         }
 
-        $criteria->addInCondition('t.id', $owned_or_managed_team_ids);
+        // Only add filter if we have team IDs to show
+        if (!empty($owned_or_managed_team_ids)) {
+            $criteria->addInCondition('t.id', $owned_or_managed_team_ids);
+        } else {
+            // No teams accessible, return empty result
+            $criteria->addCondition('1=0');
+        }
 
         if (!empty($_GET['search'])) {
             $criteria->join = 'LEFT JOIN contact c ON c.id = t.contact_id';

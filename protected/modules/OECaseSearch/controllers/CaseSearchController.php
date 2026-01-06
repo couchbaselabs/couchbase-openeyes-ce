@@ -221,18 +221,24 @@ class CaseSearchController extends BaseModuleController
     }
 
     /**
-     * Add a parameter to the case search. This is executed through an AJAX request.
+     * Add a parameter to the case search. This can be called:
+     * 1. Via GET without parameters to show the form
+     * 2. Via GET with a parameter JSON to validate and render partial (AJAX)
      * @throws CException
      */
     public function actionAddParameter()
     {
+        // If parameter is not provided, show the form
         if (!isset($_GET['parameter'])) {
-            http_response_code(400);
-            echo 'Missing required parameter: parameter';
-            Yii::app()->end();
+            // Get the list of parameter types for display on-screen.
+            $paramList = $this->module->getParamList();
+            $this->render('addParameter', array(
+                'paramList' => $paramList,
+            ));
             return;
         }
 
+        // Parameter is provided - this is an AJAX call to validate and render
         $param = $_GET['parameter'];
         
         // Decode JSON if it's a string

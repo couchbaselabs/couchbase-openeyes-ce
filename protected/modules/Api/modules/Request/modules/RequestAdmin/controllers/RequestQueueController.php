@@ -54,7 +54,7 @@ class RequestQueueController extends \AdminController
         if (isset($_POST['RequestQueue'])) {
             $model->attributes = $_POST['RequestQueue'];
             if ($model->save()) {
-                $this->redirect(['/Api/Request/admin/requestQueue/index']);
+                $this->redirect(['/Api/Request/requestQueue/index']);
             }
         }
 
@@ -80,7 +80,7 @@ class RequestQueueController extends \AdminController
         if (isset($_POST['RequestQueue'])) {
             $model->attributes = $_POST['RequestQueue'];
             if ($model->save()) {
-                $this->redirect(['/Api/Request/admin/requestQueue/index']);
+                $this->redirect(['/Api/Request/requestQueue/index']);
             }
         }
 

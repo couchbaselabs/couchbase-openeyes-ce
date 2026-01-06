@@ -94,6 +94,9 @@ class ClinicOutcomeRolesController extends \ModuleAdminController
     public function actionCreate()
     {
         $model = new OphCiExamination_ClinicOutcome_Role();
+        // Set default institution_id from session if not already set
+        $model->institution_id = Yii::app()->session['selected_institution_id'];
+        
         $request = Yii::app()->getRequest();
         if ($request->getPost('OEModule_OphCiExamination_models_OphCiExamination_ClinicOutcome_Role')) {
             $model->attributes = $request->getPost('OEModule_OphCiExamination_models_OphCiExamination_ClinicOutcome_Role');

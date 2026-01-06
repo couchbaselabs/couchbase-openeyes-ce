@@ -56,6 +56,10 @@ class MimeTypeController extends \AdminController
             $model->attributes = $_POST['MimeType'];
             if ($model->save()) {
                 $this->redirect(['/Api/Request/admin/mimeType/index']);
+            } else {
+                // Log errors for debugging
+                $errors = $model->getErrors();
+                \Yii::log('MimeType save failed. Errors: ' . json_encode($errors), \CLogger::LEVEL_ERROR);
             }
         }
 

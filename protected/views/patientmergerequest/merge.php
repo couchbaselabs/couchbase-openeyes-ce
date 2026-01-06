@@ -102,6 +102,12 @@
     </form>
     <br>
 </div>
+<?php
+Yii::app()->getClientScript()->registerScriptFile(
+    Yii::app()->assetManager->createUrl('js/patient_merge.js'),
+    CClientScript::POS_END
+);
+?>
 <script>
 
     patientMerge.patients.primary = JSON.parse('<?php echo $primary_patient_JSON; ?>');

@@ -88,7 +88,14 @@ class PupillaryAbnormalitiesController extends \ModuleAdminController
         if (!empty($values)) {
             $model->name = $values['name'];
             $model->active = $values['active'] === '1' ? 1 : 0;
-            $model->display_order = $model::model()->find(['order'=>'display_order DESC'])->display_order + 1;
+            
+            // Calculate display_order safely
+            $criteria = new \CDbCriteria();
+            $criteria->order = 'display_order DESC';
+            $criteria->limit = 1;
+            $lastRecord = OphCiExamination_PupillaryAbnormalities_Abnormality::model()->find($criteria);
+            $model->display_order = ($lastRecord ? $lastRecord->display_order : 0) + 1;
+            
             if ($model->save()) {
                 Audit::add(
                     'admin',

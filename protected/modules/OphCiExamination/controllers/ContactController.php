@@ -150,60 +150,62 @@ class ContactController extends \BaseController
 
     public function actionSaveNewContact()
     {
-        if (\Yii::app()->request->isAjaxRequest) {
-            if (isset($_POST['data'])) {
-                $transaction = \Yii::app()->cbdb->beginTransaction();
-                $errors = [];
+        if (!\Yii::app()->request->isAjaxRequest) {
+            throw new \CHttpException(400, 'Invalid request. This endpoint is for AJAX requests only.');
+        }
+        
+        if (isset($_POST['data'])) {
+            $transaction = \Yii::app()->cbdb->beginTransaction();
+            $errors = [];
 
-                $data = json_decode($_POST['data']);
-                $contact = new \Contact();
+            $data = json_decode($_POST['data']);
+            $contact = new \Contact();
 
-                $contact->scenario = $data->scenario ?? 'self_register';
-                $contact->first_name = $data->first_name ?? '';
-                $contact->last_name = $data->last_name ?? '';
-                $contact->primary_phone = $data->primary_phone ?? '';
-                $contact->mobile_phone = $data->mobile_phone ?? '';
-                $contact->contact_label_id = $data->contact_label_id ?? '';
-                $contact->created_institution_id = \Yii::app()->session['selected_institution_id'];
-                $contact->active = 1;
-                $contact->email = $data->email ?? '';
+            $contact->scenario = $data->scenario ?? 'self_register';
+            $contact->first_name = $data->first_name ?? '';
+            $contact->last_name = $data->last_name ?? '';
+            $contact->primary_phone = $data->primary_phone ?? '';
+            $contact->mobile_phone = $data->mobile_phone ?? '';
+            $contact->contact_label_id = $data->contact_label_id ?? '';
+            $contact->created_institution_id = \Yii::app()->session['selected_institution_id'];
+            $contact->active = 1;
+            $contact->email = $data->email ?? '';
 
-                $address = new \Address();
-                $address->address1 = $data->address1 ?? '';
-                $address->address2 = $data->address2 ?? '';
-                $address->city = $data->city ?? '';
-                $address->postcode = $data->postcode ?? '';
-                $address->country_id = $data->country ?? '';
-                $address->address_type_id = 3;
+            $address = new \Address();
+            $address->address1 = $data->address1 ?? '';
+            $address->address2 = $data->address2 ?? '';
+            $address->city = $data->city ?? '';
+            $address->postcode = $data->postcode ?? '';
+            $address->country_id = $data->country ?? '';
+            $address->address_type_id = 3;
 
 
-                if (!$contact->save()) {
-                    $errors = $contact->getErrors();
-                } else {
-                    $address->contact_id = $contact->id;
-                    if (!$address->save()) {
-                        $errors = array_merge($errors, $address->getErrors());
-                    }
+            if (!$contact->save()) {
+                $errors = $contact->getErrors();
+            } else {
+                $address->contact_id = $contact->id;
+                if (!$address->save()) {
+                    $errors = array_merge($errors, $address->getErrors());
                 }
+            }
 
-                if (isset($data->contact_label_error) && $data->contact_label_error) {
-                    $errors['contact_label_limit'] = $data->contact_label_error;
-                }
+            if (isset($data->contact_label_error) && $data->contact_label_error) {
+                $errors['contact_label_limit'] = $data->contact_label_error;
+            }
 
-                if ($data->contact_label_id == "") {
-                    $errors['missing_contact_label'] = "Please select a Contact Type";
-                }
+            if ($data->contact_label_id == "") {
+                $errors['missing_contact_label'] = "Please select a Contact Type";
+            }
 
-                if (trim($data->address1) == "" && trim($data->primary_phone) == "" && trim($data->email) == "") {
-                    $errors['missing_address'] = "Address or phone number or an email should be provided";
-                }
-                if (!empty($errors)) {
-                    $transaction->rollback();
-                    echo \CJSON::encode(['errors' => $errors]);
-                } else {
-                    $transaction->commit();
-                    echo \CJSON::encode($this->contactStructure($contact));
-                }
+            if (trim($data->address1) == "" && trim($data->primary_phone) == "" && trim($data->email) == "") {
+                $errors['missing_address'] = "Address or phone number or an email should be provided";
+            }
+            if (!empty($errors)) {
+                $transaction->rollback();
+                echo \CJSON::encode(['errors' => $errors]);
+            } else {
+                $transaction->commit();
+                echo \CJSON::encode($this->contactStructure($contact));
             }
         }
     }

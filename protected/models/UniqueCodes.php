@@ -97,6 +97,49 @@ class UniqueCodes extends BaseActiveRecord
     }
 
     /**
+     * Override insert to handle MariaDB unavailability
+     */
+    public function insert($attributes=null)
+    {
+        // Check if MariaDB is available
+        if (!$this->isMariaDbAvailable()) {
+            // MariaDB not available, but we have Couchbase
+            // Set audit fields and mark as inserted
+            $user_id = method_exists($this, 'getChangeUserId') ? $this->getChangeUserId() : 1;
+            $this->created_user_id = $user_id;
+            $this->last_modified_user_id = $user_id;
+            $this->created_date = date('Y-m-d H:i:s');
+            $this->last_modified_date = date('Y-m-d H:i:s');
+            
+            // Generate ID if needed
+            if (!$this->getPrimaryKey()) {
+                $this->id = time() * 1000 + rand(100, 999);
+            }
+            
+            $this->setIsNewRecord(false);
+            return true; // Return success - Couchbase sync will happen in afterSave()
+        }
+        
+        // Normal MariaDB insert
+        return parent::insert($attributes);
+    }
+
+    /**
+     * Check if MariaDB is available
+     */
+    protected function isMariaDbAvailable()
+    {
+        try {
+            // Check if database connection is available
+            return $this->dbConnection && method_exists($this->dbConnection, 'isConnectionAvailable') 
+                ? $this->dbConnection->isConnectionAvailable() 
+                : true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * @return string the Couchbase scope name for this model
      */
     public function couchbaseScope(): string

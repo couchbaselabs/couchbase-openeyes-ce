@@ -102,6 +102,12 @@
 
 </div>
 
+<?php
+Yii::app()->getClientScript()->registerScriptFile(
+    Yii::app()->assetManager->createUrl('js/patient_merge.js'),
+    CClientScript::POS_END
+);
+?>
 <script>
     /* Thanks to Chrom's "back btn not reloading the page" feature */
     $('#grid_header_form').find('input:not(.no-clear)').each(function () {

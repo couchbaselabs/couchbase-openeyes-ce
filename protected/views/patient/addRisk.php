@@ -45,8 +45,13 @@
 
         <!-- Risk Selection -->
         <div class="row">
-            <label for="risk_id">Risk:</label>
-            <select id="risk_id" name="risk_id" class="field">
+            <label for="risk_id">Risk ID:</label>
+            <input type="number" id="risk_id" name="risk_id" class="field" placeholder="Enter risk ID (e.g., 1, 2, 3...)" />
+            <small style="display: block; margin-top: 5px; color: #666;">
+                Enter the numeric ID of the risk. Use the dropdown below to find the ID.
+            </small>
+            <label for="risk_select" style="margin-top: 10px;">Select from available risks:</label>
+            <select id="risk_select" class="field" style="margin-top: 5px;">
                 <option value="">Loading risks...</option>
             </select>
         </div>
@@ -81,15 +86,52 @@
 
 <script type="text/javascript">
 $(document).ready(function() {
-    // Show/hide "Other" field based on risk selection
-    $('#risk_id').on('change', function() {
-        var $selected = $(this).find('option:selected');
-        if ($selected.data('other')) {
-            $('#other-wrapper').show();
-        } else {
-            $('#other-wrapper').hide();
-            $('#other').val('');
+    // Load risks from server
+    $.ajax({
+        url: '<?php echo $this->createUrl('/patient/getRisks'); ?>',
+        type: 'GET',
+        dataType: 'json',
+        success: function(risks) {
+            if (risks && risks.length > 0) {
+                var riskSelect = $('#risk_select');
+                riskSelect.html('<option value="">Select a risk...</option>');
+                risks.forEach(function(risk) {
+                    var option = $('<option></option>')
+                        .attr('value', risk.id)
+                        .attr('data-other', risk.other)
+                        .text(risk.name + ' (ID: ' + risk.id + ')');
+                    riskSelect.append(option);
+                });
+            } else {
+                $('#risk_select').html('<option value="">No risks available</option>');
+            }
+        },
+        error: function() {
+            $('#risk_select').html('<option value="">Unable to load risks</option>');
         }
+    });
+
+    // Set risk_id when selecting from dropdown
+    $('#risk_select').on('change', function() {
+        var riskId = $(this).val();
+        if (riskId) {
+            $('#risk_id').val(riskId);
+            // Check if this is the "Other" risk
+            var isOther = $(this).find('option:selected').data('other');
+            if (isOther) {
+                $('#other-wrapper').show();
+            } else {
+                $('#other-wrapper').hide();
+                $('#other').val('');
+            }
+        }
+    });
+
+    // Show/hide "Other" field based on manual risk_id input
+    $('#risk_id').on('input', function() {
+        // You could add logic here to check if the entered ID is the "Other" risk
+        // For now, just ensure the field is cleared when manually edited
+        $('#other-wrapper').hide();
     });
 
     // Patient search autocomplete
@@ -161,7 +203,7 @@ $(document).ready(function() {
 
         if (!noRisks && !riskId) {
             e.preventDefault();
-            alert('Please select a risk');
+            alert('Please select or enter a risk ID');
             return false;
         }
 

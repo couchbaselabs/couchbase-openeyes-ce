@@ -49,7 +49,7 @@
                     data-uri="OphCoCvi/admin/editClinicalDisorder/<?=$disorder->id?>?patient_type=<?=$search['patient_type'];?>">
                     <td><?= \CHtml::encode($disorder->name) ?></td>
                     <td><?= \CHtml::encode($disorder->code) ?></td>
-                    <td><?= \CHtml::encode($disorder->section->name) ?></td>
+                    <td><?= \CHtml::encode($disorder->section?->name ?? '') ?></td>
                     <td><?= \CHtml::encode($disorder->disorder->term ?? '')?></td>
                     <td><?= \CHtml::encode($disorder->disorder_id) ?></td>
                     <td><?= \OEHtml::icon($disorder->active ? 'tick' : 'remove', ['class' => 'small']) ?></td>

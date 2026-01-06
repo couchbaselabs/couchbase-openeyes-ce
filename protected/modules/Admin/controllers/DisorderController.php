@@ -30,30 +30,52 @@ class DisorderController extends BaseAdminController
         );
         $query = \Yii::app()->request->getQuery('searchQuery');
         $specialty = \Yii::app()->request->getQuery('specialty');
-        $criteria = new \CDbCriteria();
-        $criteria->order = 'fully_specified_name';
+        
+        // Query Couchbase directly since MariaDB is no longer available
+        $cbRest = \Yii::app()->couchbaseRest;
+        $n1ql = "SELECT disorder.* FROM `openeyes`.`reference`.`disorder` AS disorder WHERE 1=1";
+        $params = array();
+        
         if ($query) {
             if (is_numeric($query)) {
-                $criteria->addCondition('id = :id');
-                $criteria->params[':id'] = $query;
+                $n1ql .= " AND disorder.id = ?";
+                $params[] = (int)$query;
             } else {
-                $criteria->addSearchCondition('lower(fully_specified_name)', strtolower($query), true, 'OR');
-                $criteria->addSearchCondition('lower(term)', strtolower($query), true, 'OR');
-                $criteria->addSearchCondition('lower(aliases)', strtolower($query), true, 'OR');
+                $searchTerm = '%' . strtolower($query) . '%';
+                $n1ql .= " AND (LOWER(disorder.fully_specified_name) LIKE ? OR LOWER(disorder.term) LIKE ? OR LOWER(disorder.aliases) LIKE ?)";
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
             }
         }
-
+        
         if ($specialty) {
             if ($specialty == "None") {
-                $criteria->addCondition('specialty_id IS NULL');
+                $n1ql .= " AND disorder.specialty_id IS NULL";
             } else {
-                $criteria->compare('specialty_id', $specialty);
+                $n1ql .= " AND disorder.specialty_id = ?";
+                $params[] = (int)$specialty;
+            }
+        }
+        
+        $n1ql .= " ORDER BY disorder.fully_specified_name";
+        
+        // Execute query
+        $result = $cbRest->query($n1ql, $params);
+        
+        // Convert result to Disorder model instances for display
+        $model_list = array();
+        if ($result) {
+            foreach ($result as $row) {
+                $disorder = new Disorder();
+                $disorder->setAttributes($row['disorder'] ?? $row, false);
+                $model_list[] = $disorder;
             }
         }
 
         $this->render('/list_disorder', array(
-            'pagination' => $this->initPagination(Disorder::model(), $criteria),
-            'model_list' => Disorder::model()->findAll($criteria),
+            'pagination' => null, // Pagination disabled for Couchbase queries
+            'model_list' => $model_list,
             'title' => 'Manage Disorder',
             'model_class' => 'Disorder',
             'query' => $query
@@ -63,10 +85,21 @@ class DisorderController extends BaseAdminController
     public function actionEdit()
     {
         $request = Yii::app()->getRequest();
-        $model = Disorder::model()->findByPk((int)$request->getParam('id'));
-        if (!$model) {
-            throw new Exception('Disorder not found with id ' . $request->getParam('id'));
+        $id = (int)$request->getParam('id');
+        
+        // Query Couchbase directly to find the disorder
+        $cbRest = \Yii::app()->couchbaseRest;
+        $n1ql = "SELECT disorder.* FROM `openeyes`.`reference`.`disorder` AS disorder WHERE disorder.id = ?";
+        $result = $cbRest->query($n1ql, array($id));
+        $result = isset($result[0]) ? $result[0] : null;
+        
+        if (!$result) {
+            throw new Exception('Disorder not found with id ' . $id);
         }
+        
+        $model = new Disorder();
+        $model->setAttributes($result['disorder'] ?? $result, false);
+        $model->markAttributesDirty();  // Mark as existing (not new record)
         if ($request->getPost('Disorder')) {
             $model->attributes = $request->getPost('Disorder');
             if (!$model->validate()) {

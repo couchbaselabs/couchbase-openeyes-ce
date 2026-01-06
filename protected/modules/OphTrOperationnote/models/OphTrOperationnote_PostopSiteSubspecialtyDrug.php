@@ -61,7 +61,7 @@ class OphTrOperationnote_PostopSiteSubspecialtyDrug extends BaseActiveRecordVers
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('site_id, subspeciality_id, drug_id, display_order, default', 'safe'),
+            array('site_id, subspecialty_id, drug_id, display_order, default', 'safe'),
         );
     }
 

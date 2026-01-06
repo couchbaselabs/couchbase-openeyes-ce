@@ -170,13 +170,13 @@ if (isset($preset_model->preset_id)) {
         <td>
             <?= CHtml::dropDownList(
                 'PathwayStepTypePresetAssignment[duration_value]',
-                $preset_model->preset_id % 100,
+                ($preset_model->preset_id ? $preset_model->preset_id % 100 : null),
                 array_combine(range(1, 18), range(1, 18)),
                 ['class' => 'cols-2 js-booking-value', 'empty' => 'Time']
             ) ?>
             <?= CHtml::dropDownList(
                 'PathwayStepTypePresetAssignment[duration_period]',
-                intdiv($preset_model->preset_id, 100),
+                ($preset_model->preset_id ? intdiv($preset_model->preset_id, 100) : null),
                 [1 => 'days', 2 => 'weeks', 3 => 'months', 4 => 'years'],
                 ['class' => 'cols-4 js-booking-period', 'empty' => 'Period']
             ) ?>

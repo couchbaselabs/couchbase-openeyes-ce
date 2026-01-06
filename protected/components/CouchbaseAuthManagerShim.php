@@ -15,7 +15,7 @@ class CouchbaseAuthManagerShim extends CDbAuthManager
     {
         try {
             $db = $this->getDbConnection();
-            if ($db instanceof OEDbConnection && !$db->isConnectionAvailable()) {
+            if ($db === null || ($db instanceof OEDbConnection && !$db->isConnectionAvailable())) {
                 return $this->checkAccessViaCouchbase($itemName, $userId, $params);
             }
 
@@ -52,6 +52,42 @@ class CouchbaseAuthManagerShim extends CDbAuthManager
                 Yii::log("AuthManager Couchbase fallback failed: " . $nested->getMessage(), CLogger::LEVEL_ERROR);
                 return false;
             }
+        }
+    }
+
+    /**
+     * Set or update an assignment with business rule and data.
+     * This method is used by the Team model to assign tasks with team ID data.
+     */
+    public function setOrUpdateAssignment($itemName, $userId, $bizRule = null, $data = null)
+    {
+        try {
+            // Get or create the assignment record
+            $assignment = AuthAssignment::model()->findByAttributes([
+                'itemname' => $itemName,
+                'userid' => $userId,
+            ]);
+
+            if (!$assignment) {
+                $assignment = new AuthAssignment();
+                $assignment->itemname = $itemName;
+                $assignment->userid = $userId;
+            }
+
+            // Update the assignment with business rule and data
+            $assignment->bizrule = $bizRule;
+            if ($data !== null) {
+                $assignment->data = serialize($data);
+            }
+
+            if (!$assignment->save()) {
+                Yii::log("Failed to save AuthAssignment: " . implode(", ", $assignment->getErrors()), CLogger::LEVEL_ERROR);
+            }
+
+            return $assignment;
+        } catch (Exception $e) {
+            Yii::log("AuthManager setOrUpdateAssignment failed: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            throw $e;
         }
     }
 

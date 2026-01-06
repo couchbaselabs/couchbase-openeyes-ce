@@ -48,8 +48,8 @@ $to = min(($page_num + 1) * $items_per_page, $dataProvider->totalItemCount);
                 <tbody>
                 <?php foreach ($dataProvided as $practice) : ?>
                     <tr id="r<?php echo $practice->id; ?>" class="clickable">
-                        <td><?php echo CHtml::encode($practice->contact->first_name); ?></td>
-                        <td><?php echo CHtml::encode($practice->getAddressLines()); ?></td>
+                        <td><?php echo CHtml::encode($practice->contact ? $practice->contact->first_name : 'N/A'); ?></td>
+                        <td><?php echo CHtml::encode($practice->contact ? $practice->getAddressLines() : 'N/A'); ?></td>
                         <td><?php echo CHtml::encode($practice->code); ?></td>
                         <td><?php echo CHtml::encode($practice->id); ?></td>
                         <td><?php echo CHtml::encode($practice->phone); ?></td>

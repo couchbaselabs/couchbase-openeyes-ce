@@ -55,7 +55,7 @@ class AttachmentTypeController extends \AdminController
         if (isset($_POST['AttachmentType'])) {
             $model->attributes = $_POST['AttachmentType'];
             if ($model->save()) {
-                $this->redirect(['/Api/Request/admin/mimeType/index']);
+                $this->redirect(['/Api/Request/admin/attachmentType/index']);
             }
         }
 
@@ -81,7 +81,7 @@ class AttachmentTypeController extends \AdminController
         if (isset($_POST['AttachmentType'])) {
             $model->attributes = $_POST['AttachmentType'];
             if ($model->save()) {
-                $this->redirect(['/Api/Request/admin/mimeType/index']);
+                $this->redirect(['/Api/Request/admin/attachmentType/index']);
             }
         }
 

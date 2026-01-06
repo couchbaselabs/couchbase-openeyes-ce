@@ -359,24 +359,57 @@ class TrialController extends BaseModuleController
      * Creates a new Trial Permission using values in $_POST
      *
      * @throws Exception Thrown if the permission couldn't be saved
+     * @throws CHttpException Thrown if the trial is not found
      */
-    public function actionAddPermission()
+    public function actionAddPermission($id = null)
     {
-        // Validate required POST parameters
-        if (!isset($_POST['id']) || !isset($_POST['permission']) || !isset($_POST['user_id']) || !isset($_POST['role'])) {
-            throw new CHttpException(400, 'Missing required parameters: id, permission, user_id, role');
-        }
+        // Handle both GET (form display) and POST (form submission)
+        if (Yii::app()->request->isPostRequest) {
+            // Validate required POST parameters
+            if (!isset($_POST['id']) || !isset($_POST['permission']) || !isset($_POST['user_id']) || !isset($_POST['role'])) {
+                throw new CHttpException(400, 'Missing required parameters: id, permission, user_id, role');
+            }
 
-        $trial = $this->loadModel($_POST['id']);
-        $permission = TrialPermission::model()->findByPk($_POST['permission']);
-        
-        // Validate that permission exists
-        if ($permission === null) {
-            throw new CHttpException(400, 'Invalid permission ID: ' . $_POST['permission']);
+            $trial = $this->loadModel($_POST['id']);
+            $permission = TrialPermission::model()->findByPk($_POST['permission']);
+            
+            // Validate that permission exists
+            if ($permission === null) {
+                throw new CHttpException(400, 'Invalid permission ID: ' . $_POST['permission']);
+            }
+            
+            $result = $trial->addUserPermission($_POST['user_id'], $permission, $_POST['role']);
+            
+            // If via AJAX, return JSON response
+            if (Yii::app()->request->isAjaxRequest) {
+                echo $result;
+            } else {
+                // If via regular form submission, redirect to permissions page
+                if ($result === Trial::RETURN_CODE_USER_PERMISSION_OK) {
+                    $this->redirect(array('permissions', 'id' => $trial->id));
+                } else {
+                    Yii::app()->user->setFlash('error', 'Failed to add permission. This user may already have access to this trial.');
+                    $this->redirect(array('permissions', 'id' => $trial->id));
+                }
+            }
+        } else {
+            // GET request - display form
+            $id = $id !== null ? $id : Yii::app()->request->getParam('id');
+            
+            if ($id === null) {
+                throw new CHttpException(400, 'Trial ID is required.');
+            }
+            
+            $trial = $this->loadModel($id);
+            $newPermission = new UserTrialAssignment();
+            $permissions = TrialPermission::model()->findAll();
+            
+            $this->render('addPermission', array(
+                'trial' => $trial,
+                'newPermission' => $newPermission,
+                'permissions' => $permissions,
+            ));
         }
-        
-        $result = $trial->addUserPermission($_POST['user_id'], $permission, $_POST['role']);
-        echo $result;
     }
 
     /**
