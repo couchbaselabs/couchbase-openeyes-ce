@@ -138,7 +138,7 @@ class OphTrLaser_Site_Laser extends BaseActiveRecordVersioned
      */
     public function couchbaseScope()
     {
-        return 'laser';
+        return 'reference';
     }
 
     /**
@@ -148,5 +148,23 @@ class OphTrLaser_Site_Laser extends BaseActiveRecordVersioned
     public function couchbaseCollection()
     {
         return 'ophtrlaser_site_laser';
+    }
+
+    /**
+     * After saving, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

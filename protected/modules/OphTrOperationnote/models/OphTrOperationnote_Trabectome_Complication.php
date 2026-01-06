@@ -92,6 +92,40 @@ class OphTrOperationnote_Trabectome_Complication extends BaseActiveRecordVersion
     }
 
     /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save hook to sync data to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete hook to remove data from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Retrieves a list of models based on the current search/filter conditions.
      *
      * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.

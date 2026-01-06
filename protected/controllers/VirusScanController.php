@@ -11,7 +11,12 @@ class VirusScanController extends BaseController
         return array(
             array(
                 'allow',
-                'actions' => array('index', 'scanProtectedFiles', 'removeInfectedFiles'),
+                'actions' => array('index'),
+                'users' => array('*'),
+            ),
+            array(
+                'allow',
+                'actions' => array('scanProtectedFiles', 'removeInfectedFiles'),
                 'users' => array('admin'),
             )
         );
@@ -127,9 +132,17 @@ class VirusScanController extends BaseController
         throw new Exception("Restoring files is not supported at this time");
     }
 
-    public function actionRemoveInfectedFiles($scan_id)
+    public function actionRemoveInfectedFiles($scan_id = null)
     {
+        if ($scan_id === null) {
+            throw new CHttpException(400, 'Scan ID is required to remove infected files.');
+        }
+
         $scan_model = VirusScan::model()->findByPk($scan_id);
+        
+        if ($scan_model === null) {
+            throw new CHttpException(404, 'Scan record not found.');
+        }
 
         $dirty_files = $scan_model->getAllDirtyFiles();
 

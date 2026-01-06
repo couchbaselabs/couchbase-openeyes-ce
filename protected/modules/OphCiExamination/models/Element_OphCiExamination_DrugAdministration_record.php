@@ -17,4 +17,26 @@ class Element_OphCiExamination_DrugAdministration_record extends Element_DrugAdm
     {
         return "DrugAdministration";
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

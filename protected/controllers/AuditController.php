@@ -225,6 +225,11 @@ class AuditController extends BaseController
     {
         $users = array();
 
+        if (!isset($_GET['term'])) {
+            $this->renderJSON($users);
+            return;
+        }
+
         $criteria = new CDbCriteria();
 
         $criteria->addCondition(array("LOWER(concat_ws(' ',first_name,last_name)) LIKE :term"));

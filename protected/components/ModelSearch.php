@@ -265,7 +265,14 @@ class ModelSearch
             }
         }
 
-        if ($this->model->hasAttribute('display_order')) {
+        try {
+            $hasDisplayOrder = $this->model->hasAttribute('display_order');
+        } catch (\Exception $e) {
+            // Table might not exist, treat as no display_order attribute
+            $hasDisplayOrder = false;
+        }
+        
+        if ($hasDisplayOrder) {
             $this->criteria->order = 't.display_order asc';
         } else {
             $order = $this->request->getParam('d');

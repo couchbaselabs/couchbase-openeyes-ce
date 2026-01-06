@@ -113,4 +113,42 @@ class OphTrOperationbooking_PreAssessment_Location extends BaseActiveRecordVersi
                 'criteria' => $criteria,
             ));
     }
+
+    /**
+     * Returns the Couchbase scope for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save callback to sync data to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete callback to remove data from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

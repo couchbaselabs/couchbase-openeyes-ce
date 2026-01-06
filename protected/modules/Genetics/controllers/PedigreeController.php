@@ -228,7 +228,7 @@ class PedigreeController extends BaseModuleController
 
         $pedigree_id = Yii::app()->request->getQuery('term', null);
 
-        if (strlen($pedigree_id) > 2) {
+        if ($pedigree_id && strlen($pedigree_id) > 2) {
             $criteria = new CDbCriteria();
             $criteria->addSearchCondition('t.id', $pedigree_id, true);
 

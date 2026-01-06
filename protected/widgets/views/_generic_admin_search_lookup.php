@@ -57,7 +57,7 @@ $search_field = $params['model']::model()->getAutocompleteField();
         });
 
         OpenEyes.UI.AutoCompleteSearch.init({
-            input: $(`[id="autocomplete_${'<?=$params['field'][$i]?>'}"]`),
+            input: $(`[id="autocomplete_<?= $params['field'] ?>[<?= $i ?>]"]`),
             url: '/autocomplete/search',
             params: {
                 'model': function () {return "<?= $params['model'] ?>"},

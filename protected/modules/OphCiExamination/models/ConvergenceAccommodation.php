@@ -16,7 +16,10 @@ class ConvergenceAccommodation extends \BaseEventTypeElement
     use traits\CustomOrdering;
     use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\HasCorrectionType;
-    use traits\HasRelationOptions;
+    use traits\HasRelationOptions {
+        \OE\Models\Traits\CouchbaseModelBridge::__get insteadof traits\HasRelationOptions;
+        traits\HasRelationOptions::__get as relationOptionsGet;
+    }
     use traits\HasWithHeadPosture;
 
     protected $auto_update_relations = true;
@@ -85,5 +88,41 @@ class ConvergenceAccommodation extends \BaseEventTypeElement
         }
 
         return 'Convergence And Accommodation: ' . implode(" ", $result);
+    }
+
+    /**
+     * Returns the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

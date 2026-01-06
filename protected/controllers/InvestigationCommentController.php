@@ -44,6 +44,9 @@ class InvestigationCommentController extends \BaseController
 
                 $this->renderPartial('/investigationcomment/_investigationcommentDialogOptions', array('investigationComments' => $return), false, false);
             }
+        } else {
+            // For GET requests or AJAX calls without investigation data, render empty list
+            $this->renderPartial('/investigationcomment/_investigationcommentDialogOptions', array('investigationComments' => array()), false, false);
         }
     }
 }

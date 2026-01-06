@@ -57,6 +57,24 @@ class ElementType extends BaseActiveRecordVersioned
     }
 
     /**
+     * After save hook - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete hook - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Get embedded relations for Couchbase document
      * @return array
      */

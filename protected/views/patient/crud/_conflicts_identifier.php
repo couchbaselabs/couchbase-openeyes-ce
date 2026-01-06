@@ -13,7 +13,6 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr>
                     <?php foreach ($patients as $patient) :
                         foreach ($patient->identifiers as $pid) :
                             if ($pid->deleted == 0 && $pid->patient_identifier_type_id == $identifier_type_id) : ?>
@@ -35,8 +34,6 @@
                             <?php endif; ?>
                         <?php endforeach; ?>
                     <?php endforeach; ?>
-
-                </tr>
                 </tbody>
             </table>
         </td>

@@ -7,7 +7,7 @@ foreach ($procedures as $key => $value) {
         'hidden' => false,
     );
 }
-    $default_ids = implode(',', $procedures[$default_procedure]);
+    $default_ids = isset($procedures[$default_procedure]) ? implode(',', $procedures[$default_procedure]) : '';
 ?>
 <tr class="custom-filter vf-filter">
     <td>Procedure</td>

@@ -74,11 +74,21 @@ class ProcedureController extends BaseAdminController
             }
         }
         $procedure = Procedure::model();
+        $procedures = $procedure->findAll($criteria);
+        
+        // Build list of deletable procedures
+        $deletable_procedures = [];
+        foreach ($procedures as $proc) {
+            if ($this->isProcedureDeletable($proc)) {
+                $deletable_procedures[$proc->id] = true;
+            }
+        }
 
         $this->render('/oeadmin/procedure/index', [
             'pagination' => $this->initPagination($procedure, $criteria),
-            'procedures' => $procedure->findAll($criteria),
+            'procedures' => $procedures,
             'search' => $search,
+            'deletable_procedures' => $deletable_procedures,
         ]);
     }
 

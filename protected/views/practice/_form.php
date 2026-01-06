@@ -135,6 +135,7 @@ $address_type_ids = CHtml::listData(AddressType::model()->findAll(), 'id', 'name
     <?php $this->endWidget(); ?>
 </div><!-- form -->
 
+<?php if (Yii::app()->params['use_contact_practice_associate_model']==true) : ?>
 <script>
     OpenEyes.UI.AutoCompleteSearch.init({
         input: $('#gp_autocomplete_id'),
@@ -193,3 +194,4 @@ $address_type_ids = CHtml::listData(AddressType::model()->findAll(), 'id', 'name
     }
 
 </script>
+<?php endif; ?>

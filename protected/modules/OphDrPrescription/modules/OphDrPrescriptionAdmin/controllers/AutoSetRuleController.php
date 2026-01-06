@@ -133,6 +133,9 @@ class AutoSetRuleController extends BaseAdminController
 
     public function actionSearch()
     {
+        \Yii::app()->clientScript->scriptMap = array();
+        header('Content-Type: application/json; charset=utf-8');
+        
         $filters = $this->getFilters();
         $criteria = $this->getSearchCriteria($filters);
         $data['items'] = [];
@@ -187,6 +190,9 @@ class AutoSetRuleController extends BaseAdminController
 
     public function actionSearchMedication()
     {
+        \Yii::app()->clientScript->scriptMap = array();
+        header('Content-Type: application/json; charset=utf-8');
+        
         $search = \Yii::app()->request->getParam('search');
         $set_id = isset($search['set_id']) ? $search['set_id'] : null;
         $data['items'] = [];
@@ -238,6 +244,7 @@ class AutoSetRuleController extends BaseAdminController
             }
         }
         echo CJSON::encode($data);
+        \Yii::app()->end();
     }
 
     /**
@@ -348,6 +355,7 @@ class AutoSetRuleController extends BaseAdminController
     {
         $command = new \PopulateAutoMedicationSetsCommand('PopulateAutoMedicationSets', new CConsoleCommandRunner());
         echo $command->actionCheckRunning();
+        \Yii::app()->end();
     }
 
     public function actionDelete()
@@ -429,13 +437,21 @@ class AutoSetRuleController extends BaseAdminController
 
     public function actionRemoveMedicationFromSet()
     {
+        \Yii::app()->clientScript->scriptMap = array();
+        header('Content-Type: application/json; charset=utf-8');
+        
         $result['success'] = false;
         if (\Yii::app()->request->isPostRequest) {
             $id = \Yii::app()->request->getPost('id');
 
             if ($id) {
                 $med = \MedicationSetAutoRuleMedication::model()->findByPk($id);
-                $result['success'] = $med->deleteWithTapers()->delete();
+                if ($med) {
+                    $result['success'] = $med->deleteWithTapers()->delete();
+                } else {
+                    $result['success'] = false;
+                    $result['error'] = "Medication not found.";
+                }
             } else {
                 $result['success'] = false;
                 $result['error'] = "Missing ID.";

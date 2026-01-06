@@ -34,6 +34,11 @@ class LetterString extends LetterStringBase
     use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
     protected function getSupportedLevels(): int
     {
         return ReferenceData::LEVEL_INSTITUTION | ReferenceData::LEVEL_SITE;

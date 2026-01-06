@@ -95,7 +95,7 @@ class Drug extends BaseActiveRecordVersioned
     {
         return array(
             array('name, tallman', 'required'),
-            array('tallman, dose_unit, default_dose, type_id, form_id, default_duration_id, default_frequency_id, '
+            array('tallman, dose_unit, default_dose, form_id, default_duration_id, default_frequency_id, '
                 .'default_route_id, active, allergies, aliases, national_code, tags', 'safe'),
         );
     }
@@ -123,7 +123,6 @@ class Drug extends BaseActiveRecordVersioned
     public function attributeLabels()
     {
         return array(
-            'type_id' => 'Type',
             'default_duration_id' => 'Default Duration',
             'default_frequency_id' => 'Default Frequency',
             'default_route_id' => 'Default Route',

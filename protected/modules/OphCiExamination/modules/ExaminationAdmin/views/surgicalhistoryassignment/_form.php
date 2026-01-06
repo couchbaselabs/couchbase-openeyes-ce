@@ -76,7 +76,7 @@
                     return
                         '<div>' .
                         CHtml::dropDownList(
-                            null,
+                            "OEModule_OphCiExamination_models_SurgicalHistorySetEntry[$row][prev_operation_select]",
                             '',
                             CHtml::listData(CommonPreviousOperation::model()->findAll(
                                 ['order' => 'display_order asc']
@@ -179,7 +179,7 @@
                     'id',
                     'name'
                 );
-                echo CHtml::dropDownList(null, '', $list_data, ['empty' => '- Select -', 'class' => 'common_prev_op_select']);
+                echo CHtml::dropDownList("OEModule_OphCiExamination_models_SurgicalHistorySetEntry[{{row}}][prev_operation_select]", '', $list_data, ['empty' => '- Select -', 'class' => 'common_prev_op_select']);
                 echo '<br />' .
                 CHtml::textField("OEModule_OphCiExamination_models_SurgicalHistorySetEntry[{{row}}][operation]", '', [
                         'placeholder' => 'Select from above or type',

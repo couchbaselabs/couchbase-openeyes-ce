@@ -845,12 +845,12 @@ class AdminController extends BaseAdminController
         }
     }
 
-    public function actionUserFind($term)
+    public function actionUserFind($term = '')
     {
         $res = array();
         if (Yii::app()->request->isAjaxRequest && $term) {
             $criteria = new CDbCriteria();
-            $criteria->compare('LOWER(first_name)', strtolower($term), true, 'OR');
+            $criteria->compare('LOWER(first_name)', strtolower($term), true);
             $criteria->compare('LOWER(last_name)', strtolower($term), true, 'OR');
             foreach (User::model()->findAll($criteria) as $user) {
                 $res[] = array(
@@ -870,7 +870,7 @@ class AdminController extends BaseAdminController
 
         $criteria = new CDbCriteria();
         if (!empty($_GET['search'])) {
-            $criteria->compare('LOWER(first_name)', strtolower($_GET['search']), true, 'OR');
+            $criteria->compare('LOWER(first_name)', strtolower($_GET['search']), true);
             $criteria->compare('LOWER(last_name)', strtolower($_GET['search']), true, 'OR');
             $criteria->compare('LOWER(t.id)', $_GET['search'], false, 'OR');
             $criteria->with = 'authentications';
@@ -1270,14 +1270,23 @@ class AdminController extends BaseAdminController
         ));
     }
 
-    public function actionContactLocation()
+    public function actionContactLocation($location_id = null)
     {
-        $cl = ContactLocation::model()->findByPk(@$_GET['location_id']);
-        if (!$cl) {
-            throw new CHttpException(404, 'ContactLocation not found: ' . @$_GET['location_id']);
+        if ($location_id == null) {
+            $location_id = @$_GET['location_id'];
         }
 
-        Audit::add('admin-ContactLocation', 'view', @$_GET['location_id']);
+        if (empty($location_id)) {
+            $this->redirect('/admin/contacts');
+            return;
+        }
+
+        $cl = ContactLocation::model()->findByPk($location_id);
+        if (!$cl) {
+            throw new CHttpException(404, 'ContactLocation not found: ' . $location_id);
+        }
+
+        Audit::add('admin-ContactLocation', 'view', $location_id);
 
         $this->render('/admin/contactlocation', array(
             'location' => $cl,
@@ -1310,6 +1319,10 @@ class AdminController extends BaseAdminController
 
     public function actionAddContactLocation()
     {
+        if (!isset($_GET['contact_id']) || empty($_GET['contact_id'])) {
+            throw new CHttpException(400, 'Contact ID parameter is required');
+        }
+
         $contact = Contact::model()->findByPk(@$_GET['contact_id']);
         if (!$contact) {
             throw new CHttpException(404, 'Contact not found: ' . @$_GET['contact_id']);
@@ -1967,7 +1980,7 @@ class AdminController extends BaseAdminController
         }
 
         if (!empty($_REQUEST['search'])) {
-            $criteria->compare('LOWER(name)', strtolower($_REQUEST['search']), true, 'OR');
+            $criteria->compare('LOWER(name)', strtolower($_REQUEST['search']), true);
             $criteria->compare('LOWER(short_name)', strtolower($_REQUEST['search']), true, 'OR');
             $criteria->compare('LOWER(remote_id)', strtolower($_REQUEST['search']), true, 'OR');
             $criteria->compare('LOWER(postcode)', strtolower($_REQUEST['search']), true, 'OR');
@@ -2479,7 +2492,10 @@ class AdminController extends BaseAdminController
             if (!$cb) {
                 throw new CHttpException(404, 'CommissioningBody not found: ' . @$_GET['commissioning_body_id']);
             }
-            $address = $cb->contact->address;
+            $address = null;
+            if ($cb->contact) {
+                $address = $cb->contact->address;
+            }
             if (!$address) {
                 $address = new Address();
                 $address->country_id = 1;
@@ -2659,7 +2675,14 @@ class AdminController extends BaseAdminController
     public function actionVerifyDeleteCommissioningBodyTypes()
     {
         $criteria = new CDbCriteria();
-        $criteria->addInCondition('commissioning_body_type_id', @$_POST['commissioning_body_type']);
+        
+        if (isset($_POST['commissioning_body_type']) && is_array($_POST['commissioning_body_type']) && count($_POST['commissioning_body_type']) > 0) {
+            $criteria->addInCondition('commissioning_body_type_id', $_POST['commissioning_body_type']);
+        } else {
+            // If no specific types specified, can't find anything to delete
+            echo '1';
+            return;
+        }
 
         foreach (CommissioningBody::model()->findAll($criteria) as $cb) {
             if (!$cb->canDelete()) {
@@ -2748,6 +2771,7 @@ class AdminController extends BaseAdminController
         'commissioning_bt' => $commissioning_bt,
         'commissioning_bst' => $commissioning_bst,
         'cbs' => $cbs,
+        'contact' => $contact,
         'address' => $address,
         'errors' => $errors,
         'return_url' => $return_url
@@ -2832,7 +2856,13 @@ class AdminController extends BaseAdminController
     public function actionVerifyDeleteCommissioningBodyServices()
     {
         // Currently no foreign keys to this table
-        echo '1';
+        if (isset($_POST['commissioning_body_service']) && is_array($_POST['commissioning_body_service']) && count($_POST['commissioning_body_service']) > 0) {
+            // Services can be safely deleted if no foreign keys exist
+            echo '1';
+        } else {
+            // No services selected or invalid request
+            echo '1';
+        }
     }
 
     public function actionDeleteCommissioningBodyServices()
@@ -2913,11 +2943,17 @@ class AdminController extends BaseAdminController
 
     public function actionVerifyDeleteCommissioningBodyServiceTypes()
     {
-        $criteria = new CDbCriteria();
-        $criteria->addInCondition('commissioning_body_service_type_id', @$_POST['commissioning_body_service_type']);
+        $ids = @$_POST['commissioning_body_service_type'];
+        
+        if ($ids && is_array($ids)) {
+            $criteria = new CDbCriteria();
+            $criteria->addInCondition('commissioning_body_service_type_id', $ids);
 
-        if (CommissioningBodyService::model()->find($criteria)) {
-            echo '0';
+            if (CommissioningBodyService::model()->find($criteria)) {
+                echo '0';
+            } else {
+                echo '1';
+            }
         } else {
             echo '1';
         }
@@ -2966,8 +3002,13 @@ class AdminController extends BaseAdminController
         ));
     }
 
-    public function actionApproveEventDeletionRequest($id)
+    public function actionApproveEventDeletionRequest($id = null)
     {
+        if ($id === null) {
+            $this->redirect(array('/admin/eventDeletionRequests'));
+            return;
+        }
+
         $event = Event::model()->find('id=? and delete_pending=?', array($id, 1));
         if (!$event) {
             throw new Exception("Event not found: $id");
@@ -2986,8 +3027,13 @@ class AdminController extends BaseAdminController
         echo '1';
     }
 
-    public function actionRejectEventDeletionRequest($id)
+    public function actionRejectEventDeletionRequest($id = null)
     {
+        if ($id === null) {
+            $this->redirect(array('/admin/eventDeletionRequests'));
+            return;
+        }
+
         $event = Event::model()->find('id=? and delete_pending=?', array($id, 1));
         if (!$event) {
             throw new Exception("Event not found: $id");
@@ -3278,17 +3324,28 @@ class AdminController extends BaseAdminController
 
     public function actionChangeVersionCheck()
     {
-        $value = $_POST['value'] ?? null;
+        $setting_installation = SettingInstallation::model()->findByAttributes(['key' => "auto_version_check"]);
+        $setting_value = $setting_installation ? $setting_installation->value : 0;
+        
         if (Yii::app()->request->isPostRequest) {
-            $setting_installation = SettingInstallation::model()->findByAttributes(['key' => "auto_version_check"]);
+            $value = $_POST['value'] ?? null;
+            if (!$setting_installation) {
+                $setting_installation = new SettingInstallation();
+                $setting_installation->key = "auto_version_check";
+            }
             $setting_installation->value = $value;
             if (!$setting_installation->save()) {
-                $errors = $setting_installation->errors;
-                return $errors;
+                $errors = $setting_installation->getErrors();
+                Yii::app()->user->setFlash('error', 'Failed to save setting: ' . implode(', ', array_merge(...array_values($errors))));
             } else {
-                return "The version check is disabled.";
+                Yii::app()->user->setFlash('success', 'Version check setting saved successfully.');
+                $this->redirect(Yii::app()->request->url);
             }
         }
+        
+        $this->render('/admin/changeVersionCheck', array(
+            'setting_value' => $setting_value,
+        ));
     }
 
     public function actionEditEthnicGroups()

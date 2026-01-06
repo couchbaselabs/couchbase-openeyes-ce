@@ -23,6 +23,22 @@ class OphTrConsent_Type_Assessment extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * @return string Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * @return string the associated database table name
      */
     public function tableName()
@@ -142,5 +158,23 @@ class OphTrConsent_Type_Assessment extends BaseActiveRecordVersioned
     public function existsElementInConsentForm($element_id, $type_id): bool
     {
         return !empty(self::model()->findByAttributes(array('element_id' => $element_id, 'type_id' => $type_id)));
+    }
+
+    /**
+     * After saving, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

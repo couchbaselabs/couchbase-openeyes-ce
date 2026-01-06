@@ -86,4 +86,32 @@ class OphInBiometry_Surgeon extends BaseActiveRecord
             'name' => 'Name',
         );
     }
+
+    /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

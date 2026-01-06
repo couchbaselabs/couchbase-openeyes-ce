@@ -519,7 +519,8 @@ class UserIdentity extends CUserIdentity
         }
 
         // Couchbase-only path: check assignments directly via model (uses CouchbaseModelBridge)
-        return AuthAssignment::model()->exists('itemname = :item AND userid = :uid', [':item' => 'OprnLogin', ':uid' => $user->id]);
+        // Cast userid to string as Couchbase stores it as string type
+        return AuthAssignment::model()->exists('itemname = :item AND userid = :uid', [':item' => 'OprnLogin', ':uid' => (string)$user->id]);
     }
 
     /**

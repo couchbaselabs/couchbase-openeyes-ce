@@ -31,8 +31,12 @@ class MedicationManagementController extends BaseController
         );
     }
 
-    public function actionGetDrugSetForm($set_id, $allergy_ids)
+    public function actionGetDrugSetForm($set_id = null, $allergy_ids = null)
     {
+        if ($set_id === null || $allergy_ids === null) {
+            throw new \CHttpException(400, 'Missing required parameters: set_id and allergy_ids.');
+        }
+        
         $allergy_ids = CJSON::decode($allergy_ids);
         $medication_set = MedicationSet::model()->findByPk($set_id);
         if ($medication_set) {
@@ -50,8 +54,12 @@ class MedicationManagementController extends BaseController
             throw new \CHttpException(404, 'Could not find medication set.');
         }
     }
-    public function actionGetPGDSetForm($pgd_id, $allergy_ids, $key)
+    public function actionGetPGDSetForm($pgd_id = null, $allergy_ids = null, $key = null)
     {
+        if ($pgd_id === null || $allergy_ids === null || $key === null) {
+            throw new \CHttpException(400, 'Missing required parameters: pgd_id, allergy_ids, and key.');
+        }
+        
         $allergy_ids = CJSON::decode($allergy_ids);
         $pgd_set = OphDrPGDPSD_PGDPSD::model()->findByPk($pgd_id);
         $user_id = \Yii::app()->user->id;
@@ -83,11 +91,20 @@ class MedicationManagementController extends BaseController
                     $temp['prepended_markup'] = $tooltip;
                     $temp['pgd_info_icon'] = "<span class='highlighter inline js-has-tooltip' data-tooltip-content='PGD: <b>{$pgd_set->name}</b><br/>{$user->getFullName()}'>PGD</span>";
                     $temp['pgdpsd_id'] = $pgd_set->id;
-                    $temp['allergy_ids'] =  array_map(function ($allergy) use ($allergy_ids) {
-                        if (in_array($allergy->id, $allergy_ids)) {
-                            return $allergy->id;
+                    $temp['allergy_ids'] = array();
+                    try {
+                        $medication_allergies = $item->medication->allergies;
+                        if (is_array($medication_allergies) || ($medication_allergies instanceof \Countable)) {
+                            $temp['allergy_ids'] = array_map(function ($allergy) use ($allergy_ids) {
+                                if (in_array($allergy->id, $allergy_ids)) {
+                                    return $allergy->id;
+                                }
+                            }, $medication_allergies);
                         }
-                    }, $item->medication->allergies);
+                    } catch (\Throwable $e) {
+                        // Handle Couchbase errors when loading allergies
+                        $temp['allergy_ids'] = array();
+                    }
                     $pgd_items[] = $temp;
                 }
                 echo CJSON::encode($pgd_items);
@@ -114,11 +131,20 @@ class MedicationManagementController extends BaseController
         $item['dispense_location_id'] = (int) $set_item->default_dispense_location_id;
         $item['to_be_copied'] = true;
         $item['will_copy'] = true;
-        $item['allergy_ids'] =  array_map(function ($allergy) use ($allergy_ids) {
-            if (in_array($allergy->id, $allergy_ids)) {
-                return $allergy->id;
+        $item['allergy_ids'] = array();
+        try {
+            $medication_allergies = $set_item->medication->allergies;
+            if (is_array($medication_allergies) || ($medication_allergies instanceof \Countable)) {
+                $item['allergy_ids'] = array_map(function ($allergy) use ($allergy_ids) {
+                    if (in_array($allergy->id, $allergy_ids)) {
+                        return $allergy->id;
+                    }
+                }, $medication_allergies);
             }
-        }, $set_item->medication->allergies);
+        } catch (\Throwable $e) {
+            // Handle Couchbase errors when loading allergies
+            $item['allergy_ids'] = array();
+        }
 
         if ($set_item->tapers) {
             $tapers = array();
@@ -157,6 +183,11 @@ class MedicationManagementController extends BaseController
         $criteria->distinct = true;
 
         $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
+        if (!$firm || !$firm->serviceSubspecialtyAssignment) {
+            header('Content-type: application/json');
+            echo CJSON::encode([]);
+            return;
+        }
         $subspecialty_id = $firm->serviceSubspecialtyAssignment->subspecialty_id;
         $site_id = Yii::app()->session['selected_site_id'];
 
@@ -256,15 +287,18 @@ class MedicationManagementController extends BaseController
         return null;
     }
 
-    public function actionGetInfoBox($medication_id)
+    public function actionGetInfoBox($medication_id = null)
     {
         $info_box = new MedicationInfoBox();
         $info_box->medication_id = $medication_id;
         $info_box->init();
         $info_box->run();
     }
-    public function actionGetPGDIcon($pgdpsd_id)
+    public function actionGetPGDIcon($pgdpsd_id = null)
     {
+        if ($pgdpsd_id === null) {
+            throw new \CHttpException(400, 'Missing required parameter: pgdpsd_id');
+        }
         $pgd = OphDrPGDPSD_PGDPSD::model()->findByPk($pgdpsd_id);
         if ($pgd) {
             echo "<i class='oe-i info small pad js-has-tooltip' data-tooltip-content='From PGD {$pgd->id}: {$pgd->name}'></i>";

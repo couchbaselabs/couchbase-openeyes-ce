@@ -128,6 +128,64 @@ class CouchbaseAdapter implements DatabaseAdapterInterface
             'ophciexamination_allergy_reaction' => 'reference',
             'ophciexamination_allergy_set' => 'reference',
             'ophciexamination_allergy_set_entry' => 'reference',
+            'ophciexamination_advice_leaflet' => 'reference',
+            'ophciexamination_advice_leaflet_category' => 'reference',
+            'ophciexamination_advice_leaflet_category_assignment' => 'reference',
+            'ophciexamination_advice_leaflet_entry' => 'reference',
+            
+            // Address reference data
+            'address_type' => 'reference',
+            
+            // Anaesthetic reference data
+            'anaesthetic_agent' => 'reference',
+            'anaesthetic_complication' => 'reference',
+            'anaesthetic_type' => 'reference',
+            
+            // OphCiExamination lookup/reference tables
+            'ophciexamination_correctiontype' => 'reference',
+            'ophciexamination_medication_stop_reason' => 'reference',
+            'ophciexamination_stereoacuity_method' => 'reference',
+            
+            // Prescription reference data
+            'ophdrprescription_dispense_condition' => 'reference',
+            'ophdrprescription_dispense_location' => 'reference',
+            'ophdrprescription_edit_reasons' => 'reference',
+            
+            // OphTrLaser reference data
+            'ophtrlaser_laserprocedure' => 'reference',
+            'ophtrlaser_site_laser' => 'reference',
+            
+            // OphTrOperationbooking - explicitly mapped to clinical scope
+            'ophtroperationbooking_operation_theatre' => 'clinical',
+            'ophtroperationbooking_operation_ward' => 'clinical',
+            
+            // OphTrOperationnote - explicitly mapped to clinical scope
+            'ophtroperationnote_postop_drug' => 'clinical',
+            
+            // OphCoCorrespondence - explicitly mapped to clinical scope
+            'ophcocorrespondence_letter_string_group' => 'clinical',
+            'ophcocorrespondence_letter_string' => 'clinical',
+            'ophcocorrespondence_letter_string_institution' => 'clinical',
+            'ophcocorrespondence_default_recipient_email_templates' => 'clinical',
+            'ophcocorrespondence_letter_type' => 'clinical',
+            'ophcocorrespondence_letter_recipient' => 'clinical',
+            'ophcocorrespondence_internal_referral_settings' => 'clinical',
+            'ophcocorrespondence_letter_macro' => 'clinical',
+            
+            // OphCoCorrespondence - reference scope (as defined by model)
+            'ophcocorrespondence_sender_email_addresses' => 'reference',
+            'ophcocorrespondence_letter_macro' => 'reference',
+            'ophcocorrespondence_letter_macro_institution' => 'reference',
+            'ophcocorrespondence_letter_macro_site' => 'reference',
+            'ophcocorrespondence_letter_macro_subspecialty' => 'reference',
+            'ophcocorrespondence_letter_macro_firm' => 'reference',
+            
+            // Messaging
+            'mailbox' => 'messaging',
+            'mailbox_team' => 'messaging',
+            'mailbox_user' => 'messaging',
+            'ophcomessaging_message_recipient' => 'messaging',
+            'ophcomessaging_message_message_type' => 'messaging',
         ];
     }
     
@@ -145,6 +203,13 @@ class CouchbaseAdapter implements DatabaseAdapterInterface
         
         // Check for pattern matches (e.g., examination elements)
         if (strpos($collection, 'et_ophciexamination_') === 0) {
+            return 'clinical';
+        }
+        // OphCiExamination reference/lookup tables (e.g., ophciexamination_familyhistory_condition)
+        if (strpos($collection, 'ophciexamination_') === 0) {
+            return 'clinical';
+        }
+        if (strpos($collection, 'archive_') === 0) {
             return 'clinical';
         }
         if (strpos($collection, 'ophtr') === 0) {

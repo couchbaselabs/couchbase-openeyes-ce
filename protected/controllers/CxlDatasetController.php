@@ -121,14 +121,27 @@ class CxlDatasetController extends BaseController
      */
     public function actionGenerate()
     {
-        $this->patient_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), Institution::model()->getCurrent()->id, $this->selectedSiteId);
+        try {
+            $this->patient_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), Institution::model()->getCurrent()->id, $this->selectedSiteId);
 
-        $this->generateExport();
+            $this->generateExport();
 
-        $this->createZipFile();
+            $this->createZipFile();
 
-        if (file_exists($this->exportPath . '/' . $this->zipName)) {
-            Yii::app()->getRequest()->sendFile($this->zipName, file_get_contents($this->exportPath . '/' . $this->zipName));
+            if (file_exists($this->exportPath . '/' . $this->zipName)) {
+                Yii::app()->getRequest()->sendFile($this->zipName, file_get_contents($this->exportPath . '/' . $this->zipName));
+            }
+        } catch (CHttpException $e) {
+            // Re-throw HTTP exceptions as-is
+            throw $e;
+        } catch (Exception $e) {
+            // Log the error
+            Yii::log("CXL Dataset export failed: " . $e->getMessage(), CLogger::LEVEL_ERROR);
+            
+            // Redirect to index page with error message
+            $this->render('//cxldataset/index', array(
+                'error' => 'CXL Dataset export is not supported on this database backend. Temporary table operations are required but not available in Couchbase.'
+            ));
         }
     }
 
@@ -240,7 +253,13 @@ class CxlDatasetController extends BaseController
                 DROP TABLE IF EXISTS tmp_cxl_surgery_{$this->extractIdentifier};
 EOL;
 
-        Yii::app()->cbdb->createCommand($cleanQuery)->execute();
+        try {
+            Yii::app()->cbdb->createCommand($cleanQuery)->execute();
+        } catch (Exception $e) {
+            // Couchbase may not support DROP TABLE syntax
+            // This is not critical for temporary tables with unique identifiers
+            Yii::log("Warning: Could not drop temporary tables: " . $e->getMessage(), CLogger::LEVEL_WARNING);
+        }
     }
 
     /********** Surgeon **********/
@@ -248,7 +267,6 @@ EOL;
     private function createTmpRcoNodSurgeon()
     {
         $query = <<<EOL
-            DROP TABLE IF EXISTS tmp_rco_nod_Surgeon_{$this->extractIdentifier};
             CREATE TABLE tmp_rco_nod_Surgeon_{$this->extractIdentifier} (
                     Surgeonid INT(10) NOT NULL,
                     GMCnumber VARCHAR(250) DEFAULT NULL,
@@ -316,7 +334,6 @@ EOL;
     private function createTmpCxlPatients()
     {
         $query = <<<EOL
-            DROP TABLE IF EXISTS tmp_cxl_patients_{$this->extractIdentifier};
             CREATE TABLE tmp_cxl_patients_{$this->extractIdentifier} (
                 PatientId VARCHAR(40) NOT NULL,
                 Age INTEGER(3) NOT NULL,
@@ -394,7 +411,6 @@ EOL;
     private function createTmpCxlHistory()
     {
         $query = <<<EOL
-            DROP TABLE IF EXISTS tmp_cxl_history_{$this->extractIdentifier};
             CREATE TABLE tmp_cxl_history_{$this->extractIdentifier} (
                 PatientId VARCHAR(40) NOT NULL,
                 EventDate DATE NOT NULL,
@@ -471,8 +487,6 @@ EOL;
     private function createTmpCxlMainEventEpisodes()
     {
         $query = <<<EOL
-
-DROP TABLE IF EXISTS tmp_cxl_main_event_episodes_{$this->extractIdentifier};
 CREATE TABLE tmp_cxl_main_event_episodes_{$this->extractIdentifier} (
     event_id int(10) NOT NULL,
     event_date DATE NOT NULL,
@@ -559,7 +573,6 @@ EOL;
     private function createTmpCxlAssessments()
     {
         $query = <<<EOL
-            DROP TABLE IF EXISTS tmp_cxl_assessments_{$this->extractIdentifier};
             CREATE TABLE tmp_cxl_assessments_{$this->extractIdentifier} (
                 PatientId VARCHAR(40) NOT NULL,
                 EventDate DATE NOT NULL,
@@ -788,7 +801,6 @@ EOL;
     private function createTmpCxlSurgery()
     {
         $query = <<<EOL
-                DROP TABLE IF EXISTS tmp_cxl_surgery_{$this->extractIdentifier};
                 CREATE TABLE tmp_cxl_surgery_{$this->extractIdentifier} (
                     PatientId VARCHAR(40) NOT NULL,
                     EventDate DATE NOT NULL,

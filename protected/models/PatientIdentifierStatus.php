@@ -112,4 +112,32 @@ class PatientIdentifierStatus extends BaseActiveRecord
     {
         return $this->code !== '01';
     }
+
+    /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

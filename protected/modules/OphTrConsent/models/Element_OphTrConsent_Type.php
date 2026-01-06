@@ -41,6 +41,28 @@ class Element_OphTrConsent_Type extends BaseEventTypeElement
     use \OE\Models\Traits\CouchbaseModelBridge;
     public $service;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public const TYPE_PATIENT_AGREEMENT_ID = 1;
     public const TYPE_PARENTAL_AGREEMENT_ID = 2;
     public const TYPE_PATIENT_PARENTAL_AGREEMENT_ID = 3;

@@ -145,4 +145,40 @@ class OphTrConsent_BestInterestDecision_Attachment extends \BaseActiveRecordVers
         $this->protectedFile->delete();
         return parent::beforeDelete();
     }
+
+    /**
+     * Returns the Couchbase scope name for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

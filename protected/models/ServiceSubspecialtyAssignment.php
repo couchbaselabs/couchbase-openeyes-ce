@@ -40,9 +40,35 @@ class ServiceSubspecialtyAssignment extends BaseActiveRecordVersioned
     /**
      * Couchbase scope for reference data
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'reference';
+    }
+
+    /**
+     * Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save hook - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete hook - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

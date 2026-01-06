@@ -330,4 +330,40 @@ class Element_OphTrConsent_AdditionalSignatures extends \BaseEventTypeElement im
             "initiator_row_id" => 5,
         ]);
     }
+
+    /**
+     * Returns the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

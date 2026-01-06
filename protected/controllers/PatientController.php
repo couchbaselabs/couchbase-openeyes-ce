@@ -1379,9 +1379,9 @@ class PatientController extends BaseController
                 $risk = $this->fetchModel('Risk', @$_POST['risk_id']);
                 $patient->addRisk($risk, @$_POST['other'], @$_POST['comments']);
             }
-        }
+            $this->redirect(array('patient/view/' . $patient->id));
 
-        $this->redirect(array('patient/view/' . $patient->id));
+        }
     }
 
         /**
@@ -1732,8 +1732,14 @@ class PatientController extends BaseController
 
     public function actionGetPreviousOperation()
     {
-        if (!$po = PreviousOperation::model()->findByPk(@$_GET['operation_id'])) {
-            throw new Exception('Previous operation not found: ' . @$_GET['operation_id']);
+        if (!isset($_GET['operation_id']) || empty($_GET['operation_id'])) {
+            $this->renderJSON(array('error' => 'operation_id parameter is required'));
+            return;
+        }
+
+        if (!$po = PreviousOperation::model()->findByPk($_GET['operation_id'])) {
+            $this->renderJSON(array('error' => 'Previous operation not found: ' . $_GET['operation_id']));
+            return;
         }
 
         $date = explode('-', $po->date);
@@ -1778,6 +1784,12 @@ class PatientController extends BaseController
 
     public function actionValidateSaveContact()
     {
+        // Validate that patient_id is provided in POST data
+        if (!isset($_POST['patient_id']) || empty($_POST['patient_id'])) {
+            $this->renderJSON(array('error' => 'Missing required patient_id parameter'));
+            return;
+        }
+
         if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
             throw new Exception('Patient not found: ' . @$_POST['patient_id']);
         }
@@ -1814,12 +1826,22 @@ class PatientController extends BaseController
         */
     public function actionAddContact()
     {
+        // Validate that required POST data is present
+        if (!$this->request->isPostRequest) {
+            throw new CHttpException(400, 'Bad Request: POST request required');
+        }
+        
+        // Check for required POST parameters
+        if (!(@$_POST['site_id'] || @$_POST['institution_id'])) {
+            throw new CHttpException(400, 'Bad Request: site_id or institution_id required');
+        }
+        
         if (@$_POST['site_id']) {
             if (!$site = Site::model()->findByPk($_POST['site_id'])) {
                 throw new Exception('Site not found: ' . $_POST['site_id']);
             }
         } else {
-            if (!$institution = Institution::model()->findByPk(@$_POST['institution_id'])) {
+            if (!@$_POST['institution_id'] || !$institution = Institution::model()->findByPk(@$_POST['institution_id'])) {
                 throw new Exception('Institution not found: ' . @$_POST['institution_id']);
             }
         }
@@ -1998,6 +2020,17 @@ class PatientController extends BaseController
 
     public function actionSendSiteMessage()
     {
+        // Only process POST requests
+        if (!Yii::app()->request->isPostRequest) {
+            return;
+        }
+
+        // Check if required POST fields exist
+        if (!isset($_POST['newsite_from'], $_POST['newsite_subject'], $_POST['newsite_message'])) {
+            echo '0';
+            return;
+        }
+
         $message = Yii::app()->mailer->newMessage();
         $message->setFrom(array($_POST['newsite_from'] => User::model()->findByPk(Yii::app()->user->id)->fullName));
         $message->setTo(array(SettingMetadata::model()->getSetting('helpdesk_email')));
@@ -2008,8 +2041,14 @@ class PatientController extends BaseController
 
     public function actionVerifyAddNewEpisode()
     {
+        if (!isset($_GET['patient_id'])) {
+            echo '0';
+            return;
+        }
+
         if (!$patient = Patient::model()->findByPk(@$_GET['patient_id'])) {
-            throw new Exception('Patient not found: ' . @$_GET['patient_id']);
+            echo '0';
+            return;
         }
 
         $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
@@ -2030,8 +2069,15 @@ class PatientController extends BaseController
         */
     public function actionAddNewEpisode()
     {
-        if (!$patient = Patient::model()->findByPk(@$_POST['patient_id'])) {
-            throw new Exception('Patient not found: ' . @$_POST['patient_id']);
+        // Get patient_id from POST or GET
+        $patient_id = !empty($_POST['patient_id']) ? $_POST['patient_id'] : (!empty($_GET['patient_id']) ? $_GET['patient_id'] : null);
+        
+        if (!$patient_id) {
+            throw new Exception('Patient not found: No patient ID provided');
+        }
+        
+        if (!$patient = Patient::model()->findByPk($patient_id)) {
+            throw new Exception('Patient not found: ' . $patient_id);
         }
 
         if (!empty($_POST['firm_id'])) {
@@ -2479,7 +2525,7 @@ class PatientController extends BaseController
         }
 
         //Save referral documents
-        if (!$this->actionPerformReferralDoc($patient, $referral)) {
+        if (!$this->performReferralDoc($patient, $referral)) {
             return false;
         }
 
@@ -2586,7 +2632,7 @@ class PatientController extends BaseController
      * @return bool false for failure to save a file
      * @throws Exception
      */
-    public function actionPerformReferralDoc($patient, $referral)
+    public function performReferralDoc($patient, $referral)
     {
         // Check if OphCoDocument module is installed and migrated
         $documentEventType = EventType::model()->findByAttributes(array('name' => 'Document'));
@@ -2852,7 +2898,7 @@ class PatientController extends BaseController
         }
     }
 
-    public function actionGpList($term)
+    public function actionGpList($term = '')
     {
         $criteria = new CDbCriteria();
         $criteria->addSearchCondition('first_name', '', true, 'OR');
@@ -2923,7 +2969,7 @@ class PatientController extends BaseController
      * This function is only called from the Gp or Referring Practitioner field on Add Patient Screen.
      * @param $term - Search term
      */
-    public function actionGpListRp($term)
+    public function actionGpListRp($term = '')
     {
         $criteria = new CDbCriteria();
         $criteria->addSearchCondition('first_name', '', true, 'OR');
@@ -2977,7 +3023,7 @@ class PatientController extends BaseController
         Yii::app()->end();
     }
 
-    public function actionPracticeList($term)
+    public function actionPracticeList($term = '')
     {
         $term = strtolower($term);
 
@@ -2986,7 +3032,9 @@ class PatientController extends BaseController
         $criteria->join .= '  JOIN address on contact.id = address.contact_id';
         $criteria->addCondition('( (date_end is NULL OR date_end > NOW()) AND (date_start is NULL OR date_start < NOW()))');
 
-        $criteria->addSearchCondition('LOWER(CONCAT_WS(", ", first_name ,address1, address2, city, county, postcode))', $term);
+        if (!empty($term)) {
+            $criteria->addSearchCondition('LOWER(CONCAT_WS(", ", first_name ,address1, address2, city, county, postcode))', $term);
+        }
 
         $practices = Practice::model()->findAll($criteria);
 
@@ -3006,6 +3054,7 @@ class PatientController extends BaseController
     public function actionGetInternalReferralDocumentListUrl($id)
     {
         $patient = $this->loadModel($id);
+        $link = null;
 
         if ($component = $this->getApp()->getComponent('internalReferralIntegration')) {
             $link = $component->generateUrlForDocumentList($patient);
@@ -3015,8 +3064,16 @@ class PatientController extends BaseController
         $this->getApp()->end();
     }
 
-    public function actionFindDuplicates($firstName, $last_name, $dob, $id = null)
+    public function actionFindDuplicates($firstName = '', $last_name = '', $dob = '', $id = null)
     {
+        // Handle missing required parameters
+        if (empty($firstName) || empty($last_name) || empty($dob)) {
+            $this->renderPartial('crud/_conflicts_error', array(
+                'errors' => array('Missing required parameters: firstName, last_name, and dob are required.'),
+            ));
+            return;
+        }
+
         $patients = Patient::findDuplicates($firstName, $last_name, $dob, $id);
 
         if (isset($patients['error'])) {
@@ -3037,8 +3094,15 @@ class PatientController extends BaseController
         }
     }
 
-    public function actionFindDuplicatesByIdentifier($identifier_type_id, $identifier_value, $id = null)
+    public function actionFindDuplicatesByIdentifier($identifier_type_id = null, $identifier_value = '', $id = null)
     {
+        // Handle missing required parameters
+        if (empty($identifier_type_id) || empty($identifier_value)) {
+            $this->renderPartial('crud/_conflicts_error', array(
+                'errors' => array('general' => array('Missing required parameters: identifier_type_id and identifier_value are required.')),
+            ));
+            return;
+        }
 
         $patients = Patient::findDuplicatesByIdentifier($identifier_type_id, $identifier_value, $id);
 
@@ -3065,8 +3129,14 @@ class PatientController extends BaseController
      *
      * @throws CHttpException
      */
-    public function actionPreviousElements($element_type_id, $patient_id, $limit = null)
+    public function actionPreviousElements($element_type_id = null, $patient_id = null, $limit = null)
     {
+        // Return empty array if parameters are not provided
+        if (!$element_type_id || !$patient_id) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $element_type = ElementType::model()->findByPk($element_type_id);
         if (!$element_type) {
             throw new CHttpException(404, 'Unknown ElementType');
@@ -3187,8 +3257,17 @@ class PatientController extends BaseController
     }
 
 
-    public function actionGetPastWorklistPatients($patient_id)
+    public function actionGetPastWorklistPatients($patient_id = null)
     {
+        if (!$patient_id) {
+            $this->renderJSON(array(
+                'success' => false,
+                'message' => 'Patient ID is required',
+                'past_worklist_tbody' => '',
+            ));
+            return;
+        }
+
         $criteria = new \CDbCriteria();
         $criteria->join = " JOIN worklist w ON w.id = t.worklist_id";
 
@@ -3223,9 +3302,8 @@ class PatientController extends BaseController
      */
     public function actionGetCitoUrl($hos_num)
     {
-        $citoIntegration = \Yii::app()->citoIntegration;
-
         try {
+            $citoIntegration = \Yii::app()->citoIntegration;
             $username = \Yii::app()->user->name;
             $cito_url = $citoIntegration->generateCitoUrl($hos_num, $username);
             $this->renderJSON(array('success' => true, 'url' => $cito_url));

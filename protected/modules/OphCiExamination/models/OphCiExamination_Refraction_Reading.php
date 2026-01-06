@@ -32,8 +32,26 @@ use OEModule\OphCiExamination\models\traits\HasRelationOptions;
  */
 class OphCiExamination_Refraction_Reading extends \BaseActiveRecordVersioned
 {
-    use HasRelationOptions;
-    use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge {
+        \OE\Models\Traits\CouchbaseModelBridge::__get as couchbaseGet;
+    }
+    use HasRelationOptions {
+        HasRelationOptions::__get insteadof \OE\Models\Traits\CouchbaseModelBridge;
+    }
+    
+    /**
+     * Override __get to handle both HasRelationOptions and CouchbaseModelBridge
+     */
+    public function __get($name)
+    {
+        if (substr($name, -8) === '_options') {
+            $relation_name = strtolower(substr($name, 0, -8));
+            if (!$this->shouldSkipRelation($relation_name) && $this->getRelationByName($relation_name)) {
+                return $this->{"{$relation_name}Options"}();
+            }
+        }
+        return $this->couchbaseGet($name);
+    }
 
     /**
      * @return string the associated database table name
@@ -177,5 +195,27 @@ class OphCiExamination_Refraction_Reading extends \BaseActiveRecordVersioned
     {
         $this->unsetAttributes(['id', 'element_id']);
         $this->setIsNewRecord(true);
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

@@ -26,14 +26,13 @@ class ImagenetController extends BaseController
     {
         $user = Yii::app()->user;
 
-        $user->returnUrl = Yii::app()->request->urlReferrer;
-
         if (!$user->getState('imagenet_enabled')) {
             $user->setState('imagenet_enabled', 'on');
         } else {
             $user->setState('imagenet_enabled', null);
         }
 
-        $this->redirect($user->returnUrl);
+        $returnUrl = Yii::app()->request->urlReferrer ?: Yii::app()->homeUrl;
+        $this->redirect($returnUrl);
     }
 }

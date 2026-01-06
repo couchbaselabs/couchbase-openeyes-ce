@@ -68,4 +68,38 @@ class SsoDefaultRoles extends BaseActiveRecordVersioned
             'sso_roles_list' => array(self::HAS_ONE, 'AuthItem', 'name')
         );
     }
+
+    /**
+     * @return string the Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    /**
+     * @return string the Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

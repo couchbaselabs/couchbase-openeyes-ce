@@ -184,4 +184,40 @@ class PasApiAssignment extends \BaseActiveRecord
 
         return strtotime($this->last_modified_date) < (time() - $this->pas_cache_time);
     }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving, sync to Couchbase if dual-write is enabled
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase if dual-write is enabled
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

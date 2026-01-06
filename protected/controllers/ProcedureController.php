@@ -41,23 +41,51 @@ class ProcedureController extends BaseController
      */
     public function actionAutocomplete()
     {
-        echo CJavaScript::jsonEncode(Procedure::getList($_GET['term'], @$_GET['restrict']));
+        $term = @$_GET['term'] ?? '';
+        $restrict = @$_GET['restrict'] ?? null;
+        
+        // Return empty array if no term is provided
+        if (empty($term)) {
+            echo CJavaScript::jsonEncode(array());
+            return;
+        }
+        
+        echo CJavaScript::jsonEncode(Procedure::getList($term, $restrict));
     }
 
     public function actionDetails()
     {
         $name = \Yii::app()->request->getParam('name');
-        $proc = $name ? Procedure::model()->findByAttributes(['term' => $name]) : null;
-        if ($proc) {
-            $this->renderPartial(
-                '_ajaxProcedure',
-                array(
-                    'proc' => $proc,
-                    'durations' => \Yii::app()->request->getParam('durations'),
-                    'identifier' => \Yii::app()->request->getParam('identifier'),
-                )
-            );
+        
+        if (empty($name)) {
+            // No name parameter provided - show error
+            $this->render('details', array(
+                'error' => 'No procedure name provided',
+                'instructions' => 'This endpoint requires a "name" parameter. Example: /procedure/details?name=ProcedureName',
+            ));
+            return;
         }
+        
+        $proc = Procedure::model()->findByAttributes(['term' => $name]);
+        
+        if (!$proc) {
+            // Procedure not found - show error
+            $this->render('details', array(
+                'error' => 'Procedure not found: ' . CHtml::encode($name),
+                'instructions' => 'Please check the procedure name and try again.',
+            ));
+            return;
+        }
+        
+        // Procedure found - render the partial (AJAX response)
+        $this->renderPartial(
+            '_ajaxProcedure',
+            array(
+                'proc' => $proc,
+                'durations' => \Yii::app()->request->getParam('durations'),
+                'identifier' => \Yii::app()->request->getParam('identifier'),
+            )
+        );
     }
 
     public function actionList()
@@ -77,11 +105,22 @@ class ProcedureController extends BaseController
             }
 
             $this->renderPartial($view, array('procedures' => $procedures), false, false);
+        } else {
+            // For GET requests, render the main list view
+            $criteria = new CDbCriteria();
+            $criteria->order = 'term asc';
+            $procedures = Procedure::model()->active()->findAll($criteria);
+            $this->render('list', array('procedures' => $procedures));
         }
     }
 
-    public function actionBenefits($id)
+    public function actionBenefits($id = null)
     {
+        if (empty($id)) {
+            $this->renderJSON(array());
+            return;
+        }
+
         if (!Procedure::model()->findByPk($id)) {
             throw new Exception("Unknown procedure: $id");
         }
@@ -101,8 +140,13 @@ class ProcedureController extends BaseController
         $this->renderJSON($benefits);
     }
 
-    public function actionComplications($id)
+    public function actionComplications($id = null)
     {
+        if (empty($id)) {
+            $this->renderJSON(array());
+            return;
+        }
+
         if (!Procedure::model()->findByPk($id)) {
             throw new Exception("Unknown procedure: $id");
         }

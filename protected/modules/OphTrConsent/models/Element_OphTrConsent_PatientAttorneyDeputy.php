@@ -164,4 +164,38 @@ class Element_OphTrConsent_PatientAttorneyDeputy extends \BaseEventTypeElement i
             throw new \Exception('Unable to save patient deputy: ' . print_r($contact->getErrors(), true));
         };
     }
+
+    /**
+     * @return string the Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

@@ -80,4 +80,42 @@ class OphCiExamination_InjectionManagementComplex_Answer extends \BaseActiveReco
             'question' => array(self::BELONGS_TO, 'OEModule\OphCiExamination\models\OphCiExamination_InjectionManagementComplex_Question', 'question_id'),
         );
     }
+
+    /**
+     * Returns the Couchbase scope name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

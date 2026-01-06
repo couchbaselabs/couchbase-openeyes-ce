@@ -137,6 +137,24 @@ class PathwayType extends BaseActiveRecordVersioned
     }
 
     /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * @param $worklist_patient_id int
      * @param $start_time string
      * @return bool

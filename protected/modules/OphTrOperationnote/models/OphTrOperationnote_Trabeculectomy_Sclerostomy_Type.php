@@ -15,4 +15,31 @@
 class OphTrOperationnote_Trabeculectomy_Sclerostomy_Type extends BaseActiveRecordVersioned
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
+
+    public function tableName()
+    {
+        return 'ophtroperationnote_trabeculectomy_sclerostomy_type';
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

@@ -31,11 +31,11 @@ class TestHarnessController extends BaseAdminController
         }
 
         $dirlist = $this->getFileList('/home/iolmaster/test');
-        $this->render('/testharnness/dicom_files_watcher', array('msg' => $msg, 'dirlist' => $dirlist));
+        $this->renderFile(Yii::getPathOfAlias('application.views.testharness.dicom_files_watcher').'.php', array('msg' => $msg, 'dirlist' => $dirlist));
     }
     public function actionVF()
     {
-        $this->render('/testharnness/vf');
+        $this->renderFile(Yii::getPathOfAlias('application.views.testharness.vf').'.php', array());
     }
 
     /**
@@ -53,8 +53,17 @@ class TestHarnessController extends BaseAdminController
             $dir .= '/';
         }
 
+        // check if directory exists and is readable
+        if (!is_dir($dir) || !is_readable($dir)) {
+            return $retval; // return empty array if directory doesn't exist or is not readable
+        }
+
         // open pointer to directory and read list of files
-        $d = @dir($dir) or die("getFileList: Failed opening directory $dir for reading");
+        $d = @dir($dir);
+        if ($d === false) {
+            return $retval; // return empty array if unable to open directory
+        }
+        
         while (false !== ($entry = $d->read())) {
             $info = pathinfo($entry);
             $ext = $info['extension'];

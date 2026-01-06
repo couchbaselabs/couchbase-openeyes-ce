@@ -26,10 +26,6 @@ class SiteLogoController extends BaseController
             array(
                 'allow',
                 'actions' => array('index','view', 'getImageUrl', 'primary','secondary'),
-                'users' => array('@'),
-            ),
-            array(
-                'deny',
                 'users' => array('*'),
             ),
         );
@@ -49,8 +45,8 @@ class SiteLogoController extends BaseController
             $logo = SiteLogo::model()->findByPk(1);
         }
 
-        if (!$logo) {
-            // THen return that url
+        if ($logo) {
+            // Then return that url
             $url = $logo->getImageUrl($logo_type);
             if ($return_value) {
                 return $url;
@@ -92,30 +88,38 @@ class SiteLogoController extends BaseController
         $criteria->params[':logo_id'] = $id;
         $logo = SiteLogo::model()->find($criteria);
 
+        if (!$logo) {
+            throw new CHttpException(404, 'The requested logo does not exist.');
+        }
+
         if ($secondary_logo) {
-            if (!$logo->secondary_logo) {
+            if ($logo && !$logo->secondary_logo) {
                 $criteria = new CDbCriteria();
                 $criteria->addCondition('id = :logo_id');
                 $criteria->params[':logo_id'] = $logo->parent_logo;
                 $logo = SiteLogo::model()->find($criteria);
             }
-            if (!$logo->secondary_logo) {
+            if ($logo && !$logo->secondary_logo) {
                 $criteria = new CDbCriteria();
                 $criteria->addCondition('id = 1');
                 $logo = SiteLogo::model()->find($criteria);
             }
         } else {
-            if (!$logo->primary_logo) {
+            if ($logo && !$logo->primary_logo) {
                 $criteria = new CDbCriteria();
                 $criteria->addCondition('id = :logo_id');
                 $criteria->params[':logo_id'] = $logo->parent_logo;
                 $logo = SiteLogo::model()->find($criteria);
             }
-            if (!$logo->primary_logo) {
+            if ($logo && !$logo->primary_logo) {
                 $criteria = new CDbCriteria();
                 $criteria->addCondition('id = 1');
                 $logo = SiteLogo::model()->find($criteria);
             }
+        }
+
+        if (!$logo) {
+            throw new CHttpException(404, 'The requested logo does not exist.');
         }
 
         $file_mod_time = strtotime($logo->last_modified_date);

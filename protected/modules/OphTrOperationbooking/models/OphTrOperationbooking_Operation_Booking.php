@@ -43,6 +43,16 @@ class OphTrOperationbooking_Operation_Booking extends BaseActiveRecordVersioned
     use HasFactory;
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *
@@ -315,6 +325,13 @@ class OphTrOperationbooking_Operation_Booking extends BaseActiveRecordVersioned
         );
 
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

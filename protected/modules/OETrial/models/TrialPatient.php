@@ -204,6 +204,42 @@ class TrialPatient extends BaseActiveRecordVersioned
     }
 
     /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Changes the status of a patient in a trial to a given value
      * @param TrialPatientStatus $new_status The new status of the TrialPatient
      * @returns string The return code

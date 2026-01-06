@@ -18,7 +18,10 @@ class Synoptophore extends \BaseEventTypeElement implements SidedData
     use \OE\Models\Traits\CouchbaseModelBridge;
     use traits\CustomOrdering;
     use traits\HasSidedData;
-    use traits\HasRelationOptions;
+    use traits\HasRelationOptions {
+        \OE\Models\Traits\CouchbaseModelBridge::__get insteadof traits\HasRelationOptions;
+        traits\HasRelationOptions::__get as relationOptionsGet;
+    }
 
     protected $auto_update_relations = true;
     protected $auto_validate_relations = true;
@@ -142,5 +145,41 @@ class Synoptophore extends \BaseEventTypeElement implements SidedData
         }, $readings);
 
         return array_unique($gaze_types) === $gaze_types;
+    }
+
+    /**
+     * Returns the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

@@ -43,13 +43,13 @@ class AutocompleteController extends BaseController
         }
 
         if (isset($_GET['field'])) {
-            if ($_GET['field'] && preg_match('/^[A-z]+$/', $_GET['field'])) {
+            if ($_GET['field'] && preg_match('/^[A-Za-z]+$/', $_GET['field'])) {
                 $search_field = strtolower($_GET['field']);
             } else {
                 throw new CHttpException(400, 'invalid field name');
             }
         } else {
-            $search_field = 'name';
+            $search_field = $model->getAutocompleteField();
         }
 
         // Construct criteria

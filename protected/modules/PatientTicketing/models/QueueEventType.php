@@ -55,4 +55,26 @@ class QueueEventType extends \BaseActiveRecordVersioned
             'event_type' => array(self::BELONGS_TO, 'EventType', 'event_type_id'),
         );
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

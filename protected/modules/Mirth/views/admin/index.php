@@ -1,5 +1,13 @@
 <div class="row divider">
 
+    <?php if ($errorMessage): ?>
+        <div class="row divider">
+            <div class="alert-box warning">
+                <b><?php echo $errorMessage; ?></b>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <form method="post" action="/audit/search" id="auditList-filter" class="clearfix">
 
         <input type="hidden" id="previous_hos_num" value="<?php echo @$_POST['hos_num'] ?>"/>

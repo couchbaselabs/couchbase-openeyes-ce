@@ -353,6 +353,28 @@ class PathwayStep extends BaseActiveRecordVersioned
         $this->syncPSDStatus();
     }
 
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     protected function syncPSDStatus()
     {
         if (!$this->type || $this->type->short_name !== 'drug admin' || !$assignment_id = $this->getState('assignment_id')) {

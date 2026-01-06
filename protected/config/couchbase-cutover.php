@@ -1,154 +1,82 @@
 <?php
 /**
  * Couchbase Cutover Configuration
- * 
- * Controls the gradual rollout from MariaDB to Couchbase with feature flags,
- * traffic percentage control, and emergency disable capabilities.
- * 
- * Phase 16: Production Cutover
+ * Auto-updated by CouchbaseCutoverManager
+ * Last updated: 2026-01-06 06:23:48
  */
 
-return [
-    // ============================================
-    // MASTER CONTROL
-    // ============================================
-    
-    // Master switch - set to false to disable all Couchbase reads/writes
+return array (
+  'enabled' => true,
+  'read_source' => 'couchbase',
+  'write_mode' => 'couchbase_primary',
+  'couchbase_read_percentage' => 100,
+  'fallback_enabled' => true,
+  'fallback_on_error' => true,
+  'fallback_on_timeout' => true,
+  'timeout_threshold_ms' => 500,
+  'models' => 
+  array (
+    'Patient' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
+    ),
+    'Episode' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
+    ),
+    'Event' => 
+    array (
+      'read_source' => 'hybrid',
+      'percentage' => 50,
+    ),
+    'Disorder' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
+    ),
+    'Medication' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
+    ),
+    'Audit' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'Trial' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
+    ),
+  ),
+  'user_targeting' => 
+  array (
     'enabled' => true,
-    
-    // Read source: 'mariadb', 'couchbase', 'hybrid'
-    // - mariadb: All reads from MariaDB
-    // - couchbase: All reads from Couchbase (fallback to MariaDB on error if enabled)
-    // - hybrid: Use couchbase_read_percentage to split traffic
-    'read_source' => 'couchbase',
-    
-    // Write mode: 'mariadb_only', 'dual_write', 'couchbase_primary'
-    // - mariadb_only: Only write to MariaDB
-    // - dual_write: Write to both MariaDB and Couchbase
-    // - couchbase_primary: Write to Couchbase only (MariaDB optional)
-    'write_mode' => 'couchbase_primary',
-    
-    // ============================================
-    // TRAFFIC CONTROL
-    // ============================================
-    
-    // Percentage of read traffic to route to Couchbase (0-100)
-    // Start at 10% for canary, gradually increase to 100%
-    'couchbase_read_percentage' => 100,
-    
-    // ============================================
-    // FALLBACK SETTINGS
-    // ============================================
-    
-    // Enable fallback to MariaDB on Couchbase errors
-    'fallback_enabled' => true,
-    
-    // Fallback on any Couchbase error
-    'fallback_on_error' => true,
-    
-    // Fallback on timeout
-    'fallback_on_timeout' => true,
-    
-    // Timeout threshold in milliseconds (operations exceeding this will fallback)
-    'timeout_threshold_ms' => 500,
-    
-    // ============================================
-    // PER-MODEL OVERRIDES
-    // ============================================
-    
-    // Override settings for specific models
-    'models' => [
-        'Patient' => [
-            'read_source' => 'couchbase',
-            'percentage' => 100, // Always use Couchbase for patients
-        ],
-        'Episode' => [
-            'read_source' => 'couchbase',
-            'percentage' => 100,
-        ],
-        'Event' => [
-            'read_source' => 'hybrid',
-            'percentage' => 50, // 50% of events to Couchbase
-        ],
-        'Disorder' => [
-            'read_source' => 'couchbase',
-            'percentage' => 100, // Reference data always from Couchbase
-        ],
-        'Medication' => [
-            'read_source' => 'couchbase',
-            'percentage' => 100,
-        ],
-        'Audit' => [
-            'read_source' => 'mariadb', // Keep audit in MariaDB initially
-            'percentage' => 0,
-        ],
-    ],
-    
-    // ============================================
-    // USER-BASED TARGETING
-    // ============================================
-    
-    'user_targeting' => [
-        // Enable user-based targeting
-        'enabled' => true,
-        
-        // Internal users (admin, staff) always use Couchbase
-        'internal_users' => true,
-        
-        // Specific beta tester user IDs
-        'beta_user_ids' => [
-            // Add user IDs for beta testers
-            // Example: 1, 2, 3, 4, 5
-        ],
-        
-        // Exclude specific user IDs from Couchbase (always use MariaDB)
-        'excluded_user_ids' => [
-            // Add user IDs to exclude
-        ],
-    ],
-    
-    // ============================================
-    // SITE-BASED TARGETING
-    // ============================================
-    
-    'site_targeting' => [
-        // Enable site-based targeting
-        'enabled' => false,
-        
-        // Specific site IDs to enable Couchbase
-        'enabled_site_ids' => [
-            // Add site IDs to enable
-        ],
-        
-        // Exclude specific site IDs from Couchbase
-        'excluded_site_ids' => [
-            // Add site IDs to exclude
-        ],
-    ],
-    
-    // ============================================
-    // EMERGENCY CONTROLS
-    // ============================================
-    
-    // Emergency disable flag - set to true to immediately disable all Couchbase operations
-    'emergency_disable' => false,
-    
-    // Reason for emergency disable (for logging/audit)
-    'emergency_disable_reason' => '',
-    
-    // Timestamp of last emergency disable
-    'emergency_disable_timestamp' => null,
-    
-    // ============================================
-    // MONITORING & LOGGING
-    // ============================================
-    
-    // Log all traffic routing decisions (useful for debugging, disable in production)
-    'log_routing_decisions' => false,
-    
-    // Log fallback events
-    'log_fallbacks' => true,
-    
-    // Log performance metrics
-    'log_performance' => true,
-];
+    'internal_users' => true,
+    'beta_user_ids' => 
+    array (
+    ),
+    'excluded_user_ids' => 
+    array (
+    ),
+  ),
+  'site_targeting' => 
+  array (
+    'enabled' => false,
+    'enabled_site_ids' => 
+    array (
+    ),
+    'excluded_site_ids' => 
+    array (
+    ),
+  ),
+  'emergency_disable' => false,
+  'emergency_disable_reason' => '',
+  'emergency_disable_timestamp' => NULL,
+  'log_routing_decisions' => false,
+  'log_fallbacks' => true,
+  'log_performance' => true,
+);

@@ -41,6 +41,28 @@ class OphTrOperationbooking_Letter_Contact_Rule extends BaseTree
     public $textFields = array('site', 'firm', 'theatre', 'subspecialty', 'refuse_telephone' => 'refuse', 'refuse_title' => 'title', 'health_telephone' => 'health');
     public $textFieldsDropdown = array('site', 'firm', 'theatre', 'subspecialty', 'refuse_telephone' => 'refuse', 'health_telephone' => 'health');
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *

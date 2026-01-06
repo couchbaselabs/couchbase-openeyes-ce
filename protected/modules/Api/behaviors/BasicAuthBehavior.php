@@ -30,13 +30,17 @@ class BasicAuthBehavior extends CBehavior
 
         $identity = new UserIdentity($auth_user, $auth_pwd, null, null);
         if (!$identity->authenticate()) {
-            $this->owner->renderJSON(401, '401 Unauthorized');
+            $this->owner->renderJSON(401, 'Unauthorized');
+            return false;
         }
 
         \Yii::app()->user->login($identity);
 
         if (!\Yii::app()->user->checkAccess('OprnApi')) {
-            $this->owner->sendResponse(403, '403 Forbidden');
+            $this->owner->renderJSON(403, 'Forbidden');
+            return false;
         }
+        
+        return true;
     }
 }

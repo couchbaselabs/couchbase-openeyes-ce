@@ -375,11 +375,31 @@ class Element_OphCiExamination_OCT extends \SplitEventTypeElement
     }
 
     /**
+     * Returns the Couchbase scope name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * Remove the Findings if Dry is set
      *
      * @throws \Exception
      */
-    public function afterSave()
+    protected function afterSave()
     {
         foreach (['left', 'right'] as $eye_side) {
             if ($this->{$eye_side.'_dry'}) {
@@ -392,6 +412,16 @@ class Element_OphCiExamination_OCT extends \SplitEventTypeElement
         }
 
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     public function getViewTitle()

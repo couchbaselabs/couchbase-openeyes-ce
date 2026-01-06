@@ -129,11 +129,28 @@ class OphInDnasample_Sample_Type extends BaseActiveRecord
 
     protected function afterSave()
     {
-        return parent::afterSave();
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     protected function beforeValidate()
     {
         return parent::beforeValidate();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 }

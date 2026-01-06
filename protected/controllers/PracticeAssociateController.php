@@ -53,6 +53,11 @@ class PracticeAssociateController extends BaseController
      */
     public function actionCreate()
     {
+        // Check if this is a valid AJAX POST request
+        if (!Yii::app()->request->isAjaxRequest) {
+            throw new CHttpException(400, 'This action can only be accessed via AJAX POST request.');
+        }
+        
         if (isset($_POST['Contact'], $_POST['gp_data_retrieved'])) {
             $contact_practice_associate = new ContactPracticeAssociate();
             $contact_practice_associate->practice_id = $_POST['PracticeAssociate']['practice_id'];
@@ -104,11 +109,19 @@ class PracticeAssociateController extends BaseController
             } else {
                 echo CJSON::encode(array('error' => $contact_practice_associate->getError('practice_id')));
             }
+        } else {
+            throw new CHttpException(400, 'Missing required POST parameters: Contact and gp_data_retrieved.');
         }
     }
 
-    public function actionGetGpWithPractice($id, $gp_id, $practice_id)
+    public function actionGetGpWithPractice($id = null, $gp_id = null, $practice_id = null)
     {
+        // Handle missing required parameters
+        if ($id === null || $gp_id === null || $practice_id === null) {
+            echo CJSON::encode(array('error' => 'Missing required parameters: id, gp_id, and practice_id'));
+            Yii::app()->end();
+        }
+        
         $return_array = array('gp_id' => $gp_id,'practice_id' => $practice_id,'content' => '');
         $practice_contact_associate = ContactPracticeAssociate::model()->findByAttributes(array('gp_id' => $gp_id,'practice_id' => $practice_id));
         if (isset($practice_contact_associate)) {
@@ -127,6 +140,10 @@ class PracticeAssociateController extends BaseController
             $return_array['label'] = $gp->getCorrespondenceName() . $providerNo . $role . $practiceNameAddress;
         } else {
             $gp = Gp::model()->findByPk($gp_id);
+            if (!isset($gp)) {
+                echo CJSON::encode(array('error' => 'GP not found'));
+                Yii::app()->end();
+            }
             $inputGpElement = '';
             if ($id !== 'js-selected_gp') {
                 $inputGpElement = '<input type="hidden" name="ExtraContact[gp_id][]" class="js-extra-gps" value="' . $gp_id . '">';

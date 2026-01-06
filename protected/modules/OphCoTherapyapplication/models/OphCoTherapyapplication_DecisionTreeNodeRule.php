@@ -92,7 +92,8 @@ class OphCoTherapyapplication_DecisionTreeNodeRule extends BaseActiveRecordVersi
      */
     public function displayParentCheckValue()
     {
-        if (get_class($this->node->parent->response_type) === 'OphCoTherapyapplication_DecisionTreeNode_ResponseType') {
+        if ($this->node && $this->node->parent && $this->node->parent->response_type && 
+            get_class($this->node->parent->response_type) === 'OphCoTherapyapplication_DecisionTreeNode_ResponseType') {
             $choices = $this->node->parent->response_type->getChoices();
             if ($choices) {
                 if (array_key_exists($this->parent_check_value, $choices)) {
@@ -139,5 +140,43 @@ class OphCoTherapyapplication_DecisionTreeNodeRule extends BaseActiveRecordVersi
                 return $val >= $this->parent_check_value;
                 break;
         }
+    }
+
+    /**
+     * Returns the Couchbase scope name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

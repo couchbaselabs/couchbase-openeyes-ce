@@ -170,7 +170,7 @@ class NinePositions extends \BaseEventElementWidget
                 $attrs
             ),
             function ($display_value) {
-                return strlen($display_value) > 0;
+                return $display_value && strlen($display_value) > 0;
             }
         );
     }

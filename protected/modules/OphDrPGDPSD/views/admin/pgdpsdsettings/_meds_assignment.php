@@ -8,11 +8,17 @@
     $fpten_setting = SettingMetadata::model()->getSetting('prescription_form_format');
     $overprint_setting = SettingMetadata::model()->getSetting('enable_prescription_overprint');
     $fpten_dispense_condition = OphDrPrescription_DispenseCondition::model()->findByAttributes(array('name' => 'Print to {form_type}'));
-    $dispense_conditions = OphDrPrescription_DispenseCondition::model()->withSettings($overprint_setting, $fpten_dispense_condition->id)->findAllAtLevel(ReferenceData::LEVEL_INSTITUTION);
+    
+    // Handle null dispense condition by using null/0 as fallback for the second parameter
+    $fpten_condition_id = $fpten_dispense_condition ? $fpten_dispense_condition->id : null;
+    $dispense_conditions = OphDrPrescription_DispenseCondition::model()->withSettings($overprint_setting, $fpten_condition_id)->findAllAtLevel(ReferenceData::LEVEL_INSTITUTION);
 
-    $dispense_condition_options = array(
-        $fpten_dispense_condition->id => array('label' => "Print to $fpten_setting")
-    );
+    $dispense_condition_options = array();
+    if ($fpten_dispense_condition) {
+        $dispense_condition_options = array(
+            $fpten_dispense_condition->id => array('label' => "Print to $fpten_setting")
+        );
+    }
     $dispense_location_options = \CHtml::listData(\OphDrPrescription_DispenseLocation::model()->findAllAtLevel(ReferenceData::LEVEL_INSTITUTION), 'id', 'name');
     $unitOfMeasureAttr = \MedicationAttribute::model()->find("name='UNIT_OF_MEASURE'");
     $unit_options = $unitOfMeasureAttr && $unitOfMeasureAttr->medicationAttributeOptions 

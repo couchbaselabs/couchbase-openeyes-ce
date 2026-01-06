@@ -29,4 +29,32 @@ class Element_OphCiExamination_OptomComments extends \BaseEventTypeElement
                 'event' => array(self::BELONGS_TO, 'Event', 'event_id'),
         );
     }
+
+    /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

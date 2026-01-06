@@ -168,4 +168,16 @@ class StereoAcuity_Entry extends \BaseElement
             ['id' => self::NOT_INCONCLUSIVE, 'name' => self::DISPLAY_NOT_INCONCLUSIVE]
         ];
     }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

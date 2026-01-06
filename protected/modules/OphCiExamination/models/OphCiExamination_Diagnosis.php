@@ -35,6 +35,28 @@ class OphCiExamination_Diagnosis extends \BaseActiveRecordVersioned
     use HasFactory;
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     protected $attr_dirty_check_methods = [
         "eye_id" => "isIntAttributeDirty",
         "principal" => "isBoolAttributeDirty"

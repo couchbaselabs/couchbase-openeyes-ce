@@ -38,9 +38,14 @@ class OphCiExamination_Workflow_Rule extends \BaseActiveRecordVersioned
 
     protected $_workflow = null;
 
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**

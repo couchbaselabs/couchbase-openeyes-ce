@@ -271,6 +271,42 @@ class Element_OphCiExamination_Refraction extends \BaseEventTypeElement implemen
             )
         );
     }
+
+    /**
+     * Returns the Couchbase scope name for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save hook - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete hook - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
     
     /**
      * Override to provide detailed refraction readings with resolved lookups for Couchbase

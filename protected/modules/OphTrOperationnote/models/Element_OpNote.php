@@ -27,4 +27,32 @@ class Element_OpNote extends BaseEventTypeElement
     {
         return false;
     }
+
+    /**
+     * @return string the Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

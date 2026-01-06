@@ -42,7 +42,11 @@ class ApiModule extends \BaseEventTypeModule
 
         $this->moduleShortSuffix = "OpenEye API";
 
-        $this->setModules(array('Request'));
+        $this->setModules(array(
+            'Request' => array(
+                'class' => 'OEModule.Api.modules.Request.RequestModule',
+            ),
+        ));
 
         parent::init();
     }

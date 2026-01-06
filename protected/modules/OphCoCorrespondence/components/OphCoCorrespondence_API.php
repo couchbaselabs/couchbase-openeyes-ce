@@ -26,6 +26,10 @@ class OphCoCorrespondence_API extends BaseAPI
     {
         $letter = ElementLetter::model()->find('event_id=?', array($event_id));
 
+        if (!$letter) {
+            return true; // Allow update if letter not found
+        }
+
         // for the new correspondence with DocMan
         // once the letter is generated for the DocMan only admin can edit
         return !$letter->isGeneratedFor(['Docman', 'Internalreferral']);
@@ -39,6 +43,10 @@ class OphCoCorrespondence_API extends BaseAPI
     public function showDeleteIcon($event_id)
     {
         $letter = ElementLetter::model()->find('event_id=?', array($event_id));
+
+        if (!$letter) {
+            return true; // Allow delete if letter not found
+        }
 
         return !$letter->isGeneratedFor(['Docman', 'Internalreferral']);
     }

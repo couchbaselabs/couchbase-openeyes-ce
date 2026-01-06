@@ -52,6 +52,16 @@ class Ticket extends \BaseActiveRecordVersionedSoftDelete
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *
@@ -460,8 +470,15 @@ class Ticket extends \BaseActiveRecordVersionedSoftDelete
         return $ticket_future_steps;
     }
 
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
     public function afterDelete()
     {
+        $this->deleteFromCouchbase();
         \FollowupAnalysisAggregate::updateForPatientTickets($this->patient_id, $this->id);
 
         return parent::afterDelete();

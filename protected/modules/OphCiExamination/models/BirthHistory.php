@@ -49,9 +49,28 @@ use OEModule\OphCiExamination\widgets\BirthHistory as BirthHistoryWidget;
 class BirthHistory extends \BaseEventTypeElement
 {
     use traits\CustomOrdering;
-    use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge {
+        \OE\Models\Traits\CouchbaseModelBridge::__get as __couchbaseGet;
+    }
     use traits\HasRelationOptions {
-        __get as __relationOptionsGet;
+        traits\HasRelationOptions::__get as __relationOptionsGet;
+    }
+
+    /**
+     * Custom __get to resolve trait collision between CouchbaseModelBridge and HasRelationOptions
+     */
+    public function __get($name)
+    {
+        // First try HasRelationOptions for *_options properties
+        if (substr($name, -8) === '_options') {
+            $relation_name = strtolower(substr($name, 0, -8));
+            if ($this->getMetaData()->hasRelation($relation_name)) {
+                return $this->__relationOptionsGet($name);
+            }
+        }
+        
+        // Fall back to parent (which handles relations via CActiveRecord)
+        return parent::__get($name);
     }
 
     protected $widgetClass = BirthHistoryWidget::class;
@@ -339,5 +358,41 @@ class BirthHistory extends \BaseEventTypeElement
         }
 
         return $this->calc_input_lbs() . "lb " . $this->calc_input_ozs() . "oz";
+    }
+
+    /**
+     * Returns the Couchbase scope for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving to MySQL, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting from MySQL, delete from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

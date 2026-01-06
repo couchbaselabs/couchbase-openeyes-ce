@@ -99,4 +99,26 @@ class StrabismusManagement_Entry extends \BaseElement implements SidedData
         $this->unsetAttributes(['id', 'element_id']);
         $this->setIsNewRecord(true);
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

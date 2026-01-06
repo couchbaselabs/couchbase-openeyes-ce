@@ -74,8 +74,8 @@ class CsvController extends BaseController
 
     public function actionFileCheck()
     {
-        $file_type = $_POST['file_type'];
-        $file_size = $_POST['file_size'];
+        $file_type = $_POST['file_type'] ?? null;
+        $file_size = $_POST['file_size'] ?? null;
 
         $message = null;
 
@@ -91,12 +91,12 @@ class CsvController extends BaseController
         $this->renderJSON($message);
     }
 
-    public function actionUpload($context)
+    public function actionUpload($context = "trials")
     {
         $this->render('upload', array('context' => $context));
     }
 
-    public function actionPreview($context)
+    public function actionPreview($context = 'patients')
     {
         if(file_exists($this->getBasePath())) {
             $file_list = glob($this->getBasePath() . "*");
@@ -153,8 +153,14 @@ class CsvController extends BaseController
         $this->render('preview', array('table' => $table, 'csv_id' => $csv_id, 'context' => $context));
     }
 
-    public function actionImport($context, $csv)
+    public function actionImport($context = null, $csv = null)
     {
+        // If parameters are missing, redirect to upload with default context
+        if ($context === null || $csv === null) {
+            $this->redirect(array('upload', 'context' => $context ?? 'trials'));
+            return;
+        }
+
         $errors = null;
 
         $import_log = new ImportLog();

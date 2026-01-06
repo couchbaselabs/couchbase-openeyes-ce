@@ -24,7 +24,7 @@ class DefaultController extends BaseAdminController
      *
      * @return html
      */
-    public function actionCommonDrugsDelete($itemId)
+    public function actionCommonDrugsDelete($itemId = null)
     {
         /*
          * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
@@ -32,12 +32,16 @@ class DefaultController extends BaseAdminController
         if (!Yii::app()->request->isAjaxRequest) {
             $this->render('/default/errorpage', array('errorMessage' => 'notajaxcall'));
         } else {
-            $site_subspec_drug = SiteSubspecialtyDrug::model()->findByPk($itemId);
-            if ($site_subspec_drug) {
-                $site_subspec_drug->delete();
-                echo 'success';
+            if ($itemId === null) {
+                $this->render('/default/errorpage', array('errorMessage' => 'missingparameter'));
             } else {
-                $this->render('/default/errorpage', array('errormessage' => 'recordmissing'));
+                $site_subspec_drug = SiteSubspecialtyDrug::model()->findByPk($itemId);
+                if ($site_subspec_drug) {
+                    $site_subspec_drug->delete();
+                    echo 'success';
+                } else {
+                    $this->render('/default/errorpage', array('errormessage' => 'recordmissing'));
+                }
             }
         }
     }
@@ -89,9 +93,7 @@ class DefaultController extends BaseAdminController
             'Edit tags',
             'Tag',
             array(
-                'extra_fields'=>array(
-                    array('field')
-                )
+                'extra_fields' => array()
             )
         );
     }

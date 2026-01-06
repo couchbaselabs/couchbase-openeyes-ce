@@ -358,14 +358,23 @@ class SubjectController extends BaseModuleController
         if ($patientSearch->getValidSearchTerm($term)) {
             $dataProvider = $patientSearch->search($term);
 
-            $criteria = $dataProvider->getCriteria();
+            // Filter to only include genetics patients
+            // Check if the provider has getCriteria method (CActiveDataProvider) or if it's a CArrayDataProvider
+            if (method_exists($dataProvider, 'getCriteria')) {
+                $criteria = $dataProvider->getCriteria();
+                // only genetics patient can be searched and added as a relative
+                $criteria->join .= ' JOIN genetics_patient ON t.id = genetics_patient.patient_id';
+                $dataProvider->setCriteria($criteria);
+                $dataProvider->setPagination(false);
+                $patients = $dataProvider->getData();
+            } else {
+                // If it's a CArrayDataProvider (from Couchbase), filter the results in PHP
+                $patients = array_filter($dataProvider->getData(), function($patient) {
+                    return $patient->geneticsPatient !== null;
+                });
+            }
 
-            // only genetics patient can be searched and added as a relative
-            $criteria->join .= ' JOIN genetics_patient ON t.id = genetics_patient.patient_id';
-            $dataProvider->setCriteria($criteria);
-            $dataProvider->setPagination(false);
-
-            foreach ($dataProvider->getData() as $patient) {
+            foreach ($patients as $patient) {
                 $pi = [];
                 foreach ($patient->identifiers as $identifier) {
                     $pi[] = [
@@ -381,9 +390,14 @@ class SubjectController extends BaseModuleController
                     Yii::app()->session['selected_site_id']
                 );
 
+                $genetics_patient_id = null;
+                if ($patient->geneticsPatient) {
+                    $genetics_patient_id = $patient->geneticsPatient->id;
+                }
+
                 $result[] = array(
                     'id' => $patient->id,
-                    'genetics_patient_id' => $patient->geneticsPatient->id,
+                    'genetics_patient_id' => $genetics_patient_id,
                     'first_name' => $patient->first_name,
                     'last_name' => $patient->last_name,
                     'age' => ($patient->isDeceased() ? 'Deceased' : $patient->getAge()),

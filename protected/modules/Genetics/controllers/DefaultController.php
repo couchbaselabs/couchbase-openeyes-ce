@@ -70,10 +70,18 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionSavePedigree()
     {
+        // Check if required POST data is present
+        $patientId = isset($_POST['patient_id']) ? $_POST['patient_id'] : null;
+        $pedigreeId = isset($_POST['pedigree_id']) ? $_POST['pedigree_id'] : null;
+
+        if ($patientId === null || $pedigreeId === null) {
+            // Return empty response if called without proper POST data
+            return;
+        }
 
         $geneticsPatient = new GeneticsPatient();
-        $geneticsPatient->patient_id = $_POST['patient_id'];
-        $geneticsPatient->pedigree_id = $_POST['pedigree_id'];
+        $geneticsPatient->patient_id = $patientId;
+        $geneticsPatient->pedigree_id = $pedigreeId;
         $geneticsPatient->save();
     }
 }

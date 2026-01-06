@@ -3,7 +3,9 @@
     <ul class="navigation search">
     </ul>
 </div>
-<?php foreach (Yii::app()->params['advanced_search'] as $module => $pages) {
+<?php 
+$advancedSearch = isset(Yii::app()->params['advanced_search']) ? Yii::app()->params['advanced_search'] : array();
+foreach ($advancedSearch as $module => $pages) {
     if ($et = EventType::model()->find('class_name=?', array($module))) {
         $name = $et->name;
     } else {

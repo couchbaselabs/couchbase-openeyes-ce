@@ -127,7 +127,7 @@ class RisksAdminController extends \ModuleAdminController
         if (isset(\Yii::app()->request->getPost('OEModule\OphCiExamination\models\OphCiExaminationRisk')['institutions'])) {
             $institutions = \Yii::app()->request->getPost('OEModule\OphCiExamination\models\OphCiExaminationRisk')['institutions'];
         }
-        if (\Yii::app()->user->checkAccess('admin') || is_null($id)) {
+        if ((\Yii::app()->user->checkAccess('admin') || is_null($id)) && !is_null($data)) {
             $this->_setModelData($model, $data);
         }
 
@@ -142,7 +142,7 @@ class RisksAdminController extends \ModuleAdminController
 
         if ($model->save(false)) {
             \Yii::app()->cbdb->createCommand("DELETE FROM ophciexamination_risk_tag WHERE risk_id = {$model->id}")->execute();
-            if (array_key_exists('medicationSets', $data) && !empty($data['medicationSets'])) {
+            if (!is_null($data) && array_key_exists('medicationSets', $data) && !empty($data['medicationSets'])) {
                 foreach ($data['medicationSets'] as $id) {
                     $id = filter_var($id, FILTER_SANITIZE_NUMBER_INT);
                     \Yii::app()->cbdb->createCommand("INSERT INTO ophciexamination_risk_tag (risk_id, medication_set_id) VALUES ({$model->id}, $id)")->execute();
@@ -192,6 +192,7 @@ class RisksAdminController extends \ModuleAdminController
     {
         if (\Yii::app()->request->isAjaxRequest) {
             $criteria = new \CDbCriteria();
+            $params = [];
             if (isset($_GET['term']) && strlen($term = $_GET['term']) > 0) {
                 $criteria->addCondition(
                     array('LOWER(name) LIKE :term'),

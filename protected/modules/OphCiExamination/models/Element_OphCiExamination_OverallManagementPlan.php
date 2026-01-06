@@ -173,9 +173,26 @@ class Element_OphCiExamination_OverallManagementPlan  extends  \SplitEventTypeEl
         return true;
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     protected function afterSave()
     {
-        return parent::afterSave();
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     public function setDefaultOptions(\Patient $patient = null)

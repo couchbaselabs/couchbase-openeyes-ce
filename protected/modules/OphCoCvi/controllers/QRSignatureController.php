@@ -42,9 +42,17 @@ class QRSignatureController extends \BaseController
     }
 
     /**
-     * @param $QRContent
+     * @param string $QRContent
      */
-    public function actionGenerateQRSignature($QRContent){
+    public function actionGenerateQRSignature($QRContent = ''){
+        if (empty($QRContent)) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'error' => 'QRContent parameter is required'
+            ]);
+            return;
+        }
         $QRHelper = new SignatureQRCodeGenerator();
         $QRHelper->generateQRSignatureBox($QRContent);
     }

@@ -187,4 +187,38 @@ class PastSurgery_Operation extends \BaseEventTypeElement
     {
         return $this->getDisplayDate() . ' ' . $this->getDisplayOperation();
     }
+
+    /**
+     * @return string Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save hook to sync data to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete hook to remove data from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

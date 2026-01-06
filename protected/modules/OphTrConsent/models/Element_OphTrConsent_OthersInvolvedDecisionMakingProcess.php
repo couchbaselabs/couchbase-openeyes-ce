@@ -23,6 +23,24 @@ class Element_OphTrConsent_OthersInvolvedDecisionMakingProcess extends BaseEvent
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    /**
+     * Returns the Couchbase scope name for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     public const TYPE_PATIENT_AGREEMENT_ID = 4;
 
     public const PATIENT_CONTACTS_TYPE = 1;
@@ -337,7 +355,14 @@ class Element_OphTrConsent_OthersInvolvedDecisionMakingProcess extends BaseEvent
         $esign_element = new \Ophtrconsent_OthersInvolvedDecisionMakingProcessContact;
         $esign_element->deleteAll($criteria);
 
+        $this->saveToCouchbase();
         return parent::afterSave();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     public function getRequiredSignatures() : array

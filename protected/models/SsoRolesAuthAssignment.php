@@ -64,4 +64,32 @@ class SsoRolesAuthAssignment extends BaseActiveRecordVersioned
             'sso_authitem_assignment' => array(self::HAS_MANY, 'AuthItem', 'name'),
         );
     }
+
+    /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

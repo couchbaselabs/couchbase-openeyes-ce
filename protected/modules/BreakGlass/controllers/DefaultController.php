@@ -36,6 +36,13 @@ class DefaultController extends BaseModuleController
 
         $id = $_SESSION['breakglass_challengefor'];
         $patient = Patient::model()->findByPk((int) $id);
+        
+        // If patient doesn't exist, redirect to homepage
+        if ($patient === null) {
+            unset($_SESSION['breakglass_challengefor']);
+            $this->redirect('/');
+        }
+        
         $current_user = Yii::app()->user;
 
         $break_glass = new BreakGlass($patient, $current_user);

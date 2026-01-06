@@ -47,4 +47,31 @@ class Element_OphCiExamination_DrugAdministration extends Element_DrugAdministra
     {
         return 'exam';
     }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving, sync data to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove data from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

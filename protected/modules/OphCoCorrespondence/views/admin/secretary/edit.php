@@ -83,7 +83,7 @@ $form = $this->beginWidget('BaseEventTypeCActiveForm', array(
         </tr>
         <tr class="secretaryFormRow js-addNewRow">
             <td>
-                <?=\CHtml::activeHiddenField($newSiteSecretary, "[new]firm_id", ["value" => $_GET['id']]); ?>
+                <?=\CHtml::activeHiddenField($newSiteSecretary, "[new]firm_id", ["value" => $firmId]); ?>
                 <?=\CHtml::activeHiddenField($newSiteSecretary, "[new]id"); ?>
                 <?=\CHtml::activeDropDownList($newSiteSecretary, "[new]site_id", CHtml::listData(Site::model()->findAll(array('order' => 'name')), 'id', 'name'), array('empty' => '- None -')) ?>
             </td>

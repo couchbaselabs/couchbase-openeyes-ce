@@ -60,6 +60,24 @@ class EthnicGroup extends BaseActiveRecordVersionedSoftDelete
     }
 
     /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return EthnicGroup the static model class

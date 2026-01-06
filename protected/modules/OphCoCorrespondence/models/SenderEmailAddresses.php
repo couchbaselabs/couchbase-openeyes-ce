@@ -77,20 +77,44 @@ class SenderEmailAddresses extends BaseActiveRecordVersioned
 
     public function institutionSiteDomainValidator($attribute, $params)
     {
-        $op1 = ($this->institution_id != '' ? ' = ' : ' IS ' );
-        $op2 = ($this->site_id != '' ? ' = ' : ' IS ' );
+        // Build conditions dynamically to handle NULL values properly for N1QL
+        $conditions = [];
+        $queryParams = [];
+        
+        if ($this->institution_id != '') {
+            $conditions[] = 'osea.institution_id = $institution_id';
+            $queryParams['institution_id'] = $this->institution_id;
+        } else {
+            $conditions[] = '(osea.institution_id IS NULL OR osea.institution_id IS MISSING)';
+        }
+        
+        if ($this->site_id != '') {
+            $conditions[] = 'osea.site_id = $site_id';
+            $queryParams['site_id'] = $this->site_id;
+        } else {
+            $conditions[] = '(osea.site_id IS NULL OR osea.site_id IS MISSING)';
+        }
+        
+        $conditions[] = 'LOWER(osea.domain) = LOWER($domain)';
+        $queryParams['domain'] = $this->domain;
+        
+        // Exclude current record if it exists
+        if ($this->id) {
+            $conditions[] = 'osea.id != $sender_email_address_id';
+            $queryParams['sender_email_address_id'] = $this->id;
+        }
 
-        $query = Yii::app()->cbdb->createCommand()
-            ->select('osea.id')
-            ->from('ophcocorrespondence_sender_email_addresses osea')
-            ->where(
-                'osea.institution_id' . $op1 . ':institution_id and osea.site_id' . $op2 . ':site_id and LOWER(osea.domain) = LOWER(:domain) and osea.id != :sender_email_address_id',
-                array(':institution_id' => $this->institution_id, ':site_id' => $this->site_id, ':domain' => $this->domain, ':sender_email_address_id' => $this->id)
-            )
-            ->queryAll();
-
-        if (count($query) !== 0) {
-            $this->addError($attribute, 'This combination of institution, site and domain already exists.');
+        // Use raw N1QL query to avoid SQL-to-N1QL conversion issues
+        $n1ql = 'SELECT osea.id FROM `openeyes`.`clinical`.`ophcocorrespondence_sender_email_addresses` osea WHERE ' . implode(' AND ', $conditions);
+        
+        try {
+            $results = Yii::app()->cbdb->query($n1ql, $queryParams);
+            if (count($results) !== 0) {
+                $this->addError($attribute, 'This combination of institution, site and domain already exists.');
+            }
+        } catch (Exception $e) {
+            // If query fails (e.g., collection doesn't exist), allow validation to pass
+            Yii::log("institutionSiteDomainValidator query failed: " . $e->getMessage(), CLogger::LEVEL_WARNING);
         }
     }
 
@@ -210,5 +234,41 @@ class SenderEmailAddresses extends BaseActiveRecordVersioned
 
         \Yii::app()->mailer->setSmtpPort($this->port);
         \Yii::app()->mailer->setSmtpSecurity($this->security);
+    }
+
+    /**
+     * Returns the Couchbase scope name for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

@@ -356,11 +356,14 @@ class CouchbaseMonitorController extends BaseController
      * Emergency disable action
      * 
      * POST endpoint to trigger emergency disable
+     * GET requests are redirected to index
      */
     public function actionEmergencyDisable()
     {
         if (!Yii::app()->request->isPostRequest) {
-            throw new CHttpException(405, 'Method not allowed');
+            // Redirect GET requests to index
+            $this->redirect(['index']);
+            return;
         }
         
         $reason = Yii::app()->request->getPost('reason', 'Manual emergency disable via dashboard');
@@ -379,11 +382,16 @@ class CouchbaseMonitorController extends BaseController
     
     /**
      * Clear emergency disable action
+     * 
+     * POST endpoint to clear emergency disable
+     * GET requests are redirected to index
      */
     public function actionClearEmergency()
     {
         if (!Yii::app()->request->isPostRequest) {
-            throw new CHttpException(405, 'Method not allowed');
+            // Redirect GET requests to index
+            $this->redirect(['index']);
+            return;
         }
         
         try {
@@ -402,11 +410,14 @@ class CouchbaseMonitorController extends BaseController
      * Update traffic percentage action
      * 
      * POST endpoint to update Couchbase traffic percentage
+     * GET requests are redirected to index
      */
     public function actionSetTraffic()
     {
         if (!Yii::app()->request->isPostRequest) {
-            throw new CHttpException(405, 'Method not allowed');
+            // Redirect GET requests to index
+            $this->redirect(['index']);
+            return;
         }
         
         $percentage = (int)Yii::app()->request->getPost('percentage', 0);

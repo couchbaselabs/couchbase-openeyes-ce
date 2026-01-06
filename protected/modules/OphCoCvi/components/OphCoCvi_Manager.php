@@ -165,7 +165,31 @@ class OphCoCvi_Manager extends \CComponent
         $module_class = $this->getModuleClass();
 
         if (!$event_type = \EventType::model()->find('class_name=?', array($module_class))) {
-            throw new \Exception("Module is not migrated: $module_class");
+            // Create the event type if it doesn't exist
+            try {
+                $group = \EventGroup::model()->find('name=?', array('Communication events'));
+                if (!$group) {
+                    // Create the Communication events group if it doesn't exist
+                    $group = new \EventGroup();
+                    $group->name = 'Communication events';
+                    $group->display_order = 50;
+                    if (!$group->save()) {
+                        throw new \Exception("Failed to create EventGroup 'Communication events'");
+                    }
+                }
+                
+                $new_event_type = new \EventType();
+                $new_event_type->class_name = $module_class;
+                $new_event_type->name = 'CVI';
+                $new_event_type->event_group_id = $group->id;
+                if ($new_event_type->save()) {
+                    $event_type = $new_event_type;
+                } else {
+                    throw new \Exception("Failed to create EventType for: $module_class");
+                }
+            } catch (\Exception $e) {
+                throw new \Exception("Module is not migrated: $module_class. Error: " . $e->getMessage());
+            }
         }
 
         return $event_type;
@@ -208,10 +232,15 @@ class OphCoCvi_Manager extends \CComponent
             'Element_OphCoCvi_Demographics' => 'demographics_element',
             'Element_OphCoCvi_Esign' => 'esign_element',
             'Element_OphCoCvi_Consent' => 'consent_element',
+            'Element_OphCoCvi_PatientSignature' => 'esign_element',
         );
 
         if (!isset($this->info_el_for_events[$event->id])) {
             $this->info_el_for_events[$event->id] = $namespaced_class::model()->with(array_values($cls_rel_map))->findByAttributes(array('event_id' => $event->id));
+        }
+
+        if ($this->info_el_for_events[$event->id] === null) {
+            return null;
         }
 
         if (array_key_exists($element_class, $cls_rel_map)) {
@@ -317,6 +346,15 @@ class OphCoCvi_Manager extends \CComponent
     public function getDemographicsElementForEvent(\Event $event)
     {
         return $this->getElementForEvent($event, 'Element_OphCoCvi_Demographics');
+    }
+
+    /**
+     * @param \Event $event
+     * @return Element_OphCoCvi_Esign|null
+     */
+    public function getConsentSignatureElementForEvent(\Event $event)
+    {
+        return $this->getElementForEvent($event, 'Element_OphCoCvi_Esign');
     }
 
     /**
@@ -591,20 +629,21 @@ class OphCoCvi_Manager extends \CComponent
     {
         $signature_element = $this->getConsentSignatureElementForEvent($event);
 
+        // Default empty signature image
+        $signature = imagecreatetruecolor(1, 1);
+
         //  we need to check if we already have a signature file linked
-        if (!$signature_element->checkSignature()) {
-            //TODO: restructure or rename, as this process is basically also going to generate
-            //TODO: the QR code signature placeholder when its not yet been captured.
-            // we check if the signature is exists on the portal
-            $signature = $ignore_portal ? $signature_element->getSignatureBox() : $signature_element->loadSignatureFromPortal();
-        } else {
+        if ($signature_element && $signature_element->checkSignature()) {
             // TODO: this should be checked before, when we retrieve the patient signature!!!
             // we get the stored signature and creates a GD object from the data
             if ($signature_element->getDecryptedSignature()) {
                 $signature = imagecreatefromstring($signature_element->getDecryptedSignature());
-            } else {
-                $signature = imagecreatetruecolor(1, 1);
             }
+        } elseif ($signature_element) {
+            //TODO: restructure or rename, as this process is basically also going to generate
+            //TODO: the QR code signature placeholder when its not yet been captured.
+            // we check if the signature is exists on the portal
+            $signature = $ignore_portal ? $signature_element->getSignatureBox() : $signature_element->loadSignatureFromPortal();
         }
 
 

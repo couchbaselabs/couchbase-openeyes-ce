@@ -37,25 +37,41 @@ class TrialController extends BaseModuleController
             array(
                 'allow',
                 'actions' => array('index', 'userAutoComplete'),
-                'roles' => array('TaskCreateTrial', 'TaskViewTrial'),
+                'roles' => array('admin', 'TaskCreateTrial', 'TaskViewTrial'),
             ),
             array(
                 'allow',
                 'actions' => array('create'),
-                'roles' => array('TaskCreateTrial'),
+                'roles' => array('admin', 'TaskCreateTrial'),
             ),
             array(
                 'allow',
                 'actions' => array('view'),
                 'expression' => function ($user) {
-                    return $user->checkAccess('TaskViewTrial') && @TrialController::getCurrentUserPermission()->can_view;
+                    if (!Yii::app()->request->getParam('id')) {
+                        return false;
+                    }
+                    // Allow admins unconditionally
+                    if ($user->checkAccess('admin')) {
+                        return true;
+                    }
+                    $permission = TrialController::getCurrentUserPermission();
+                    return $user->checkAccess('TaskViewTrial') && $permission && $permission->can_view;
                 },
             ),
             array(
                 'allow',
                 'actions' => array('update', 'addPatient', 'removePatient'),
                 'expression' => function ($user) {
-                    return $user->checkAccess('TaskViewTrial') && @TrialController::getCurrentUserPermission()->can_edit;
+                    // Allow admins unconditionally
+                    if ($user->checkAccess('admin')) {
+                        return true;
+                    }
+                    if (!Yii::app()->request->getParam('id')) {
+                        return false;
+                    }
+                    $permission = TrialController::getCurrentUserPermission();
+                    return $user->checkAccess('TaskViewTrial') && $permission && $permission->can_edit;
                 },
             ),
             array(
@@ -71,7 +87,15 @@ class TrialController extends BaseModuleController
                     'changeTrialUserPosition'
                 ),
                 'expression' => function ($user) {
-                    return $user->checkAccess('TaskViewTrial') && @TrialController::getCurrentUserPermission()->can_manage;
+                    // Allow admins unconditionally
+                    if ($user->checkAccess('admin')) {
+                        return true;
+                    }
+                    if (!Yii::app()->request->getParam('id')) {
+                        return false;
+                    }
+                    $permission = TrialController::getCurrentUserPermission();
+                    return $user->checkAccess('TaskViewTrial') && $permission && $permission->can_manage;
                 },
             ),
             array(
@@ -249,10 +273,15 @@ class TrialController extends BaseModuleController
      * Displays the permissions screen
      *
      * @param int $id The ID of the Trial
+     * @throws CHttpException Thrown if no trial ID is provided or trial not found
      */
-    public function actionPermissions($id)
+    public function actionPermissions($id = null)
     {
-        $this->model = Trial::model()->findByPk($id);
+        if ($id === null) {
+            throw new CHttpException(400, 'Trial ID is required.');
+        }
+
+        $this->model = $this->loadModel($id);
 
         $permissionDataProvider = new CActiveDataProvider('UserTrialAssignment', array(
             'criteria' => array(
@@ -278,9 +307,17 @@ class TrialController extends BaseModuleController
      * Adds a patient to the trial
      *
      * @throws Exception Thrown if an error occurs when saving the TrialPatient record
+     * @throws CHttpException Thrown if required parameters are missing
      */
     public function actionAddPatient()
     {
+        if (!isset($_GET['id'])) {
+            throw new CHttpException(400, 'Trial ID is required.');
+        }
+        if (!isset($_GET['patient_id'])) {
+            throw new CHttpException(400, 'Patient ID is required.');
+        }
+        
         $trial = $this->loadModel($_GET['id']);
         /* @var Patient $patient */
         $patient = Patient::model()->findByPk($_GET['patient_id']);
@@ -323,8 +360,19 @@ class TrialController extends BaseModuleController
      */
     public function actionAddPermission()
     {
+        // Validate required POST parameters
+        if (!isset($_POST['id']) || !isset($_POST['permission']) || !isset($_POST['user_id']) || !isset($_POST['role'])) {
+            throw new CHttpException(400, 'Missing required parameters: id, permission, user_id, role');
+        }
+
         $trial = $this->loadModel($_POST['id']);
         $permission = TrialPermission::model()->findByPk($_POST['permission']);
+        
+        // Validate that permission exists
+        if ($permission === null) {
+            throw new CHttpException(400, 'Invalid permission ID: ' . $_POST['permission']);
+        }
+        
         $result = $trial->addUserPermission($_POST['user_id'], $permission, $_POST['role']);
         echo $result;
     }
@@ -332,11 +380,16 @@ class TrialController extends BaseModuleController
     /**
      * Removes a UserTrialAssignment
      *
-     * @throws CHttpException Thrown if the permission cannot be found
+     * @throws CHttpException Thrown if required parameters are missing or the permission cannot be deleted
      * @throws Exception Thrown if the permission cannot be deleted
      */
     public function actionRemovePermission()
     {
+        // Validate required POST parameters
+        if (!isset($_POST['id']) || !isset($_POST['permission_id'])) {
+            throw new CHttpException(400, 'Missing required POST parameters: id and permission_id');
+        }
+
         $trial = $this->loadModel($_POST['id']);
         $result = $trial->removeUserAssignment($_POST['permission_id']);
         echo $result;
@@ -355,24 +408,30 @@ class TrialController extends BaseModuleController
     }
 
     /**
-     * @param $id
+     * @param int|null $id
      * @throws CHttpException
      * @throws Exception
      */
-    public function actionClose($id)
+    public function actionClose($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Trial ID is required.');
+        }
         $trial = $this->loadModel($id);
         $trial->close();
         $this->redirect($this->createUrl('view', array('id' => $trial->id)));
     }
 
     /**
-     * @param $id
+     * @param int|null $id
      * @throws CHttpException
      * @throws Exception
      */
-    public function actionReopen($id)
+    public function actionReopen($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Trial ID is required.');
+        }
         $trial = $this->loadModel($id);
         $trial->reopen();
         $this->redirect($this->createUrl('view', array('id' => $trial->id)));
@@ -395,7 +454,7 @@ class TrialController extends BaseModuleController
      * Get a HTML list of all trials for the specified trial type.
      * @param $type string The trial type.
      */
-    public function actionGetTrialList($type)
+    public function actionGetTrialList($type = '')
     {
         $trials = Trial::getTrialList($type);
 
@@ -414,8 +473,14 @@ class TrialController extends BaseModuleController
      * 2) not already been chosen by the user 3) have a 'can_edit' permission for the user
      * @param $type string The trial type.
      */
-    public function actionTrialAutocomplete($patient_id, $already_selected_ids, $term)
+    public function actionTrialAutocomplete($patient_id = null, $already_selected_ids = '[]', $term = '')
     {
+        // Return empty array if required parameters are missing
+        if ($patient_id === null) {
+            $this->renderJSON([]);
+            return;
+        }
+        
         $already_selected_ids = json_decode($already_selected_ids);
 
         $criteria = new CDbCriteria();
@@ -456,8 +521,14 @@ class TrialController extends BaseModuleController
      * @param string $term The term to search for
      * @throws CHttpException Thrown if an error occurs when loading the model
      */
-    public function actionUserAutoComplete($id, $term)
+    public function actionUserAutoComplete($id = null, $term = '')
     {
+        // Return empty array if required parameter is missing
+        if ($id === null) {
+            $this->renderJSON([]);
+            return;
+        }
+
         $model = $this->loadModel($id);
 
         $res = array();
@@ -511,6 +582,10 @@ class TrialController extends BaseModuleController
 
     public function actionChangeTrialUserPosition()
     {
+        if (!isset($_POST['user_id']) || !isset($_POST['id']) || !isset($_POST['isTrue']) || !isset($_POST['column_name'])) {
+            $this->renderJSON(['Error' => 'Missing required parameters']);
+            return;
+        }
 
         $user_id = $_POST['user_id'];
         $trial_id = $_POST['id'];
@@ -536,7 +611,12 @@ class TrialController extends BaseModuleController
 
     public function actionRenderPopups()
     {
-        if (isset($_GET["trialId"])) {
+        if (!isset($_GET["trialId"])) {
+            // Return silently if trialId is not provided
+            return;
+        }
+
+        try {
             $trial = $this->loadModel($_GET["trialId"]);
             $sortDir = Yii::app()->request->getParam('sort_dir', '0') === '0' ? 'asc' : 'desc';
             $sortBy = Yii::app()->request->getParam('sort_by', 'Name');
@@ -546,6 +626,12 @@ class TrialController extends BaseModuleController
                     $this->renderPartial('application.widgets.views.PatientIcons', array('data' => ($data->patient), 'page' => 'TrialPatient'));
                 }
             }
+        } catch (CHttpException $e) {
+            // Return silently if trial not found (404)
+            if ($e->statusCode === 404) {
+                return;
+            }
+            throw $e;
         }
     }
 }

@@ -29,6 +29,22 @@ class OphInDnaextraction_DnaTests_Transaction extends BaseActiveRecord
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return the static model class
@@ -152,6 +168,18 @@ class OphInDnaextraction_DnaTests_Transaction extends BaseActiveRecord
         $this->date = $date->format('Y-m-d');
 
         return parent::beforeSave();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     public function afterFind()

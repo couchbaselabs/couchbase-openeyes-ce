@@ -50,13 +50,15 @@ if (!empty($subspecialty)) { ?>
         </div>
         <?php if (count($summaryItems)) { ?>
             <?php foreach ($summaryItems as $summaryItem) {
-                Yii::import("{$summaryItem->event_type->class_name}.widgets.{$summaryItem->getClassName()}");
-                $widget = $this->createWidget($summaryItem->getClassName(), array(
-                'patient' => $this->patient,
-                'subspecialty' => $subspecialty,
-                'event_type' => $summaryItem->event_type,
-                )); ?>
-                <?php $widget->run_oescape(count($summaryItems));
+                if ($summaryItem->event_type) {
+                    Yii::import("{$summaryItem->event_type->class_name}.widgets.{$summaryItem->getClassName()}");
+                    $widget = $this->createWidget($summaryItem->getClassName(), array(
+                    'patient' => $this->patient,
+                    'subspecialty' => $subspecialty,
+                    'event_type' => $summaryItem->event_type,
+                    )); ?>
+                    <?php $widget->run_oescape(count($summaryItems));
+                }
             }
         } ?>
     </div>

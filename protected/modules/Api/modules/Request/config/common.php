@@ -23,8 +23,8 @@ $config = [
         ],
     ],
     'aliases' => [
-        'Request' => 'OEModule.Api.modules.Request',
-        'RequestAdmin' => 'OEModule.Api.modules.Request.modules.RequestAdmin',
+        'Request' => 'application.modules.Api.modules.Request',
+        'RequestAdmin' => 'application.modules.Api.modules.Request.modules.RequestAdmin',
     ],
 ];
 

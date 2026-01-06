@@ -190,12 +190,10 @@ run_droid_verification() {
     
     local prompt=$(create_verification_prompt "$model_name" "$model_path" "$admin_url")
     
-    # Run droid with the verification prompt
-    # Note: Adjust the droid command based on your setup
+    # Run droid exec with the verification prompt
     if command -v droid &> /dev/null; then
-        echo "$prompt" | timeout 300 droid --no-interactive > "$log_file" 2>&1 || true
-    elif command -v factory &> /dev/null; then
-        echo "$prompt" | timeout 300 factory droid --no-interactive > "$log_file" 2>&1 || true
+        # Use --auto medium to allow file reads and curl commands for Couchbase queries
+        echo "$prompt" | timeout 300 droid exec --auto medium -m claude-sonnet-4-5-20250929 > "$log_file" 2>&1 || true
     else
         # Fallback: just log what would be done
         echo "DROID NOT FOUND - Would verify: $model_name" > "$log_file"

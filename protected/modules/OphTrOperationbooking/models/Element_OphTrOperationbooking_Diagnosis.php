@@ -101,9 +101,19 @@ class Element_OphTrOperationbooking_Diagnosis extends BaseEventTypeElement
      * 
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'clinical';
+    }
+
+    /**
+     * Get the Couchbase collection for this model
+     * 
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**
@@ -198,7 +208,18 @@ class Element_OphTrOperationbooking_Diagnosis extends BaseEventTypeElement
             $this->event->episode->patient->addDiagnosis($this->disorder_id, $this->eye_id);
         }
 
+        $this->saveToCouchbase();
+
         return parent::afterSave();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        $this->deleteFromCouchbase();
+        return parent::afterDelete();
     }
 
     public function getContainer_view_view()

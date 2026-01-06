@@ -127,6 +127,7 @@ class NodExportController extends BaseController
             echo "<script>new OpenEyes.UI.Dialog.Alert({
           content: 'Please select at least one NOD Audit type.'
         }).open();</script>";
+            return;
         }
         if (isset($_POST['nod_choice']['cataract'])) {
             $this->generateCataractExport();

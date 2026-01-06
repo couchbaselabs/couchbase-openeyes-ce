@@ -35,6 +35,7 @@ class DefaultController extends \BaseEventTypeController
         'addcomment' => self::ACTION_TYPE_MYMESSAGE,
         'checkuseroutofoffice' => self::ACTION_TYPE_CREATE,
         'autocompleteMailbox' => self::ACTION_TYPE_FORM,
+        'autocomplete' => self::ACTION_TYPE_FORM,
     );
 
     /**
@@ -99,7 +100,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionMarkRead()
     {
-        $this->initWithEventId(@$_GET['id']);
+        $id = @$_GET['id'];
+        if (!$id) {
+            throw new \CHttpException(400, 'Event ID is required to mark message as read.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -134,7 +139,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionMarkUnread()
     {
-        $this->initWithEventId(@$_GET['id']);
+        $id = @$_GET['id'];
+        if (!$id) {
+            throw new \CHttpException(400, 'Event ID is required to mark message as unread.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -166,7 +175,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionAddComment()
     {
-        $this->initWithEventId(@$_GET['id']);
+        $id = @$_GET['id'];
+        if (!$id) {
+            throw new \CHttpException(400, 'Event ID is required to add a comment.');
+        }
+        $this->initWithEventId($id);
         $this->setOpenElementsFromCurrentEvent('view');
     }
 
@@ -242,6 +255,8 @@ class DefaultController extends \BaseEventTypeController
         if (isset($_POST['mailbox_id'])) {
             return $this->renderJSON(\UserOutOfOffice::model()->checkUserOutOfOfficeViaMailbox($_POST['mailbox_id']));
         }
+        // If no mailbox_id is provided, return empty response
+        return $this->renderJSON(null);
     }
 
     public function actionAutocompleteMailbox()
@@ -541,7 +556,7 @@ class DefaultController extends \BaseEventTypeController
         $this->event->save();
     }
 
-    public function actionAutoComplete($term)
+    public function actionAutoComplete($term = '')
     {
         $res = array();
         if (\Yii::app()->request->isAjaxRequest && !empty($term)) {

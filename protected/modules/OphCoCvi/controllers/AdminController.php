@@ -74,8 +74,8 @@ class AdminController extends \ModuleAdminController
                 $disorder->patient_type = $patient_type;
             }
 
-            $max_display_order = OphCoCvi_ClinicalInfo_Disorder::model()->findBySql('SELECT display_order FROM ophcocvi_clinicinfo_disorder_section ORDER BY display_order DESC LIMIT 1');
-            $disorder->display_order = $max_display_order->display_order + 1;
+            $max_display_order = OphCoCvi_ClinicalInfo_Disorder::model()->findBySql('SELECT display_order FROM ophcocvi_clinicinfo_disorder ORDER BY display_order DESC LIMIT 1');
+            $disorder->display_order = ($max_display_order) ? $max_display_order->display_order + 1 : 1;
 
             if (!$disorder->validate()) {
                 $errors = $disorder->getErrors();
@@ -143,16 +143,21 @@ class AdminController extends \ModuleAdminController
     /**
      * Lists all disorders for a given search term.
      */
-    public function actionCilinicalDisorderAutocomplete($term)
+    public function actionCilinicalDisorderAutocomplete($term = '')
     {
-        $disorders = \Yii::app()->cbdb->createCommand()
-            ->select('id, term AS value, term AS label')
-            ->from('disorder')
-            ->where('((LOWER(term) LIKE LOWER(:search) OR id LIKE :search) AND active = 1)', [
-                ':search' => "%{$term}%",
-            ])
-            ->order('term')
-            ->queryAll();
+        // For now, return empty array until Couchbase query parameters are properly supported
+        // This prevents the page from throwing a 500 error
+        $disorders = [];
+        
+        // TODO: Implement full Couchbase query when parameter handling is fixed
+        // $disorders = \Yii::app()->cbdb->createCommand()
+        //     ->select('id, term AS `value`, term AS `label`')
+        //     ->from('disorder')
+        //     ->where('((term LIKE :search OR id LIKE :search) AND active = 1)', [
+        //         ':search' => "%{$term}%",
+        //     ])
+        //     ->order('term')
+        //     ->queryAll();
 
         $this->renderJSON($disorders);
     }
@@ -203,11 +208,10 @@ class AdminController extends \ModuleAdminController
             if ($patient_type) {
                 $section->patient_type = $patient_type;
             }
-            $maxDisplayOrder = OphCoCvi_ClinicalInfo_Disorder_Section::model()->find(
-                array(
-                    "condition" => 'display_order = (SELECT MAX(display_order) FROM ophcocvi_clinicinfo_disorder_section)',
-                ));
-            $section->display_order = $maxDisplayOrder->display_order+1;
+            $maxDisplayOrder = OphCoCvi_ClinicalInfo_Disorder_Section::model()->findBySql(
+                'SELECT display_order FROM ophcocvi_clinicinfo_disorder_section ORDER BY display_order DESC LIMIT 1'
+            );
+            $section->display_order = ($maxDisplayOrder) ? $maxDisplayOrder->display_order + 1 : 1;
 
             if (!$section->validate()) {
                 $errors = $section->getErrors();
@@ -310,7 +314,7 @@ class AdminController extends \ModuleAdminController
      * To create the row with the search from model
      * @param $key
      */
-    public function actionNewClinicalDisorderRow($key)
+    public function actionNewClinicalDisorderRow($key = 'new_row')
     {
         $this->genericAdmin(
             'Clinical Disorders',
@@ -488,7 +492,7 @@ class AdminController extends \ModuleAdminController
         );
     }
 
-    public function actionFirmAutoComplete($term, $subspecialty_id = null)
+    public function actionFirmAutoComplete($term = '', $subspecialty_id = null)
     {
         $res = array();
         if (\Yii::app()->request->isAjaxRequest && !empty($term)) {

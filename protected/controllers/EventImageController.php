@@ -98,9 +98,14 @@ class EventImageController extends BaseController
         return '';
     }
 
-    public function actionGetImageInfo($event_id)
+    public function actionGetImageInfo($event_id = null)
     {
         try {
+            if ($event_id === null) {
+                $this->renderJSON(['error' => 'event_id parameter is required']);
+                return;
+            }
+
             $is_bilateral_document = EventImage::model()->count('event_id = ? AND eye_id is not null AND attachment_data_id IS NULL', [$event_id]) > 0;
             if ($is_bilateral_document) {
                 foreach (["left" => Eye::LEFT, "right" => Eye::RIGHT] as $side => $eye_id) {
@@ -128,11 +133,16 @@ class EventImageController extends BaseController
      * @param $id
      * @throws Exception
      */
-    public function actionGenerateImage($id)
+    public function actionGenerateImage($id = null)
     {
         // If relational DB is unavailable (e.g. offline/static schema mode), skip generation gracefully
         if (Yii::app()->db instanceof OEDbConnection && !Yii::app()->db->isConnectionAvailable()) {
             Yii::log("Skipped event image generation for event {$id} because DB is unavailable", CLogger::LEVEL_INFO);
+            echo 'ok';
+            return;
+        }
+
+        if (!$id) {
             echo 'ok';
             return;
         }

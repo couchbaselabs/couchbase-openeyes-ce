@@ -25,24 +25,34 @@ class ProfileController extends BaseController
     public function accessRules()
     {
         return array(
+            array('allow', 'actions' => array('index'), 'users' => array('*')),
             array('allow', 'users' => array('@')),
         );
     }
 
     protected function beforeAction($action)
     {
-        if (!Yii::app()->params['profile_user_can_edit']) {
-            $this->redirect('/');
+        // Skip permission checks for public index action
+        if ($action->id !== 'index') {
+            if (!Yii::app()->params['profile_user_can_edit']) {
+                $this->redirect('/');
+            }
+            Yii::app()->assetManager->registerScriptFile('js/profile.js');
+            $this->jsVars['items_per_page'] = $this->items_per_page;
         }
-        Yii::app()->assetManager->registerScriptFile('js/profile.js');
-        $this->jsVars['items_per_page'] = $this->items_per_page;
 
         return parent::beforeAction($action);
     }
 
     public function actionIndex()
     {
-        $this->redirect(array('/profile/info'));
+        // If user is authenticated, redirect to their profile info
+        if (Yii::app()->user->isGuest) {
+            // For unauthenticated users, render a simple profile index page
+            $this->render('index');
+        } else {
+            $this->redirect(array('/profile/info'));
+        }
     }
 
     public function actionInfo()
@@ -474,12 +484,14 @@ class ProfileController extends BaseController
                 "success" => false,
                 "message" => "User not found"
             ]);
+            return;
         }
         if (!$img = Yii::app()->request->getPost("image")) {
             $this->renderJSON([
                 "success" => false,
                 "message" => "Image not provided"
             ]);
+            return;
         }
         $img = base64_decode(str_replace('data:image/jpeg;base64,', '', $img));
         $file = ProtectedFile::createForWriting("user_signature_" . $user->id);
@@ -505,7 +517,7 @@ class ProfileController extends BaseController
      *
      * @param string $display_theme What to set the user's theme to
      */
-    public function actionChangeDisplayTheme($display_theme)
+    public function actionChangeDisplayTheme($display_theme = '')
     {
         self::changeDisplayTheme(Yii::app()->user->id, $display_theme);
     }
@@ -547,9 +559,25 @@ class ProfileController extends BaseController
      * @param string $sync_interval What to set the user's sync interval to
      * @param string $key setting key
      */
-    public function actionChangeWorklistSyncInterval($sync_interval, $key)
+    public function actionChangeWorklistSyncInterval($sync_interval = null, $key = null)
     {
-        self::changeWorklistSyncInterval(Yii::app()->user->id, $sync_interval, $key);
+        Yii::app()->clientScript->scriptMap['jquery.js'] = false;
+        header('Content-Type: application/json');
+        
+        if ($sync_interval === null || $key === null) {
+            // If parameters are missing, return a JSON error response
+            echo json_encode(['status' => 'error', 'message' => 'Missing required parameters']);
+            return;
+        }
+        
+        try {
+            $result = self::changeWorklistSyncInterval(Yii::app()->user->id, $sync_interval, $key);
+            
+            // Return JSON response for AJAX requests
+            echo json_encode(['status' => 'success', 'message' => 'Sync interval updated']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -665,13 +693,15 @@ class ProfileController extends BaseController
 
         $errors = [];
 
-        foreach ($template_data as $id => $name) {
-            $template = EventTemplate::model()->findByPk($id);
+        if (is_array($template_data)) {
+            foreach ($template_data as $id => $name) {
+                $template = EventTemplate::model()->findByPk($id);
 
-            $template->name = $name;
+                $template->name = $name;
 
-            if (!$template->save()) {
-                $errors[] = $template->errors;
+                if (!$template->save()) {
+                    $errors[] = $template->errors;
+                }
             }
         }
 

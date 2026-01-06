@@ -190,4 +190,40 @@ class DrawingTemplate extends BaseActiveRecord
         $size = $to_mb ? (number_format($this->max_document_size / 1048576, 0)) : $this->max_document_size;
         return $size;
     }
+
+    /**
+     * Returns the Couchbase scope name for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

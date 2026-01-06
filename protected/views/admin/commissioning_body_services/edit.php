@@ -127,11 +127,8 @@
             <td>Phone number</td>
             <td>
                 <?php
-                if (!$cbs->contact) {
-                    $cbs->contact = new Contact();
-                }
                 echo CHtml::activeTextField(
-                    $cbs->contact,
+                    $contact,
                     'primary_phone',
                     [
                         'class' => 'cols-full',
@@ -147,7 +144,7 @@
             <td>
                 <?php
                 echo CHtml::activeTextField(
-                    $cbs->contact,
+                    $contact,
                     'email',
                     [
                         'class' => 'cols-full',
@@ -162,7 +159,7 @@
             <td>
                 <?php
                 echo CHtml::activeTextField(
-                    $cbs->contact,
+                    $contact,
                     'first_name',
                     [
                         'class' => 'cols-full',
@@ -177,7 +174,7 @@
             <td>
                 <?php
                 echo CHtml::activeTextField(
-                    $cbs->contact,
+                    $contact,
                     'last_name',
                     [
                         'class' => 'cols-full',

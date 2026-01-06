@@ -17,4 +17,26 @@ class OphTrOperationnote_Mmc_Concentration extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     const SELECTION_LABEL_FIELD = 'value';
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

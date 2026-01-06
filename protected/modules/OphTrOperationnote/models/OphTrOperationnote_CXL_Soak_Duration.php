@@ -117,4 +117,26 @@ class OphTrOperationnote_CXL_Soak_Duration extends BaseActiveRecordVersioned
         $chosenName = $this->find("id = " . $id);
         return $chosenName->name;
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

@@ -54,9 +54,15 @@ class ChangeEventController extends BaseController
 
     protected function resolveElementAndEventType($request)
     {
+        $element_type_id = $request->getParam('element_type_id', null);
+        
+        if (!$element_type_id) {
+            throw new CHttpException(400, 'Required parameter element_type_id is missing');
+        }
+        
         $this->element_type = ElementType::model()
             ->with('event_type')
-            ->findByPk($request->getParam('element_type_id', null));
+            ->findByPk($element_type_id);
 
         if (!$this->element_type) {
             throw new CHttpException(404, 'Unrecognised element');
@@ -91,6 +97,11 @@ class ChangeEventController extends BaseController
     protected function resolvePatient($request)
     {
         $patient_id = $request->getParam('patient_id', null);
+        
+        if (!$patient_id) {
+            throw new CHttpException(400, 'Required parameter patient_id is missing');
+        }
+        
         if (!$this->patient = Patient::model()->findByPk($patient_id)) {
             throw new CHttpException(404, 'Patient not found');
         }
@@ -169,6 +180,10 @@ class ChangeEventController extends BaseController
     public function actionSave()
     {
         $request = $this->getApp()->request;
+        
+        if (!$request->isPostRequest) {
+            throw new CHttpException(405, 'Method not allowed. This action only accepts POST requests.');
+        }
 
         $this->setFirmFromSession();
         $this->resolveElementAndEventType($request);
@@ -192,8 +207,21 @@ class ChangeEventController extends BaseController
         $firm_id = Yii::app()->request->getQuery('firm_id');
         if (!$firm_id) {
             $this->renderJSON([]);
+            return;
         }
-        $event = Event::model()->find('id = :id', [':id' => Yii::app()->request->getQuery('event_id')]);
+        
+        $event_id = Yii::app()->request->getQuery('event_id');
+        if (!$event_id) {
+            $this->renderJSON([]);
+            return;
+        }
+        
+        $event = Event::model()->find('id = :id', [':id' => $event_id]);
+        if (!$event) {
+            $this->renderJSON([]);
+            return;
+        }
+        
         $workflow = \OEModule\OphCiExamination\models\OphCiExamination_Workflow_Rule::model()->findWorkflowCascading(
             $firm_id, $event->episode->status->id
         );

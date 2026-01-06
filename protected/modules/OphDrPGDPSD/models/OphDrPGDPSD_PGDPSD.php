@@ -46,6 +46,28 @@ class OphDrPGDPSD_PGDPSD extends \BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public $temp_user_ids = array();
     public $temp_team_ids = array();
     public $temp_meds_info = array();

@@ -41,14 +41,18 @@
     <h1>This page is intended to be viewed online and may not be printed.<br>Please use the print icon on the page to generate a hard copy.</h1>
   </div>
   <?php $this->renderPartial('//base/_header'); ?>
+  <?php if (!Yii::app()->user->isGuest): ?>
   <div class="oe-full-header flex-layout">
     <div class="title wordcaps">User:
       <b><?php
           $user = Yii::app()->session['user'];
-          echo $user->title . ' ' . $user->first_name . ' ' . $user->last_name; ?>
+          if ($user) {
+              echo $user->title . ' ' . $user->first_name . ' ' . $user->last_name;
+          } ?>
       </b>
     </div>
   </div>
+  <?php endif; ?>
   <div class="oe-full-content oe-user-profile subgrid">
     <nav class="oe-full-side-panel">
       <?php $this->renderPartial('//profile/sidebar'); ?>

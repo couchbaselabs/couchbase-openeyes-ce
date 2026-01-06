@@ -49,7 +49,7 @@
                                             $contact_type = \SettingMetadata::model()->getSetting('gp_label');
                                         }
                                         $this->renderPartial('//docman/table/contact_name_type', array(
-                                            'address_targets' => $element->address_targets,
+                                            'address_targets' => (!$element->isNewRecord) ? $element->address_targets : array(),
                                             'contact_name' => $macro_data["to"]["contact_name"],
                                             'contact_id' => $macro_data["to"]["contact_id"],
                                             'contact_nickname' => (isset($macro_data["to"]["contact_nickname"]) ? $macro_data["to"]["contact_nickname"] : ''),
@@ -81,7 +81,7 @@
                             <td class="docman_delivery_method align-left" data-test="docman_delivery_method">
                                     <?php
                                     $this->renderPartial('//docman/table/delivery_methods', array(
-                                            'is_draft' => $element->draft,
+                                            'is_draft' => (!$element->isNewRecord) ? $element->draft : false,
                                             'contact_type' => strtoupper($contact_type),
                                             'row_index' => $row_index,
                                             'can_send_electronically' => $can_send_electronically,
@@ -122,7 +122,7 @@
                     <td> Cc <?=\CHtml::hiddenField("DocumentTarget[" . $index . "][attributes][ToCc]", 'Cc'); ?> </td>
                     <td>
                         <?php $this->renderPartial('//docman/table/contact_name_type', array(
-                                                        'address_targets' => $element->address_targets,
+                                                        'address_targets' => (!$element->isNewRecord) ? $element->address_targets : array(),
                                                         'contact_id' => $contact_id,
                                                         'contact_name' => $contact_name,
                             'contact_type' => strtoupper($macro["contact_type"]),
@@ -141,7 +141,7 @@
                         $this->renderPartial('//docman/table/contact_address', array(
                             'contact_id' => $contact_id,
                             'contact_name' => $contact_name,
-                            'address_targets' => $element->address_targets,
+                            'address_targets' => (!$element->isNewRecord) ? $element->address_targets : array(),
                             'is_editable_address' => ucfirst(strtolower($contact_type)) != 'Gp',
                             'contact_type' => $contact_type,
                             'row_index' => $index,
@@ -153,7 +153,7 @@
                     </td>
                     <td class="docman_delivery_method" data-test="docman_delivery_method">
                         <?php $this->renderPartial('//docman/table/delivery_methods', array(
-                            'is_draft' => $element->draft,
+                            'is_draft' => (!$element->isNewRecord) ? $element->draft : false,
                             'contact_type' => strtoupper($macro["contact_type"]),
                             'row_index' => $index,
                             'patient_id' => $patient_id ?? null,
@@ -245,7 +245,7 @@
                     'contact_name' => $contact_name,
                     'contact_nickname' => $contact_nickname,
                     'can_send_electronically' => $can_send_electronically,
-                    'is_internal_referral' => $element->isInternalReferralEnabled(),
+                    'is_internal_referral' => (!$element->isNewRecord) ? $element->isInternalReferralEnabled() : false,
                     'email' => $email,
                 )
             );

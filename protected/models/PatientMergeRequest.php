@@ -205,4 +205,26 @@ class PatientMergeRequest extends BaseActiveRecordVersioned
     {
         return "Identifier <strong>({$this->secondary_local_identifier_value}) {$this->secondaryPatient->getFullName()}</strong> was merged into <strong>({$this->primary_local_identifier_value}) {$this->primaryPatient->getFullName()}</strong> on {$this->created_date}";
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

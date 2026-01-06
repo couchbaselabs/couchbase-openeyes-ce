@@ -49,4 +49,26 @@ class LetterString_Site extends BaseActiveRecordVersioned
             'site' => [self::BELONGS_TO, 'Site', 'site_id'],
         ];
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

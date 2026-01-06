@@ -80,11 +80,14 @@ class CouchbaseRestClient extends CApplicationComponent
             foreach ($params as $key => $value) {
                 // N1QL named parameters start with $
                 $paramKey = strpos($key, '$') === 0 ? $key : '$' . $key;
+                // Preserve the original type - strings stay strings, numbers stay numbers
+                // This is important because Couchbase is type-sensitive and many IDs
+                // are stored as strings in the data but may be passed as integers from PHP
                 $body[$paramKey] = $value;
             }
         }
         
-        Yii::log('REST N1QL: ' . substr($query, 0, 100), CLogger::LEVEL_TRACE, 'application.couchbase');
+        Yii::log('REST N1QL: ' . substr($query, 0, 200) . ' body: ' . json_encode($body), CLogger::LEVEL_INFO, 'application.couchbase');
         
         $response = $this->httpPost($url, $body);
         
@@ -207,5 +210,78 @@ class CouchbaseRestClient extends CApplicationComponent
         
         $result = $this->query($query);
         return isset($result[0]['cnt']) ? (int)$result[0]['cnt'] : 0;
+    }
+
+    /**
+     * Upsert a document via N1QL UPSERT statement
+     * 
+     * @param string $scope The Couchbase scope name
+     * @param string $collection The collection name
+     * @param string $docId The document ID (key)
+     * @param array $doc The document data
+     * @return bool Success status
+     * @throws CException on error
+     */
+    public function upsert($scope, $collection, $docId, $doc)
+    {
+        // Ensure document has required metadata
+        $doc['_type'] = $collection;
+        $doc['_modified'] = date('c');
+        if (!isset($doc['_created'])) {
+            $doc['_created'] = date('c');
+        }
+        
+        // Build UPSERT query using N1QL
+        // Use USE KEYS to specify the document key
+        $query = "UPSERT INTO `openeyes`.`{$scope}`.`{$collection}` (KEY, VALUE) VALUES (\$docId, \$doc)";
+        
+        Yii::log("REST upsert: {$scope}.{$collection}::{$docId}", CLogger::LEVEL_TRACE, 'application.couchbase');
+        
+        $this->query($query, ['docId' => $docId, 'doc' => $doc]);
+        
+        return true;
+    }
+
+    /**
+     * Remove a document via N1QL DELETE statement
+     * 
+     * @param string $scope The Couchbase scope name
+     * @param string $collection The collection name
+     * @param string $docId The document ID (key)
+     * @return bool Success status
+     * @throws CException on error
+     */
+    public function remove($scope, $collection, $docId)
+    {
+        // Build DELETE query using N1QL with USE KEYS
+        $query = "DELETE FROM `openeyes`.`{$scope}`.`{$collection}` USE KEYS [\$docId]";
+        
+        Yii::log("REST remove: {$scope}.{$collection}::{$docId}", CLogger::LEVEL_TRACE, 'application.couchbase');
+        
+        $this->query($query, ['docId' => $docId]);
+        
+        return true;
+    }
+
+    /**
+     * Get a document by ID via N1QL
+     * 
+     * @param string $scope The Couchbase scope name
+     * @param string $collection The collection name
+     * @param string $docId The document ID (key)
+     * @return array|null The document data or null if not found
+     */
+    public function get($scope, $collection, $docId)
+    {
+        $query = "SELECT * FROM `openeyes`.`{$scope}`.`{$collection}` USE KEYS [\$docId]";
+        
+        $result = $this->query($query, ['docId' => $docId]);
+        
+        if (empty($result)) {
+            return null;
+        }
+        
+        // The result includes the collection name as a key
+        return isset($result[0][$collection]) ? $result[0][$collection] : $result[0];
     }
 }

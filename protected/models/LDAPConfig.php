@@ -33,6 +33,24 @@ class LDAPConfig extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * Returns the Couchbase scope for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    /**
+     * Returns the Couchbase collection for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * Temporary variables used to set the ldap json value
      */
     public $ldap_method;
@@ -164,6 +182,24 @@ class LDAPConfig extends BaseActiveRecordVersioned
         $this->ldap_json = json_encode($new_ldap_attributes);
 
         return parent::beforeValidate();
+    }
+
+    /**
+     * After save, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

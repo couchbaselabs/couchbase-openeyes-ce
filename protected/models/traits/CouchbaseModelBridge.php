@@ -21,7 +21,7 @@ trait CouchbaseModelBridge
      * Override in model if different from 'core'
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'core';
     }
@@ -31,7 +31,7 @@ trait CouchbaseModelBridge
      * Default is the table name
      * @return string
      */
-    public function couchbaseCollection()
+    public function couchbaseCollection(): string
     {
         return $this->tableName();
     }
@@ -52,6 +52,42 @@ trait CouchbaseModelBridge
     public function shouldUseCouchbase()
     {
         return DatabaseAdapterFactory::shouldUseCouchbase($this->tableName());
+    }
+    
+    /**
+     * Check if reads should come from Couchbase
+     * Uses CouchbaseCutoverManager for routing decision
+     * @return bool
+     */
+    protected function shouldReadFromCouchbase()
+    {
+        // First check if MariaDB is unavailable - always use Couchbase then
+        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+            return true;
+        }
+        
+        // Check CouchbaseCutoverManager for explicit Couchbase routing
+        if (class_exists('CouchbaseCutoverManager')) {
+            try {
+                $manager = \CouchbaseCutoverManager::getInstance();
+                $config = $manager->getConfig();
+                
+                // Only route to Couchbase if read_source is explicitly 'couchbase'
+                // AND we're not in emergency_disable mode
+                if ($config['read_source'] === 'couchbase' && 
+                    !$config['emergency_disable'] && 
+                    $config['enabled']) {
+                    // Get the short model class name for the cutover manager
+                    $modelClass = (new \ReflectionClass($this))->getShortName();
+                    return $manager->shouldUseCouchbase($modelClass, 'read');
+                }
+            } catch (\Exception $e) {
+                // Fall back to MariaDB on error
+            }
+        }
+        
+        // Default: use MariaDB
+        return false;
     }
     
     /**
@@ -200,9 +236,15 @@ trait CouchbaseModelBridge
             }
         }
         
+        // Ensure primary key (id) is always included in document
+        $pk = $this->getPrimaryKey();
+        if ($pk && !isset($doc['id'])) {
+            $doc['id'] = $pk;
+        }
+        
         // Add document metadata
         $doc['_type'] = $this->couchbaseDocumentType();
-        $doc['_mysql_id'] = $this->getPrimaryKey();
+        $doc['_mysql_id'] = $pk;
         $doc['_modified'] = date('c');
         
         if ($this->isNewRecord) {
@@ -254,6 +296,15 @@ trait CouchbaseModelBridge
         // Set primary key from document
         if (isset($doc['_mysql_id'])) {
             $this->setPrimaryKey($doc['_mysql_id']);
+            // Also set id attribute directly to ensure it's available
+            if ($this->hasAttribute('id')) {
+                $this->id = $doc['_mysql_id'];
+            }
+        } elseif (isset($doc['id'])) {
+            $this->setPrimaryKey($doc['id']);
+            if ($this->hasAttribute('id')) {
+                $this->id = $doc['id'];
+            }
         }
     }
     
@@ -422,8 +473,8 @@ trait CouchbaseModelBridge
      */
     public function findByPk($pk, $condition = '', $params = [])
     {
-        // Only use N1QL when MariaDB is unavailable
-        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+        // Use Couchbase if configured or MariaDB is unavailable
+        if ($this->shouldReadFromCouchbase()) {
             return $this->n1qlFindByPk($pk);
         }
         
@@ -439,7 +490,7 @@ trait CouchbaseModelBridge
      */
     public function find($condition = '', $params = [])
     {
-        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+        if ($this->shouldReadFromCouchbase()) {
             return $this->n1qlFind($condition, $params);
         }
         
@@ -454,7 +505,13 @@ trait CouchbaseModelBridge
      */
     public function findAll($condition = '', $params = [])
     {
-        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+        // Check for complex CDbCriteria with `with` (eager loading) that can't be converted to N1QL
+        if ($condition instanceof \CDbCriteria && !empty($condition->with)) {
+            // Complex query with JOINs - fall back to parent which will use MariaDB or CouchbaseDbCommand
+            return parent::findAll($condition, $params);
+        }
+        
+        if ($this->shouldReadFromCouchbase()) {
             return $this->n1qlFindAll($condition, $params);
         }
         
@@ -470,7 +527,7 @@ trait CouchbaseModelBridge
      */
     public function findByAttributes($attributes, $condition = '', $params = [])
     {
-        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+        if ($this->shouldReadFromCouchbase()) {
             return $this->n1qlFindByAttributes($attributes, $condition, $params);
         }
         
@@ -486,7 +543,7 @@ trait CouchbaseModelBridge
      */
     public function findAllByAttributes($attributes, $condition = '', $params = [])
     {
-        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+        if ($this->shouldReadFromCouchbase()) {
             return $this->n1qlFindAllByAttributes($attributes, $condition, $params);
         }
         
@@ -501,7 +558,13 @@ trait CouchbaseModelBridge
      */
     public function count($condition = '', $params = [])
     {
-        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+        // Handle CDbCriteria objects by extracting condition and params
+        if ($condition instanceof \CDbCriteria) {
+            $params = $condition->params;
+            $condition = $condition->condition;
+        }
+        
+        if ($this->shouldReadFromCouchbase()) {
             return $this->n1qlCount($condition, $params) ?? 0;
         }
         
@@ -516,7 +579,7 @@ trait CouchbaseModelBridge
      */
     public function exists($condition = '', $params = [])
     {
-        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+        if ($this->shouldReadFromCouchbase()) {
             $exists = $this->n1qlExists($condition, $params);
 
             // Fallback: if the COUNT path returned 0, attempt a direct primary-key lookup
@@ -655,11 +718,17 @@ trait CouchbaseModelBridge
     protected function n1qlFind($condition = '', $params = [])
     {
         try {
+            $criteria = $this->buildCriteria($condition, $params);
             $n1ql = $this->buildN1qlSelect();
-            $where = $this->buildN1qlWhere($condition, $params);
-            $n1ql .= $where . " LIMIT 1";
+            $n1ql .= $this->buildN1qlWhere($criteria->condition, $criteria->params);
             
-            $rows = $this->executeN1ql($n1ql, $params);
+            if ($criteria->order) {
+                $n1ql .= " ORDER BY " . $this->convertOrderBy($criteria->order);
+            }
+            
+            $n1ql .= " LIMIT 1";
+            
+            $rows = $this->executeN1ql($n1ql, $criteria->params);
             
             if (empty($rows)) {
                 return null;
@@ -692,7 +761,11 @@ trait CouchbaseModelBridge
                 $n1ql .= " OFFSET " . (int)$criteria->offset;
             }
             
+            \Yii::log("N1QL findAll query: " . $n1ql . " params: " . json_encode($criteria->params), \CLogger::LEVEL_INFO, 'application');
+            
             $rows = $this->executeN1ql($n1ql, $criteria->params);
+            
+            \Yii::log("N1QL findAll result count: " . count($rows), \CLogger::LEVEL_INFO, 'application');
             
             $models = [];
             foreach ($rows as $row) {
@@ -851,6 +924,18 @@ trait CouchbaseModelBridge
             $params = $newParams;
         }
         
+        // Handle boolean-like fields that may be stored as strings in Couchbase
+        // Convert `active = 1` to `(active = 1 OR active = "1")` for type-agnostic matching
+        $booleanFields = ['active', 'is_active', 'enabled', 'default', 'deleted'];
+        foreach ($booleanFields as $field) {
+            // Match patterns like `active = 1`, `active=1`, active = 0, etc.
+            $condition = preg_replace(
+                '/\b' . $field . '\s*=\s*([01])\b/',
+                '(' . $field . ' = $1 OR ' . $field . ' = "$1")',
+                $condition
+            );
+        }
+        
         return $condition;
     }
     
@@ -944,13 +1029,30 @@ trait CouchbaseModelBridge
             }
         }
         
-        // Set primary key
-        if (isset($row['id'])) {
+        // Set primary key - handle both simple and composite keys
+        $table = $model->getTableSchema();
+        $pk = $table ? $table->primaryKey : null;
+        
+        // For composite primary keys, don't try to set from doc_key
+        // The attributes should already be set from the row data above
+        if (is_array($pk)) {
+            // Composite primary key - build array from row data
+            $pkValues = [];
+            foreach ($pk as $pkCol) {
+                if (isset($row[$pkCol])) {
+                    $pkValues[$pkCol] = $row[$pkCol];
+                }
+            }
+            if (count($pkValues) === count($pk)) {
+                $model->setPrimaryKey($pkValues);
+            }
+        } elseif (isset($row['id'])) {
             $model->setPrimaryKey($row['id']);
         } elseif (isset($row['_mysql_id'])) {
             $model->setPrimaryKey($row['_mysql_id']);
-        } elseif (isset($row['_doc_key'])) {
+        } elseif (isset($row['_doc_key']) && is_string($pk)) {
             // Extract ID from document key (e.g., "event::123" -> 123)
+            // Only for simple (non-composite) primary keys
             $docKey = $row['_doc_key'];
             if (strpos($docKey, '::') !== false) {
                 $parts = explode('::', $docKey);

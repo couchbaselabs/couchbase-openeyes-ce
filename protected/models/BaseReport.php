@@ -70,4 +70,15 @@ class BaseReport extends CModel
     {
         return PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution(SettingMetadata::model()->getSetting('display_primary_number_usage_code'), $this->user_institution_id, $this->user_selected_site_id);
     }
+
+    /**
+     * Returns data set for the report
+     * Provides a default implementation so that reports extending BaseReport can be used with reportData action
+     *
+     * @return array
+     */
+    public function dataSet()
+    {
+        return array();
+    }
 }

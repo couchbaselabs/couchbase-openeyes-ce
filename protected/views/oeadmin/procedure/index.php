@@ -92,7 +92,7 @@
             <tr id="$key" class="clickable" data-id="<?php echo $procedure->id ?>"
                 data-uri="oeadmin/procedure/edit/<?php echo $procedure->id ?>?returnUri=">
                 <td>
-                    <?php if ($this->isProcedureDeletable($procedure)) : ?>
+                    <?php if (isset($deletable_procedures) && isset($deletable_procedures[$procedure->id])) : ?>
                         <input type="checkbox" name="select[]" value="<?php echo $procedure->id ?>" id="select[<?=$procedure->id ?>]"/>
                     <?php endif; ?>
                 </td>

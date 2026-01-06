@@ -87,6 +87,44 @@ class OphCiExamination_DRGrading_NSCMaculopathy extends \BaseActiveRecordVersion
     }
 
     /**
+     * Returns the Couchbase scope for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Retrieves a list of models based on the current search/filter conditions.
      *
      * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.

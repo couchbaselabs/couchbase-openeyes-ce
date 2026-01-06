@@ -38,14 +38,14 @@ class ODTDataHandler
     /**
      * @var array
      */
-    protected $dataSource = array();
+    public $dataSource = array();
 
     /**
      * @param $tableName
      * @return ODTTable
      * @throws Exception
      */
-    protected function createTable($tableName)
+    public function createTable($tableName)
     {
         $inArray = $this->alreadyInDataSource('table', $tableName);
         if ($inArray) {
@@ -58,7 +58,7 @@ class ODTDataHandler
     /**
      * @return ODTRow
      */
-    protected function createRow()
+    public function createRow()
     {
         return new ODTRow();
     }
@@ -66,7 +66,7 @@ class ODTDataHandler
     /**
      * @return ODTCell
      */
-    protected function createCell()
+    public function createCell()
     {
         return new ODTCell();
     }
@@ -75,7 +75,7 @@ class ODTDataHandler
      * @param $name
      * @return ODTSimpleText
      */
-    protected function createSimpleText($name)
+    public function createSimpleText($name)
     {
         return new ODTSimpleText($name);
     }
@@ -215,7 +215,7 @@ class ODTDataHandler
      * @param $obj
      * @throws Exception
      */
-    protected function import($obj)
+    public function import($obj)
     {
         $data = $obj->getData();
         $name = $data['name'];

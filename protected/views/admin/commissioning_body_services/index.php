@@ -149,7 +149,7 @@
         $.ajax({
             'type': 'POST',
             'url': baseUrl + '/<?php echo $base_data_url?>verifyDeleteCommissioningBodyServices',
-            'data': $('#admin_commissioning_bodies').serialize() + "&YII_CSRF_TOKEN=" + YII_CSRF_TOKEN,
+            'data': $('#admin_commissioning_body_services').serialize() + "&YII_CSRF_TOKEN=" + YII_CSRF_TOKEN,
             'success': function (resp) {
                 var mention = ($('input[type="checkbox"][name="commissioning_body_service[]"]:checked').length == 1) ? 'commissioning body service' : 'commissioning body services';
 

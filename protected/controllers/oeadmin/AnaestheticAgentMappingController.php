@@ -82,13 +82,13 @@ class AnaestheticAgentMappingController extends BaseAdminController
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            echo 'error: not an ajax call'; return;
         } else {
             if ($leafletSubspecialy = SiteSubspecialtyAnaestheticAgent::model()->findByPk($itemId)) {
                 $leafletSubspecialy->delete();
                 echo 'success';
             } else {
-                $this->render('errorpage', array('errormessage' => 'recordmissing'));
+                echo 'error: record missing';
             }
         }
     }
@@ -99,7 +99,7 @@ class AnaestheticAgentMappingController extends BaseAdminController
         $siteId = $this->request->getParam('site_id');
         $anaestheticAgentId = $this->request->getParam('anaesthetic_agent_id');
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errormessage' => 'notajaxcall'));
+            echo 'error: not an ajax call'; return;
         } else {
             if (!is_numeric($subspecialtyId) || !is_numeric($siteId) || !is_numeric($anaestheticAgentId)) {
                 echo 'error';

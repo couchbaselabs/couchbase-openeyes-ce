@@ -133,6 +133,9 @@ class SplitEventTypeElement extends BaseEventTypeElement
      */
     public function setUpdateOptions()
     {
+        if (!$this->eye) {
+            return;
+        }
         if ($this->eye->id == Eye::LEFT) {
             $this->setSideDefaultOptions('right');
         } elseif ($this->eye->id == Eye::RIGHT) {
@@ -142,6 +145,10 @@ class SplitEventTypeElement extends BaseEventTypeElement
 
     public function getUpdateOptions($context): array
     {
+        $fields = [];
+        if (!$this->eye) {
+            return $fields;
+        }
         if ($this->eye->id == Eye::LEFT) {
             $fields = $this->getSideDefaultOptions('right');
         } elseif ($this->eye->id == Eye::RIGHT) {

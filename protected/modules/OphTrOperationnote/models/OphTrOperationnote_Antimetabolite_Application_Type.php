@@ -18,4 +18,31 @@ class OphTrOperationnote_Antimetabolite_Application_Type extends BaseActiveRecor
 
     const SPONGE = 1;
     const INJECTION = 2;
+
+    public function tableName()
+    {
+        return 'ophtroperationnote_antimetabolite_application_type';
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

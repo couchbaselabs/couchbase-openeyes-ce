@@ -27,6 +27,10 @@ class RequestModule extends BaseModule
             'Request.controllers.*',
         ));
 
-        $this->setModules(array('RequestAdmin'));
+        $this->setModules(array(
+            'RequestAdmin' => array(
+                'class' => 'OEModule.Api.modules.Request.modules.RequestAdmin.RequestAdminModule',
+            ),
+        ));
     }
 }

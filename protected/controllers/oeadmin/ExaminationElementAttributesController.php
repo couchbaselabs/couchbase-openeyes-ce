@@ -293,7 +293,46 @@ class ExaminationElementAttributesController extends BaseAdminController
     public function actionSort()
     {
         $admin = new Admin(OphCiExamination_Attribute::model(), $this);
-        $admin->sortModel();
+
+        $admin->setListFields(array(
+            'display_order',
+            'name',
+            'label',
+            'attribute_elements.id',
+            'attribute_element_types.name',
+            'is_multiselect',
+        ));
+
+        $institution_id = Yii::app()->request->getQuery('institution_id', '');
+
+        if ($institution_id) {
+            $institution = Institution::model()->findByPk($institution_id);
+        } else {
+            $institution = null;
+        }
+
+        $criteria = new CDbCriteria();
+        $criteria->order = 't.display_order asc';
+
+        $admin->getSearch()->setCriteria(
+            OphCiExamination_Attribute::model()->getCriteriaForLevels(
+                $institution ? ReferenceData::LEVEL_INSTITUTION : ReferenceData::LEVEL_INSTALLATION,
+                $criteria,
+                $institution,
+            )
+        );
+        $admin->setModelDisplayName('Element Attributes');
+        $admin->div_wrapper_class = 'cols-8';
+        $admin->has_global_institution_option  = true;
+        $admin->getSearch()->setItemsPerPage($this->itemsPerPage);
+
+        $admin->setListTemplate('//admin/generic/listInstitution');
+        
+        if (Yii::app()->request->isPostRequest) {
+            $admin->sortModel();
+        } else {
+            $admin->listModel();
+        }
     }
 
     public function deleteAttributeElements(OphCiExamination_AttributeElement $element)

@@ -71,6 +71,16 @@ class EventMedicationUse extends BaseElement
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /** This ID is used as medication_id when the user is adding a new medication using the adder dialog */
     const USER_MEDICATION_ID = -1;
 
@@ -1238,6 +1248,13 @@ class EventMedicationUse extends BaseElement
         }
 
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

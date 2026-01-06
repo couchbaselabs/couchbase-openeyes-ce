@@ -73,12 +73,19 @@ class AdminController extends ModuleAdminController
      */
     public function actionAddDiagnosis()
     {
-        $parent = null;
-        if (@$_POST['parent_id'] && !$parent = OphCoTherapyapplication_TherapyDisorder::model()->findByPk((int) $_POST['parent_id'])) {
-            throw new Exception('Cannot find parent with id '.$parent->id);
+        // Check if this is a POST request with required data
+        if (!isset($_POST['disorder_id'])) {
+            Yii::app()->user->setFlash('error', 'Required parameter disorder_id is missing');
+            $this->redirect(array('viewdiagnoses'));
+            return;
         }
 
-        if (!$disorder = Disorder::model()->findByPk((int) @$_POST['disorder_id'])) {
+        $parent = null;
+        if (@$_POST['parent_id'] && !$parent = OphCoTherapyapplication_TherapyDisorder::model()->findByPk((int) $_POST['parent_id'])) {
+            throw new Exception('Cannot find parent with id '.$_POST['parent_id']);
+        }
+
+        if (!$disorder = Disorder::model()->findByPk((int) $_POST['disorder_id'])) {
             throw new Exception('Unknown disorder id '.@$_POST['disorder_id']);
         }
 
@@ -173,6 +180,10 @@ class AdminController extends ModuleAdminController
                     }
                 }
             }
+            echo '1';
+        } else {
+            // For GET requests, redirect to viewDiagnoses
+            $this->redirect(array('viewDiagnoses'));
         }
     }
 
@@ -319,9 +330,19 @@ class AdminController extends ModuleAdminController
 
     // decision tree node actions
 
-    public function actionCreateDecisionTreeNode($id)
+    public function actionCreateDecisionTreeNode($id = null)
     {
+        if (!$id) {
+            Yii::app()->user->setFlash('error', 'Required parameter id is missing');
+            $this->redirect(array('viewdecisiontrees'));
+            return;
+        }
+
         $tree = OphCoTherapyapplication_DecisionTree::model()->findByPk((int) $id);
+
+        if (!$tree) {
+            throw new CHttpException(404, 'Unable to find the requested Decision Tree');
+        }
 
         $parent = null;
         if (isset($_GET['parent_id'])) {
@@ -381,6 +402,10 @@ class AdminController extends ModuleAdminController
     {
         $node = OphCoTherapyapplication_DecisionTreeNode::model()->findByPk((int) $id);
 
+        if (!$node) {
+            throw new CHttpException(404, 'Unable to find the requested Decision Tree Node');
+        }
+
         $model = new OphCoTherapyapplication_DecisionTreeNodeRule();
         $model->node = $node;
 
@@ -406,6 +431,10 @@ class AdminController extends ModuleAdminController
     public function actionUpdateDecisionTreeNodeRule($id)
     {
         $model = OphCoTherapyapplication_DecisionTreeNodeRule::model()->findByPk((int) $id);
+
+        if (!$model) {
+            throw new CHttpException(404, 'Unable to find the requested Decision Tree Node Rule');
+        }
 
         if (isset($_POST['OphCoTherapyapplication_DecisionTreeNodeRule'])) {
             $model->attributes = $_POST['OphCoTherapyapplication_DecisionTreeNodeRule'];
@@ -478,7 +507,8 @@ class AdminController extends ModuleAdminController
     {
         $files = array();
         foreach ($uploaded_files['tmp_name'] as $i => $f) {
-            if (!empty($uploaded_files['error'][$i])) {
+            // Skip UPLOAD_ERR_NO_FILE (error code 4) as it's not an error for optional file uploads
+            if (!empty($uploaded_files['error'][$i]) && $uploaded_files['error'][$i] !== UPLOAD_ERR_NO_FILE) {
                 $collection->addError('files', "file $i had an error");
             } elseif (!empty($f) && is_uploaded_file($f)) {
                 $name = $uploaded_files['name'][$i];
@@ -603,10 +633,16 @@ class AdminController extends ModuleAdminController
     public function actionRemoveFileCollection_File()
     {
         try {
-            if ($collection = OphCoTherapyapplication_FileCollection::model()->findByPk(@$_GET['filecollection_id'])) {
-                if ($collection->removeFileById(@$_GET['file_id'])) {
-                    $this->renderJSON(array('success' => true));
-                }
+            $collection = OphCoTherapyapplication_FileCollection::model()->findByPk(@$_GET['filecollection_id']);
+            if (!$collection) {
+                $this->renderJSON(array('success' => false));
+                return;
+            }
+            
+            if ($collection->removeFileById(@$_GET['file_id'])) {
+                $this->renderJSON(array('success' => true));
+            } else {
+                $this->renderJSON(array('success' => false));
             }
         } catch (Exception $e) {
             Yii::log("couldn't remove file (".@$_GET['file_id'].') from collection ('.@$_GET['filecollection_id'].')'.$e->getMessage(), 'error');

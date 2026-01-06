@@ -29,12 +29,12 @@ class DashboardController extends BaseDashboardController
                 'expression' => 'Yii::app()->user->isSurgeon()',
             ),
             array('allow',
-                'actions' => array('index'),
+                'actions' => array('index', 'printSvg'),
                 'roles' => array('admin'),
             ),
             array('allow',
                 'actions' => array('oescape'),
-                'roles' => array('none'),
+                'roles' => array('admin'),
             ),
         );
     }
@@ -64,6 +64,11 @@ class DashboardController extends BaseDashboardController
 
 ///////////////////////////////////////////////////////////////////////////////
         ini_set('magic_quotes_gpc', 'off');
+
+        // Check if required POST variables exist
+        if (!isset($_POST['type']) || !isset($_POST['svg']) || !isset($_POST['filename'])) {
+            throw new CHttpException(400, 'Missing required POST parameters: type, svg, and filename are required.');
+        }
 
         $type = $_POST['type'];
         $svg = (string) $_POST['svg'];
@@ -166,7 +171,18 @@ class DashboardController extends BaseDashboardController
         $this->headerTemplate = '//dashboard/header_oescape';
 
         $assetManager = Yii::app()->getAssetManager();
+        
+        // Register jQuery
+        Yii::app()->clientScript->registerCoreScript('jquery');
+        
+        // Register Highcharts from CDN
+        Yii::app()->clientScript->registerScriptFile('https://code.highcharts.com/highcharts.js', CClientScript::POS_END);
+        Yii::app()->clientScript->registerScriptFile('https://code.highcharts.com/modules/stock.js', CClientScript::POS_END);
+        
+        // Register patient ID variable
         Yii::app()->clientScript->registerScript('patientId', 'var patientId = '.$id.';', CClientScript::POS_HEAD);
+        
+        // Register OEscape initialization script
         $assetManager->registerScriptFile('js/dashboard/initOEscape.js', null, null, AssetManager::OUTPUT_ALL, false);
 
         if ($id > 0) {

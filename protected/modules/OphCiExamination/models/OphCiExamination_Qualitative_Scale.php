@@ -72,4 +72,38 @@ class OphCiExamination_Qualitative_Scale extends \BaseActiveRecordVersioned
             'values' => array(self::HAS_MANY, 'OEModule\OphCiExamination\models\OphCiExamination_Qualitative_Scale_Value', 'scale_id', 'order' => 'display_order asc'),
         );
     }
+
+    /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

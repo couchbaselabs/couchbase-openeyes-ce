@@ -13,7 +13,7 @@ if (!isset($element)) {
     </td>
     <td>
         <?php $this->renderPartial('//docman/table/contact_name_type', array(
-                        'address_targets' => $element->address_targets,
+                        'address_targets' => (!$element->isNewRecord) ? $element->address_targets : array(),
                         'contact_id' => $contact_id,
                         'contact_name' => $contact_name,
                         'contact_type' => isset($selected_contact_type) ? $selected_contact_type : null,
@@ -40,7 +40,7 @@ if (!isset($element)) {
         </td>
     <td class="docman_delivery_method align-left" data-test="docman_delivery_method">
         <?php $this->renderPartial('//docman/table/delivery_methods', array(
-                    'is_draft' => $element->draft,
+                    'is_draft' => (!$element->isNewRecord) ? $element->draft : false,
                     'contact_type' => $selected_contact_type,
                     'row_index' => $row_index,
                     'can_send_electronically' => $can_send_electronically,

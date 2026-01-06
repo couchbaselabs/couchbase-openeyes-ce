@@ -77,6 +77,24 @@ class Contact extends BaseActiveRecordVersioned
     }
 
     /**
+     * After save callback - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete callback - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Get embedded relations for Couchbase document
      * @return array
      */

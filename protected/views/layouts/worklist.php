@@ -21,6 +21,15 @@
     <?php $this->renderPartial('//base/head/_meta'); ?>
     <?php $this->renderPartial('//base/head/_assets'); ?>
     <?php $this->renderPartial('//base/head/_tracking'); ?>
+    <?php
+        // Render client scripts registered in head
+        $cs = Yii::app()->getClientScript();
+        if(isset($cs->scripts[CClientScript::POS_HEAD])) {
+            foreach($cs->scripts[CClientScript::POS_HEAD] as $id => $script) {
+                echo CHtml::script($script) . "\n";
+            }
+        }
+    ?>
 </head>
 <body class="open-eyes oe-grid basic">
     <!-- Minimum screen width warning -->

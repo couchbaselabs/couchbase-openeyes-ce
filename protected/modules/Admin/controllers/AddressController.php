@@ -25,6 +25,10 @@ class AddressController extends BaseAdminController
         if (!$model) {
             throw new Exception('Address not found with id ' . $request->getParam('id'));
         }
+        // Ensure contact is loaded
+        if (!$model->contact) {
+            $model->contact = Contact::model()->findByPk($model->contact_id);
+        }
         if ($request->getPost('Address')) {
             $model->attributes = $request->getPost('Address');
             if ($request->getPost('Contact')) {
@@ -56,6 +60,14 @@ class AddressController extends BaseAdminController
         $model->date_end = null;
         $request = Yii::app()->getRequest();
         $model->contact_id = $request->getParam('contact_id');
+        // Load contact relation for the view
+        if ($model->contact_id) {
+            $model->contact = Contact::model()->findByPk($model->contact_id);
+        }
+        // Initialize contact as empty model if not loaded
+        if (!$model->contact) {
+            $model->contact = new Contact();
+        }
         if ($request->getPost('Address')) {
             $model->attributes = $request->getPost('Address');
             if ($request->getPost('Contact')) {

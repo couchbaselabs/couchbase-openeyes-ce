@@ -26,7 +26,7 @@
         // TODO: need to check if the event is draft!
         $elementLetter = ElementLetter::model()->findByAttributes(array('event_id' => $this->event->id));
 
-        if ($elementLetter->draft) {
+        if ($elementLetter && $elementLetter->draft) {
             $this->event_actions[] = EventAction::button('Print Draft', 'print', null, array('class' => 'small'));
         } else {
             $this->event_actions[] = EventAction::button('Print', 'print', null, array('class' => 'button small'));
@@ -45,7 +45,7 @@
             $institution = Institution::model()->getCurrent();
             $institutions = !empty(Yii::app()->params['correspondence_export_institutions']) ? Yii::app()->params['correspondence_export_institutions'] : [$institution->remote_id];
 
-            if (in_array($institution->remote_id, $institutions) && $elementLetter->exportUrl !== null) {
+            if ($elementLetter && in_array($institution->remote_id, $institutions) && $elementLetter->exportUrl !== null) {
                 $this->event_actions[] = EventAction::button('Export', 'export', null, ['id' => 'et_export', 'class' => 'small']);
             }
         }

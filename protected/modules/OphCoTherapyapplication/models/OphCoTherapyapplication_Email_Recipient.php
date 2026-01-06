@@ -74,4 +74,26 @@ class OphCoTherapyapplication_Email_Recipient extends BaseActiveRecordVersioned
 
         return parent::beforeValidate();
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

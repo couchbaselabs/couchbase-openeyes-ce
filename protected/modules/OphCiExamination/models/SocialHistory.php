@@ -47,9 +47,27 @@ use OEModule\OphCiExamination\widgets\SocialHistory as SocialHistoryWidget;
  */
 class SocialHistory extends \BaseEventTypeElement
 {
-    use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge {
+        \OE\Models\Traits\CouchbaseModelBridge::__get as couchbaseGet;
+    }
     use CustomOrdering;
-    use HasRelationOptions;
+    use HasRelationOptions {
+        HasRelationOptions::__get insteadof \OE\Models\Traits\CouchbaseModelBridge;
+    }
+    
+    /**
+     * Override __get to handle both HasRelationOptions and CouchbaseModelBridge
+     */
+    public function __get($name)
+    {
+        if (substr($name, -8) === '_options') {
+            $relation_name = strtolower(substr($name, 0, -8));
+            if (!$this->shouldSkipRelation($relation_name) && $this->getRelationByName($relation_name)) {
+                return $this->{"{$relation_name}Options"}();
+            }
+        }
+        return $this->couchbaseGet($name);
+    }
 
     protected $auto_update_relations = true;
     protected $widgetClass = SocialHistoryWidget::class;
@@ -221,6 +239,34 @@ class SocialHistory extends \BaseEventTypeElement
         if ($this->alcohol_intake == "")
         $this->alcohol_intake = null;
         return true;
+    }
+
+    /**
+     * @return string the Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

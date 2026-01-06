@@ -96,9 +96,19 @@ class Element_OphTrOperationnote_Comments extends Element_OpNote
      * 
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'clinical';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * 
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**
@@ -110,6 +120,18 @@ class Element_OphTrOperationnote_Comments extends Element_OpNote
     {
         // No complex relations to embed - comments and postop_instructions are simple text fields
         return [];
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

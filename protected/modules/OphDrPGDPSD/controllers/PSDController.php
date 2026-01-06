@@ -14,6 +14,7 @@ class PSDController extends DefaultController
         'unlockPSD' => self::ACTION_TYPE_FORM,
         'confirmAdministration' => self::ACTION_TYPE_FORM,
         'checkPincode' => self::ACTION_TYPE_FORM,
+        'removePSD' => self::ACTION_TYPE_FORM,
     );
 
     protected $api;
@@ -35,13 +36,13 @@ class PSDController extends DefaultController
             $transaction = \Yii::app()->cbdb->beginTransaction();
             $assignment->active = 0;
             $assignment->save();
-        }
-        if ($assignment->getErrors()) {
-            $transaction->rollback();
-        } else {
-            $transaction->commit();
-            $ret['success'] = 1;
-            Audit::add('PSD Assignment', 'removed assignment', "Assignment id: {$assignment_id}");
+            if ($assignment->getErrors()) {
+                $transaction->rollback();
+            } else {
+                $transaction->commit();
+                $ret['success'] = 1;
+                Audit::add('PSD Assignment', 'removed assignment', "Assignment id: {$assignment_id}");
+            }
         }
         $this->renderJSON($ret);
     }
@@ -177,9 +178,13 @@ class PSDController extends DefaultController
         $step_type_id = \Yii::app()->request->getParam('step_type_id', null);
         $visit_id = \Yii::app()->request->getParam('visit_id', null);
 
+        if (!$step_id && !$step_type_id) {
+            throw new CHttpException(400, 'step_id or step_type_id parameter is required.');
+        }
+
         $wl_patient = WorklistPatient::model()->findByPk($visit_id);
 
-        if (!$wl_patient->pathway->start_time) {
+        if ($wl_patient && !$wl_patient->pathway->start_time) {
             $wl_patient->pathway->start_time = date('Y-m-d H:i:s');
             $wl_patient->pathway->save();
         }
@@ -204,10 +209,29 @@ class PSDController extends DefaultController
             if (!$type_step) {
                 throw new CHttpException(404, 'Unable to retrieve step for processing.');
             }
+            
+            if (!$type_step->pathway_type) {
+                throw new CHttpException(404, 'Unable to retrieve pathway type for step.');
+            }
+            
             $visit = WorklistPatient::model()->findByPk($visit_id);
+            if (!$visit) {
+                throw new CHttpException(404, 'Unable to retrieve visit for processing.');
+            }
+            
             $steps = $type_step->pathway_type->instancePathway($visit);
+            
+            if (!isset($steps[$step_type_id])) {
+                throw new CHttpException(404, 'Unable to find step in pathway.');
+            }
+            
             $step = $steps[$step_type_id];
         }
+        
+        if (!$step) {
+            throw new CHttpException(404, 'Unable to retrieve step for processing.');
+        }
+        
         $assignment_id = $step->getState('assignment_id');
         $patient_id = $step->pathway->worklist_patient->patient_id;
         $assignment_data = \Yii::app()->request->getParam('Assignment', array());

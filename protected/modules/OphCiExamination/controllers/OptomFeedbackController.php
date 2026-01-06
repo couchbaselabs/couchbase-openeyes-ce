@@ -84,6 +84,13 @@ class OptomFeedbackController extends \BaseEventTypeController
             }
 
             echo $result;
+        } else {
+            // Handle GET requests - return a JSON error indicating this is an AJAX-only endpoint
+            header('Content-Type: application/json');
+            echo json_encode(array(
+                's'     => 0,
+                'msg'   => 'This endpoint requires a POST request. Please use the list view to edit records.'
+            ));
         }
 
     }
@@ -126,13 +133,16 @@ class OptomFeedbackController extends \BaseEventTypeController
         return $this->is_list_filtered;
     }
 
-    public function actionGetAuditEventLog($id)
+    public function actionGetAuditEventLog($id = null)
     {
-        if ($this->request->isPostRequest) {
+        $result = '';
+        if ($this->request->isPostRequest && $id !== null) {
             $model = \AutomaticExaminationEventLog::model()->findByPk($id);
-            $previousVersions = $model->getPreviousVersions();
-            array_unshift($previousVersions, $model);
-            $result = $this->renderPartial('/optom/audit_list', array( 'data' => $previousVersions));
+            if ($model) {
+                $previousVersions = $model->getPreviousVersions();
+                array_unshift($previousVersions, $model);
+                $result = $this->renderPartial('/optom/audit_list', array( 'data' => $previousVersions));
+            }
         }
         echo $result;
     }

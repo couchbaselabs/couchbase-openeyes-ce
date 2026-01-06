@@ -16,6 +16,16 @@ class Element_OphTrOperationnote_Mmc extends Element_OnDemand
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     public function tableName()
     {
         return 'et_ophtroperationnote_mmc';
@@ -99,5 +109,17 @@ class Element_OphTrOperationnote_Mmc extends Element_OnDemand
     public function getDose()
     {
         return number_format($this->concentration->value * $this->volume->value, 2);
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

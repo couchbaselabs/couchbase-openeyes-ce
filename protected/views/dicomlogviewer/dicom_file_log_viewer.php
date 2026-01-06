@@ -13,23 +13,21 @@
             </tr>
             </thead>
             <tbody>
-
-            <tr>
-                <td>
-
-                    <?php
-                    foreach ($data as $key => $val) {
-                        echo '<tr data-id='.$val['id'].' filename='.basename($val['dicom_file_id']).' status='.$val['status'].' >
-                                    <td id="id">'.$val['id'].'</td>
-                                     <td id="event_date_time">'.$val['event_date_time'].'</td>
-                                     <td id="filename"><a>'.basename($val['dicom_file_id']).'</a></td>
-                                     <td id="status">'.$val['status'].'</td>
-                                     <td id="process_name">'.$val['process_name'].'</td>
-                                  </tr>';
-                    }
-                    ?>
-                </td>
-            </tr>
+            <?php
+            foreach ($data as $key => $val) {
+                $filename = isset($val['filename']) ? $val['filename'] : 'N/A';
+                echo '<tr data-id="'.$val['id'].'" filename="'.$filename.'" status="'.$val['status'].'" >
+                    <td id="id">'.$val['id'].'</td>
+                    <td id="event_date_time">'.$val['event_date_time'].'</td>
+                    <td id="filename"><a>'.$filename.'</a></td>
+                    <td id="status">'.$val['status'].'</td>
+                    <td id="process_name">'.$val['process_name'].'</td>
+                </tr>';
+            }
+            if (empty($data)) {
+                echo '<tr><td colspan="5" style="text-align: center;">No DICOM files found.</td></tr>';
+            }
+            ?>
             </tbody>
         </table>
     </form>

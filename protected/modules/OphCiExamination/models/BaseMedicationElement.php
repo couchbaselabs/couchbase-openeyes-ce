@@ -91,6 +91,24 @@ abstract class BaseMedicationElement extends BaseEventTypeElement
     abstract public function getEntryRelations();
 
     /**
+     * Returns the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * @inheritdoc
      */
     protected function afterSave()
@@ -99,6 +117,16 @@ abstract class BaseMedicationElement extends BaseEventTypeElement
             $this->saveEntries();
         }
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     private function mergeSameMedication()

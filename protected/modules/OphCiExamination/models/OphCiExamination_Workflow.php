@@ -46,6 +46,11 @@ class OphCiExamination_Workflow extends \BaseActiveRecordVersioned
         return 'reference';
     }
 
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /**
      * @return string the associated database table name
      */
@@ -340,6 +345,28 @@ class OphCiExamination_Workflow extends \BaseActiveRecordVersioned
             \Yii::log("Workflow save failed: " . $e->getMessage(), \CLogger::LEVEL_ERROR);
             return false;
         }
+    }
+
+    /**
+     * After saving hook
+     * Note: Couchbase persistence is handled directly in the save() method
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        // Couchbase write is handled in save() method directly via couchbaseRest
+        // No need to call saveToCouchbase() here to avoid duplicate writes
+    }
+
+    /**
+     * After deleting hook
+     * Note: Couchbase deletion is handled directly in the delete() method
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        // Couchbase delete is handled in delete() method directly via couchbaseRest
+        // No need to call deleteFromCouchbase() here
     }
 
     /**

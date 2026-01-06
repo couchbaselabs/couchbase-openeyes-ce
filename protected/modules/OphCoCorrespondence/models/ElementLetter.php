@@ -159,7 +159,7 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
     {
         $letter_type = LetterType::model()->findByAttributes(array('name' => 'Internal Referral', 'is_active' => 1));
 
-        if ($letter_type->id === $this->letter_type_id) {
+        if ($letter_type && $letter_type->id === $this->letter_type_id) {
             // internal referral posted
             if (!$this->to_subspecialty_id && $this->draft === '0') {
                 $this->addError($attribute, $this->getAttributeLabel($attribute) . ": Please select a service.");
@@ -173,7 +173,7 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
             return;
         }
         $letter_type = LetterType::model()->findByAttributes(array('name' => 'Internal Referral', 'is_active' => 1));
-        if ($letter_type->id !== $this->letter_type_id) {
+        if (!$letter_type || $letter_type->id !== $this->letter_type_id) {
             return;
         }
         if (!$this->to_firm_id && $this->draft === '0') {
@@ -186,7 +186,7 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
         $letter_type = LetterType::model()->findByAttributes(array('name' => 'Internal Referral', 'is_active' => 1));
 
         // internal referral posted
-        if (($letter_type->id === $this->letter_type_id) && !is_numeric($this->is_same_condition) && $this->draft === '0') {
+        if ($letter_type && ($letter_type->id === $this->letter_type_id) && !is_numeric($this->is_same_condition) && $this->draft === '0') {
             $this->addError($attribute, 'Same Condition' . ': Please select a condition.');
         }
     }
@@ -196,7 +196,7 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
         $letter_type = LetterType::model()->findByAttributes(array('name' => 'Internal Referral', 'is_active' => 1));
         $is_internal_referral_enabled = OphcocorrespondenceInternalReferralSettings::model()->getSetting('is_enabled');
 
-        if ($is_internal_referral_enabled && ($letter_type->id === $this->letter_type_id)) {
+        if ($letter_type && $is_internal_referral_enabled && ($letter_type->id === $this->letter_type_id)) {
             $validator = CValidator::createValidator('required', $this, $attribute, $params);
             $validator->validate($this);
         }
@@ -614,8 +614,13 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
         $re = 'Re: ' . $patient->first_name . ' ' . $patient->last_name;
 
         foreach (array('address1', 'address2', 'city', 'postcode') as $field) {
-            if ($patient->contact->address && $patient->contact->address->{$field}) {
-                $re .= ', ' . $patient->contact->address->{$field};
+            $address = $patient->contact->address ?? null;
+            if ($address) {
+                // Handle both object and array forms (Couchbase returns arrays for embedded data)
+                $fieldValue = is_object($address) ? ($address->{$field} ?? null) : ($address[$field] ?? null);
+                if ($fieldValue) {
+                    $re .= ', ' . $fieldValue;
+                }
             }
         }
         if (Yii::app()->params['nhs_num_private'] == true || !$secondary_identifier) {
@@ -818,8 +823,8 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
         $criteria->with = ['institutions', 'sites', 'firms', 'subspecialties'];
         $criteria->condition = '((firms_firms.firm_id = :firm_id OR firms_firms.firm_id IS NULL) AND (sites_sites.site_id = :site_id OR sites_sites.site_id IS NULL)' .
                              ' AND (institutions_institutions.institution_id = :institution_id OR institutions_institutions.institution_id IS NULL)';
-        $criteria->params = [':firm_id' => $firm->id, ':site_id' => Yii::app()->session['selected_site_id'], ':institution_id' => Yii::app()->session['selected_institution_id']];
-        if ($firm->service_subspecialty_assignment_id) {
+        $criteria->params = [':firm_id' => ($firm ? $firm->id : null), ':site_id' => Yii::app()->session['selected_site_id'], ':institution_id' => Yii::app()->session['selected_institution_id']];
+        if ($firm && $firm->service_subspecialty_assignment_id) {
             $criteria->condition .= ' AND (subspecialties_subspecialties.subspecialty_id = :subspecialty_id OR subspecialties_subspecialties.subspecialty_id IS NULL)';
             $criteria->params[':subspecialty_id'] = $firm->serviceSubspecialtyAssignment->subspecialty_id;
         }
@@ -849,7 +854,7 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
         }
 
         foreach (array('address', 'introduction', 're', 'body', 'footer', 'cc') as $field) {
-            $this->$field = trim($this->$field);
+            $this->$field = trim($this->$field ?? '');
         }
 
         if (!$this->clinic_date) {
@@ -1171,7 +1176,7 @@ class ElementLetter extends BaseEventTypeElement implements Exportable
     {
         $internal_referral_letter_type = LetterType::model()->findByAttributes(array('name' => 'Internal Referral'));
 
-        return $this->letter_type_id == $internal_referral_letter_type->id;
+        return $internal_referral_letter_type && $this->letter_type_id == $internal_referral_letter_type->id;
     }
 
     public function getInternalReferralSettings($key, $default = null)

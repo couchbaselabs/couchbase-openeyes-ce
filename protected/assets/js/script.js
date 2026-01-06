@@ -504,17 +504,21 @@ function createLoginOverlay() {
     detailsList.classList.add('row-list');
     detailsDiv.append(detailsList);
 
-    let institutionListItem = document.createElement('li');
-    institutionListItem.id = 'js-institution';
-    institutionListItem.classList.add('login-institution');
-    institutionListItem.innerText = prepopulationData['institution']['name'];
-    detailsList.append(institutionListItem);
+    if (prepopulationData && prepopulationData['institution'] && prepopulationData['institution']['name']) {
+        let institutionListItem = document.createElement('li');
+        institutionListItem.id = 'js-institution';
+        institutionListItem.classList.add('login-institution');
+        institutionListItem.innerText = prepopulationData['institution']['name'];
+        detailsList.append(institutionListItem);
+    }
 
-    let siteListItem = document.createElement('li');
-    siteListItem.id = 'js-site';
-    siteListItem.classList.add('login-site');
-    siteListItem.innerText = prepopulationData['site']['name'];
-    detailsList.append(siteListItem);
+    if (prepopulationData && prepopulationData['site'] && prepopulationData['site']['name']) {
+        let siteListItem = document.createElement('li');
+        siteListItem.id = 'js-site';
+        siteListItem.classList.add('login-site');
+        siteListItem.innerText = prepopulationData['site']['name'];
+        detailsList.append(siteListItem);
+    }
 
     if (auth_source === 'BASIC' || auth_source === 'LDAP') {
         let userDiv = document.createElement('div');

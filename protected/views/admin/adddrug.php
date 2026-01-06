@@ -31,12 +31,12 @@
     <?php echo $form->textField($drug, 'name', array('autocomplete' => SettingMetadata::model()->getSetting('html_autocomplete'))) ?>
     <?php echo $form->textField($drug, 'tallman', array('autocomplete' => SettingMetadata::model()->getSetting('html_autocomplete'))) ?>
     <?php echo $form->textField($drug, 'aliases', array('autocomplete' => SettingMetadata::model()->getSetting('html_autocomplete'))) ?>
-    <?php echo $form->dropDownList($drug, 'type_id', 'DrugType') ?>
     <?php echo $form->textField($drug, 'default_dose', array('autocomplete' => SettingMetadata::model()->getSetting('html_autocomplete'))) ?>
     <?php echo $form->textField($drug, 'dose_unit', array('autocomplete' => SettingMetadata::model()->getSetting('html_autocomplete'))) ?>
-    <?php echo $form->dropDownList($drug, 'default_frequency_id', 'DrugFrequency', array('empty' => '')) ?>
+    <?php echo $form->dropDownList($drug, 'default_frequency_id', 'MedicationFrequency', array('empty' => '')) ?>
     <?php echo $form->dropDownList($drug, 'default_duration_id', 'MedicationDuration', array('empty' => '')) ?>
-    <?php echo $form->multiSelectList(
+    <?php /* Allergies field disabled due to missing allergy table in database
+    echo $form->multiSelectList(
         $drug,
         'allergies',
         'allergies',
@@ -44,7 +44,7 @@
         CHtml::listData(Allergy::model()->active()->findAll(array('order' => 'name')), 'id', 'name'),
         null,
         array('empty' => '', 'label' => 'Allergies')
-    ) ?>
+    ); */ ?>
     <?php echo $form->formActions(array('cancel-uri' => '/admin/drugs')) ?>
     <?php $this->endWidget() ?>
   <script type="text/javascript">

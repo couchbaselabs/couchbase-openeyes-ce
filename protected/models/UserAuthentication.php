@@ -243,6 +243,18 @@ class UserAuthentication extends BaseActiveRecordVersioned
         return parent::afterFind();
     }
 
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public function verifyPassword($password)
     {
         if (!$this->password_salt) {

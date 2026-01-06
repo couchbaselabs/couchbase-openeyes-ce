@@ -29,7 +29,9 @@ class BaseApiController extends \CController
 
     public function renderJSON($status, $data)
     {
-        ob_clean(); // clear output buffer to avoid rendering anything else
+        if (ob_get_level() > 0) {
+            ob_clean(); // clear output buffer to avoid rendering anything else
+        }
         header('HTTP/1.1 ' . $status . ' ' . $this->_getStatusCodeMessage($status));
         header('Content-type: application/json'); // set content type header as json
         if ($status == 401) {

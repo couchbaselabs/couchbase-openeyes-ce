@@ -118,6 +118,17 @@ class SnippetGroupController extends ModuleAdminController
      */
     public function actionSort()
     {
-        $this->admin->sortModel();
+        $this->admin->setListFields(array(
+            'display_order',
+            'id',
+            'institution.name',
+            'name',
+        ));
+        
+        if (Yii::app()->request->isPostRequest) {
+            $this->admin->sortModel();
+        } else {
+            $this->admin->listModel();
+        }
     }
 }

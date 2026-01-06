@@ -50,6 +50,24 @@ class OphDrPrescription_Signature extends BaseSignature
     }
 
     /**
+     * Returns the Couchbase scope name for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * @return array validation rules for model attributes.
      */
     public function rules()
@@ -172,6 +190,24 @@ class OphDrPrescription_Signature extends BaseSignature
     {
         $this->deletePreviousSignature();
         return parent::beforeSave();
+    }
+
+    /**
+     * After saving, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     public function deletePreviousSignature()

@@ -88,6 +88,28 @@ class OphDrPrescription_DispenseLocation extends BaseActiveRecordVersioned
         return ['order' => 'display_order'];
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     private static function getDispenseLocationsForInstitution(int $institution_id)
     {
         return OphDrPrescription_DispenseLocation_Institution::model()->findAll("institution_id=:institution_id", [":institution_id" => $institution_id]);

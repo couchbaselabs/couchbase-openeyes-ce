@@ -79,4 +79,20 @@ class SignatureQRCodeGenerator
 
         return base64_encode($image_data);
     }
+
+    /**
+     * Generate and output QR signature box
+     * @param $QRContent
+     * @throws \Endroid\QrCode\Exceptions\ImageTypeInvalidException
+     */
+    public function generateQRSignatureBox($QRContent)
+    {
+        header('Content-Type: application/json');
+        $qr_code_data = $QRContent;
+        $qr_image = $this->createQRCode($qr_code_data, 200, [1000, 600]);
+        echo json_encode([
+            'success' => true,
+            'data' => 'data:image/png;base64,' . $qr_image
+        ]);
+    }
 }

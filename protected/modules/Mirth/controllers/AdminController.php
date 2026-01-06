@@ -33,11 +33,13 @@ class AdminController extends \ModuleAdminController
 
     public function init()
     {
-        $connectionString = Yii::app()->params["mirth_connectionString"];
-        $username = Yii::app()->params["mirth_username"];
-        $password = Yii::app()->params["mirth_password"];
+        $connectionString = Yii::app()->params["mirth_connectionString"] ?? null;
+        $username = Yii::app()->params["mirth_username"] ?? null;
+        $password = Yii::app()->params["mirth_password"] ?? null;
 
-        $this->conn = new CDbConnection($connectionString, $username, $password);
+        if (!empty($connectionString) && !empty($username) && !empty($password)) {
+            $this->conn = new CDbConnection($connectionString, $username, $password);
+        }
         parent::init();
     }
 
@@ -53,13 +55,29 @@ class AdminController extends \ModuleAdminController
 
     public function actionListRoutes()
     {
-        $routes = $this->getRoutesForMessage($_GET['message_id'], $_GET['channel_id']);
+        $message_id = isset($_GET['message_id']) ? $_GET['message_id'] : null;
+        $channel_id = isset($_GET['channel_id']) ? $_GET['channel_id'] : null;
+        
+        if (!$message_id || !$channel_id) {
+            throw new CHttpException(400, 'Missing required parameters: message_id and channel_id');
+        }
+        
+        $routes = $this->getRoutesForMessage($message_id, $channel_id);
         $this->pageTitle = 'Routes';
         $this->render('/admin/messages', array('routes' => $routes));
     }
 
     public function actionList()
     {
+        $channels = array();
+        $errorMessage = null;
+        
+        if (empty($this->conn)) {
+            $errorMessage = 'Mirth database connection is not configured. Please set the MIRTH_DB_USER environment variable and ensure Mirth database credentials are available.';
+        } else {
+            $channels = $this->getChannels();
+        }
+        
         $script = "";
         if (isset($_POST) && isset($_POST["channelId"])) {
             $script = "$('#channel').val('" . $_POST["channelId"] . "');";
@@ -74,8 +92,7 @@ class AdminController extends \ModuleAdminController
 
             $script .= "$('#mirth-log-search').click();";
         }
-        $channels = $this->getChannels();
-        $this->render('/admin/index', array('channels' => $channels, 'script' => $script));
+        $this->render('/admin/index', array('channels' => $channels, 'script' => $script, 'errorMessage' => $errorMessage));
     }
 
     public function actionSearch()
@@ -101,15 +118,15 @@ class AdminController extends \ModuleAdminController
     {
         $data = array();
 
-        $check_dateFrom = date_parse_from_format('d M yy', $post["dateFrom"]) ?? "";
-        if (checkdate($check_dateFrom['month'], $check_dateFrom['day'], $check_dateFrom['year'])) {
+        $check_dateFrom = isset($post["dateFrom"]) ? date_parse_from_format('d M yy', $post["dateFrom"]) : "";
+        if (is_array($check_dateFrom) && checkdate($check_dateFrom['month'], $check_dateFrom['day'], $check_dateFrom['year'])) {
             $dateFrom = date('Y-m-d', strtotime($post["dateFrom"])) . ' 00:00:00';
         } else {
             $dateFrom = "";
         }
 
-        $check_dateTo = date_parse_from_format('d M yy', $post["dateTo"]) ?? "";
-        if (checkdate($check_dateTo['month'], $check_dateTo['day'], $check_dateTo['year'])) {
+        $check_dateTo = isset($post["dateTo"]) ? date_parse_from_format('d M yy', $post["dateTo"]) : "";
+        if (is_array($check_dateTo) && checkdate($check_dateTo['month'], $check_dateTo['day'], $check_dateTo['year'])) {
             $dateTo = date('Y-m-d', strtotime($post["dateTo"])) . ' 23:59:59';
         } else {
             $dateTo = "";

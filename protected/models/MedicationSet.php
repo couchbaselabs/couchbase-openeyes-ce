@@ -410,6 +410,7 @@ class MedicationSet extends BaseActiveRecordVersioned
             $this->saveAutoMeds();
         }
 
+        $this->saveToCouchbase();
         return parent::afterSave();
     }
 
@@ -750,6 +751,12 @@ class MedicationSet extends BaseActiveRecordVersioned
         }
 
         return self::$_processed;
+    }
+
+    protected function afterDelete()
+    {
+        $this->deleteFromCouchbase();
+        return parent::afterDelete();
     }
 
     public function beforeDelete()

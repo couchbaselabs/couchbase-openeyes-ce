@@ -301,7 +301,7 @@ class GpController extends BaseController
      * List all contact labels that contain the $term
      * @param string $term what to search on
      */
-    public function actionContactLabelList($term)
+    public function actionContactLabelList($term = '')
     {
         $criteria = new CDbCriteria();
         $criteria->addSearchCondition('LOWER(name)', strtolower($term), true, 'OR');
@@ -325,7 +325,7 @@ class GpController extends BaseController
      * List all gp's that contain the $term
      * @param string $term what to search on
      */
-    public function actionGpList($term)
+    public function actionGpList($term = '')
     {
         $labels = Yii::app()->cbdb->createCommand()
             ->select('g.id, c.first_name, c.last_name, cl.name as role')

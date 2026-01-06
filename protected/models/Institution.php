@@ -234,14 +234,11 @@ class Institution extends BaseActiveRecordVersioned
             $current_institution = $this->getCurrent();
             $result[$current_institution->id] = $current_institution->name;
         } else {
-            $cmd = Yii::app()->db->createCommand()
-                ->select('i.id, i.name')
-                ->from('institution i');
-
-            foreach ($cmd->queryAll() as $institution) {
-                $result[$institution['id']] = $institution['name'];
+            // Use findAll() which goes through CouchbaseModelBridge for Couchbase-primary mode
+            $institutions = self::model()->findAll();
+            foreach ($institutions as $institution) {
+                $result[$institution->id] = $institution->name;
             }
-
             natcasesort($result);
         }
         return $result;
@@ -351,5 +348,23 @@ class Institution extends BaseActiveRecordVersioned
     public function __toString(): string
     {
         return $this->short_name;
+    }
+
+    /**
+     * After save callback - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete callback - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

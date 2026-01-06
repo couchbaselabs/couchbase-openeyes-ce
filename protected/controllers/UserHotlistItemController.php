@@ -78,12 +78,17 @@ class UserHotlistItemController extends BaseController
      * @throws Exception Thrown if an error occurs when saving the record
      * @throws CHttpException Thrown if the user doesn't have the privileges to access the ttem
      */
-    public function actionCloseHotlistItem($hotlist_item_id)
+    public function actionCloseHotlistItem($hotlist_item_id = null)
     {
+        if (!$hotlist_item_id) {
+            echo json_encode(['success' => false, 'message' => 'Missing required parameter: hotlist_item_id']);
+            Yii::app()->end();
+        }
+
         $model = $this->loadModel($hotlist_item_id);
 
         if ($model->created_user_id !== Yii::app()->user->id) {
-            throw new Exception('Access denied');
+            throw new CHttpException(403, 'Access denied');
         }
         $model->is_open = 0;
         $model->save();
@@ -96,8 +101,13 @@ class UserHotlistItemController extends BaseController
      * @throws Exception Thrown if an error occurs when saving the record
      * @throws CHttpException Thrown if the user doesn't have the privileges to access the ttem
      */
-    public function actionOpenHotlistItem($hotlist_item_id)
+    public function actionOpenHotlistItem($hotlist_item_id = null)
     {
+        if (!$hotlist_item_id) {
+            echo json_encode(['success' => false, 'message' => 'Missing required parameter: hotlist_item_id']);
+            Yii::app()->end();
+        }
+
         $model = $this->loadModel($hotlist_item_id);
 
         if ($model->created_user_id !== Yii::app()->user->id) {
@@ -132,8 +142,13 @@ class UserHotlistItemController extends BaseController
      * @throws Exception Thrown if an error occurs when saving the record
      * @throws CHttpException Thrown if the user doesn't have privileges to access the item
      */
-    public function actionUpdateUserComment($hotlist_item_id, $comment)
+    public function actionUpdateUserComment($hotlist_item_id = null, $comment = null)
     {
+        if (!$hotlist_item_id) {
+            echo json_encode(['success' => false, 'message' => 'Missing required parameter: hotlist_item_id']);
+            Yii::app()->end();
+        }
+
         $model = $this->loadModel($hotlist_item_id);
 
         if ($model->created_user_id !== Yii::app()->user->id) {

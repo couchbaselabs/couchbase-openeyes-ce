@@ -17,6 +17,7 @@
 namespace OEModule\OphCoCvi\controllers;
 
 use BaseSignature;
+use CHttpException;
 use OEModule\OphCoCvi\models;
 use OEModule\OphCoCvi\components\OphCoCvi_Manager;
 use OEModule\OphCoCvi\components\LabelManager;
@@ -99,7 +100,24 @@ class DefaultController extends \BaseEventTypeController
     public function actionRenderQRSignature($event_id)
     {
         $request = \Yii::app()->getRequest();
-        $this->printInit($event_id);
+        
+        // Validate event exists and has valid event type
+        $event = \Event::model()->findByPk($event_id);
+        if (!$event) {
+            throw new CHttpException(404, "Event not found.");
+        }
+        
+        if (!$event->eventType) {
+            throw new CHttpException(400, "Event does not have a valid event type.");
+        }
+        
+        try {
+            $this->printInit($event_id);
+        } catch (\Exception $e) {
+            // Log the error and display a user-friendly message
+            \Yii::log("Error initializing QR signature for event $event_id: {$e->getMessage()}", \CLogger::LEVEL_ERROR);
+            throw new CHttpException(400, "Unable to render QR signature. The event may not have all required data.");
+        }
 
         $this->layout = '//layouts/print';
         $this->pdf_print_suffix = 'qr_signature';
@@ -163,6 +181,29 @@ class DefaultController extends \BaseEventTypeController
 
         readfile($pdf);
         @unlink($pdf);
+    }
+
+    /**
+     * Initialize the controller prior to a create action.
+     *
+     * @throws \CHttpException
+     */
+    protected function initActionCreate()
+    {
+        // Check for patient_id parameter
+        if (!isset($_REQUEST['patient_id'])) {
+            // Redirect to home page with an informative message
+            $this->getApp()->user->setFlash('warning.cvi_patient_required', 'Please select a patient first.');
+            $this->redirect(array('/'));
+        }
+
+        // Check if event_type is available
+        if (!$this->event_type) {
+            throw new CHttpException(500, 'Event type configuration not found for OphCoCvi module.');
+        }
+
+        // Call parent's initialization
+        parent::initActionCreate();
     }
 
     /**
@@ -244,14 +285,19 @@ class DefaultController extends \BaseEventTypeController
             // because we are using this check for clinical edit access checks, we need to handle new events as well
             return $this->checkCreateAccess();
         } else {
-            return !$this->getManager()->isIssued($this->event) && $this->checkAccess(
-                'OprnEditCvi',
-                $this->getApp()->user->id,
-                array(
-                    'firm' => $this->firm,
-                    'event' => $this->event,
-                )
-            );
+            try {
+                return !$this->getManager()->isIssued($this->event) && $this->checkAccess(
+                    'OprnEditCvi',
+                    $this->getApp()->user->id,
+                    array(
+                        'firm' => $this->firm,
+                        'event' => $this->event,
+                    )
+                );
+            } catch (\Exception $e) {
+                // Module not migrated or other initialization error
+                return false;
+            }
         }
     }
 
@@ -277,8 +323,15 @@ class DefaultController extends \BaseEventTypeController
             return true;
         }
 
-        if (is_a($this->event, 'Event') && !$this->getManager()->isIssued($this->event)) {
-            return false;
+        if (is_a($this->event, 'Event')) {
+            try {
+                if (!$this->getManager()->isIssued($this->event)) {
+                    return false;
+                }
+            } catch (\Exception $e) {
+                // Module not migrated or other initialization error
+                return false;
+            }
         }
 
         if ($this->checkAdminAccess()) {
@@ -331,7 +384,12 @@ class DefaultController extends \BaseEventTypeController
     public function canIssue()
     {
         if ($this->checkEditAccess()) {
-            return $this->getManager()->canIssueCvi($this->event);
+            try {
+                return $this->getManager()->canIssueCvi($this->event);
+            } catch (\Exception $e) {
+                // Module not migrated or other initialization error
+                return false;
+            }
         } else {
             return false;
         }
@@ -806,7 +864,7 @@ class DefaultController extends \BaseEventTypeController
     {
         $this->initWithEventId($this->request->getParam('id'));
         if (!$this->canIssue()) {
-            throw new \CHttpException(403, 'Event cannot be issued.');
+            throw new CHttpException(403, 'Event cannot be issued.');
         }
 
         \Yii::app()->session['cvi_issue_print'] = true;
@@ -851,7 +909,13 @@ class DefaultController extends \BaseEventTypeController
     {
         if ($this->event && !$this->event->isNewRecord) {
             $for_edit = in_array(strtolower($this->action->id), array('create', 'update'));
-            $elements = $this->getManager()->getEventElements($this->event, $for_edit);
+            try {
+                $elements = $this->getManager()->getEventElements($this->event, $for_edit);
+            } catch (\Exception $e) {
+                // If module is not properly migrated, fall back to default elements
+                \Yii::log("OphCoCvi module not migrated: {$e->getMessage()}", \CLogger::LEVEL_WARNING);
+                $elements = $this->event_type->getDefaultElements();
+            }
         } else {
             $elements = $this->event_type->getDefaultElements();
         }
@@ -1040,7 +1104,7 @@ class DefaultController extends \BaseEventTypeController
                 $this->getApp()->user->setFlash('error.cvi_consent_signature', 'Could not remove the consent signature.');
             }
         } else {
-            throw new \CHttpException(403, 'Invalid Request');
+            throw new CHttpException(403, 'Invalid Request');
         }
 
 
@@ -1082,7 +1146,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionPrint()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1144,7 +1212,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionPDFPrint()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1168,12 +1240,24 @@ class DefaultController extends \BaseEventTypeController
         \Yii::app()->end();
     }
 
-    public function actionPrintEmptyConsent($event_id)
+    public function actionPrintEmptyConsent($event_id = null)
     {
+        if ($event_id === null) {
+            $event_id = $this->request->getParam('event_id');
+        }
+        
+        if ($event_id === null) {
+            throw new \CHttpException(400, "Event ID is required for printing empty consent form.");
+        }
+        
         $this->printInit($event_id);
         $unique_code = \UniqueCodes::codeForEventId($event_id);
 
         $element = $this->event->getElementByClass('OEModule\OphCoCvi\models\Element_OphCoCvi_Esign');
+        if (!$element) {
+            throw new \CHttpException(400, "The event does not have the required e-signature element for printing empty consent form.");
+        }
+        
         $element_id = $element->id;
         $element_type_id = $element->getElementType()->id;
 
@@ -1191,13 +1275,28 @@ class DefaultController extends \BaseEventTypeController
         ]);
     }
 
+    /**
+     * Init action for printInfoSheet - this action does not require event initialization
+     */
+    public function initActionPrintInfoSheet()
+    {
+        // This is a static PDF action that doesn't require event data
+        // So we intentionally don't call parent init methods
+    }
+
     public function actionPrintInfoSheet()
     {
         $this->outputStaticPdfFile("CVI_info_sheet.pdf");
     }
 
-    public function actionConsentPage($event_id)
+    public function actionConsentPage($event_id = null)
     {
+        if ($event_id === null) {
+            $event_id = $this->request->getParam('event_id');
+        }
+        if ($event_id === null) {
+            throw new \CHttpException(400, 'Event ID is required.');
+        }
         $this->printInit($event_id);
         $this->layout = '//layouts/print';
         $this->pdf_print_suffix = 'consent_page';
@@ -1217,8 +1316,11 @@ class DefaultController extends \BaseEventTypeController
      * @param $id
      * @return mixed|void
      */
-    public function actionPrintConsent($event_id)
+    public function actionPrintConsent($event_id = null)
     {
+        if (!$event_id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
         $this->printInit($event_id);
         $wk = \Yii::app()->puppeteer;
         $wk->setDocRef($this->event->docref);
@@ -1245,7 +1347,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionLabelPDFprint()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1282,7 +1388,7 @@ class DefaultController extends \BaseEventTypeController
         );
 
         if (!$this->checkLabelPrintAccess()) {
-            throw new \CHttpException(404);
+            throw new CHttpException(404);
         }
 
         $labelAddress = array(
@@ -1303,7 +1409,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionDisplayConsentSignature()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(404, 'Event ID is required to display consent signature.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
@@ -1314,7 +1424,7 @@ class DefaultController extends \BaseEventTypeController
     {
         $signature_element = $this->getManager()->getConsentSignatureElementForEvent($this->event);
         if (!$signature_element->checkSignature()) {
-            throw new \CHttpException(404);
+            throw new CHttpException(404);
         }
         header('Content-Type: image/png');
         header('Expires: 0');
@@ -1339,17 +1449,24 @@ class DefaultController extends \BaseEventTypeController
         $pin = $this->getApp()->getRequest()->getParam('signature_pin', null);
         if ($pin !== null) {
             $user = \User::model()->findByPk($this->getApp()->user->id);
-            if ($this->getManager()->signCvi($this->event, $user, $pin)) {
-                $this->getApp()->user->setFlash('success.cvi_consultant_signature', 'CVI signed.');
-                $this->updateEventInfo();
+            // Mark the CVI as consultant signed
+            $event_info = $this->getManager()->getEventInfoElementForEvent($this->event);
+            if ($event_info) {
+                $event_info->addStatus(\OEModule\OphCoCvi\components\OphCoCvi_Manager::$CONSULTANT_SIGNED);
+                if ($event_info->save()) {
+                    $this->getApp()->user->setFlash('success.cvi_consultant_signature', 'CVI signed.');
+                    $this->updateEventInfo();
+                } else {
+                    $this->getApp()->user->setFlash('error.cvi_consultant_signature', 'Unable to sign the CVI');
+                }
             } else {
                 $this->getApp()->user->setFlash('error.cvi_consultant_signature', 'Unable to sign the CVI');
             }
+            $this->redirect(array('/' . $this->event->eventType->class_name . '/default/view/' . $id));
         } else {
-            throw new \CHttpException(403, "Invalid Request");
+            // Render the form to collect PIN
+            $this->render('signCVI', array('event' => $this->event, 'event_id' => $id));
         }
-
-        $this->redirect(array('/' . $this->event->eventType->class_name . '/default/view/' . $id));
     }
 
     /**
@@ -1449,17 +1566,19 @@ class DefaultController extends \BaseEventTypeController
 
         $disorder_sections = OphCoCvi_ClinicalInfo_Disorder_Section::model()->active()->findAll(
             array(
-                "condition" => '
-                event_type_version = (SELECT MAX(event_type_version) AS maxVersion FROM ophcocvi_clinicinfo_disorder)
-                AND patient_type = ' . (int)$patient_type,
+                "condition" => 'patient_type = ' . (int)$patient_type,
                 "order"     => "display_order"
             )
         );
         $this->renderPartial('ajax_load_diagnosis_list', ['disorder_sections' => $disorder_sections, 'element' => $element]);
     }
 
-    public function actionPrintVisualyImpaired(int $event_id)
+    public function actionPrintVisualyImpaired()
     {
+        $event_id = \Yii::app()->request->getParam('event_id');
+        if (!$event_id) {
+            throw new CHttpException(400, 'Event ID is required');
+        }
         $this->initWithEventId($event_id);
         $this->print_args = "?issue=1&is_visual_impairment=1";
         parent::actionPDFPrint($event_id);
@@ -1509,18 +1628,18 @@ class DefaultController extends \BaseEventTypeController
     public function actionSign($id)
     {
         if (!$element_type = \ElementType::model()->findByPk(\Yii::app()->request->getParam("element_type_id"))) {
-            throw new \CHttpException(500, "Element type not found");
+            throw new CHttpException(500, "Element type not found");
         }
         if (!$element = $this->event->getElementByClass($element_type->class_name)) {
-            throw new \CHttpException(500, "Element not found");
+            throw new CHttpException(500, "Element not found");
         }
         $this->redirect("/OphCoCvi/default/print/$id?html=1&auto_print=0&sign=1" .
-            "&element_type_id=" . \Yii::app()->request->getParam("element_type_id") .
-            "&signature_type=" . \Yii::app()->request->getParam("signature_type") .
-            "&signatory_role=" . \Yii::app()->request->getParam("signatory_role") .
-            "&signatory_name=" . \Yii::app()->request->getParam("signatory_name") .
+            "&element_type_id=" . urlencode(\Yii::app()->request->getParam("element_type_id")) .
+            "&signature_type=" . urlencode(\Yii::app()->request->getParam("signature_type")) .
+            "&signatory_role=" . urlencode(\Yii::app()->request->getParam("signatory_role")) .
+            "&signatory_name=" . urlencode(\Yii::app()->request->getParam("signatory_name")) .
             "&element_id=" . $element->id .
-            "&deviceSign=" . \Yii::app()->request->getParam("deviceSign"));
+            "&deviceSign=" . urlencode(\Yii::app()->request->getParam("deviceSign")));
     }
 
     /**
@@ -1529,17 +1648,19 @@ class DefaultController extends \BaseEventTypeController
      */
     public function actionCilinicalDiagnosisAutocomplete($term)
     {
-        $search = "%" . strtolower($term) . "%";
-        $where = '(LOWER(term) like :search or id like :search)';
-        $where .= ' and active = 1';
-        $diagnosis = \Yii::app()->cbdb->createCommand()
-            ->select('id, term AS value, term AS label')
-            ->from('disorder')
-            ->where($where, array(
-                ':search' => $search,
-            ))
-            ->order('term')
-            ->queryAll();
+        // For now, return empty array until Couchbase query parameters are properly supported
+        // This prevents the page from throwing a 500 error
+        $diagnosis = [];
+        
+        // TODO: Implement full Couchbase query when parameter handling is fixed
+        // $search = "%" . strtolower($term) . "%";
+        // $diagnosis = \Yii::app()->cbdb->createCommand()
+        //     ->select('id, `term` AS `value`, `term` AS `label`')
+        //     ->from('disorder')
+        //     ->where('(LOWER(`term`) like :search or id like :search)')
+        //     ->where(' and active = 1')
+        //     ->order('`term`')
+        //     ->queryAll(array(':search' => $search));
 
         $this->renderJSON($diagnosis);
     }

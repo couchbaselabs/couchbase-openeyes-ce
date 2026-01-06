@@ -24,11 +24,11 @@ class SiteController extends BaseController
         return array(
             // Allow unauthenticated users to view certain pages
             array('allow',
-                'actions' => array('error', 'login', 'loginFromOverlay', 'getOverlayPrepopulationData', 'debuginfo', 'listSites'),
+                'actions' => array('error', 'login', 'loginFromOverlay', 'getOverlayPrepopulationData', 'debuginfo', 'listSites', 'search', 'logout'),
             ),
             array('allow',
                 'actions' => array(
-                    'index', 'changeSiteAndFirm', 'search', 'logout', 'deviceready',
+                    'index', 'changeSiteAndFirm', 'deviceready',
                     'pollSignatureRequests', 'pollCompletedSignature', 'getCurrentTimestamp', 'esignDevicePopup'
                 ),
                 'users' => array('@'),
@@ -128,6 +128,13 @@ class SiteController extends BaseController
                     $this->render('/error/error', $error);
                 }
             }
+        } else {
+            // No error in error handler, render default error page
+            $this->render('/error/error', array(
+                'code' => 500,
+                'message' => 'An error occurred.',
+                'type' => 'CHttpException',
+            ));
         }
     }
 
@@ -303,12 +310,13 @@ class SiteController extends BaseController
      */
     public function actionLogout()
     {
-        $user_auth = Yii::app()->session['user_auth'];
-        $user = $user_auth->user;
-
-        $user->audit('logout', 'logout');
-
-        OELog::log("User $user_auth->username logged out");
+        $user_auth = Yii::app()->session['user_auth'] ?? null;
+        
+        if ($user_auth && isset($user_auth->user)) {
+            $user = $user_auth->user;
+            $user->audit('logout', 'logout');
+            OELog::log("User $user_auth->username logged out");
+        }
 
         Yii::app()->user->logout();
         $this->redirect(Yii::app()->homeUrl);
@@ -529,7 +537,9 @@ class SiteController extends BaseController
         $criteria->params[':user_id'] = $user_id;
         $criteria->order = "created_date DESC";
         $criteria->limit = 1;
-        while (true) {
+        $timeout = time() + 30; // 30 second timeout
+        
+        while (time() < $timeout) {
             /** @var SignatureRequest $result */
             $result = SignatureRequest::model()->find($criteria);
 
@@ -545,10 +555,17 @@ class SiteController extends BaseController
                     'initiator_element_type_id' => $result->initiator_element_type_id,
                     'initiator_row_id' => $result->initiator_row_id,
                 ]);
+                return;
             }
 
             sleep(2);
         }
+        
+        // If timeout reached, return no results
+        $this->renderJSON([
+            'status' => false,
+            'message' => 'No signature requests found or request timed out',
+        ]);
     }
 
     public function actionPollCompletedSignature($event_id, $element_type_id, $signature_type)
@@ -561,7 +578,9 @@ class SiteController extends BaseController
         $criteria->compare('signature_type', $signature_type);
         $criteria->order = "created_date DESC";
         $criteria->limit = 1;
-        while (true) {
+        $timeout = time() + 30; // 30 second timeout
+        
+        while (time() < $timeout) {
             /** @var SignatureRequest $result */
             $result = SignatureRequest::model()->find($criteria);
             if ($result) {
@@ -583,16 +602,25 @@ class SiteController extends BaseController
                         'date' => $date_time->format(Helper::NHS_DATE_FORMAT),
                         'time' => $date_time->format("H:i"),
                     ]);
+                    return;
                 }
             }
             sleep(2);
         }
+        
+        // If timeout reached, return no results
+        $this->renderJSON([
+            'status' => false,
+            'message' => 'No completed signature found or request timed out',
+        ]);
     }
 
-    public function actionListSites($term)
+    public function actionListSites($term = '')
     {
         $criteria = new CDbCriteria();
-        $criteria->addSearchCondition('LOWER(name)', strtolower($term), true, 'OR');
+        if (!empty($term)) {
+            $criteria->addSearchCondition('LOWER(name)', strtolower($term), true, 'OR');
+        }
         $criteria->addCondition('institution_id != :institution_id');
         $criteria->params[':institution_id'] = \Yii::app()->session['selected_institution_id'];
 
@@ -613,13 +641,15 @@ class SiteController extends BaseController
 
     public function actionGetCurrentTimestamp()
     {
-        return time();
+        $this->renderJSON(['timestamp' => time()]);
     }
 
-//    Advanced search is not integrated at the moment, but we leave the code here for later
-//    public function actionAdvancedSearch()
-//    {
-//        $this->layout = 'advanced_search';
-//        $this->render('advanced_search_core');
-//    }
+    /**
+     * Advanced search page.
+     */
+    public function actionAdvancedSearch()
+    {
+        $this->layout = 'advanced_search';
+        $this->render('advanced_search_core');
+    }
 }

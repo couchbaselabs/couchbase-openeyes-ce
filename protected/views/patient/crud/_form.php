@@ -142,12 +142,14 @@ foreach ($ethnic_list as $key => $item) {
         </td>
         <td style="text-align: left;">
             <?php
-            if ((bool)strtotime($patient->dob)) {
-                $patient->dob = str_replace('/', '-', $patient->dob);
-                $dob = new DateTime($patient->dob);
-                $patient->dob = $dob->format('d/m/Y');
-            } else {
-                $patient->dob = str_replace('-', '/', $patient->dob);
+            if (!empty($patient->dob)) {
+                if ((bool)strtotime($patient->dob)) {
+                    $patient->dob = str_replace('/', '-', $patient->dob);
+                    $dob = new DateTime($patient->dob);
+                    $patient->dob = $dob->format('d/m/Y');
+                } else {
+                    $patient->dob = str_replace('-', '/', $patient->dob);
+                }
             }
             ?>
             <?= $form->textField($patient, 'dob', array('onblur' => "findDuplicatesByNameAndDOB();",

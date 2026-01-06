@@ -50,6 +50,16 @@ class PatientIdentifierType extends BaseActiveRecordVersioned
     use HasFactory;
     use CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     const GLOBAL_USAGE_TYPE = "GLOBAL";
     const LOCAL_USAGE_TYPE = "LOCAL";
     /**
@@ -255,6 +265,18 @@ class PatientIdentifierType extends BaseActiveRecordVersioned
     {
         json_decode($string);
         return (json_last_error() == JSON_ERROR_NONE);
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /** Returns a next highest value for an identifier type

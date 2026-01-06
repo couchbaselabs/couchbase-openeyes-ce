@@ -36,6 +36,29 @@ class WorklistDefinitionDisplayContext extends BaseActiveRecord
 {
     use HasFactory;
     use \OE\Models\Traits\CouchbaseModelBridge;
+
+    public function couchbaseScope(): string
+    {
+        return 'worklist';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     /**
      * @return string the associated database table name
      */

@@ -60,6 +60,16 @@ class Element_OphTrConsent_Withdrawal extends BaseEventTypeElement implements Re
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     public const TYPE_PATIENT_AGREEMENT_ID = 4;
 
     public const PATIENT_CONTACTS_TYPE = 1;
@@ -304,5 +314,17 @@ class Element_OphTrConsent_Withdrawal extends BaseEventTypeElement implements Re
             ],
         );
         return $itemSets;
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

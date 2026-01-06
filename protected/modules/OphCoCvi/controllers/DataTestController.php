@@ -21,8 +21,6 @@ use \components\odtTemplateManager\ODTRow;
 use \components\odtTemplateManager\ODTCell;
 use \components\odtTemplateManager\ODTSimpleText;
 
-use \OEModule\OphCoCvi\components\ODTDataHandler;
-
 class DataTestController extends \BaseController
 {
     public function accessRules()
@@ -37,7 +35,7 @@ class DataTestController extends \BaseController
 
     public function actionTest()
     {
-        $dataHandler = new ODTDataHandler();
+        $dataHandler = new \ODTDataHandler();
 
         $myTable = $dataHandler->createTable('myTable');
 

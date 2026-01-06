@@ -260,5 +260,22 @@ class HistoryMedications extends BaseMedicationElement
         }
 
         parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 }

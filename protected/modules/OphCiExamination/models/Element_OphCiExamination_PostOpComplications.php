@@ -261,7 +261,24 @@ class Element_OphCiExamination_PostOpComplications extends \SplitEventTypeElemen
                 }
             }
         }
+        $this->saveToCouchbase();
         parent::afterSave();
+    }
+
+    protected function afterDelete()
+    {
+        $this->deleteFromCouchbase();
+        parent::afterDelete();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**

@@ -85,8 +85,25 @@ class Element_DrugAdministration_record extends \EventMedicationUse
         return "DrugAdministration";
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     protected function afterSave()
     {
-        return;
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

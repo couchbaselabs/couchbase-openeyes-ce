@@ -145,4 +145,26 @@ class OphDrPrescription_DispenseCondition extends BaseActiveRecordVersioned
         $this->getDbCriteria()->mergeWith($condition);
         return $this;
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

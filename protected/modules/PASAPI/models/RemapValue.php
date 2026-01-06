@@ -22,6 +22,40 @@ class RemapValue extends \BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * Get the Couchbase scope name for this model.
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model.
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return PasApiAssignment the static model class

@@ -23,11 +23,29 @@ use OEModule\OphCiExamination\widgets\Retinoscopy as RetinoscopyWidget;
 
 class Retinoscopy extends \BaseEventTypeElement implements SidedData
 {
-    use \OE\Models\Traits\CouchbaseModelBridge;
+    use \OE\Models\Traits\CouchbaseModelBridge {
+        \OE\Models\Traits\CouchbaseModelBridge::__get as couchbaseGet;
+    }
     use traits\CustomOrdering;
     use HasFactory;
     use HasSidedData;
-    use HasRelationOptions;
+    use HasRelationOptions {
+        HasRelationOptions::__get insteadof \OE\Models\Traits\CouchbaseModelBridge;
+    }
+    
+    /**
+     * Override __get to handle both HasRelationOptions and CouchbaseModelBridge
+     */
+    public function __get($name)
+    {
+        if (substr($name, -8) === '_options') {
+            $relation_name = strtolower(substr($name, 0, -8));
+            if (!$this->shouldSkipRelation($relation_name) && $this->getRelationByName($relation_name)) {
+                return $this->{"{$relation_name}Options"}();
+            }
+        }
+        return $this->couchbaseGet($name);
+    }
 
     protected $widgetClass = RetinoscopyWidget::class;
     protected $auto_validate_relations = true;
@@ -228,5 +246,41 @@ class Retinoscopy extends \BaseEventTypeElement implements SidedData
         }
 
         return sprintf("%+.2f", $power);
+    }
+
+    /**
+     * Returns the Couchbase scope name for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

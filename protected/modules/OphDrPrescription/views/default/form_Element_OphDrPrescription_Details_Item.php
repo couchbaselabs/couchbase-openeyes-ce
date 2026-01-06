@@ -21,11 +21,12 @@ $fpten_setting = SettingMetadata::model()->getSetting('prescription_form_format'
 $overprint_setting = SettingMetadata::model()->getSetting('enable_prescription_overprint');
 $fpten_dispense_condition = OphDrPrescription_DispenseCondition::model()->findByAttributes(array('name' => 'Print to {form_type}'));
 
-$dispense_conditions = OphDrPrescription_DispenseCondition::model()->withSettings($overprint_setting, $fpten_dispense_condition->id)->findAllAtLevel(ReferenceData::LEVEL_INSTITUTION);
+$dispense_conditions = OphDrPrescription_DispenseCondition::model()->withSettings($overprint_setting, $fpten_dispense_condition?->id)->findAllAtLevel(ReferenceData::LEVEL_INSTITUTION);
 
-$dispense_condition_options = array(
-    $fpten_dispense_condition->id => array('label' => "Print to $fpten_setting")
-);
+$dispense_condition_options = array();
+if ($fpten_dispense_condition) {
+    $dispense_condition_options[$fpten_dispense_condition->id] = array('label' => "Print to $fpten_setting");
+}
 ?>
 <tr data-key="<?= $key ?>" class="prescription-item prescriptionItem <?= $item->getErrors() ? 'errors' : '' ?> ">
     <td>

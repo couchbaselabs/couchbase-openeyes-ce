@@ -329,7 +329,7 @@ class DicomLogViewerController extends BaseController
 
     ///////////////
 
-    protected function getDicomFiles($page, $sc = 'entry_date_time', $so = 'desc')
+    protected function getDicomFiles($page, $sc = 'dil.id', $so = 'desc')
     {
         $command = Yii::app()->cbdb->createCommand()
             ->select('df.id, df.filename, df.processor_id, dil.id as did, dil.import_datetime, dil.study_datetime, dil.study_instance_id, dil.station_id, dil.study_location, dil.report_type, dil.patient_number, dil.status, dil.comment,
@@ -408,10 +408,13 @@ class DicomLogViewerController extends BaseController
 
         if (Yii::app()->request->isAjaxRequest) {
             $request = Yii::app()->getRequest();
-            $filename = $request->getQuery('filename');
+            $filename = $request->getPost('filename');
             if ($filename != '') {
                 Yii::app()->cbdb->createCommand("update dicom_file_queue set status_id=1 where filename = '".$filename."'")->execute();
             }
+        } else {
+            // For non-AJAX requests, redirect to the main dicom log viewer page
+            $this->redirect(array('index'));
         }
     }
 };

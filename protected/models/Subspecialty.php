@@ -79,6 +79,24 @@ class Subspecialty extends BaseActiveRecordVersioned
     }
 
     /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * @return string the associated database table name
      */
     public function tableName()

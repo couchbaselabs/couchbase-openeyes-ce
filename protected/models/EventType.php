@@ -56,6 +56,24 @@ class EventType extends BaseActiveRecordVersioned
     }
 
     /**
+     * After saving, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Get embedded relations for Couchbase document
      * @return array
      */
@@ -289,7 +307,7 @@ class EventType extends BaseActiveRecordVersioned
     public function getEventTypeInUseList()
     {
         $event_types = Yii::app()->cbdb
-            ->createCommand('SELECT id, name FROM event_type et INNER JOIN (SELECT DISTINCT event_type_id FROM event) e on e.event_type_id = et.id')
+            ->createCommand('SELECT et.id, et.name FROM event_type et INNER JOIN (SELECT DISTINCT event_type_id FROM event) e on e.event_type_id = et.id')
             ->queryAll();
 
         return CHtml::listData($event_types, 'id', 'name');
@@ -408,7 +426,16 @@ class EventType extends BaseActiveRecordVersioned
         }
         $criteria->order = 'display_order';
 
-        return self::resolveElementClasses(ElementType::model()->findAll($criteria));
+        Yii::log("EventType::getDefaultElements criteria condition: " . $criteria->condition, CLogger::LEVEL_INFO, 'application');
+        Yii::log("EventType::getDefaultElements criteria params: " . json_encode($criteria->params), CLogger::LEVEL_INFO, 'application');
+        $elementTypes = ElementType::model()->findAll($criteria);
+        Yii::log("EventType::getDefaultElements for id={$this->id}: found " . count($elementTypes) . " element types", CLogger::LEVEL_INFO, 'application');
+        foreach ($elementTypes as $et) {
+            Yii::log("  ElementType: {$et->name} (class={$et->class_name}, default={$et->default})", CLogger::LEVEL_INFO, 'application');
+        }
+        $resolved = self::resolveElementClasses($elementTypes);
+        Yii::log("  Resolved to " . count($resolved) . " elements", CLogger::LEVEL_INFO, 'application');
+        return $resolved;
     }
 
     /**

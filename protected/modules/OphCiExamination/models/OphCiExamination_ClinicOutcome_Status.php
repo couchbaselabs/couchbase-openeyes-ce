@@ -86,7 +86,7 @@ class OphCiExamination_ClinicOutcome_Status extends \BaseActiveRecordVersioned
 
     public function lockIfInUse($attribute, $params)
     {
-        if (!$this->isNewRecord && $this->$attribute != (int)$this->original_attributes[$attribute]) {
+        if (!$this->isNewRecord && $this->original_attributes !== null && isset($this->original_attributes[$attribute]) && $this->$attribute != (int)$this->original_attributes[$attribute]) {
             if ($this->inUse()) {
                 $this->addError(
                     $attribute,
@@ -202,5 +202,41 @@ class OphCiExamination_ClinicOutcome_Status extends \BaseActiveRecordVersioned
         }
 
         return $element_ids;
+    }
+
+    /**
+     * Returns the Couchbase scope for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

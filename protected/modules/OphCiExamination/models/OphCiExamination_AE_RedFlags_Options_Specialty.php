@@ -57,4 +57,26 @@ class OphCiExamination_AE_RedFlags_Options_Specialty extends \BaseActiveRecordVe
             'specialty' => [self::BELONGS_TO, 'specialty', 'specialty_id'],
         ];
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

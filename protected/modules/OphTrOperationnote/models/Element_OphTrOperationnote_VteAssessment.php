@@ -34,6 +34,40 @@ class Element_OphTrOperationnote_VteAssessment extends Element_OpNote
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return Element_OphTrOperationnote_PostOpDrugs the static model class

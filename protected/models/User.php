@@ -489,6 +489,12 @@ class User extends BaseActiveRecordVersioned
         return parent::afterSave();
     }
 
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public function getActiveSiteSelections()
     {
         return array_filter($this->siteSelections, function ($site) {
@@ -1241,7 +1247,7 @@ class User extends BaseActiveRecordVersioned
      */
     public function couchbaseScope()
     {
-        return 'core';
+        return 'admin';
     }
     
     /**

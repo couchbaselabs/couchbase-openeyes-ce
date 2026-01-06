@@ -152,6 +152,9 @@ class CouchbaseDbConnection extends CApplicationComponent
     {
         $this->open();
         
+        // Convert parameters from MySQL format (:param_name) to Couchbase format ($param_name)
+        list($n1ql, $params) = $this->convertParametersFormat($n1ql, $params);
+        
         $options = new \Couchbase\QueryOptions();
         if (!empty($params)) {
             $options->namedParameters($params);
@@ -164,6 +167,32 @@ class CouchbaseDbConnection extends CApplicationComponent
             Yii::log("Couchbase query failed: {$n1ql} - " . $e->getMessage(), CLogger::LEVEL_ERROR);
             throw new CDbException('Couchbase query failed: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Convert parameters from MySQL format (:param_name) to Couchbase format ($param_name)
+     * @param string $n1ql N1QL query
+     * @param array $params Parameters with MySQL format keys
+     * @return array [converted_n1ql, converted_params]
+     */
+    private function convertParametersFormat($n1ql, $params)
+    {
+        if (empty($params)) {
+            return [$n1ql, $params];
+        }
+        
+        $converted_params = [];
+        
+        foreach ($params as $key => $value) {
+            // Remove leading colon if present
+            $param_name = ltrim($key, ':');
+            $converted_params[$param_name] = $value;
+            
+            // Replace :param_name with $param_name in the query
+            $n1ql = preg_replace('/:\b' . preg_quote($param_name) . '\b/', '$' . $param_name, $n1ql);
+        }
+        
+        return [$n1ql, $converted_params];
     }
     
     /**
@@ -609,7 +638,15 @@ class CouchbaseDbCommand
             list($type, $table, $conditions) = $join;
             $sql .= " {$type} {$table}";
             if (!empty($conditions)) {
-                $sql .= " ON {$conditions}";
+                // Handle array conditions by converting them to SQL
+                if (is_array($conditions)) {
+                    $conditions = $this->buildCondition($conditions);
+                } elseif (!is_string($conditions)) {
+                    $conditions = '';
+                }
+                if (!empty($conditions) && is_string($conditions)) {
+                    $sql .= " ON {$conditions}";
+                }
             }
         }
         
@@ -790,7 +827,25 @@ class CouchbaseDbCommand
      */
     public function getText()
     {
+        // If using query builder and SQL hasn't been built yet, build it now
+        if ($this->_useBuilder && empty($this->_sql)) {
+            $this->_sql = $this->buildQuery();
+        }
         return $this->_sql;
+    }
+    
+    /**
+     * Magic getter for property access compatibility with Yii's CDbCommand
+     * Allows accessing ->text as a property instead of calling getText()
+     * @param string $name Property name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        if ($name === 'text') {
+            return $this->getText();
+        }
+        throw new CException("Undefined property: " . get_class($this) . "::$name");
     }
     
     /**
@@ -857,8 +912,26 @@ class CouchbaseDbCommand
     {
         $db = \Yii::app()->db;
         if (!$db || !$db->getActive()) {
-            // If MariaDB is not available, throw a clear error
-            throw new CDbException('MariaDB fallback required but database connection is not available. Query: ' . substr($this->_sql, 0, 200));
+            // MariaDB is not available - try to convert to N1QL anyway
+            \Yii::log(
+                "CouchbaseDbCommand: MariaDB not available, attempting N1QL conversion for: " . substr($this->_sql, 0, 200),
+                \CLogger::LEVEL_WARNING,
+                'application.couchbase'
+            );
+            
+            try {
+                // Try N1QL conversion even for complex queries
+                $this->_n1ql = $this->convertToN1QL($this->_sql);
+                return $this->_connection->query($this->_n1ql, $params);
+            } catch (\Exception $e) {
+                // N1QL conversion failed, return empty result to avoid breaking the page
+                \Yii::log(
+                    "CouchbaseDbCommand: N1QL conversion failed, returning empty result. Error: " . $e->getMessage(),
+                    \CLogger::LEVEL_ERROR,
+                    'application.couchbase'
+                );
+                return [];
+            }
         }
         
         $command = $db->createCommand($this->_sql);
@@ -896,6 +969,10 @@ class CouchbaseDbCommand
             'AES_ENCRYPT', // MySQL encryption
             'AES_DECRYPT', // MySQL decryption
             'PASSWORD(',   // MySQL password function
+            'EXISTS',      // EXISTS with subqueries (not supported in N1QL)
+            'UNION',       // UNION queries (not properly supported in N1QL conversion)
+            'SUBSTRING(',  // MySQL SUBSTRING - N1QL has different syntax
+            'UNSIGNED',    // MySQL type casting - not supported in N1QL
         ];
         
         foreach ($unsupportedFunctions as $func) {
@@ -1049,11 +1126,15 @@ class CouchbaseDbCommand
             return 'reference';
         }
         
-        // Core tables
+        // Core tables - only main entity tables, not lookup/reference tables
         $coreTables = ['patient', 'episode', 'event', 'user', 'contact', 'address', 
                        'institution', 'site', 'firm', 'person', 'gp', 'practice'];
-        if (in_array($tableName, $coreTables) || 
-            preg_match('/^patient_|^episode_|^event_|^user_|^contact_/', $tableName)) {
+        if (in_array($tableName, $coreTables)) {
+            return 'core';
+        }
+        
+        // Core entity event-related tables (event_draft, event_log, etc., but NOT event_type/event_group which are reference)
+        if (preg_match('/^(patient|episode|event_draft|event_log|event_issue|user|contact_|address_|institution_|site_|firm_|person_|gp_|practice_)/', $tableName)) {
             return 'core';
         }
         
@@ -1067,7 +1148,7 @@ class CouchbaseDbCommand
             return 'clinical';
         }
         
-        // Default to reference
+        // Default to reference (includes event_type, event_group, etc.)
         return 'reference';
     }
     

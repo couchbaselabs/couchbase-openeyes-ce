@@ -164,6 +164,42 @@ class Element_OphCiExamination_DR_Retinopathy extends SplitEventTypeElement
     }
 
     /**
+     * Returns the Couchbase scope for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * @param $side int ID of the eye relating to the element. Handled values are either Eye::LEFT or Eye::RIGHT.
      * @param $features array List of retinopathy feature entries to be added. This is an array of arrays of field values.
      * @throws \Exception Unable to save or delete retinopathy features.

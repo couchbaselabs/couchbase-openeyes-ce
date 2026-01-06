@@ -20,7 +20,7 @@ $core_api = new CoreAPI();
 ?>
 <tr class="<?php
     echo (($i % 2 == 0) ? 'even' : 'edd');
-    echo ' '.strtolower($log->colour);?>" 
+    echo ($log->colour ? ' '.strtolower($log->colour) : '');?>" 
     id="audit<?php echo $log->id?>" <?php if (@$hidden) {
         ?> style="display: none;"<?php
              }?> data-test="audit-row">
@@ -53,7 +53,7 @@ $core_api = new CoreAPI();
     </td>
 </tr>
 <tr class="<?php echo ($i % 2 == 0) ? 'even' : 'odd';
-echo ' '.strtolower($log->colour);?> auditextra<?php echo $log->id?>" style="display: none;">
+echo ($log->colour ? ' '.strtolower($log->colour) : '');?> auditextra<?php echo $log->id?>" style="display: none;">
     <td colspan="9">
         <div class="panel logs">
             <table class="blank plain log-details">

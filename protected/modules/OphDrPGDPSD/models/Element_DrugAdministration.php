@@ -279,6 +279,16 @@ class Element_DrugAdministration extends BaseMedicationElement
         return parent::model($className);
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     protected function afterSave()
     {
         $pgdpsd_api = \Yii::app()->moduleAPI->get('OphDrPGDPSD');
@@ -302,8 +312,15 @@ class Element_DrugAdministration extends BaseMedicationElement
             $audit_message[] = $_audit_message;
         }
         parent::afterSave();
+        $this->saveToCouchbase();
         $messages = implode("<br />", $audit_message);
         Audit::add('Drug Administration', 'save', "Element Id: {$this->id} Event Id: {$this->event->id}<br />{$messages}");
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     public function updateAssignmentList($assignment)

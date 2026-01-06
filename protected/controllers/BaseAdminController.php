@@ -122,12 +122,21 @@ class BaseAdminController extends BaseController
             'action_links' => []
         ), $options);
 
-        $columns = $model::model()->metadata->columns;
+        // Try to get table columns metadata, but handle the case where the table doesn't exist
+        $columns = null;
+        try {
+            $columns = $model::model()->metadata->columns;
+        } catch (CDbException $e) {
+            // Table doesn't exist or other database error - proceed without columns metadata
+            Yii::log("Database table for model $model not found: " . $e->getMessage(), CLogger::LEVEL_WARNING);
+        }
 
         foreach ($options['extra_fields'] as $extraKey => $extraField) {
             switch ($extraField['type']) {
                 case 'lookup':
-                    $options['extra_fields'][$extraKey]['allow_null'] = $columns[$extraField['field']]->allowNull;
+                    if ($columns && isset($columns[$extraField['field']])) {
+                        $options['extra_fields'][$extraKey]['allow_null'] = $columns[$extraField['field']]->allowNull;
+                    }
                     break;
             }
             if ($extraField['field'] === $options['label_field']) {
@@ -141,7 +150,7 @@ class BaseAdminController extends BaseController
                 $options['filter_fields'][$filterKey]['value'] = $_GET[$filterField['field']];
             }
 
-            if ($options['filter_fields'][$filterKey]['value'] === null && !$columns[$filterField['field']]->allowNull) {
+            if ($columns && isset($columns[$filterField['field']]) && $options['filter_fields'][$filterKey]['value'] === null && !$columns[$filterField['field']]->allowNull) {
                 $options['filters_ready'] = false;
             }
         }
@@ -224,7 +233,11 @@ class BaseAdminController extends BaseController
                                     foreach ($item_errors as $error) {
                                         $errors[$i][] = $error[0];
                                     }
-                                    $errors[$i] = implode(' ', $errors[$i]);
+                                    if (isset($errors[$i]) && is_array($errors[$i])) {
+                                        $errors[$i] = implode(' ', $errors[$i]);
+                                    } else {
+                                        $errors[$i] = 'Unknown save error';
+                                    }
                                 }
                                 Audit::add('admin', $new ? 'create' : 'update', $item->primaryKey, null, array(
                                     'module' => (is_object($this->module)) ? $this->module->id : 'core',

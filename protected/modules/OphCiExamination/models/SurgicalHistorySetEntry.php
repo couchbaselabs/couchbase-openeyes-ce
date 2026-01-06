@@ -133,6 +133,34 @@ class SurgicalHistorySetEntry extends \BaseActiveRecordVersioned
     }
 
     /**
+     * @return string the Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * @return string the Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Retrieves a list of models based on the current search/filter conditions.
      *
      * Typical usecase:

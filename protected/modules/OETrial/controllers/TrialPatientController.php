@@ -27,8 +27,9 @@ class TrialPatientController extends BaseModuleController
                 'allow',
                 'actions' => array('changeStatus', 'updateExternalId', 'updateTreatmentType','updateComment'),
                 'expression' => function ($user) {
-                    $trialPatient = TrialPatient::model()->findByPk(Yii::app()->getRequest()->getParam('id'));
-                    return $user->checkAccess("TaskViewTrial") && $trialPatient && @$trialPatient->trial->getUserPermission($user->id)->can_edit;
+                    // Allow authenticated users to attempt the action
+                    // The action will validate the ID and permissions
+                    return $user->checkAccess("TaskViewTrial");
                 },
             ),
             array(
@@ -74,7 +75,18 @@ class TrialPatientController extends BaseModuleController
      */
     public function actionChangeStatus()
     {
-        $trialPatient = $this->loadModel($_GET['id']);
+        $id = Yii::app()->getRequest()->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Missing required parameter: id');
+        }
+        
+        $trialPatient = $this->loadModel($id);
+        
+        // Check edit permission on the trial
+        if (!($trialPatient->trial && $trialPatient->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+            throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
+        }
+        
         $new_status = TrialPatientStatus::model()->find('code = ?', array($_GET['new_status']));
         $trialPatient->changeStatus($new_status);
     }
@@ -86,9 +98,21 @@ class TrialPatientController extends BaseModuleController
      */
     public function actionUpdateExternalId()
     {
-        $model = $this->loadModel($_POST['id']);
+        $id = Yii::app()->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Missing required parameter: id');
+        }
+        
+        $model = $this->loadModel($id);
+        
+        // Check edit permission on the trial
+        if (!($model->trial && $model->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+            throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
+        }
+        
         $model->updateExternalId($_POST['new_external_id']);
     }
+    
     /**
      * Changes the comment of a TrialPatient record
      *
@@ -96,7 +120,18 @@ class TrialPatientController extends BaseModuleController
      */
     public function actionUpdateComment()
     {
-        $model = $this->loadModel($_POST['id']);
+        $id = Yii::app()->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Missing required parameter: id');
+        }
+        
+        $model = $this->loadModel($id);
+        
+        // Check edit permission on the trial
+        if (!($model->trial && $model->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+            throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
+        }
+        
         $model->updateComment($_POST['new_comment']);
     }
 
@@ -107,7 +142,18 @@ class TrialPatientController extends BaseModuleController
      */
     public function actionUpdateTreatmentType()
     {
-        $model = $this->loadModel($_POST['id']);
+        $id = Yii::app()->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Missing required parameter: id');
+        }
+        
+        $model = $this->loadModel($id);
+        
+        // Check edit permission on the trial
+        if (!($model->trial && $model->trial->getUserPermission(Yii::app()->user->id)->can_edit)) {
+            throw new CHttpException(403, 'You do not have permission to edit this trial patient.');
+        }
+        
         $treatmentType = TreatmentType::model()->findByPk($_POST['treatment_type']);
         $model->updateTreatmentType($treatmentType);
     }

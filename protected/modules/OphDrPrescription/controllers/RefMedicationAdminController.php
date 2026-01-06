@@ -218,6 +218,7 @@ class RefMedicationAdminController extends BaseAdminController
         /** @var Medication $model */
 
         $data = Yii::app()->request->getPost('Medication');
+        $data = $data ?? [];
         $this->_setModelData($model, $data);
 
         if ($model->save()) {
@@ -235,6 +236,10 @@ class RefMedicationAdminController extends BaseAdminController
 
     private function _setModelData(Medication $model, $data)
     {
+        if (!is_array($data)) {
+            $data = [];
+        }
+        
         $model->setAttributes($data);
 
         //Yii will set an empty string as the id but then won't update the model object's id if it's not null
@@ -323,6 +328,13 @@ class RefMedicationAdminController extends BaseAdminController
 
     public function actionExport($med_set_ids = array())
     {
+        // Handle case where no medication sets are provided
+        if (empty($med_set_ids)) {
+            $data = array();
+            $data['form_error'] = 'Please select at least one Set.';
+            return $this->render('/admin/ref_medication_export', $data);
+        }
+
         ini_set('max_execution_time', 0);
 
         $spreadsheet = new Spreadsheet();

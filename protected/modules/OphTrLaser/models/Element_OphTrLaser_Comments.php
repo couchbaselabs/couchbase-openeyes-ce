@@ -132,4 +132,16 @@ class Element_OphTrLaser_Comments extends BaseEventTypeElement
     {
         return 'element_ophtrlaser_comments';
     }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

@@ -49,7 +49,8 @@ class CommonSystemicDisorderGroupController extends BaseAdminController
 
         if (!$json) {
             Yii::app()->user->setFlash('warning.failure-form', 'There has been an error in saving, please contact support.');
-            $this->redirect(Yii::app()->request->urlReferrer);
+            $referrer = Yii::app()->request->urlReferrer ?: $this->createUrl('list');
+            $this->redirect($referrer);
         }
 
         $this->updateCommonSystemicDisorderGroups($current_institution, $json);
@@ -74,22 +75,22 @@ class CommonSystemicDisorderGroupController extends BaseAdminController
     {
         $json_string = Yii::app()->request->getParam('CommonSystemicDisorderGroups');
 
-        $json_error = false;
         if (!$json_string || !array_key_exists('JSON_string', $json_string)) {
-            $json_error = true;
+            return null;
         }
 
         $json = json_decode(str_replace("'", '"', $json_string['JSON_string']), true);
         if (json_last_error() != 0) {
-            $json_error = true;
+            return null;
         }
 
-        return $json_error ? null : $json;
+        return $json;
     }
 
     protected function updateCommonSystemicDisorderGroups($current_institution, $json)
     {
         $transaction = Yii::app()->cbdb->beginTransaction();
+        $referrer = Yii::app()->request->urlReferrer ?: $this->createUrl('list');
 
         $display_orders = array_map(function ($entry) {
             return $entry['display_order'];
@@ -110,7 +111,7 @@ class CommonSystemicDisorderGroupController extends BaseAdminController
             }
 
             $transaction->rollback();
-            $this->redirect(Yii::app()->request->urlReferrer);
+            $this->redirect($referrer);
         }
 
         try {
@@ -123,7 +124,7 @@ class CommonSystemicDisorderGroupController extends BaseAdminController
 
         Yii::app()->user->setFlash('success', 'List updated.');
 
-        $this->redirect(Yii::app()->request->urlReferrer);
+        $this->redirect($referrer);
     }
 
     protected function deleteOtherCommonSystemicDisorderGroups($institution, $saved_group_ids)

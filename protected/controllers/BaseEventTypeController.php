@@ -740,6 +740,10 @@ class BaseEventTypeController extends BaseModuleController
     {
         $this->moduleStateCssClass = 'edit';
 
+        if (!isset($_REQUEST['patient_id'])) {
+            throw new CHttpException(400, 'patient_id is required to create an event.');
+        }
+
         $this->setPatient($_REQUEST['patient_id']);
         $this->validateOrResetActiveWorklistSessionState();
 

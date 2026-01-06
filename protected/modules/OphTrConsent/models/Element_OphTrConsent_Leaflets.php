@@ -37,6 +37,16 @@ class Element_OphTrConsent_Leaflets extends BaseEventTypeElement
 
     public $service;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *
@@ -156,7 +166,15 @@ class Element_OphTrConsent_Leaflets extends BaseEventTypeElement
             }
         }
 
-        return parent::afterSave();
+        $result = parent::afterSave();
+        $this->saveToCouchbase();
+        return $result;
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

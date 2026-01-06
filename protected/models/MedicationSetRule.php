@@ -45,6 +45,40 @@ class MedicationSetRule extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * @return string Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * @return string Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * @return string the associated database table name
      */
     public function tableName()

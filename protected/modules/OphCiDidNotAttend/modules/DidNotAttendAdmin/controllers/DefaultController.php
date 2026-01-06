@@ -13,9 +13,25 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
-class DefaultController extends ModuleAdminController
+namespace OEModule\OphCiDidNotAttend\modules\DidNotAttendAdmin\controllers;
+
+class DefaultController extends \ModuleAdminController
 {
     public $layout = null;
+
+    protected function beforeAction($action)
+    {
+        // For submodules, we need to construct the asset path correctly
+        $this->modulePath = \Yii::getPathOfAlias('OphCiDidNotAttend') . '/modules/DidNotAttendAdmin/assets';
+        $this->assetPath = \Yii::app()->assetManager->publish($this->modulePath, true, -1);
+
+        if (file_exists($this->modulePath . '/js/admin.js')) {
+            $url = \Yii::app()->createUrl($this->assetPath . '/js/admin.js');
+            \Yii::app()->clientScript->registerScriptFile($url);
+        }
+
+        return \BaseController::beforeAction($action);
+    }
 
     public function actionIndex()
     {

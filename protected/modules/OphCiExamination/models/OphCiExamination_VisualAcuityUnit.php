@@ -51,6 +51,40 @@ class OphCiExamination_VisualAcuityUnit extends \BaseActiveRecordVersioned
         return 'ophciexamination_visual_acuity_unit';
     }
 
+    /**
+     * @return string the Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public function defaultScope()
     {
         return array('order' => $this->getTableAlias(true, false).'.name');

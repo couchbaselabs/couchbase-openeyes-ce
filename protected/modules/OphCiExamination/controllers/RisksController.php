@@ -55,13 +55,17 @@ class RisksController extends \BaseController
      * @deprecated
      */
 
-    public function actionForTags($tag_ids)
+    public function actionForTags($tag_ids = '')
     {
         echo \CJSON::encode($this->riskIdsForTagIds(explode(",", $tag_ids)));
     }
 
-    public function actionForSets($set_ids)
+    public function actionForSets($set_ids = '')
     {
+        if (empty($set_ids)) {
+            echo \CJSON::encode(array());
+            return;
+        }
         echo \CJSON::encode($this->riskIdsForMedicationSetIds(explode(",", $set_ids)));
     }
 
@@ -80,8 +84,13 @@ class RisksController extends \BaseController
         );
     }
 
-    public function actionForRefMedication($id)
+    public function actionForRefMedication($id = null)
     {
+        if ($id === null) {
+            echo \CJSON::encode(array());
+            return;
+        }
+
         if (!$medication =\Medication::model()->findByPk($id)) {
             throw new \CHttpException('Medication not found', 404);
         }
@@ -117,17 +126,27 @@ class RisksController extends \BaseController
      * @deprecated
      */
 
-    public function actionForMedicationDrugIds($ids)
+    public function actionForMedicationDrugIds($ids = '')
     {
-        $meds = \MedicationDrug::model()->with('tags')->findAllByPk(explode(",", $ids));
-
-        $result = array();
-        foreach ($meds as $med) {
-            $result[$med->id] = $this->riskIdsForTagIds(
-                $this->tagIdsForTagged($med)
-            );
+        if (empty($ids)) {
+            echo \CJSON::encode(array());
+            return;
         }
 
-        echo \CJSON::encode($result);
+        try {
+            $meds = \MedicationDrug::model()->with('tags')->findAllByPk(explode(",", $ids));
+
+            $result = array();
+            foreach ($meds as $med) {
+                $result[$med->id] = $this->riskIdsForTagIds(
+                    $this->tagIdsForTagged($med)
+                );
+            }
+
+            echo \CJSON::encode($result);
+        } catch (\Exception $e) {
+            // Handle database schema issues or model not found gracefully
+            echo \CJSON::encode(array());
+        }
     }
 }

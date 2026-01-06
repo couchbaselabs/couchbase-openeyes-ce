@@ -191,6 +191,22 @@ class ClinicOutcomeEntry extends \BaseElement
         }
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
     public function afterDelete()
     {
         $ticket = $this->element->getPatientTicket();
@@ -201,6 +217,7 @@ class ClinicOutcomeEntry extends \BaseElement
             }
         }
 
+        $this->deleteFromCouchbase();
         parent::afterDelete();
     }
 

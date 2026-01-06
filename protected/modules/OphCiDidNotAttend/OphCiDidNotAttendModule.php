@@ -18,6 +18,7 @@
 namespace OEModule\OphCiDidNotAttend;
 
 use BaseEventTypeModule;
+use OEModule\OphCiDidNotAttend\modules\DidNotAttendAdmin\DidNotAttendAdminModule;
 
 /**
  * This is the module class for Did Not Attend
@@ -49,7 +50,7 @@ class OphCiDidNotAttendModule extends BaseEventTypeModule
 
         $this->moduleShortSuffix = "Did Not Attend";
 
-        $this->setModules(array('DidNotAttendAdmin'));
+        $this->setModules(['DidNotAttendAdmin' => ['class' => DidNotAttendAdminModule::class]]);
 
         parent::init();
     }

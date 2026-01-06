@@ -86,7 +86,7 @@ class PostOpDrugMappingsController extends BaseAdminController
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            throw new CHttpException(400, 'This action requires an AJAX request.');
         } else {
             if ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
                 $leafletSubspecialy->delete();
@@ -103,7 +103,7 @@ class PostOpDrugMappingsController extends BaseAdminController
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            throw new CHttpException(400, 'This action requires an AJAX request.');
         } else {
             if ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
                 $leafletSubspecialy->default = 1;
@@ -121,7 +121,7 @@ class PostOpDrugMappingsController extends BaseAdminController
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            $this->render('errorpage', array('errormessage' => 'notajaxcall'));
         } else {
             if ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
                 $leafletSubspecialy->default = 0;
@@ -140,7 +140,7 @@ class PostOpDrugMappingsController extends BaseAdminController
         $drugId = $this->request->getParam('drug_id');
 
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errormessage' => 'notajaxcall'));
+            throw new CHttpException(400, 'This action requires an AJAX request.');
         } else {
             if (!is_numeric($subspecialtyId) || !is_numeric($siteId) || !is_numeric($drugId)) {
                 echo 'error';

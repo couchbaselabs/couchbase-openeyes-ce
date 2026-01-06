@@ -34,7 +34,7 @@ $li_id = 'js-sideEvent' . $event->id;
 >
     <div class="tooltip quicklook" style="display: none; ">
         <div class="event-name"><?= $event_name ?></div>
-        <div class="event-info"><?= str_replace("\n", "<br/>", $event->info) ?></div>
+        <div class="event-info"><?= str_replace("\n", "<br/>", $event->info ?? '') ?></div>
         <?php $event_icon_class = '';
         $event_issue_text = $event->getIssueText();
         $event_issue_class = 'event-issue';

@@ -42,6 +42,28 @@ class PathwayTypeStep extends BaseActiveRecordVersioned
     use HasFactory;
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public const STEP_REQUESTED = 0;
     public const STEP_STARTED = 1;
     public const STEP_COMPLETED = 2;

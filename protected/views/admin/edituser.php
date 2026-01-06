@@ -90,19 +90,6 @@ $form = $this->beginWidget(
                         \CHtml::listData($grades, 'id', 'grade'),
                         ['class' => 'cols-full', 'empty' => '- Select Grade -']
                     ); ?></td>
-                <td>
-                    <?= \CHtml::activeDropDownList(
-                        $user,
-                        'doctor_grade_id',
-                        CHtml::listData(
-                            DoctorGrade::model()->findAll(
-                                array('order' => 'display_order')
-                            ),
-                            'id',
-                            'grade'
-                        ),
-                        ['class' => 'cols-full', 'empty' => '- Select Grade -']
-                    ); ?></td>
             </tr>
             <tr>
                 <td>Registration Code</td>

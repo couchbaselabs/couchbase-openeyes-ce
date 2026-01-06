@@ -41,11 +41,28 @@ class Element_OphInVisualfields_Image extends BaseEventTypeElement
         );
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     public function afterSave()
     {
         parent::afterSave();
         $this->updateMeasurementReference($this->left_field_id, Eye::LEFT);
         $this->updateMeasurementReference($this->right_field_id, Eye::RIGHT);
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     private function updateMeasurementReference($measurement_id, $eye_id)

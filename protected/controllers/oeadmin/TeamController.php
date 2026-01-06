@@ -266,7 +266,7 @@ class TeamController extends BaseAdminController
     }
 
     // ajax call and list team members
-    public function actionCheckTeamMembers($id)
+    public function actionCheckTeamMembers($id = null)
     {
         $team = Team::model()->findByPk($id);
         $members = array();

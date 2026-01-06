@@ -332,6 +332,23 @@ class Element_OphCoMessaging_Message extends \BaseEventTypeElement
         $this->updateEventSubtype();
 
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     protected function updateEventSubtype()

@@ -174,7 +174,14 @@ class Element_OphTrLaser_Fundus extends SplitEventTypeElement
 
     protected function afterSave()
     {
-        return parent::afterSave();
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     protected function beforeValidate()

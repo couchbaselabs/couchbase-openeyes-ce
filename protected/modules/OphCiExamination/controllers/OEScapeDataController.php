@@ -145,8 +145,13 @@ class OEScapeDataController extends \BaseController
     /**
      * @return array
      */
-    public function actionDataSet($id, $side)
+    public function actionDataSet($id = null, $side = null)
     {
+        if ($id === null || $side === null) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $data = $this->queryData($id, $side);
 
         $output = array();
@@ -157,8 +162,13 @@ class OEScapeDataController extends \BaseController
         $this->renderJSON($output);
     }
 
-    public function actionDataSetVA($id, $side)
+    public function actionDataSetVA($id = null, $side = null)
     {
+        if ($id === null || $side === null) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $data = $this->queryDataVA($id, $side);
 
         $output = array();
@@ -176,8 +186,13 @@ class OEScapeDataController extends \BaseController
         $this->renderJSON($output);
     }
 
-    public function actionDataSetMD($id, $side)
+    public function actionDataSetMD($id = null, $side = null)
     {
+        if ($id === null || $side === null) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $data = $this->queryDataMD($id, $side);
 
         $output = array();
@@ -188,8 +203,14 @@ class OEScapeDataController extends \BaseController
         $this->renderJSON($output);
     }
 
-    public function actionGetOperations($id)
+    public function actionGetOperations()
     {
+        $id = Yii::app()->request->getQuery('id');
+        if ($id === null) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $data = $this->queryOperationData($id);
 
         $output = array();
@@ -200,9 +221,18 @@ class OEScapeDataController extends \BaseController
         $this->renderJSON($output);
     }
 
-    public function actionGetMedications($id)
+    public function actionGetMedications($id = null)
     {
+        if ($id === null) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $patient = \Patient::model()->findByPk($id);
+        if (!$patient) {
+            $this->renderJSON(array());
+            return;
+        }
 
         $medications = array_merge($patient->get_previous_medications(), $patient->get_medications());
         //$medications = $this->sortMedications($medications);
@@ -215,25 +245,56 @@ class OEScapeDataController extends \BaseController
         $this->renderJSON($output);
     }
 
-    public function actionLoadImage($id, $eventDate, $side, $eventType, $mediaType)
+    public function actionLoadImage()
     {
-        // get the closest VF event and image based on the eventDate
-        $command = Yii::app()->cbdb->createCommand()->select('max(id) as fileid')
-            ->from('media_data')
-            ->where('patient_id = :patient', array('patient' => $id))
-            ->andWhere('event_date <= :eventDate', array('eventDate' => $eventDate))
-            ->andWhere('eye_id = :side', array('side' => $side))
-            ->andWhere('event_type_id = (SELECT id FROM event_type WHERE class_name= :eventType)', array('eventType' => $eventType))
-            ->andWhere('media_type_id = (SELECT id FROM media_type WHERE type_name =:mediaType)', array('mediaType' => $mediaType));
+        $id = Yii::app()->request->getQuery('id');
+        $eventDate = Yii::app()->request->getQuery('eventDate');
+        $side = Yii::app()->request->getQuery('side');
+        $eventType = Yii::app()->request->getQuery('eventType');
+        $mediaType = Yii::app()->request->getQuery('mediaType');
 
-        if ($row = $command->queryRow()) {
-            echo $this->renderPartial('//oescape/vfgreyscale_side', array('fileid' => $row['fileid']));
+        if ($id === null || $eventDate === null || $side === null || $eventType === null || $mediaType === null) {
+            return;
+        }
+
+        try {
+            // get the closest VF event and image based on the eventDate
+            $command = Yii::app()->cbdb->createCommand()
+                ->select('max(id) as fileid')
+                ->from('media_data')
+                ->where('patient_id = :patient', array('patient' => $id))
+                ->andWhere('event_date <= :eventDate', array('eventDate' => $eventDate))
+                ->andWhere('eye_id = :side', array('side' => $side))
+                ->andWhere('event_type_id = (SELECT id FROM event_type WHERE class_name= :eventType)', array('eventType' => $eventType))
+                ->andWhere('media_type_id = (SELECT id FROM media_type WHERE type_name =:mediaType)', array('mediaType' => $mediaType));
+
+            $row = $command->queryRow();
+            if ($row) {
+                echo $this->renderPartial('//oescape/vfgreyscale_side', array('fileid' => $row['fileid']));
+            }
+        } catch (CDbException $e) {
+            Yii::log('Database error loading image: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Silently fail - render nothing if query fails
+            return;
+        } catch (CException $e) {
+            Yii::log('Yii error loading image: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Silently fail - render nothing if query fails
+            return;
+        } catch (Throwable $e) {
+            Yii::log('Exception loading image: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Silently fail - render nothing if query fails
+            return;
         }
         //echo $fileId;
     }
 
-    public function actionLoadAllImages($id, $eventType, $mediaType)
+    public function actionLoadAllImages($id = null, $eventType = null, $mediaType = null)
     {
+        if ($id === null || $eventType === null || $mediaType === null) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $command = Yii::app()->cbdb->createCommand()->select('md.id as fileid, eye_id, event_date, plot_values')
             ->from('media_data md')
             ->where('patient_id = :patient', array('patient' => $id))
@@ -249,10 +310,14 @@ class OEScapeDataController extends \BaseController
         $this->renderJSON($output);
     }
 
-    public function actionGetImage($id)
+    public function actionGetImage($id = null)
     {
+        if ($id === null) {
+            throw new \CHttpException(400, 'Missing required parameter: id');
+        }
+
         if (!$file = \MediaData::model()->findByPk($id)) {
-            throw new CHttpException(404, 'File not found');
+            throw new \CHttpException(404, 'File not found');
         }
         $filepath = $file->getPath();
         if (!file_exists($file->getPath())) {
@@ -273,6 +338,11 @@ class OEScapeDataController extends \BaseController
      * @param $chart_size string (small|medium|large\full)
      */
     public function actionSetPreferredChartSize(){
+        if (!isset($_POST['chart_size'])) {
+            $this->renderJSON(array('success' => false, 'message' => 'Missing required parameter: chart_size'));
+            return;
+        }
         $_SESSION['oescape_chart_size'] = $_POST['chart_size'];
+        $this->renderJSON(array('success' => true, 'message' => 'Chart size preference updated'));
     }
 }

@@ -12,6 +12,10 @@
  * @copyright Copyright (C) 2014, OpenEyes Foundation
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
+if (!$patient) {
+    echo '<p>No patient selected. Please navigate to a patient record to view medications.</p>';
+    return;
+}
 $medications = $current ? $patient->medications : $patient->previous_medications;
 ?>
 <?php if ($medications) : ?>

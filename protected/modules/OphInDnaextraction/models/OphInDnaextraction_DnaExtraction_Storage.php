@@ -155,6 +155,28 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
         return parent::beforeDelete();
     }
 
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /*
      * Set letter range
      */

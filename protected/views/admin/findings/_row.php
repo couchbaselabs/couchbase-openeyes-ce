@@ -40,7 +40,7 @@
         'options' => [
             'label' => 'Subspecialty:',
             'dropDown' => [
-                'name' => null,
+                'name' => "subspecialty-dropdown[" . $data['key'] . "]",
                 'id' => 'subspecialties',
                 'data' => \CHtml::listData($subspecialty, 'id', 'name'),
                 'htmlOptions' => ['empty' => 'All Subspecialties'],

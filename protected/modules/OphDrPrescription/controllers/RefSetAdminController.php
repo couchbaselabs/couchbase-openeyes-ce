@@ -43,9 +43,13 @@ class RefSetAdminController extends BaseAdminController
         $admin->listModel();
     }
 
-    public function actionToList($id)
+    public function actionToList($id = null)
     {
-        $this->redirect('/OphDrPrescription/refMedicationAdmin/list?ref_set_id=' . $id);
+        if (is_null($id)) {
+            $this->redirect('/OphDrPrescription/refMedicationAdmin/list');
+        } else {
+            $this->redirect('/OphDrPrescription/refMedicationAdmin/list?ref_set_id=' . $id);
+        }
     }
 
     public function actionEdit($id = null)

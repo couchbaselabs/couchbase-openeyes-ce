@@ -265,6 +265,12 @@ class DefaultController extends \BaseEventTypeController
 
     public function initActionStep()
     {
+        // Check if ID is provided before attempting to initialize with event
+        if (!@$_GET['id'] && !Yii::app()->request->getParam('id')) {
+            // If no ID is provided, we can't initialize the event
+            // Don't call parent init, set a flag to handle this gracefully
+            return;
+        }
         $this->initActionUpdate();
     }
 
@@ -345,7 +351,9 @@ class DefaultController extends \BaseEventTypeController
     {
         $feature_id_list = Yii::app()->request->getQuery('feature_list');
 
-        $feature_list = models\OphCiExamination_DRGrading_Feature::model()->findAllByPk($feature_id_list);
+        $feature_list = !empty($feature_id_list) 
+            ? models\OphCiExamination_DRGrading_Feature::model()->findAllByPk(explode(",", $feature_id_list))
+            : [];
         $features = array();
         foreach ($feature_list as $feature) {
             $features[] = array(
@@ -441,13 +449,17 @@ class DefaultController extends \BaseEventTypeController
     {
         // need a side specification for the form element names
         $side = @$_GET['side'];
+        if (empty($side)) {
+            $side = 'left'; // default to left if not specified
+        }
         if (!in_array($side, array('left', 'right'))) {
             throw new \Exception('Invalid side argument');
         }
 
         // disorder id verification
         $questions = array();
-        foreach (@$_GET['disorders'] as $did) {
+        $disorders = isset($_GET['disorders']) && is_array($_GET['disorders']) ? $_GET['disorders'] : array();
+        foreach ($disorders as $did) {
             if ((int)$did) {
                 foreach (
                     models\Element_OphCiExamination_InjectionManagementComplex::model(
@@ -476,7 +488,7 @@ class DefaultController extends \BaseEventTypeController
         );
     }
 
-    public function actionGetScaleForInstrument($name)
+    public function actionGetScaleForInstrument($name = '')
     {
         $instrument_id = @$_GET['instrument_id'];
         $side = @$_GET['side'];
@@ -493,7 +505,7 @@ class DefaultController extends \BaseEventTypeController
         }
     }
 
-    public function actionSearchInstitutions($term)
+    public function actionSearchInstitutions($term = '')
     {
         $institutions = \Institution::model()->findAll(
             'LOWER(name) LIKE CONCAT(LOWER(:term), \'%\')',
@@ -512,20 +524,38 @@ class DefaultController extends \BaseEventTypeController
 
     public function actionGetPreviousIOPAverage()
     {
-        if (!$patient = \Patient::model()->findByPk(@$_GET['patient_id'])) {
-            throw new \Exception('Patient not found: ' . @$_GET['patient_id']);
+        // Validate required parameters
+        if (empty($_GET['patient_id'])) {
+            throw new \CHttpException(400, 'Missing required parameter: patient_id');
         }
 
-        if (!in_array(@$_GET['side'], array('left', 'right'))) {
-            throw new \Exception('Invalid side: ' . @$_GET['side']);
+        if (empty($_GET['side'])) {
+            throw new \CHttpException(400, 'Missing required parameter: side');
         }
 
-        $side = ucfirst(@$_GET['side']);
+        $patient_id = $_GET['patient_id'];
+        $side = $_GET['side'];
 
-        $api = $this->getApp()->moduleAPI->get('OphCiExamination');
-        $result = $api->{"getLastIOPReading{$side}"}($patient);
+        // Find patient
+        if (!$patient = \Patient::model()->findByPk($patient_id)) {
+            throw new \CHttpException(400, 'Patient not found: ' . $patient_id);
+        }
 
-        echo $result;
+        // Validate side parameter
+        if (!in_array($side, array('left', 'right'))) {
+            throw new \CHttpException(400, 'Invalid side: ' . $side . '. Must be "left" or "right"');
+        }
+
+        $side = ucfirst($side);
+
+        try {
+            $api = $this->getApp()->moduleAPI->get('OphCiExamination');
+            $result = $api->{"getLastIOPReading{$side}"}($patient);
+
+            echo $result;
+        } catch (\Exception $e) {
+            throw new \CHttpException(500, 'Error retrieving IOP reading: ' . $e->getMessage());
+        }
     }
 
     public function actionCheckPrescriptionAutoSignEnabled()
@@ -643,6 +673,7 @@ class DefaultController extends \BaseEventTypeController
             $subspecialty_id,
             \Eye::LEFT
         );
+        $left_select = array();
         foreach ($left_select_values as $left_select_value) {
             $left_select[] = array(
                 'id' => $left_select_value->id,
@@ -664,6 +695,7 @@ class DefaultController extends \BaseEventTypeController
         $isAjax = \Yii::app()->request->getParam('ajax', false);
 
         if (\Yii::app()->request->isAjaxRequest || $isAjax) {
+            $select = array();
             $term = \Yii::app()->request->getParam('term', false);
 
             $element_id = \Yii::app()->request->getParam('element_id', null);
@@ -682,7 +714,6 @@ class DefaultController extends \BaseEventTypeController
                     $term
                 );
 
-                $select = array();
                 foreach ($select_values as $select_value) {
                     $select[] = array('value' => $select_value->id, 'label' => $select_value->name);
                 }
@@ -697,17 +728,29 @@ class DefaultController extends \BaseEventTypeController
      *
      * @param int $element_id
      */
-    public function actionDismissCVIalert($element_id)
+    public function actionDismissCVIalert($element_id = null)
     {
         $is_ajax = $this->getApp()->request->getParam('ajax', false);
         $cvi_api = $this->getApp()->moduleAPI->get('OphCoCvi');
 
         if ($cvi_api && ($this->getApp()->request->isAjaxRequest || $is_ajax)) {
+            if (empty($element_id)) {
+                echo \CJSON::encode(array('success' => 'false', 'error' => 'element_id is required'));
+                return;
+            }
+
             $element = models\Element_OphCiExamination_VisualAcuity::model()->findByPk($element_id);
+            if (!$element) {
+                echo \CJSON::encode(array('success' => 'false', 'error' => 'Element not found'));
+                return;
+            }
+
             $element->cvi_alert_dismissed = 1;
 
             if ($element->save()) {
                 echo \CJSON::encode(array('success' => 'true'));
+            } else {
+                echo \CJSON::encode(array('success' => 'false', 'error' => 'Failed to save element'));
             }
         }
     }
@@ -1003,8 +1046,13 @@ class DefaultController extends \BaseEventTypeController
      *
      * @param $id
      */
-    public function actionStep($id)
+    public function actionStep($id = null)
     {
+        // If no ID is provided, redirect to home or show an error
+        if (!$id) {
+            throw new \CHttpException(400, 'Event ID is required to access this page.');
+        }
+
         $this->validateWorklistPatientRequest();
         $context = $this->event->firm ?? $this->event->episode->firm;
 
@@ -1357,7 +1405,8 @@ class DefaultController extends \BaseEventTypeController
             return;
         }
         if (!$disorder = \Disorder::model()->findByPk(@$_GET['disorder_id'])) {
-            throw new \Exception('Unable to find disorder: ' . @$_GET['disorder_id']);
+            $this->renderJSON(array('success' => false, 'error' => 'Unable to find disorder: ' . @$_GET['disorder_id']));
+            Yii::app()->end();
         }
 
         // For some reason JSON_HEX_QUOT | JSON_HEX_APOS doesn't escape ?
@@ -2271,12 +2320,22 @@ class DefaultController extends \BaseEventTypeController
 
     public function actionResolveSafeguardingElement()
     {
+        if (!isset($_POST['element_id'])) {
+            echo \CJSON::encode(array("success" => false, "errors" => array("element_id" => array("element_id is required"))));
+            return;
+        }
+
         $element = \OEModule\OphCiExamination\models\Element_OphCiExamination_Safeguarding::model()->findByPk(
             $_POST['element_id']
         );
 
-        $element->outcome_id = $_POST['outcome_id'];
-        $element->outcome_comments = $_POST['outcome_comments'];
+        if (!$element) {
+            echo \CJSON::encode(array("success" => false, "errors" => array("element_id" => array("Element not found"))));
+            return;
+        }
+
+        $element->outcome_id = isset($_POST['outcome_id']) ? $_POST['outcome_id'] : null;
+        $element->outcome_comments = isset($_POST['outcome_comments']) ? $_POST['outcome_comments'] : null;
 
         // Using == instead of === as the POST request values are stringified
         if ($element->outcome_id == \OEModule\OphCiExamination\models\Element_OphCiExamination_Safeguarding::CONFIRM_SAFEGUARDING_CONCERNS) {
@@ -2865,8 +2924,15 @@ class DefaultController extends \BaseEventTypeController
         return $selectedSide === $side1 ? $side2 : $side1;
     }
 
-    public function actionGetOctAssessment($assessment_ids)
+    public function actionGetOctAssessment($assessment_ids = null)
     {
+        if (empty($assessment_ids)) {
+            Yii::app()->clientScript->scriptMap['*.js'] = false;
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'No assessment IDs provided']);
+            Yii::app()->end();
+        }
+        
         $assessment_ids = json_decode($assessment_ids);
         $event_type = \EventType::model()->find('name = "Examination"');
         $assessments = [];
@@ -2949,14 +3015,19 @@ class DefaultController extends \BaseEventTypeController
         $this->renderJSON($assessments);
     }
 
-    public function actionGetAttachment($assessment_ids)
+    public function actionGetAttachment($assessment_ids = null)
     {
-        $assessment_ids = json_decode($assessment_ids);
         $event_ids = [];
-
-        foreach ($assessment_ids as $assessment_id) {
-            $assessment = Assessment::model()->findByPk($assessment_id);
-            $event_ids[] = $assessment->event_id;
+        
+        if ($assessment_ids) {
+            $assessment_ids = json_decode($assessment_ids);
+            
+            foreach ($assessment_ids as $assessment_id) {
+                $assessment = Assessment::model()->findByPk($assessment_id);
+                if ($assessment) {
+                    $event_ids[] = $assessment->event_id;
+                }
+            }
         }
 
         $this->widget(
@@ -3096,8 +3167,12 @@ class DefaultController extends \BaseEventTypeController
         }
     }
 
-    public function actionMedicationManagementEditable($patient_id, $event_date)
+    public function actionMedicationManagementEditable($patient_id = null, $event_date = null)
     {
+        if ($patient_id === null || $event_date === null) {
+            $this->renderJSON(['errorMessages' => ['Missing required parameters: patient_id and event_date']]);
+            return;
+        }
         $this->renderJSON(self::getMedicationManagementEditable($patient_id, $event_date));
     }
 

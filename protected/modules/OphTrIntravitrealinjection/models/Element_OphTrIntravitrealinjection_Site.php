@@ -130,7 +130,24 @@ class Element_OphTrIntravitrealinjection_Site extends BaseEventTypeElement
 
     protected function afterSave()
     {
-        return parent::afterSave();
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     protected function beforeValidate()

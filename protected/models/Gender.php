@@ -49,6 +49,24 @@ class Gender extends BaseActiveRecord
     }
 
     /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return Gender the static model class

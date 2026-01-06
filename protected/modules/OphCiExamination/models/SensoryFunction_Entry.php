@@ -25,9 +25,27 @@ use OEModule\OphCiExamination\models\traits\HasWithHeadPosture;
  */
 class SensoryFunction_Entry extends \BaseElement
 {
-    use \OE\Models\Traits\CouchbaseModelBridge;
-    use HasRelationOptions;
+    use \OE\Models\Traits\CouchbaseModelBridge {
+        \OE\Models\Traits\CouchbaseModelBridge::__get as couchbaseGet;
+    }
+    use HasRelationOptions {
+        HasRelationOptions::__get insteadof \OE\Models\Traits\CouchbaseModelBridge;
+    }
     use HasWithHeadPosture;
+    
+    /**
+     * Override __get to handle both HasRelationOptions and CouchbaseModelBridge
+     */
+    public function __get($name)
+    {
+        if (substr($name, -8) === '_options') {
+            $relation_name = strtolower(substr($name, 0, -8));
+            if (!$this->shouldSkipRelation($relation_name) && $this->getRelationByName($relation_name)) {
+                return $this->{"{$relation_name}Options"}();
+            }
+        }
+        return $this->couchbaseGet($name);
+    }
 
     protected $auto_validate_relations = true;
     protected $auto_update_relations = true;
@@ -118,5 +136,41 @@ class SensoryFunction_Entry extends \BaseElement
         return $this->withHeadPostureRecorded()
             ? sprintf(", %s %s", $this->getAttributeLabel('with_head_posture'), $this->convertWithHeadPostureRecordToDisplay($this->with_head_posture))
             : '';
+    }
+
+    /**
+     * Returns the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving the model, also save to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting the model, also delete from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

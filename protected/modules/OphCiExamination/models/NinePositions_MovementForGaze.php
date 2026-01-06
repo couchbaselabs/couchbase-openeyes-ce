@@ -34,6 +34,37 @@ class NinePositions_MovementForGaze extends \BaseElement
     use traits\HasRelationOptions;
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function __get($name)
+    {
+        // First try CouchbaseModelBridge logic for relation loading
+        // Check if this is a defined relation
+        $md = $this->getMetaData();
+        if (isset($md->relations[$name])) {
+            // Check if we should use Couchbase for relation loading
+            if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+                // Check cache first
+                if (isset($this->_couchbaseRelationCache[$name])) {
+                    return $this->_couchbaseRelationCache[$name];
+                }
+                
+                // Load from Couchbase
+                $result = $this->loadRelationFromCouchbase($name);
+                $this->_couchbaseRelationCache[$name] = $result;
+                return $result;
+            }
+        }
+        
+        // Then try HasRelationOptions logic for _options properties
+        if (substr($name, -8) === '_options') {
+            $relation_name = strtolower(substr($name, 0, -8));
+            if (!$this->shouldSkipRelation($relation_name) && $this->getRelationByName($relation_name)) {
+                return $this->{"{$relation_name}Options"}();
+            }
+        }
+        
+        return parent::__get($name);
+    }
+
     public const RIGHT_UP = 'right-up';
     public const RIGHT_MID = 'right-mid';
     public const RIGHT_DOWN = 'right-down';
@@ -105,5 +136,39 @@ class NinePositions_MovementForGaze extends \BaseElement
     {
         $this->unsetAttributes(['id', 'reading_id']);
         $this->setIsNewRecord(true);
+    }
+
+    /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

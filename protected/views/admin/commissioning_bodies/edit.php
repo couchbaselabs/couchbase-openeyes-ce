@@ -104,6 +104,7 @@
                 ); ?>
             </td>
         </tr>
+        <?php if ($cb->contact) : ?>
         <tr>
             <td><?=$cb->contact->getAttributeLabel('email');?></td>
             <td>
@@ -114,6 +115,7 @@
                 ); ?>
             </td>
         </tr>
+        <?php endif; ?>
         </tbody>
 
         <tfoot>

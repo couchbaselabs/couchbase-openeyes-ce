@@ -170,6 +170,12 @@ class DefaultController extends \CController
         if (!$model_class) {
             throw new \CHttpException(400, 'model class must be provided');
         }
+        
+        // Ensure attributes is an array (handle case where it might be sent as JSON string)
+        if (is_string($lookup_attributes)) {
+            $lookup_attributes = json_decode($lookup_attributes, true) ?: [];
+        }
+        
         $model_instance = ModelFactory::factoryFor($model_class)
             ->useExisting($lookup_attributes)
             ->create();
@@ -307,7 +313,11 @@ class DefaultController extends \CController
      */
     protected function handleException(\CExceptionEvent $event)
     {
-        $this->sendJsonResponse(['message' => $event->exception->getMessage(), 'trace' => $event->exception->getTrace()], 500);
+        $status = 500;
+        if ($event->exception instanceof \CHttpException) {
+            $status = $event->exception->statusCode;
+        }
+        $this->sendJsonResponse(['message' => $event->exception->getMessage(), 'trace' => $event->exception->getTrace()], $status);
     }
 
     protected function applyStatesTo(ModelFactory $factory, $states = []): ModelFactory

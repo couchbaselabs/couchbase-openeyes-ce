@@ -233,6 +233,21 @@ class PracticeController extends BaseController
             } else {
                 echo CJSON::encode(array('error' =>  CHtml::errorSummary(array($contactPractice, $practice, $address))));
             }
+        } else {
+            // Handle GET requests - initialize models and render view
+            $contact = new Contact('manage_practice');
+            $address = new Address('manage_practice');
+            $practice = new Practice('manage_practice');
+            $gp = new Gp('manage_practice');
+            
+            $this->render('create', array(
+                'model' => $practice,
+                'address' => $address,
+                'contact' => $contact,
+                'gp' => $gp,
+                'duplicateCheckOutput' => null,
+                'gpIdProviderNoList' => array(),
+            ));
         }
     }
 

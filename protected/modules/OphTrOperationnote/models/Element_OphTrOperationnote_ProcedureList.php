@@ -100,9 +100,19 @@ class Element_OphTrOperationnote_ProcedureList extends Element_OpNote
      * 
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'clinical';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * 
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**
@@ -261,7 +271,17 @@ class Element_OphTrOperationnote_ProcedureList extends Element_OpNote
             }
         }
 
-        return parent::afterSave();
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

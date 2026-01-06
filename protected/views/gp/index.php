@@ -42,8 +42,7 @@ $to = min(($page_num + 1) * $items_per_page, $dataProvider->totalItemCount);
             </div>
             <?php if (Yii::app()->user->checkAccess('TaskCreateGp')) : ?>
                 <div class="cols-4 column end">
-                        <p><?php echo CHtml::link('Create ' . $gplabel, $this->createUrl('/gp/create')); ?></p>
-                    </div>
+                    <p><?php echo CHtml::link('Create ' . $gplabel, $this->createUrl('/gp/create')); ?></p>
                 </div>
             <?php endif; ?>
         </div>

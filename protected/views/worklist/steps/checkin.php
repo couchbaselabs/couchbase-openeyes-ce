@@ -16,7 +16,7 @@ if ($step instanceof PathwayStep) {
 <div class="slide-open">
     <?php if (isset($worklist_patient)) { ?>
     <div class="patient">
-        <?= strtoupper($worklist_patient->patient->last_name) . ', ' . $worklist_patient->patient->first_name . ' (' . $worklist_patient->patient->title . ')'?>
+        <?= strtoupper($worklist_patient->patient->last_name ?? '') . ', ' . ($worklist_patient->patient->first_name ?? '') . ' (' . ($worklist_patient->patient->title ?? '') . ')'?>
     </div>
         <?php if ($step instanceof PathwayStep && $step->start_time && !$worklist_patient->pathway->did_not_attend) { ?>
             <h3 class="title">

@@ -39,6 +39,16 @@ class ArchiveMedication extends BaseActiveRecordVersioned
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /**
      * @return string the associated database table name
      */
@@ -73,9 +83,9 @@ class ArchiveMedication extends BaseActiveRecordVersioned
         return array(
             'medication_drug' => array(self::BELONGS_TO, 'MedicationDrug', 'medication_drug_id'),
             'drug' => array(self::BELONGS_TO, 'Drug', 'drug_id'),
-            'route' => array(self::BELONGS_TO, 'DrugRoute', 'route_id'),
-            'option' => array(self::BELONGS_TO, 'DrugRouteOption', 'option_id'),
-            'frequency' => array(self::BELONGS_TO, 'DrugFrequency', 'frequency_id'),
+            'route' => array(self::BELONGS_TO, 'MedicationRoute', 'route_id'),
+            'option' => array(self::BELONGS_TO, 'MedicationLaterality', 'option_id'),
+            'frequency' => array(self::BELONGS_TO, 'MedicationFrequency', 'frequency_id'),
             'stop_reason' => array(self::BELONGS_TO, 'MedicationStopReason', 'stop_reason_id'),
             'patient' => array(self::BELONGS_TO, 'Patient', 'patient_id'),
             'tags' => array(self::MANY_MANY, 'Tag', 'medication_tag(tag_id, medication_id)'),
@@ -137,6 +147,7 @@ class ArchiveMedication extends BaseActiveRecordVersioned
         if ($this->end_date) {
             $this->removePatientAdherence();
         }
+        $this->saveToCouchbase();
 
         return parent::afterSave();
     }
@@ -144,6 +155,7 @@ class ArchiveMedication extends BaseActiveRecordVersioned
     public function afterDelete()
     {
         $this->removePatientAdherence();
+        $this->deleteFromCouchbase();
 
         return parent::afterDelete();
     }

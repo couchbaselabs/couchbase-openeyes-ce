@@ -31,7 +31,10 @@
     <div class="label"><?php echo $form->labelEx($model, 'parent_check_value');?></div>
     <div class="data">
     <?php
-    $rtype = $model->node->parent->response_type;
+    $rtype = null;
+    if ($model->node && $model->node->parent) {
+        $rtype = $model->node->parent->response_type;
+    }
 
     if ($rtype && $rtype->datatype == 'bool') {
         $this->renderPartial(

@@ -178,6 +178,28 @@ class OphCiExamination_Signature extends \BaseSignature
         return parent::beforeSave();
     }
 
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     public function deletePrevSignature($element_id = null)
     {
         if ($element_id === null) {

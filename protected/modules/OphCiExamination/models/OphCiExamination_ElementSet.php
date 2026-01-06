@@ -49,9 +49,14 @@ class OphCiExamination_ElementSet extends \BaseActiveRecordVersioned
     protected $_created;
     protected $_isNewRecord = true;
 
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**

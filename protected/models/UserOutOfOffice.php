@@ -36,6 +36,28 @@ class UserOutOfOffice extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     /**
      * Returns the static model of the specified AR class.
      *

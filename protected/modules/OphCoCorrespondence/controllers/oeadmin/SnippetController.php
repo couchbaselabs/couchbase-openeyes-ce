@@ -41,6 +41,7 @@ class SnippetController extends ModuleAdminController
     public function actionList()
     {
         $search = \Yii::app()->request->getQuery('search');
+        $is_admin = Yii::app()->user->checkAccess('admin');
 
         if (isset($search['institution_relations.institution_id'])) {
             $institutions_id = $search['institution_relations.institution_id'];
@@ -49,7 +50,6 @@ class SnippetController extends ModuleAdminController
         if (isset($search['sites.id'])) {
             $sites_id = $search['sites.id'];
         }
-
 
         $this->admin->setListFields(array(
             'display_order',
@@ -61,6 +61,25 @@ class SnippetController extends ModuleAdminController
             'eventTypeName',
         ));
 
+        // Check if we're in Couchbase-primary mode
+        $writeMode = 'mariadb_only';
+        if (class_exists('CouchbaseCutoverManager')) {
+            try {
+                $manager = \CouchbaseCutoverManager::getInstance();
+                $config = $manager->getConfig();
+                $writeMode = $config['write_mode'] ?? 'mariadb_only';
+            } catch (\Exception $e) {
+                // Fallback
+            }
+        }
+
+        if ($writeMode === 'couchbase_primary') {
+            // Use direct N1QL query to avoid JOINs that don't work in Couchbase-only mode
+            $this->listSnippetsFromCouchbase($search, $is_admin, $institutions_id ?? null, $sites_id ?? null);
+            return;
+        }
+
+        // Original MariaDB-compatible code path
         /**
          * @var CDbCriteria $criteria
          */
@@ -77,7 +96,6 @@ class SnippetController extends ModuleAdminController
                                        JOIN user_authentication ua ON ua.institution_authentication_id = ia.id
                                        JOIN user u ON u.id = ua.user_id';
         $institution_criteria->compare('ua.user_id', Yii::app()->user->id);
-        $is_admin = Yii::app()->user->checkAccess('admin');
 
         if($is_admin) {
             $this->admin->getSearch()->addSearchItem('institution_relations.institution_id', array(
@@ -143,6 +161,92 @@ class SnippetController extends ModuleAdminController
     }
 
     /**
+     * List snippets directly from Couchbase without using JOINs
+     */
+    protected function listSnippetsFromCouchbase($search, $is_admin, $institutions_id, $sites_id)
+    {
+        // Get search parameters
+        $searchName = isset($search['name']) ? $search['name'] : \Yii::app()->request->getParam('name', '');
+        $selectedInstitution = $institutions_id ?: \Yii::app()->request->getParam('institution_id', \Yii::app()->session['selected_institution_id']);
+        $selectedSite = $sites_id ?: \Yii::app()->request->getParam('site_id', '');
+        
+        // Query all letter strings with their associated institutions
+        $n1ql = "SELECT ls.* FROM `openeyes`.`clinical`.`ophcocorrespondence_letter_string` ls";
+        
+        // If filtering by institution, join with junction table
+        if ($selectedInstitution) {
+            $n1ql .= " JOIN `openeyes`.`clinical`.`ophcocorrespondence_letter_string_institution` lsi 
+                       ON TOSTRING(IFMISSING(ls._mysql_id, ls.id)) = lsi.letter_string_id
+                       WHERE lsi.institution_id = '$selectedInstitution'";
+        }
+        
+        // Add name filter if specified
+        if ($searchName) {
+            $nameFilter = $selectedInstitution ? " AND " : " WHERE ";
+            $n1ql .= $nameFilter . "LOWER(ls.name) LIKE LOWER('%" . addslashes($searchName) . "%')";
+        }
+        
+        $n1ql .= " ORDER BY ls.display_order, ls.name";
+        
+        $models = [];
+        try {
+            // Use direct N1QL query via cbdb->query() to avoid SQL-to-N1QL conversion
+            $result = \Yii::app()->cbdb->query($n1ql);
+            
+            // Convert results to array if needed
+            if ($result instanceof \Couchbase\QueryResult) {
+                $result = $result->rows();
+            }
+            
+            // Hydrate models
+            foreach ($result as $row) {
+                $data = is_array($row) ? (isset($row['ls']) ? $row['ls'] : $row) : (array)$row;
+                $model = new LetterString();
+                $model->setIsNewRecord(false);
+                
+                // Set basic attributes
+                foreach (['name', 'body', 'display_order', 'letter_string_group_id', 'element_type', 'event_type'] as $attr) {
+                    if (isset($data[$attr]) && $model->hasAttribute($attr)) {
+                        $model->$attr = $data[$attr];
+                    }
+                }
+                
+                // Set ID from _mysql_id or id
+                if (isset($data['_mysql_id'])) {
+                    $model->id = $data['_mysql_id'];
+                } elseif (isset($data['id'])) {
+                    $model->id = $data['id'];
+                }
+                
+                $models[] = $model;
+            }
+            
+        } catch (\Exception $e) {
+            \Yii::log("Couchbase query failed in listSnippetsFromCouchbase: " . $e->getMessage(), \CLogger::LEVEL_ERROR);
+        }
+        
+        // Get institutions and sites for dropdowns
+        $institutions = \CHtml::listData(\Institution::model()->findAll(), 'id', 'name');
+        $currentInstitutionId = \Yii::app()->session['selected_institution_id'];
+        $sites = \CHtml::listData(\Site::model()->findAllByAttributes(['institution_id' => $currentInstitutionId]), 'id', 'name');
+        
+        // Get current institution name
+        $currentInstitution = \Institution::model()->findByPk($currentInstitutionId);
+        $currentInstitutionName = $currentInstitution ? $currentInstitution->name : 'Institution';
+        
+        // Render custom view for Couchbase mode
+        $this->render('list_couchbase', array(
+            'models' => $models,
+            'institutions' => $institutions,
+            'sites' => $sites,
+            'selectedInstitution' => $selectedInstitution,
+            'selectedSite' => $selectedSite,
+            'searchName' => $searchName,
+            'currentInstitutionName' => $currentInstitutionName,
+        ));
+    }
+
+    /**
      * Edits or adds a snippets.
      *
      * @param bool|int $id
@@ -156,8 +260,15 @@ class SnippetController extends ModuleAdminController
         }
 
         $group_id = Yii::app()->request->getParam('group_id');
-        if(!empty(Yii::app()->request->getParam('default'))) {
-            $list_institution_id = Yii::app()->request->getParam('default')['institution_relations.institution_id'];
+        $list_institution_id = null;
+        $default = Yii::app()->request->getParam('default');
+        if (!empty($default)) {
+            // Handle both direct and nested 'exact' parameter structures
+            if (isset($default['institution_relations.institution_id'])) {
+                $list_institution_id = $default['institution_relations.institution_id'];
+            } elseif (isset($default['exact']['institution_relations.institution_id'])) {
+                $list_institution_id = $default['exact']['institution_relations.institution_id'];
+            }
         }
 
         if (!$id && $group_id) {
@@ -192,6 +303,22 @@ class SnippetController extends ModuleAdminController
         }
 
         $is_admin = Yii::app()->user->checkAccess('admin');
+        
+        // For new snippets, if no institution is selected, use current institution
+        if (empty($selected_institution)) {
+            $selected_institution = \Institution::model()->getCurrent()->id;
+        }
+        
+        // For new models, set the default institution relation
+        $model = $this->admin->getModel();
+        if (!$id && empty($model->institutions)) {
+            // Set the default institution for new snippets
+            $defaultInst = \Institution::model()->findByPk($selected_institution);
+            if ($defaultInst) {
+                $model->institutions = [$defaultInst];
+            }
+        }
+        
         $this->admin->setEditFields(array(
             'institutions' => array(
                 'widget' => 'DropDownList',
@@ -202,8 +329,6 @@ class SnippetController extends ModuleAdminController
                     'empty' => '-- Add --',
                     'searchable' => false,
                     'class' => 'cols-8',
-                    'options' => array($selected_institution => array('selected' => true)),
-                    'disabled' => 'disabled'
                 ],
                 'hidden' => false,
                 'layoutColumns' => null,
@@ -211,7 +336,11 @@ class SnippetController extends ModuleAdminController
             'sites' => array(
                 'widget' => 'MultiSelectList',
                 'relation_field_id' => 'id',
-                'options' => CHtml::listData(Institution::model()->findByPk($selected_institution)->sites, 'id', 'name'),
+                'options' => CHtml::listData(
+                    ($inst = Institution::model()->findByPk($selected_institution)) ? $inst->sites : [],
+                    'id',
+                    'name'
+                ),
                 'htmlOptions' => [
                     'label' => 'Sites',
                     'empty' => 'All sites',
@@ -256,12 +385,14 @@ class SnippetController extends ModuleAdminController
             if ($saved) {
                 $post = \Yii::app()->request->getPost($this->admin->getModelName());
                 $model = $this->admin->getModel();
-                LetterString_Institution::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $model->id]);
-                LetterString_Site::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $model->id]);
-                if (array_key_exists('sites', $post) && is_array($post['sites'])) {
-                    $model->createMappings(ReferenceData::LEVEL_SITE, $post['sites']);
-                } elseif (array_key_exists('institutions', $post) && strcmp("", $post['institutions']) !== 0) {
-                    $model->createMappings(ReferenceData::LEVEL_INSTITUTION, array($post['institutions']));
+                if ($model && $model->id) {
+                    LetterString_Institution::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $model->id]);
+                    LetterString_Site::model()->deleteAll('letter_string_id = :ls_id', [':ls_id' => $model->id]);
+                    if (array_key_exists('sites', $post) && is_array($post['sites'])) {
+                        $model->createMappings(ReferenceData::LEVEL_SITE, $post['sites']);
+                    } elseif (array_key_exists('institutions', $post) && strcmp("", $post['institutions']) !== 0) {
+                        $model->createMappings(ReferenceData::LEVEL_INSTITUTION, array($post['institutions']));
+                    }
                 }
                 $this->redirect(['list']);
             } else {
@@ -288,6 +419,20 @@ class SnippetController extends ModuleAdminController
      */
     public function actionSort()
     {
-        $this->admin->sortModel();
+        $this->admin->setListFields(array(
+            'display_order',
+            'id',
+            'sites.name',
+            'name',
+            'body',
+            'elementTypeName',
+            'eventTypeName',
+        ));
+
+        if (Yii::app()->request->isPostRequest) {
+            $this->admin->sortModel();
+        } else {
+            $this->admin->listModel();
+        }
     }
 }

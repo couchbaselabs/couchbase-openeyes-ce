@@ -611,9 +611,18 @@ class Episode extends BaseActiveRecordVersioned
      * Get the Couchbase scope
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'core';
+    }
+    
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
     
     /**

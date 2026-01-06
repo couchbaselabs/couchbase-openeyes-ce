@@ -59,7 +59,7 @@
                                 </td>
                             </tr>
                         <?php } ?>
-                    <tbody>
+                    </tbody>
                 </table>
             </td>
             <td>

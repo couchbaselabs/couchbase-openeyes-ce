@@ -31,7 +31,7 @@
         <?php foreach ($items as $item) { ?>
         <tr class="draggablelist-item" data-item-id="<?= $item->id ?>">
             <td>&uarr;&darr;</td>
-            <td><?= $item->event_type->name ?></td>
+            <td><?= $item->event_type ? $item->event_type->name : 'N/A' ?></td>
             <td><?= $item->name ?></td>
         </tr>
         <?php } ?>

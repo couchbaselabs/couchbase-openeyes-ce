@@ -255,6 +255,10 @@ class Firm extends BaseActiveRecordVersioned
     public static function contextLabel()
     {
         $label = SettingMetadata::model()->getSetting('context_firm_label') ? : self::getLabelSettings('context_firm_label');
+        // Provide a fallback to 'context' if the label is empty
+        if (empty($label)) {
+            $label = 'context';
+        }
         return ucwords(strtolower($label));
     }
 
@@ -264,6 +268,10 @@ class Firm extends BaseActiveRecordVersioned
     public static function serviceLabel()
     {
         $label = SettingMetadata::model()->getSetting('service_firm_label') ? : self::getLabelSettings('service_firm_label');
+        // Provide a fallback to 'service' if the label is empty
+        if (empty($label)) {
+            $label = 'service';
+        }
         return ucwords(strtolower($label));
     }
 
@@ -540,6 +548,24 @@ class Firm extends BaseActiveRecordVersioned
         }
 
         return parent::beforeSave();
+    }
+
+    /**
+     * After save hook - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete hook - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

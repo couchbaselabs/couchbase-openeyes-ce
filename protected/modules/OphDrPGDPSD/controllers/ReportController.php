@@ -5,7 +5,7 @@ class ReportController extends BaseReportController
     {
         return array(
             array('allow',
-                'actions' => array('daReport', 'runreport', 'downloadreport'),
+                'actions' => array('index', 'daReport', 'runreport', 'downloadreport'),
             ),
         );
     }

@@ -268,11 +268,28 @@ class SystemicDiagnoses extends \BaseEventTypeElement
     }
 
     /**
+     * @return string The Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string The Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * @inheritdoc
      */
     public function afterSave()
     {
         parent::afterSave();
+        $this->saveToCouchbase();
         if ($this->update_patient_level) {
             $this->updatePatientLevelSystemicDiagnoses();
         }
@@ -316,6 +333,7 @@ class SystemicDiagnoses extends \BaseEventTypeElement
 
     public function afterDelete()
     {
+        $this->deleteFromCouchbase();
         $api = new OphCiExamination_API();
         $event = \Event::model()->findByPk($this->event_id);
         /** @var \Patient $patient */

@@ -43,7 +43,8 @@ class PatientMergeRequestController extends BaseController
 
     public function init()
     {
-        Yii::app()->assetManager->registerScriptFile('js/patient_merge.js');
+        // Asset registration removed from init() to prevent symlink errors
+        // The patient_merge.js asset is registered in the views that need it
     }
 
     public function beforeAction($action)
@@ -197,8 +198,12 @@ class PatientMergeRequestController extends BaseController
      *
      * @param int $id the ID of the model to be displayed
      */
-    public function actionLog($id)
+    public function actionLog($id = null)
     {
+        if ($id === null) {
+            $this->redirect(array('index'));
+            return;
+        }
         $model = $this->loadModel($id);
 
         $log = array();
@@ -291,8 +296,11 @@ class PatientMergeRequestController extends BaseController
      *
      * @param int $id the ID of the model to be displayed
      */
-    public function actionMerge($id)
+    public function actionMerge($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Merge Request ID is required.');
+        }
         $merge_request = $this->loadModel($id);
 
         //if the model already merged we just redirect to the index page

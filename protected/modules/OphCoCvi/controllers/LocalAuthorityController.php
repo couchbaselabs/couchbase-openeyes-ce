@@ -42,7 +42,7 @@ class LocalAuthorityController extends \BaseModuleController
      *
      * @param $term
      */
-    public function actionAutoComplete($term)
+    public function actionAutoComplete($term = '')
     {
         $crit = new \CDbCriteria();
 

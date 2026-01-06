@@ -262,6 +262,42 @@ class Element_OphCiExamination_IntraocularPressure extends \SplitEventTypeElemen
     }
     
     /**
+     * Couchbase scope for this element
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Couchbase collection name for this element
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After saving, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Override to provide detailed IOP readings with resolved lookups for Couchbase
      * @return array
      */

@@ -131,12 +131,15 @@ class GeneController extends BaseModuleController
      *
      * @param $variant
      */
-    public function actionValidateGene($variant)
+    public function actionValidateGene($variant = null)
     {
         // $variant = 12;
         $api = Yii::app()->moduleAPI->get('Genetics');
-        if ($api) {
+        if ($api && $variant !== null) {
             echo $api->validateGene($variant);
+        } else {
+            // Return empty or error response if no variant provided
+            echo json_encode(['error' => 'No variant provided']);
         }
     }
 }

@@ -103,11 +103,23 @@ class OphTrLaser_LaserProcedure extends BaseActiveRecordVersioned
 
     public function couchbaseScope()
     {
-        return 'laser';
+        return 'reference';
     }
 
     public function couchbaseCollection()
     {
         return 'ophtrlaser_laserprocedure';
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

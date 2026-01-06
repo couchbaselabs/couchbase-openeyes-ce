@@ -134,6 +134,28 @@ class OphTrConsent_Leaflet extends BaseActiveRecordVersioned
         );
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public function findAllByCurrentFirm($leaflet_values)
     {
         $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);

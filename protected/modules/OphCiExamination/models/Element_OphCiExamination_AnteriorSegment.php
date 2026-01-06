@@ -268,6 +268,34 @@ class Element_OphCiExamination_AnteriorSegment extends \SplitEventTypeElement
         $processor = new \EDProcessor();
         $processor->shredElementEyedraws($this, static::$ed_persistence_attributes);
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     public function afterFind()

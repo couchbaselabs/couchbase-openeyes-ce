@@ -40,4 +40,16 @@ class OphTrLaser_LaserProcedure_Institution extends BaseActiveRecordVersioned
     {
         return 'ophtrlaser_laserprocedure_institution';
     }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

@@ -114,12 +114,9 @@ class DocumentTarget extends BaseActiveRecord
 
     public function getContactTypes()
     {
-        $option_array = [];
-
-        $result = Yii::app()->cbdb->createCommand('SHOW COLUMNS FROM document_target LIKE "contact_type"')->queryRow();
-        if ($result['Type']) {
-            $option_array = explode("','", preg_replace("/(enum)\('(.+?)'\)/", "$2", $result['Type']));
-        }
+        // For Couchbase, use hardcoded contact types instead of querying column definition
+        // These are the valid values from the database schema
+        $option_array = ['PATIENT', 'GP', 'DRSS', 'LEGACY', 'OTHER', 'INTERNALREFERRAL'];
 
         return array_combine($option_array, $option_array);
     }

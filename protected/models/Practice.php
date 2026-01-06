@@ -36,6 +36,26 @@ class Practice extends BaseActiveRecordVersioned
     public $use_pas = true;
 
     /**
+     * Returns the Couchbase scope name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return Practice the static model class
@@ -155,6 +175,24 @@ class Practice extends BaseActiveRecordVersioned
     {
         parent::afterFind();
         Yii::app()->event->dispatch('practice_after_find', array('practice' => $this));
+    }
+
+    /**
+     * After save callback to sync with Couchbase.
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete callback to sync with Couchbase.
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

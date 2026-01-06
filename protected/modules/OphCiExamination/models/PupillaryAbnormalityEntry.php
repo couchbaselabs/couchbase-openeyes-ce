@@ -97,6 +97,34 @@ class PupillaryAbnormalityEntry extends \BaseElement
     /**
      * @return string
      */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
+     * @return string
+     */
     public function getDisplayAbnormality()
     {
         return $this->abnormality ? $this->abnormality->name : '';

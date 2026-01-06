@@ -13,8 +13,12 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
-class DidNotAttendAdminModule extends CWebModule
+namespace OEModule\OphCiDidNotAttend\modules\DidNotAttendAdmin;
+
+class DidNotAttendAdminModule extends \CWebModule
 {
+    public $controllerNamespace = '\OEModule\OphCiDidNotAttend\modules\DidNotAttendAdmin\controllers';
+
     public function init()
     {
         // this method is called when the module is being created

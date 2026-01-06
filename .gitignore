@@ -3,6 +3,7 @@
 .*swp
 .idea
 tags
+logs
 # rely on static build images to ensure dependency consistency
 composer.lock
 /signature_files/

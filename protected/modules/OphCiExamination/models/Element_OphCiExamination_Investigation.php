@@ -150,6 +150,16 @@ class Element_OphCiExamination_Investigation extends \BaseEventTypeElement
         return parent::beforeSave();
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     protected function afterSave()
     {
         foreach ($this->entries as $entry) {
@@ -162,7 +172,14 @@ class Element_OphCiExamination_Investigation extends \BaseEventTypeElement
             $investigation_entry->time = $entry->time;
             $investigation_entry->save(true);
         }
+        $this->saveToCouchbase();
         return parent::afterSave();
+    }
+
+    protected function afterDelete()
+    {
+        $this->deleteFromCouchbase();
+        return parent::afterDelete();
     }
     /**
      * Retrieves a list of models based on the current search/filter conditions.

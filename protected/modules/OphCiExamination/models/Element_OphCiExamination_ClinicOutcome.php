@@ -122,6 +122,16 @@ class Element_OphCiExamination_ClinicOutcome extends \BaseEventTypeElement
         ));
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     public function afterSave()
     {
         // Update Episode status when outcome is saved
@@ -134,6 +144,7 @@ class Element_OphCiExamination_ClinicOutcome extends \BaseEventTypeElement
             }
         }
         parent::afterSave();
+        $this->saveToCouchbase();
     }
 
     public function afterDelete()
@@ -143,6 +154,7 @@ class Element_OphCiExamination_ClinicOutcome extends \BaseEventTypeElement
             $this->deleteRelatedTicket($ticket);
         }
         parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

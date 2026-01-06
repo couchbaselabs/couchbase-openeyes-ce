@@ -722,7 +722,7 @@ class Event extends BaseActiveRecordVersioned
     public function getElements()
     {
         $elements = array();
-        if ($this->id) {
+        if ($this->id && $this->eventType) {
             /*
              * The following kludge exists to get around issues with class_exists and missing class files.
              * Yii promotes the warnings caused by include() on missing files to errors, such that calling
@@ -1113,10 +1113,16 @@ class Event extends BaseActiveRecordVersioned
                     'Pending' => 'scheduled',
                 ];
                 $eventStatus = null;
-                $emails = ElementLetter::model()->find(
-                    'event_id = ?',
-                    array($this->id)
-                )->getOutputByType(['Email', 'Email (Delayed)']);
+                $emails = [];
+                if ($this->id) {
+                    $letter = ElementLetter::model()->find(
+                        'event_id = ?',
+                        array($this->id)
+                    );
+                    if ($letter) {
+                        $emails = $letter->getOutputByType(['Email', 'Email (Delayed)']);
+                    }
+                }
                 // If there is a document output that has one of the two email delivery methods, only then proceed.
                 if (count($emails) > 0) {
                     foreach ($emails as $email) {
@@ -1318,9 +1324,18 @@ class Event extends BaseActiveRecordVersioned
      * Get the Couchbase scope
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'core';
+    }
+    
+    /**
+     * Get the Couchbase collection name
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
     
     /**

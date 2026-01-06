@@ -49,6 +49,42 @@ class OphTrOperationbooking_Operation_Session_UnavailableReason extends BaseActi
     }
 
     /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
+     * After save, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return OphTrOperationbooking_Operation_Session_UnavailableReason|BaseActiveRecord the static model class

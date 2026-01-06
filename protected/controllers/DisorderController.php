@@ -25,11 +25,11 @@ class DisorderController extends BaseController
         return array(
             array(
                 'allow',
-                'actions' => array('index', 'view', 'autocomplete','getcommonlyuseddiagnoses'),
+                'actions' => array('index', 'view', 'autocomplete','getcommonlyuseddiagnoses', 'details', 'getcommonophthalmicdisorders', 'isCommonOphthalmic'),
                 'users' => array('@'),
             ),
             array('allow', // allow admin user to perform 'admin' and 'delete' actions
-                'actions'=>array('create','update','index','view', 'delete', 'autocomplete', 'getcommonlyuseddiagnoses'),
+                'actions'=>array('create','update','index','view', 'delete', 'autocomplete', 'getcommonlyuseddiagnoses', 'details', 'getcommonophthalmicdisorders', 'isCommonOphthalmic'),
                 'users'=>array('TaskCreateDisorder', 'admin'),
             ),
             array('deny',  // deny all users
@@ -230,7 +230,7 @@ class DisorderController extends BaseController
     /**
      * @param $type
      */
-    public function actionGetCommonlyUsedDiagnoses($type)
+    public function actionGetCommonlyUsedDiagnoses($type = 'systemic')
     {
         $return = array();
         if ($type === 'systemic') {
@@ -276,15 +276,21 @@ class DisorderController extends BaseController
      * @return array
      * @throws \CException
      */
-    public function actionGetCommonOphthalmicDisorders($firm_id)
+    public function actionGetCommonOphthalmicDisorders($firm_id = null)
     {
+        if (empty($firm_id)) {
+            $firm_id = Yii::app()->session['selected_firm_id'];
+        }
         if (empty($firm_id)) {
             throw new \CException('Firm is required');
         }
         $firm = \Firm::model()->findByPk($firm_id);
         if ($firm) {
-            return \CommonOphthalmicDisorder::getListByGroupWithSecondaryTo($firm);
+            $result = \CommonOphthalmicDisorder::getListByGroupWithSecondaryTo($firm);
+            $this->renderJSON($result);
+            return $result;
         } else {
+            $this->renderJSON(null);
             return null;
         }
     }

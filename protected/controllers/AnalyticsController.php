@@ -22,12 +22,16 @@ class AnalyticsController extends BaseController
 
     /**
      * @param $subspecialty_name
-     * @return int
+     * @return int|null
      * Get subspecialty ID by name, used in each actionXXX function to filter data by subspecialty.
      */
     protected function getSubspecialtyID($subspecialty_name)
     {
-        return Subspecialty::model()->findByAttributes(array('name' => $subspecialty_name))->id;
+        if (empty($subspecialty_name)) {
+            return null;
+        }
+        $subspecialty = Subspecialty::model()->findByAttributes(array('name' => $subspecialty_name));
+        return $subspecialty ? $subspecialty->id : null;
     }
 
     public function accessRules()
@@ -42,11 +46,11 @@ class AnalyticsController extends BaseController
                     'glaucoma',
                     'updateData',
                     'allSubspecialties',
-                    'GetDrillDown',
-                    'DownLoadCSV',
+                    'getDrillDown',
+                    'downloadCSV',
                     'getCustomPlot',
-                    'DownloadCustomCSV',
-                    'getVfHedgehogPlot',
+                    'downloadCustomCSV',
+                    'getVfHedgehogplot',
                     'getVfRaw'
                 ),
                 'users' => array('@')
@@ -59,7 +63,7 @@ class AnalyticsController extends BaseController
         $ret = null;
         $params = Yii::app()->request->getParam('params');
 
-        if (array_key_exists('report_type',$params) && $params['report_type'] === 'vf') {
+        if (is_array($params) && array_key_exists('report_type',$params) && $params['report_type'] === 'vf') {
             $ret = $this->getVfPatientList($params);
         } else {
             $ret = $this->getPatientList($params);
@@ -418,7 +422,9 @@ class AnalyticsController extends BaseController
                     $institution_id = Institution::model()->getCurrent()->id;
                     $event_list = $this->getPatientsIdentifiers($event_list, $institution_id, true);
                     $ret['event_list'] = $event_list;
-                    $headers = array_keys($event_list[0]);
+                    if (!empty($event_list)) {
+                        $headers = array_keys($event_list[0]);
+                    }
                 } else {
                     $patient_list = $this->getPatientList($params);
                 }
@@ -427,9 +433,11 @@ class AnalyticsController extends BaseController
             }
             if ($patient_list) {
                 $ret['patient_list'] = $patient_list;
-                $headers = array_keys($patient_list['res'][0]);
+                if (!empty($patient_list['res'])) {
+                    $headers = array_keys($patient_list['res'][0]);
+                }
             }
-            $data = isset($event_list) ? count($event_list) : count($patient_list);
+            $data = isset($event_list) ? count($event_list) : (is_array($patient_list) ? count($patient_list) : 0);
             if ($data > 0) {
                 $dom = $this->renderPartial(
                     '/analytics/analytics_drill_down_list',
@@ -487,7 +495,7 @@ class AnalyticsController extends BaseController
             );
             return;
         }
-        $disorder_data = $this->getDisorders($subspecialty_id, $this->surgeon);
+        $disorder_data = $this->getDisorders($subspecialty_id, $this->surgeon, $this->filters['date_from'], $this->filters['date_to']);
         if (!isset($this->current_user)) {
             $this->current_user = User::model()->findByPk(Yii::app()->user->id);
         }
@@ -534,27 +542,30 @@ class AnalyticsController extends BaseController
             'is_service_manager' => $is_service_manager,
         );
         $data['dom']['plot'] = $this->renderPartial('/analytics/analytics_plots', null, true);
+        
+        // Initialize sidebar params with default values
+        $sidebar_params['procedures'] = array();
+        $sidebar_params['default_procedure'] = '';
+        $sidebar_params['va_units'] = array();
+        $sidebar_params['default_va_unit'] = 'logmar';
+        
         if ($specialty !== 'All') {
             switch ($specialty) {
                 case 'Glaucoma':
-                    $procedures = $this->getIdByName(array('Cataract Extraction','Trabeculectomy', 'Aqueous Shunt','Cypass Stent Insertion','Selective laser trabeculoplasty','Laser coagulation ciliary body'), Procedure::class, 'term');
-                    $default_procedure = 'Trabeculectomy';
+                    $sidebar_params['procedures'] = $this->getIdByName(array('Cataract Extraction','Trabeculectomy', 'Aqueous Shunt','Cypass Stent Insertion','Selective laser trabeculoplasty','Laser coagulation ciliary body'), Procedure::class, 'term');
+                    $sidebar_params['default_procedure'] = 'Trabeculectomy';
                     break;
                 case 'Medical Retina':
-                    $procedures = $this->getIdByName(array('Lucentis', 'Eylea', 'Avastin', 'Triamcinolone', 'Ozurdex'), OphTrIntravitrealinjection_Treatment_Drug::class, 'name');
-                    $default_procedure = 'Lucentis';
+                    $sidebar_params['procedures'] = $this->getIdByName(array('Lucentis', 'Eylea', 'Avastin', 'Triamcinolone', 'Ozurdex'), OphTrIntravitrealinjection_Treatment_Drug::class, 'name');
+                    $sidebar_params['default_procedure'] = 'Lucentis';
                     break;
             }
             $va_units = $this->getVAUnits()->queryAll();
             $reformed_va_units = array();
-            $default_va_unit = 'logmar';
             foreach ($va_units as $va_unit) {
                 $reformed_va_units[strtolower($va_unit['name'])] = $va_unit;
             }
-            $sidebar_params['procedures'] = $procedures;
-            $sidebar_params['default_procedure'] = $default_procedure;
             $sidebar_params['va_units'] = $reformed_va_units;
-            $sidebar_params['default_va_unit'] = $default_va_unit;
             $data['dom']['plot'] .= $this->renderPartial('/analytics/analytics_custom', null, true);
         }
         $data['dom']['sidebar'] = $this->renderPartial('/analytics/analytics_sidebar', $sidebar_params, true);
@@ -581,17 +592,10 @@ class AnalyticsController extends BaseController
     }
     private function getVAUnits()
     {
-        $query_conditions = array('and');
-        $query_conditions[] = 'active = 1';
-        $query_conditions[] = "name IN ('ETDRS Letters', 'Snellen Metre', 'logMAR 1dp', 'logMAR 2dp')";
-
         $query_va_units = Yii::app()->cbdb->createCommand()
-            ->select('
-                id,
-                name
-            ')
+            ->select('id, name')
             ->from('ophciexamination_visual_acuity_unit')
-            ->where($query_conditions);
+            ->where('active = 1');
         return $query_va_units;
     }
     /**
@@ -667,8 +671,14 @@ class AnalyticsController extends BaseController
         $this->checkAuth();
         $this->obtainFilters();
         $va_unit = VisualAcuityUnit::model()->getVAUnit($this->filters['va_unit']);
-        $va_init_ticks = VisualAcuityUnit::model()->getInitVaTicks($va_unit);
-        $va_final_ticks = VisualAcuityUnit::model()->sliceVATicks($va_init_ticks, 20);
+        
+        // Initialize va_final_ticks as empty array if va_unit is null
+        $va_final_ticks = array();
+        if ($va_unit !== null) {
+            $va_init_ticks = VisualAcuityUnit::model()->getInitVaTicks($va_unit);
+            $va_final_ticks = VisualAcuityUnit::model()->sliceVATicks($va_init_ticks, 20);
+        }
+        
         $specialty = Yii::app()->getRequest()->getParam("specialty");
         $custom_data = $this->getCustomData($specialty);
         $data = array(
@@ -1043,8 +1053,8 @@ class AnalyticsController extends BaseController
         $diagnoses = $this->queryDiagnosis(
             $subspecialty_id,
             $surgeon_id,
-            strtotime($params['from']),
-            strtotime($params['to'])
+            !empty($params['from']) ? strtotime($params['from']) : 0,
+            !empty($params['to']) ? strtotime($params['to']) : time()
         )
             ->select(
                 '
@@ -1185,7 +1195,7 @@ class AnalyticsController extends BaseController
                     SELECT
                         MAX(e.event_date) as date_to,
                         MIN(e.event_date) as date_from
-                    FROM et_ophtroperationnote_cataract eoc
+                    FROM operationnote_cataract eoc
                     JOIN event e on e.id = eoc.event_id
                     UNION
                     SELECT
@@ -1198,7 +1208,7 @@ class AnalyticsController extends BaseController
         } else {
             $event_date_command = Yii::app()->cbdb->createCommand()
                 ->select('MAX(e.event_date) as date_to, MIN(e.event_date) as date_from')
-                ->from('et_ophtroperationnote_cataract eoc')
+                ->from('operationnote_cataract eoc')
                 ->join('event e', 'e.id = eoc.event_id');
         }
         return $event_date_command->queryAll();
@@ -1892,7 +1902,7 @@ class AnalyticsController extends BaseController
                 patient_diagnoses.diagnoses
             '
             )
-            ->from('et_ophtroperationnote_cataract eoc')
+            ->from('operationnote_cataract eoc')
             ->join('event e', 'e.id = eoc.event_id')
             ->join('episode ep', 'ep.id = e.episode_id')
             ->join('patient p', 'p.id = ep.patient_id')
@@ -2243,14 +2253,14 @@ class AnalyticsController extends BaseController
             $other_disorder['customdata'][] = array($row['term']);
             $j++;
         }
-        if ($other_disorder_total[0]['total_patients'] != 0) {
+        if (!empty($other_disorder_total) && isset($other_disorder_total[0]['total_patients']) && $other_disorder_total[0]['total_patients'] != 0) {
             $disorder_list['y'][] = $i;
             $disorder_list['x'][] = $other_disorder_total[0]['total_patients'];
             $disorder_list['text'][] = 'Other';
             $disorder_list['customdata'][] = $other_disorder;
             $i++;
         }
-        if ($patient_without_disorder[0]['total_patients'] != 0) {
+        if (!empty($patient_without_disorder) && isset($patient_without_disorder[0]['total_patients']) && $patient_without_disorder[0]['total_patients'] != 0) {
             $disorder_list['y'][] = $i;
             $disorder_list['x'][] = $patient_without_disorder[0]['total_patients'];
             $disorder_list['text'][] = 'No Diagnoses';
@@ -2705,7 +2715,8 @@ class AnalyticsController extends BaseController
                 $bindValues[':date_to'] = $date_to;
                 $command_event_filtered = $command_event_filtered->andWhere("UNIX_TIMESTAMP(e.event_date) <= :date_to");
             }
-            $command = $command->andWhere('EXISTS (' . $command_event_filtered->getText() . ')');
+            $subquery_text = $command_event_filtered->getText();
+            $command = $command->andWhere('EXISTS (SELECT 1 FROM (' . $subquery_text . ') AS filtered_events)');
             $command = $command->bindValues($bindValues);
         }
 
@@ -2766,7 +2777,8 @@ class AnalyticsController extends BaseController
                 $command_event_filtered = $command_event_filtered->andWhere("UNIX_TIMESTAMP(e.event_date) <= :date_to");
                 $bindValues[':date_to'] = $date_to;
             }
-            $command = $command->andWhere('EXISTS (' . $command_event_filtered->getText() . ')');
+            $subquery_text = $command_event_filtered->getText();
+            $command = $command->andWhere('EXISTS (SELECT 1 FROM (' . $subquery_text . ') AS filtered_events)');
         }
 
         $bindValues[':mdr'] = $mdr;

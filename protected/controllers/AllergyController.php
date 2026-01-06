@@ -39,10 +39,18 @@ class AllergyController extends BaseController
             $criteria->limit = '200';
             $criteria->params = $params;
 
-            $allergies = Allergy::model()->active()->findAll($criteria);
             $return = array();
-            foreach ($allergies as $allergy) {
-                $return[] = $this->allergyStructure($allergy);
+            try {
+                $allergies = Allergy::model()->active()->findAll($criteria);
+                foreach ($allergies as $allergy) {
+                    $return[] = $this->allergyStructure($allergy);
+                }
+            } catch (CDbException $e) {
+                // Handle case where table doesn't exist (database not initialized or Couchbase-only mode)
+                // Log the error but return empty results gracefully
+                Yii::log('Allergy table not accessible: ' . $e->getMessage(), CLogger::LEVEL_WARNING, 'application');
+                // Return empty array instead of throwing exception
+                $return = array();
             }
             $this->renderJSON($return);
         }

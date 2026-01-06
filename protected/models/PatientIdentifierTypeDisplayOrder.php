@@ -50,6 +50,22 @@ class PatientIdentifierTypeDisplayOrder extends BaseActiveRecordVersioned
     use CouchbaseModelBridge;
 
     /**
+     * @return string the Couchbase scope name
+     */
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    /**
+     * @return string the Couchbase collection name
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * @return string the associated database table name
      */
     public function tableName()
@@ -163,5 +179,17 @@ class PatientIdentifierTypeDisplayOrder extends BaseActiveRecordVersioned
         $this->unique_row_string = $this->patient_identifier_type_id . '-' . $this->institution_id . '-' . $unique_row_string_site_id;
 
         return parent::beforeSave();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

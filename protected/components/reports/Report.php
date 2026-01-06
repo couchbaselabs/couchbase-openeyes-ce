@@ -172,4 +172,28 @@ class Report
     {
         return null;
     }
+
+    /**
+     * @return string
+     */
+    public function tracesJson()
+    {
+        return json_encode(array());
+    }
+
+    /**
+     * @return string
+     */
+    public function plotlyConfig()
+    {
+        return json_encode($this->globalGraphConfig);
+    }
+
+    /**
+     * @return array
+     */
+    public function dataSet()
+    {
+        return array();
+    }
 }

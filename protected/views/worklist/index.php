@@ -35,7 +35,7 @@ $initial_filter = $session_filter_info['filter'];
     <div class="sync-data" id="js-sync-data">
         <div class="sync-btn <?=$sync_interval_value === 'off' ? '' : 'on'?>" id="js-sync-btn">
             <div class="last-sync"><?=date('H:i')?></div>
-            <div class="sync-interval"><?=$sync_interval_value === 'off' ? 'Sync OFF' : $sync_interval_options[$sync_interval_value]?></div>
+            <div class="sync-interval"><?=$sync_interval_value === 'off' ? 'Sync OFF' : ($sync_interval_value && isset($sync_interval_options[$sync_interval_value]) ? $sync_interval_options[$sync_interval_value] : 'N/A')?></div>
         </div>
         <div class="sync-options" id="js-sync-options" style="display:none;">
             <ul>

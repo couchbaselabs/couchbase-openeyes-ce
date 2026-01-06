@@ -91,6 +91,28 @@ class OphTrOperationnote_GlaucomaTube_PlatePosition extends BaseActiveRecordVers
         );
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     /**
      * Retrieves a list of models based on the current search/filter conditions.
      *

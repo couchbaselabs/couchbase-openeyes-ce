@@ -146,7 +146,7 @@ class Medication extends BaseActiveRecordVersioned
 
             'medicationAttributeOptions' => array(self::MANY_MANY, MedicationAttributeOption::class, 'medication_attribute_assignment(medication_id,medication_attribute_option_id)'),
 
-            'allergies' => [self::HAS_MANY, OphCiExaminationAllergy::class, ['medication_set_id' => "medication_set_id"], "through" => "medicationSetItems2"],
+            'allergies' => [self::HAS_MANY, OphCiExaminationAllergy::class, 'medication_set_id', "through" => "medicationSetItems2"],
             "defaultForm" => [self::BELONGS_TO, MedicationForm::class, 'default_form_id'],
             "defaultRoute" => [self::BELONGS_TO, MedicationRoute::class, 'default_route_id'],
 
@@ -274,7 +274,11 @@ class Medication extends BaseActiveRecordVersioned
 
     public function getSiteSubspecialtyMedications($site_id, $subspecialty_id)
     {
-        $common_oph_id = Yii::app()->cbdb->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => 'COMMON_OPH'])->queryScalar();
+        $usage_code = MedicationUsageCode::model()->find('usage_code = :usage_code', [':usage_code' => 'COMMON_OPH']);
+        if (!$usage_code) {
+            return array();
+        }
+        $common_oph_id = $usage_code->id;
         $criteria = new CDbCriteria();
         $criteria->condition = "id IN (SELECT medication_id FROM medication_set_item WHERE medication_set_id IN
                                         (SELECT medication_set_id FROM medication_set_rule WHERE usage_code_id = :usage_code_id
@@ -291,7 +295,11 @@ class Medication extends BaseActiveRecordVersioned
      */
     public function getSetsByUsageCode($usage_code)
     {
-        $usage_code_id = Yii::app()->cbdb->createCommand()->select('id')->from('medication_usage_code')->where('usage_code = :usage_code', [':usage_code' => $usage_code])->queryScalar();
+        $usage_code_obj = MedicationUsageCode::model()->find('usage_code = :usage_code', [':usage_code' => $usage_code]);
+        if (!$usage_code_obj) {
+            return array();
+        }
+        $usage_code_id = $usage_code_obj->id;
         $criteria = new CDbCriteria();
         $criteria->condition = "id IN (SELECT medication_set_id FROM medication_set_item WHERE medication_id = :medication_id
                                             AND medication_set_id IN (SELECT medication_set_id FROM medication_set_rule WHERE usage_code_id = :usage_code_id))";

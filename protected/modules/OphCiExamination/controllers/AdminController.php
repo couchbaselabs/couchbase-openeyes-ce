@@ -285,6 +285,9 @@ class AdminController extends \ModuleAdminController
     */
     public function actionSortNoTreatmentReasons()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
         if (!empty($_POST['order'])) {
             foreach ($_POST['order'] as $i => $id) {
                 if ($drug = models\OphCiExamination_InjectionManagementComplex_NoTreatmentReason::model()->findByPk($id)) {
@@ -302,6 +305,9 @@ class AdminController extends \ModuleAdminController
      */
     public function actionSetNoTreatmentReasonStatus()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
         if ($model = models\OphCiExamination_InjectionManagementComplex_NoTreatmentReason::model()->findByPk((int) @$_POST['id'])) {
             if (!array_key_exists('enabled', $_POST)) {
                 throw new \Exception('cannot determine status for reason');
@@ -432,6 +438,9 @@ class AdminController extends \ModuleAdminController
      */
     public function actionSortQuestions()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
         if (!empty($_POST['order'])) {
             foreach ($_POST['order'] as $i => $id) {
                 if ($question = models\OphCiExamination_InjectionManagementComplex_Question::model()->findByPk($id)) {
@@ -449,6 +458,9 @@ class AdminController extends \ModuleAdminController
      */
     public function actionSetQuestionStatus()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
         if ($model = models\OphCiExamination_InjectionManagementComplex_Question::model()->findByPk((int) @$_POST['id'])) {
             if (!array_key_exists('enabled', $_POST)) {
                 throw new \Exception('cannot determine status for question');
@@ -604,6 +616,7 @@ class AdminController extends \ModuleAdminController
         $element_set_id = Yii::app()->request->getParam('element_set_id');
         if (!$element_set_id) {
             echo 0;
+            return;
         }
 
         $transaction = Yii::app()->cbdb->beginTransaction();
@@ -632,6 +645,10 @@ class AdminController extends \ModuleAdminController
 
     public function actionReorderWorkflowSteps()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
+
         foreach ($_POST as $id => $position) {
             if ($id != 'YII_CSRF_TOKEN') {
                 if (!$step = models\OphCiExamination_ElementSet::model()->findByPk($id)) {
@@ -650,6 +667,10 @@ class AdminController extends \ModuleAdminController
 
     public function actionAddElementTypeToWorkflowStep()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
+
         $et_exam = \EventType::model()->find('class_name=?', array('OphCiExamination'));
 
         if (!$element_type = \ElementType::model()->find('event_type_id = ? and id = ?', array($et_exam->id, @$_POST['element_type_id']))) {
@@ -675,6 +696,10 @@ class AdminController extends \ModuleAdminController
 
     public function actionRemoveElementTypeFromWorkflowStep()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \CHttpException(400, 'Invalid request method.');
+        }
+
         if (!$item = models\OphCiExamination_ElementSetItem::model()->find('set_id=? and id=?', array(@$_POST['step_id'], @$_POST['element_type_item_id']))) {
             throw new \Exception('Element set item not found: ' . @$_POST['element_type_item_id'] . ' in set ' . @$_POST['step_id']);
         }
@@ -705,6 +730,10 @@ class AdminController extends \ModuleAdminController
 
     public function actionAddworkflowStep()
     {
+        if (!\Yii::app()->request->isPostRequest) {
+            throw new \Exception('Invalid request method: POST request required');
+        }
+
         if (!$workflow = models\OphCiExamination_Workflow::model()->findByPk(@$_POST['workflow_id'])) {
             throw new \Exception('Workflow not found: ' . @$_POST['workflow_id']);
         }
@@ -741,8 +770,25 @@ class AdminController extends \ModuleAdminController
 
     public function actionRemoveWorkflowStep()
     {
-        if (!$step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array(@$_POST['workflow_id'], @$_POST['element_set_id']))) {
-            throw new \Exception('Unknown element set ' . @$_POST['element_set_id'] . ' for workflow ' . @$_POST['workflow_id']);
+        // Ensure this action is only called via POST request
+        if (!Yii::app()->request->isPostRequest) {
+            header('HTTP/1.1 405 Method Not Allowed');
+            echo 'This action requires a POST request.';
+            Yii::app()->end();
+        }
+
+        // Validate required POST parameters
+        $workflow_id = Yii::app()->request->getPost('workflow_id');
+        $element_set_id = Yii::app()->request->getPost('element_set_id');
+
+        if (empty($workflow_id) || empty($element_set_id)) {
+            header('HTTP/1.1 400 Bad Request');
+            echo 'Missing required parameters: workflow_id and element_set_id are required.';
+            Yii::app()->end();
+        }
+
+        if (!$step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id))) {
+            throw new \Exception('Unknown element set ' . $element_set_id . ' for workflow ' . $workflow_id);
         }
 
         $criteria = new CDbCriteria();
@@ -791,12 +837,19 @@ class AdminController extends \ModuleAdminController
     {
         $workflow_id = Yii::app()->request->getParam('workflow_id');
         $element_set_id = Yii::app()->request->getParam('element_set_id');
+        $step_name = Yii::app()->request->getParam('step_name');
+        
+        // Validate that required parameters are provided
+        if (!$workflow_id || !$element_set_id || !$step_name) {
+            throw new \Exception('Missing required parameters: workflow_id, element_set_id, and step_name are required');
+        }
+        
         $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id));
         if (!$step) {
             throw new \Exception('Unknown element set ' . $element_set_id . ' for workflow ' . $workflow_id);
         }
 
-        $step->name = Yii::app()->request->getParam('step_name');
+        $step->name = $step_name;
 
         if (!$step->save()) {
             throw new \Exception('Unable to save element set: ' . print_r($step->getErrors(), true));
@@ -809,6 +862,12 @@ class AdminController extends \ModuleAdminController
     {
         $workflow_id = Yii::app()->request->getParam('workflow_id');
         $element_set_id = Yii::app()->request->getParam('element_set_id');
+        
+        // Validate that required parameters are provided
+        if (!$workflow_id || !$element_set_id) {
+            throw new \Exception('Missing required parameters: workflow_id and element_set_id are required');
+        }
+        
         $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id));
         if (!$step) {
             throw new \Exception('Unknown element set ' . $element_set_id . ' for workflow ' . $workflow_id);
@@ -932,7 +991,11 @@ class AdminController extends \ModuleAdminController
 
     public function actionGetInstitutionFirms($id = null)
     {
-        $firms = Yii::app()->cbdb->createCommand()
+        if ($id === null) {
+            $this->renderJSON([]);
+            return;
+        }
+        $firms = Yii::app()->db->createCommand()
             ->select('id, name')
             ->from('firm')
             ->where('institution_id = :id', [':id' => $id])
@@ -1398,16 +1461,6 @@ class AdminController extends \ModuleAdminController
     {
         $extra_fields = array(
             array(
-                'field' => 'tags',
-                'type' => 'multilookup',
-                'noSelectionsMessage' => 'No Tags',
-                'htmlOptions' => array(
-                    'empty' => 'Select',
-                    'nowrapper' => true,
-                ),
-                'options' => \CHtml::listData(\Tag::model()->findAll(), 'id', 'name')
-            ),
-            array(
                 'field' => 'display_on_whiteboard',
                 'type' => 'boolean',
             ),
@@ -1484,9 +1537,16 @@ class AdminController extends \ModuleAdminController
 
     public function actionChangeWorkflowStepActiveStatus()
     {
-        $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($_POST['workflow_id'], $_POST['element_set_id']));
+        $workflow_id = Yii::app()->request->getPost('workflow_id');
+        $element_set_id = Yii::app()->request->getPost('element_set_id');
+        
+        if (!$workflow_id || !$element_set_id) {
+            throw new \CHttpException(400, 'Missing required parameters: workflow_id and element_set_id');
+        }
+        
+        $step = models\OphCiExamination_ElementSet::model()->find('workflow_id=? and id=?', array($workflow_id, $element_set_id));
         if (!$step) {
-            throw new \Exception('Unknown element set ' . $_POST['element_set_id'] . ' for workflow ' . $_POST['workflow_id']);
+            throw new \Exception('Unknown element set ' . $element_set_id . ' for workflow ' . $workflow_id);
         }
 
         $step->is_active = ($step->is_active === '1' ? 0 : 1);

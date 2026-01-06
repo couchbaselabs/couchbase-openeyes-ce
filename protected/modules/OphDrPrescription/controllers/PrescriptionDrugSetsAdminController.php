@@ -75,12 +75,16 @@ class PrescriptionDrugSetsAdminController extends RefSetAdminController
     }
 
 
-    public function actionToList($id)
+    public function actionToList($id = null)
     {
-        $this->redirect(['/OphDrPrescription/refSetAdmin/edit/' . $id . '?usage_code=PRESCRIPTION_SET']);
+        if ($id) {
+            $this->redirect(['/OphDrPrescription/refSetAdmin/edit/' . $id . '?usage_code=PRESCRIPTION_SET']);
+        } else {
+            $this->redirect(['/OphDrPrescription/refSetAdmin/list']);
+        }
     }
 
-    public function actionEdit()
+    public function actionEdit($id = null)
     {
         if (!isset($_GET['default']['name']) && $_GET['default']['name']) {
             $this->redirect(['/OphDrPrescription/refSetAdmin/edit?default[name]=' . $_GET['default']['name'] . '&usage_code=PRESCRIPTION_SET']);

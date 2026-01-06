@@ -73,6 +73,16 @@ class LetterMacro extends BaseActiveRecordVersioned
         return 'ophcocorrespondence_letter_macro';
     }
 
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /**
      * @return array validation rules for model attributes.
      */
@@ -157,8 +167,11 @@ class LetterMacro extends BaseActiveRecordVersioned
         $this->addError($attr, 'Institution, Site, Subspecialty, Firm - At least one entry is needed');
     }
 
-    public function afterSave()
+    protected function afterSave()
     {
+        parent::afterSave();
+        $this->saveToCouchbase();
+
         // Create the mappings in afterSave to prevent an issue the letter macro
         // id missing in beforeSave when the letter macro is being first created.
         if ($this->levels) {
@@ -230,6 +243,12 @@ class LetterMacro extends BaseActiveRecordVersioned
                 }
             }
         }
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

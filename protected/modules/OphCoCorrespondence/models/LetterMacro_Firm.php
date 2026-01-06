@@ -51,4 +51,26 @@ class LetterMacro_Firm extends BaseActiveRecordVersioned
             'firm' => [self::BELONGS_TO, 'Firm', 'firm_id'],
         ];
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

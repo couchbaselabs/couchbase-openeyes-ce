@@ -47,6 +47,28 @@ class OphInBiometry_LensType_Lens extends BaseActiveRecordVersionedSoftDelete
     use MappedReferenceData;
     public $notDeletedField = 'active';
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     protected function getSupportedLevels(): int
     {
         return ReferenceData::LEVEL_INSTITUTION;

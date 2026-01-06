@@ -114,7 +114,7 @@ class InvestigationController extends BaseAdminController
         }
 
         if (Yii::app()->request->isPostRequest) {
-            $transaction = Yii::app()->cbdb->beginTransaction();
+            $transaction = Yii::app()->db->beginTransaction();
             // get data from POST
             $user_data = Yii::app()->request->getPost('OEModule_OphCiExamination_models_OphCiExamination_Investigation_Codes');
             // set user data

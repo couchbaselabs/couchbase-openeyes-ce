@@ -211,11 +211,28 @@ class GeneticsPatient extends BaseActiveRecord
     }
 
     /**
+     * @return string The Couchbase scope name for this model
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string The Couchbase collection name for this model
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * Update the pedigrees this patient has been added to.
      */
     protected function afterSave()
     {
         parent::afterSave();
+        $this->saveToCouchbase();
         if ($this->getIsNewRecord()) {
             $this->updateDiagnoses();
         /*
@@ -253,6 +270,15 @@ class GeneticsPatient extends BaseActiveRecord
                 $pedigree->updateDiagnosis();
             }
         }
+    }
+
+    /**
+     * After delete, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
 

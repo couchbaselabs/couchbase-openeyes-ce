@@ -29,7 +29,7 @@ class UserController extends BaseController
         );
     }
 
-    public function actionAutoComplete($term, $consultant_only = false)
+    public function actionAutoComplete($term = '', $consultant_only = false)
     {
         $res = array();
         if (\Yii::app()->request->isAjaxRequest && !empty($term)) {
@@ -63,8 +63,12 @@ class UserController extends BaseController
     }
 
 
-    public function actionSurgeonGrade($id)
+    public function actionSurgeonGrade($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->user->id;
+        }
+        
         $user = User::model()->with('grade')->findByPk($id);
 
         $this->renderJSON(array(

@@ -73,7 +73,7 @@ $form = $this->beginWidget('FormLayout', array('layoutColumns' => array('label' 
             array(
                 'element' => $medication,
                 'field' => 'route_id',
-                'data' => 'DrugRoute',
+                'data' => 'MedicationRoute',
                 'htmlOptions' => array('name' => 'route_id', 'empty' => '- Select -'),
             )
         ); ?>
@@ -89,7 +89,7 @@ $form = $this->beginWidget('FormLayout', array('layoutColumns' => array('label' 
             array(
                 'element' => $medication,
                 'field' => 'frequency_id',
-                'data' => 'DrugFrequency',
+                'data' => 'MedicationFrequency',
                 'htmlOptions' => array('name' => 'frequency_id', 'empty' => '- Select -'),
             )
         ); ?>
@@ -164,21 +164,21 @@ $this->endWidget();
 
 <script type="text/javascript">
     $(document).ready(function() {
-        let element = '<?= "{$class}_$field" ?>';
+        if (typeof OpenEyes !== 'undefined' && OpenEyes.UI && OpenEyes.UI.AutoCompleteSearch) {
+            OpenEyes.UI.AutoCompleteSearch.init({
+                input: $('#drug_autocomplete'),
+                url: '<?php echo $this->createUrl('medication/finddrug'); ?>',
+                params: {
 
-        OpenEyes.UI.AutoCompleteSearch.init({
-            input: $(`[id="${'<?= "{$class}[$field]" ?>'}"]`),
-            url: <?php json_encode($this->createUrl('medication/finddrug')) ?>,
-            params: {
+                },
+                maxHeight: '200px',
+                onSelect: function () {
+                    let response = OpenEyes.UI.AutoCompleteSearch.getResponse();
+                    let input = OpenEyes.UI.AutoCompleteSearch.getInput();
 
-            },
-            maxHeight: '200px',
-            onSelect: function () {
-                let response = OpenEyes.UI.AutoCompleteSearch.getResponse();
-                let input = OpenEyes.UI.AutoCompleteSearch.getInput();
-
-                $('#drug_autocomplete').val(response.label);
-            }
-        });
+                    $('#drug_autocomplete').val(response.label);
+                }
+            });
+        }
     });
 </script>

@@ -22,6 +22,10 @@ class RefMedicationSetAdminController extends BaseAdminController
         $ref_set_id = Yii::app()->request->getParam('ref_set_id');
         $medSet = MedicationSet::model()->findByPk($ref_set_id);
 
+        if (!$medSet) {
+            throw new CHttpException(404, 'Medication set not found.');
+        }
+
         $admin = new Admin(MedicationSetItem::model(), $this);
         $admin->setListFields(array(
             'medication.preferred_term',
@@ -48,9 +52,16 @@ class RefMedicationSetAdminController extends BaseAdminController
         $admin->listModel();
     }
 
-    public function actionMedEditRedir($id)
+    public function actionMedEditRedir($id = null)
     {
-        $ref_med_id = MedicationSetItem::model()->findByPk($id)->medication_id;
+        if (!$id) {
+            throw new CHttpException(400, 'Missing required parameter: id');
+        }
+        $medSetItem = MedicationSetItem::model()->findByPk($id);
+        if (!$medSetItem) {
+            throw new CHttpException(404, 'Medication set item not found.');
+        }
+        $ref_med_id = $medSetItem->medication_id;
         $this->redirect('/OphDrPrescription/RefMedicationAdmin/edit/'.$ref_med_id);
     }
 
@@ -60,6 +71,10 @@ class RefMedicationSetAdminController extends BaseAdminController
 
         $ref_set_id =  Yii::app()->request->getParam('default')['medication_set_id'];
         $medSet = MedicationSet::model()->findByPk($ref_set_id);
+
+        if (!$medSet) {
+            throw new CHttpException(404, 'Medication set not found.');
+        }
 
         $admin->setEditFields(array(
             'medication_id'=> array(

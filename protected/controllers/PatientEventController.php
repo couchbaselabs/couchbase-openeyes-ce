@@ -52,7 +52,9 @@ class PatientEventController extends BaseController
      */
     protected function resolvePatient($request)
     {
-        $patient_id = $request->getQuery('patient_id');
+        if (!$patient_id = $request->getQuery('patient_id')) {
+            throw new CHttpException(400, 'Invalid request.');
+        }
         if (!$patient = Patient::model()->findByPk($patient_id)) {
             throw new CHttpException(404, 'Patient not found.');
         }
@@ -184,6 +186,20 @@ class PatientEventController extends BaseController
         $app = $this->getApp();
         $request = $app->getRequest();
 
+        // Early validation of required parameters with better error messages
+        if (!$request->getQuery('patient_id')) {
+            throw new CHttpException(400, 'Missing required parameter: patient_id. Please access this page from a valid context.');
+        }
+        if (!$request->getQuery('context_id')) {
+            throw new CHttpException(400, 'Missing required parameter: context_id');
+        }
+        if (!$request->getQuery('event_type_id')) {
+            throw new CHttpException(400, 'Missing required parameter: event_type_id');
+        }
+        if (!$request->getQuery('episode_id') && !$request->getQuery('service_id')) {
+            throw new CHttpException(400, 'Missing required parameter: either episode_id or service_id');
+        }
+
         if ($request->getQuery('step_id')) {
             Yii::app()->session['active_worklist_patient_id'] = $request->getQuery('worklist_patient_id');
             Yii::app()->session['active_step_id'] = $request->getQuery('step_id');
@@ -248,7 +264,9 @@ class PatientEventController extends BaseController
                         ":institution_id" => Yii::app()->session['selected_institution_id']
                     ]
                 );
-                $event_firm_id = $event_firm->id;
+                if ($event_firm) {
+                    $event_firm_id = $event_firm->id;
+                }
                 \Yii::app()->user->setFlash('issue', "Something went wrong while trying to restore the draft. Your context has been reset.");
             }
 

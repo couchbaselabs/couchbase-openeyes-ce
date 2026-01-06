@@ -1843,6 +1843,26 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
     public function afterSave()
     {
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * 
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**
@@ -1850,7 +1870,7 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
      * 
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'clinical';
     }

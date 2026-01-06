@@ -20,6 +20,24 @@ class Element_OphTrOperationnote_Biometry extends Element_OnDemand
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    /**
+     * Returns the Couchbase scope name for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     // these are legacy and should be removed one switch to using the constants on the Eye model
     const LEFT = Eye::LEFT;
     const RIGHT = Eye::RIGHT;

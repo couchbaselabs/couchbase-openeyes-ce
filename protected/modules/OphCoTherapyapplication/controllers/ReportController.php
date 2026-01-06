@@ -146,7 +146,7 @@ class ReportController extends BaseReportController
 
         $results = array();
 
-        foreach ($command->queryAll(true, $params) as $row) {
+        foreach ($command->queryAll($params) as $row) {
             $display_primary_number_usage_code = SettingMetadata::model()->getSetting('display_primary_number_usage_code');
             $patient_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPromptForInstitution($display_primary_number_usage_code, Institution::model()->getCurrent()->id, $this->selectedSiteId);
             $patient_identifier_value = PatientIdentifierHelper::getIdentifierValue(PatientIdentifierHelper::getIdentifierForPatient($display_primary_number_usage_code, $row['patient_id'], Institution::model()->getCurrent()->id, $this->selectedSiteId));

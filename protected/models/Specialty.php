@@ -132,4 +132,22 @@ class Specialty extends BaseActiveRecordVersioned
     {
         return in_array($this->specialty_type_id, array(1, 2));
     }
+
+    /**
+     * After saving a record, sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After deleting a record, remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

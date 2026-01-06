@@ -367,7 +367,7 @@ class CaseSearchController extends BaseModuleController
             }
             $search_criteria = serialize($criteria_list);
             $search->search_criteria = $search_criteria;
-            $search->name = $_POST['search_name'];
+            $search->name = isset($_POST['search_name']) ? $_POST['search_name'] : '';
             $search->institution_id = $this->selectedInstitutionId;
 
             if (!$search->save()) {
@@ -455,13 +455,18 @@ class CaseSearchController extends BaseModuleController
      * @param $patient_ids string List of patient IDs as a string (String because it is a parameter of a HTTP request).
      * @throws CException
      */
-    public function actionGetDrilldownList(string $patient_ids)
+    public function actionGetDrilldownList($patient_ids = null)
     {
+        if ($patient_ids === null) {
+            $patient_ids = Yii::app()->request->getQuery('patient_ids', '');
+        }
+
         $pagination = array(
             'pageSize' => 10,
         );
 
-        $patients = $this->getPatientDataProvider($pagination, explode(',', $patient_ids));
+        $patients_list = !empty($patient_ids) ? explode(',', $patient_ids) : array();
+        $patients = $this->getPatientDataProvider($pagination, $patients_list);
 
         if (Yii::app()->request->isAjaxRequest) {
             $this->renderPartial('patient_drill_down_list', array(
@@ -495,22 +500,29 @@ class CaseSearchController extends BaseModuleController
         $start_date = null;
         $end_date = null;
         $mode = Yii::app()->request->getQuery('mode');
-        $var = $_POST['var'];
+        $var = Yii::app()->request->getPost('var');
+        
+        if (!$var) {
+            throw new CHttpException(400, 'Missing required parameter: var');
+        }
 
         $this->populateParams();
         $ids = array_column(Yii::app()->searchProvider->search($this->parameters), 'id');
 
         $variable = $this->getVariableInstance(
-            Yii::app()->params['CaseSearch']['variables']['OECaseSearch'][$var],
+            Yii::app()->params['CaseSearch']['variables']['OECaseSearch'][$var] ?? null,
             $ids
         );
 
-        if (!isset($_POST['show-all-dates']) || $_POST['show-all-dates'] !== '1') {
-            if (isset($_POST['from_date']) && $_POST['from_date']) {
-                $start_date = new DateTime($_POST['from_date']);
+        $showAllDates = Yii::app()->request->getPost('show-all-dates');
+        if (!isset($showAllDates) || $showAllDates !== '1') {
+            $fromDate = Yii::app()->request->getPost('from_date');
+            if ($fromDate) {
+                $start_date = new DateTime($fromDate);
             }
-            if (isset($_POST['to_date']) && $_POST['to_date']) {
-                $end_date = new DateTime($_POST['to_date']);
+            $toDate = Yii::app()->request->getPost('to_date');
+            if ($toDate) {
+                $end_date = new DateTime($toDate);
             }
         } else {
             $start_date = null;

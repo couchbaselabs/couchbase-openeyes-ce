@@ -179,22 +179,27 @@ class SignController extends \BaseController
                     $element_type = null;
                 }
 
+                if ($element_type) {
+                    $element_instance = $element_type->getInstance();
+                    $esign_element = $element_instance->findByAttributes(['event_id' => $event->id]);
+                    $sign_importer = new SignImporter($event, $esign_element, $element_type, null);
+                    $sign_importer->setSignBase64($data['image']);
+                    $sign_importer->save();
 
-                $element_instance = $element_type->getInstance();
-                $esign_element = $element_instance->findByAttributes(['event_id' => $event->id]);
-                $sign_importer = new SignImporter($event, $esign_element, $element_type, null);
-                $sign_importer->setSignBase64($data['image']);
-                $sign_importer->save();
+                    $cropped_file_id = $sign_importer->signature->signatureFile->id;
 
-                $cropped_file_id = $sign_importer->signature->signatureFile->id;
+                    $cvi_manager = new OphCoCvi_Manager($this->getApp());
+                    $cvi_manager->updateEventInfo($event);
+                    $return_message = $data['extra_info'] . " " . $data['unique_identifier'];
+                    $status_id = SignatureImportLog::STATUS_SUCCESS;
 
-                $cvi_manager = new OphCoCvi_Manager($this->getApp());
-                $cvi_manager->updateEventInfo($event);
-                $return_message = $data['extra_info'] . " " . $data['unique_identifier'];
-                $status_id = SignatureImportLog::STATUS_SUCCESS;
-
-                $this->saveSignatureImportLog($protected_file, $status_id, $event, $return_message, $cropped_file_id);
-                $msg .= 'Correct signature saved!';
+                    $this->saveSignatureImportLog($protected_file, $status_id, $event, $return_message, $cropped_file_id);
+                    $msg .= 'Correct signature saved!';
+                } else {
+                    $status_id = SignatureImportLog::STATUS_FAILED;
+                    $this->saveSignatureImportLog($protected_file, $status_id, $event, $return_message);
+                    $msg .= 'Failed to load element type!';
+                }
             } else {
                 $status_id = SignatureImportLog::STATUS_FAILED;
                 $this->saveSignatureImportLog($protected_file, $status_id, null, $return_message);
@@ -202,7 +207,7 @@ class SignController extends \BaseController
             }
         } else {
             $msg .= 'Bad request';
-            header("HTTP/1.1 400 {$msg}");
+            http_response_code(400);
         }
 
         $this->renderJSON($msg);

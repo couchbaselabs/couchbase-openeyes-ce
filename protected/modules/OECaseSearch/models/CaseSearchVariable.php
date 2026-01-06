@@ -41,14 +41,14 @@ abstract class CaseSearchVariable
     public bool $eye_cardinality = false;
 
     /**
-     * @var int $bin_size X-Axis bin size.
+     * @var int|float $bin_size X-Axis bin size.
      */
-    public int $bin_size = 10;
+    public int|float $bin_size = 10;
 
     /**
-     * @var int $min_value Minimum X-axis value
+     * @var int|float $min_value Minimum X-axis value
      */
-    public int $min_value = 0;
+    public int|float $min_value = 0;
 
     /**
      * CaseSearchVariable constructor.

@@ -115,8 +115,8 @@ $previewWidth = @Yii::app()->params['lightning_viewer']['image_width'] ?: 800;
             foreach ($events as $event) {
                 $criteria = new CDbCriteria();
                 $criteria->compare('event_id', $event->id);
-                $criteria->join = 'LEFT JOIN eye ON eye.id = eye_id';
-                $criteria->order = 'eye.display_order, page';
+                $criteria->join = 'LEFT JOIN eye ON eye.id = t.eye_id';
+                $criteria->order = 'eye.display_order, t.page';
                 $eventImages = EventImage::model()->findAll($criteria);
                 ?>
               <div class="js-lightning-image-preview"

@@ -15,4 +15,31 @@
 class OphTrOperationnote_Trabeculectomy_Site extends BaseActiveRecordVersioned
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
+
+    public function tableName()
+    {
+        return 'ophtropnote_trabeculectomy_site';
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

@@ -1139,14 +1139,19 @@ class Patient extends BaseActiveRecordVersioned
      */
     public function getHSCICName($bold = false)
     {
-        $last_name = $bold ? '<strong>' . strtoupper($this->last_name) . '</strong>' : strtoupper($this->last_name);
+        $last_name_value = strtoupper($this->last_name ?? '');
+        $last_name = $bold ? '<strong>' . $last_name_value . '</strong>' : $last_name_value;
+        $first_name = $this->first_name ?? '';
+        $title = $this->title ?? '';
 
-        return trim(implode(' ', array($last_name . ',', $this->first_name, '(' . $this->title . ')')));
+        return trim(implode(' ', array($last_name . ',', $first_name, '(' . $title . ')')));
     }
 
     public function getDisplayName()
     {
-        return '<span class="patient-surname">' . strtoupper($this->last_name) . '</span>, <span class="patient-name">' . $this->first_name . '</span>';
+        $last_name = strtoupper($this->last_name ?? '');
+        $first_name = $this->first_name ?? '';
+        return '<span class="patient-surname">' . $last_name . '</span>, <span class="patient-name">' . $first_name . '</span>';
     }
 
     /**
@@ -2844,9 +2849,18 @@ class Patient extends BaseActiveRecordVersioned
      * Get the Couchbase scope for patients
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'core';
+    }
+
+    /**
+     * Get the Couchbase collection name for patients
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
     
     /**
@@ -2891,22 +2905,22 @@ class Patient extends BaseActiveRecordVersioned
         $doc['_version'] = isset($doc['_version']) ? $doc['_version'] + 1 : 1;
         
         // Embed contact information
-        if ($this->contact) {
+        if ($this->contact && is_object($this->contact)) {
             $doc['contact'] = [
-                'title' => $this->contact->title,
-                'first_name' => $this->contact->first_name,
-                'last_name' => $this->contact->last_name,
-                'maiden_name' => $this->contact->maiden_name,
-                'nick_name' => $this->contact->nick_name,
-                'primary_phone' => $this->contact->primary_phone,
-                'email' => $this->contact->email,
-                'qualifications' => $this->contact->qualifications,
+                'title' => $this->contact->title ?? null,
+                'first_name' => $this->contact->first_name ?? null,
+                'last_name' => $this->contact->last_name ?? null,
+                'maiden_name' => $this->contact->maiden_name ?? null,
+                'nick_name' => $this->contact->nick_name ?? null,
+                'primary_phone' => $this->contact->primary_phone ?? null,
+                'email' => $this->contact->email ?? null,
+                'qualifications' => $this->contact->qualifications ?? null,
             ];
         }
         
         // Embed addresses via contact
         $doc['addresses'] = [];
-        if ($this->contact) {
+        if ($this->contact && is_object($this->contact)) {
             $addresses = Address::model()->findAllByAttributes(
                 ['contact_id' => $this->contact->id],
                 ['order' => 'date_start DESC']

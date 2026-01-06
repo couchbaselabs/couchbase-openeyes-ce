@@ -176,6 +176,24 @@ class OphCoCvi_Signature extends BaseSignature
     }
 
     /**
+     * Returns the Couchbase scope name for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * @inheritDoc
      */
     public function afterSave()
@@ -184,6 +202,16 @@ class OphCoCvi_Signature extends BaseSignature
         if (isset($this->element->event)) {
             (new OEModule\OphCoCvi\components\OphCoCvi_Manager())->updateEventInfo($this->element->event);
         }
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

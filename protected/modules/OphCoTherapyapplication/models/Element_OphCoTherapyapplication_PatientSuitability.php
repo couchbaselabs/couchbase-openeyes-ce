@@ -47,6 +47,24 @@ class Element_OphCoTherapyapplication_PatientSuitability extends SplitEventTypeE
     public $service;
 
     /**
+     * Get the Couchbase scope for this model
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Get the Couchbase collection name for this model
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return the static model class
@@ -395,5 +413,23 @@ class Element_OphCoTherapyapplication_PatientSuitability extends SplitEventTypeE
             }
         }
         return parent::beforeSave();
+    }
+
+    /**
+     * After save, sync to Couchbase if dual-write is enabled
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete, remove from Couchbase if dual-write is enabled
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

@@ -37,6 +37,24 @@ class Trial extends BaseActiveRecordVersioned
     use HasFactory;
 
     /**
+     * Returns the Couchbase scope name for this model.
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    /**
      * The success return code for addUserPermission()
      */
     const RETURN_CODE_USER_PERMISSION_OK = 'success';
@@ -235,6 +253,7 @@ class Trial extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
+        $this->saveToCouchbase();
 
         if ($this->getIsNewRecord()) {
             // Create a new permission assignment for the user that created the Trial
@@ -272,6 +291,15 @@ class Trial extends BaseActiveRecordVersioned
                 }
             }
         }
+    }
+
+    /**
+     * Overrides CActiveModel::afterDelete()
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

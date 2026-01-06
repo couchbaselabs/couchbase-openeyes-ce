@@ -32,6 +32,16 @@ class Element_OphTrConsent_CapacityAssessment extends \BaseEventTypeElement
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     /**
      * @return string the associated database table name
      */
@@ -130,7 +140,14 @@ class Element_OphTrConsent_CapacityAssessment extends \BaseEventTypeElement
             }
         }
 
-        return parent::afterSave();
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 
     /**

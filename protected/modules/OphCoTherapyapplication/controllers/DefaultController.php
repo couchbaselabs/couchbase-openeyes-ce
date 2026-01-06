@@ -134,15 +134,18 @@ class DefaultController extends BaseEventTypeController
         echo $html;
     }
 
-    public function actionDownloadFileCollection($id)
+    public function actionDownloadFileCollection($id = null)
     {
+        if (empty($id)) {
+            throw new CHttpException(400, 'File Collection ID is required.');
+        }
         if ($collection = OphCoTherapyapplication_FileCollection::model()->findByPk((int) $id)) {
             $pf = $collection->getZipFile();
             if ($pf) {
                 $this->redirect($pf->getDownloadURL());
             }
         }
-        throw new CHttpException('400', 'File Collection does not exist');
+        throw new CHttpException(400, 'File Collection does not exist');
     }
 
     /**

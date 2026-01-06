@@ -140,8 +140,12 @@ class WorklistController extends BaseAdminController
      * @throws CDbException
      * @throws CHttpException
      */
-    public function actionDefinitionDelete($id)
+    public function actionDefinitionDelete($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required for deletion.');
+        }
+
         $definition = $this->getWorklistDefinition($id);
 
         if (!$this->manager->canUpdateWorklistDefinition($definition)) {
@@ -184,7 +188,7 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionWorklists($id)
+    public function actionDefinitionWorklists($id = null)
     {
         $definition = $this->getWorklistDefinition($id);
 
@@ -443,8 +447,12 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionWorklistPatients($id)
+    public function actionWorklistPatients($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist ID is required.');
+        }
+        
         $worklist = $this->manager->getWorklist($id);
         if (!$worklist) {
             throw new CHttpException(404, 'Worklist not found');
@@ -466,8 +474,12 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionWorklistsDelete($id)
+    public function actionDefinitionWorklistsDelete($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required for deletion.');
+        }
+
         $definition = $this->getWorklistDefinition($id);
 
         if (isset($_POST['confirm_delete']) && $_POST['confirm_delete'] == $id) {
@@ -489,8 +501,12 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionGenerate($id)
+    public function actionDefinitionGenerate($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required for generation.');
+        }
+        
         $definition = $this->getWorklistDefinition($id);
 
         $new_count = $this->manager->generateAutomaticWorklists($definition);
@@ -512,8 +528,11 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionMappings($id)
+    public function actionDefinitionMappings($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required.');
+        }
         $definition = $this->getWorklistDefinition($id);
 
         $this->render('definition_mappings', array(
@@ -528,8 +547,11 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionAddDefinitionMapping($id)
+    public function actionAddDefinitionMapping($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required.');
+        }
         $definition = $this->getWorklistDefinition($id);
 
         if (!$this->manager->canUpdateWorklistDefinition($definition)) {
@@ -612,8 +634,12 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionMappingDelete($id)
+    public function actionDefinitionMappingDelete($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist Definition Mapping ID is required for deletion.');
+        }
+
         if (!$mapping = WorklistDefinitionMapping::model()->findByPk($id)) {
             throw new CHttpException(404, 'Worklist Definition Mapping not found.');
         }
@@ -636,8 +662,11 @@ class WorklistController extends BaseAdminController
      *
      * @param $id
      */
-    public function actionDefinitionMappingSort($id)
+    public function actionDefinitionMappingSort($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required.');
+        }
         $definition = $this->getWorklistDefinition($id);
         $mapping_ids = @$_POST['item_ids'] ?: array();
 
@@ -653,8 +682,11 @@ class WorklistController extends BaseAdminController
         $this->redirect('/Admin/worklist/definitionMappings/' . $id);
     }
 
-    public function actionDefinitionDisplayContexts($id)
+    public function actionDefinitionDisplayContexts($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required.');
+        }
         $definition = $this->getWorklistDefinition($id);
 
         $this->render('definition_display_contexts', array(
@@ -667,8 +699,11 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionDisplayContextAdd($id)
+    public function actionDefinitionDisplayContextAdd($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required.');
+        }
         $definition = $this->getWorklistDefinition($id);
 
         $display_context = new WorklistDefinitionDisplayContext();
@@ -696,8 +731,12 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionDisplayContextDelete($id)
+    public function actionDefinitionDisplayContextDelete($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist Definition Display Context ID is required for deletion.');
+        }
+
         if (!$display_context = WorklistDefinitionDisplayContext::model()->findByPk($id)) {
             throw new CHttpException(404, 'Worklist Definition Display Context not found.');
         }
@@ -798,8 +837,12 @@ class WorklistController extends BaseAdminController
      * @throws CHttpException
      * @throws Exception
      */
-    public function actionDuplicatePathwayPreset($id)
+    public function actionDuplicatePathwayPreset($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Pathway preset ID is required for duplication.');
+        }
+
         $source_pathway_type = PathwayType::model()->findByPk($id);
 
         if ($source_pathway_type) {
@@ -837,9 +880,9 @@ class WorklistController extends BaseAdminController
 
         $step = PathwayStepType::model()->findByPk($id);
         // priority for firm_id: user input > template > current firm id
-        $step_data['firm_id'] = $step_data['firm_id'] ?? $step->getState('firm_id') ?? Yii::app()->session['selected_firm_id'];
+        $step_data['firm_id'] = $step_data['firm_id'] ?? ($step ? $step->getState('firm_id') : null) ?? Yii::app()->session['selected_firm_id'];
         // if the template has subspecialty_id, then setup for the step
-        if ($step->getState('subspecialty_id')) {
+        if ($step && $step->getState('subspecialty_id')) {
             $step_data['subspecialty_id'] = $step->getState('subspecialty_id');
         }
         $new_step = null;
@@ -865,7 +908,7 @@ class WorklistController extends BaseAdminController
     /**
      * @param $term
      */
-    public function actionGetAssignees($term)
+    public function actionGetAssignees($term = '')
     {
         $users = User::model()->with('contact')->findAll(
             'contact.first_name LIKE CONCAT(\'%\', :term, \'%\')',
@@ -940,6 +983,12 @@ class WorklistController extends BaseAdminController
     {
         $id = Yii::app()->request->getPost('user_id');
         $pathway_id = Yii::app()->request->getPost('target_pathway_id');
+
+        if (!$pathway_id) {
+            $this->renderJSON(array('error' => 'Unable to retrieve pathway'));
+            return;
+        }
+
         $pathway_type = PathwayType::model()->findByPk($pathway_id);
 
         if ($pathway_type) {
@@ -947,43 +996,58 @@ class WorklistController extends BaseAdminController
             $pathway_type->save();
             $pathway_type->refresh();
             $this->renderJSON(array('id' => $id, 'initials' => $pathway_type->owner->getInitials()));
+            return;
         }
-        throw new CHttpException(404, 'Unable to retrieve pathway');
+
+        $this->renderJSON(array('error' => 'Unable to retrieve pathway'));
     }
 
-    public function actionGetPresetDrugs($id)
+    public function actionGetPresetDrugs($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'PGD/PSD Preset ID is required.');
+        }
+
         $preset = OphDrPGDPSD_PGDPSD::model()->findByPk($id);
+        
+        if (!$preset) {
+            throw new CHttpException(404, 'PGD/PSD Preset not found.');
+        }
+
         $laterality = Yii::app()->request->getQuery('laterality');
 
-        if ($preset) {
-            $json = array_map(
-                static function ($medication) use ($laterality) {
-                    return array(
-                        'id' => $medication->id,
-                        'drug_name' => $medication->medication->preferred_term,
-                        'dose' => $medication->dose . ' ' . $medication->dose_unit_term,
-                        'route' => $medication->route->has_laterality ? false : $medication->route->term,
-                        'laterality' => (bool)$medication->route->has_laterality,
-                        'right_eye' => $laterality && ($laterality & MedicationLaterality::RIGHT),
-                        'left_eye' => $laterality && ($laterality & MedicationLaterality::LEFT),
-                    );
-                },
-                $preset->assigned_meds
-            );
-            $this->renderJSON($json);
-        }
+        $json = array_map(
+            static function ($medication) use ($laterality) {
+                return array(
+                    'id' => $medication->id,
+                    'drug_name' => $medication->medication->preferred_term,
+                    'dose' => $medication->dose . ' ' . $medication->dose_unit_term,
+                    'route' => $medication->route->has_laterality ? false : $medication->route->term,
+                    'laterality' => (bool)$medication->route->has_laterality,
+                    'right_eye' => $laterality && ($laterality & MedicationLaterality::RIGHT),
+                    'left_eye' => $laterality && ($laterality & MedicationLaterality::LEFT),
+                );
+            },
+            $preset->assigned_meds
+        );
+        $this->renderJSON($json);
     }
 
     /**
      * @param $partial
-     * @param $pathstep_id
-     * @param $patient_id
+     * @param $pathstep_type_id
      * @throws CException
      * @throws CHttpException
      */
-    public function actionGetPathStep($partial, $pathstep_type_id)
+    public function actionGetPathStep($partial = null, $pathstep_type_id = null)
     {
+        if ($partial === null) {
+            $partial = Yii::app()->request->getQuery('partial');
+        }
+        if ($pathstep_type_id === null) {
+            $pathstep_type_id = Yii::app()->request->getQuery('pathstep_type_id');
+        }
+
         $step = PathwayTypeStep::model()->findByPk($pathstep_type_id);
 
         if ($step) {
@@ -1031,7 +1095,7 @@ class WorklistController extends BaseAdminController
             $step_to_reorder = PathwayTypeStep::model()->find(
                 "pathway_type_id = :pathway_id AND id != :id AND queue_order = :order",
                 [
-                    'pathway_id' => $step->pathway_type_id,
+                    ':pathway_id' => $step->pathway_type_id,
                     ':id' => $step->id,
                     ':order' => $new_order
                 ]

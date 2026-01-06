@@ -107,13 +107,25 @@ class OphTrLaser_Type extends BaseActiveRecordVersioned
             ));
     }
 
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'laser';
     }
 
-    public function couchbaseCollection()
+    public function couchbaseCollection(): string
     {
         return 'ophtrlaser_type';
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

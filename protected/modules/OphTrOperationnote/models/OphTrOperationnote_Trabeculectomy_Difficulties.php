@@ -16,6 +16,33 @@ class OphTrOperationnote_Trabeculectomy_Difficulties extends BaseActiveRecordVer
 {
     use \OE\Models\Traits\CouchbaseModelBridge;
 
+    public function tableName()
+    {
+        return 'ophtroperationnote_trabeculectomy_difficulties';
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     public function relations()
     {
         return array(

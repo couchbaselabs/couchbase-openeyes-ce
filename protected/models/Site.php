@@ -100,6 +100,24 @@ class Site extends BaseActiveRecordVersioned
     }
 
     /**
+     * After save callback - sync to Couchbase
+     */
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    /**
+     * After delete callback - remove from Couchbase
+     */
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return Site the static model class
@@ -235,7 +253,7 @@ class Site extends BaseActiveRecordVersioned
         $institution = Institution::model()->getCurrent();
 
         $display_query = SettingMetadata::model()->findByAttributes(array('key' => 'display_institution_name'));
-        $display_institution = $display_query->getSettingName();
+        $display_institution = $display_query ? $display_query->getSettingName() : 'Off';
 
         $result = array();
         foreach ($institution->sites as $site) {
@@ -281,7 +299,7 @@ class Site extends BaseActiveRecordVersioned
     {
         if ($this->institution->short_name) {
             $display_query = SettingMetadata::model()->findByAttributes(array('key' => 'display_institution_name'));
-            $display_institution = $display_query->getSettingName();
+            $display_institution = $display_query ? $display_query->getSettingName() : 'Off';
 
             if (!strstr($this->name, $this->institution->short_name)) {
                 if ($display_institution  == 'Off') {
@@ -315,6 +333,19 @@ class Site extends BaseActiveRecordVersioned
     public function getShortname()
     {
         return $this->short_name ? $this->short_name : $this->name;
+    }
+
+    /**
+     * Get letter address - delegates to ContactBehavior
+     * @param array $params Parameters for address formatting
+     * @return string|array Formatted address
+     */
+    public function getLetterAddress($params = array())
+    {
+        if ($behavior = $this->asa('ContactBehavior')) {
+            return $behavior->getLetterAddress($params, null);
+        }
+        return '';
     }
 
     public function getReplyToAddress($params = array())

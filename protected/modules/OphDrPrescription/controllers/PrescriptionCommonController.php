@@ -62,17 +62,26 @@ class PrescriptionCommonController extends DefaultController
         /** @var MedicationSetItem[] $drug_set_items */
         foreach ($drug_set_items as $drug_set_item) {
             $drug = $drug_set_item->medication;
+            $allergies = $drug->allergies;
+            if (!is_array($allergies)) {
+                $allergies = !empty($allergies) ? (array)$allergies : [];
+            }
             $drugs[] = [
                 'label' => $drug->getLabel(),
                 'allergies' => array_map(function ($allergy) {
                     return $allergy->id;
-                }, $drug->allergies),
+                }, $allergies),
             ];
         }
         $this->renderJSON($drugs);
     }
-    public function actionPGDForm($key, $patient_id, $pgd_id)
+    public function actionPGDForm($key = 0, $patient_id = 0, $pgd_id = 0)
     {
+        if (!$key || !$patient_id || !$pgd_id) {
+            echo '';
+            return;
+        }
+
         $this->initForPatient($patient_id);
 
         $key = (int)$key;
@@ -90,14 +99,20 @@ class PrescriptionCommonController extends DefaultController
         $pgd = OphDrPGDPSD_PGDPSD::model()->findByPk($pgd_id);
         $drugs = [];
         /** @var MedicationSetItem[] $drug_set_items */
-        foreach ($pgd->assigned_meds as $pgd_med) {
-            $drug = $pgd_med->medication;
-            $drugs[] = [
-                'label' => $drug->getLabel(),
-                'allergies' => array_map(function ($allergy) {
-                    return $allergy->id;
-                }, $drug->allergies),
-            ];
+        if ($pgd) {
+            foreach ($pgd->assigned_meds as $pgd_med) {
+                $drug = $pgd_med->medication;
+                $allergies = $drug->allergies;
+                if (!is_array($allergies)) {
+                    $allergies = !empty($allergies) ? (array)$allergies : [];
+                }
+                $drugs[] = [
+                    'label' => $drug->getLabel(),
+                    'allergies' => array_map(function ($allergy) {
+                        return $allergy->id;
+                    }, $allergies),
+                ];
+            }
         }
         $this->renderJSON($drugs);
     }
@@ -109,8 +124,13 @@ class PrescriptionCommonController extends DefaultController
      * @param $patient_id
      * @param $drug_id
      */
-    public function actionItemForm($key, $patient_id, $drug_id, $label = null)
+    public function actionItemForm($key = 0, $patient_id = 0, $drug_id = 0, $label = null)
     {
+        if (!$key || !$patient_id || !$drug_id) {
+            echo '';
+            return;
+        }
+
         $this->initForPatient($patient_id);
         $drug = MedicationSetItem::model()->findByAttributes(
             ['medication_id' => $drug_id],
@@ -127,12 +147,17 @@ class PrescriptionCommonController extends DefaultController
      * @param $patient_id
      * @param $drug_id
      */
-    public function actionItemFormAdmin($key, $drug_id)
+    public function actionItemFormAdmin($key = 0, $drug_id = 0)
     {
-        echo $this->renderPrescriptionItem($key, $drug_id);
+        if (!$key || !$drug_id) {
+            echo '';
+            return;
+        }
+        
+        $this->renderPrescriptionItem($key, $drug_id);
     }
 
-    public function actionGetDispenseLocation($condition_id)
+    public function actionGetDispenseLocation($condition_id = 0)
     {
         if ($condition_id) {
             $institution_id = Yii::app()->session['selected_institution_id'];

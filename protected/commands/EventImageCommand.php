@@ -119,7 +119,7 @@ EOH;
 
                     $patient_events = Event::model()->findAll($criteria);
                     foreach ($patient_events as $patient_event) {
-                        $this->createImageForEvent($event);
+                        $this->createImageForEvent($patient_event);
                         if ($debug) {
                             echo "\n    " . str_pad($eIndex, $eDigits, "0", STR_PAD_LEFT) . " of " . $eCount . " -> Creating EventImage for event " . $patient_event->id . ".";
                         }
@@ -241,7 +241,8 @@ EOH;
             $this->openCurlConnection($institution_id, $site_id);
             foreach ($institution_and_site_events['events'] as $event) {
                 if ($debug) {
-                    echo "\n    " . str_pad($eIndex, $eDigits, "0", STR_PAD_LEFT) . " of " . $eCount . " -> Creating image for event: " . $event->id . ", eventType: " . $event->eventType->class_name;
+                    $eventTypeName = $event->eventType ? $event->eventType->class_name : "UNKNOWN";
+                    echo "\n    " . str_pad($eIndex, $eDigits, "0", STR_PAD_LEFT) . " of " . $eCount . " -> Creating image for event: " . $event->id . ", eventType: " . $eventTypeName;
                 }
                 $this->createImageForEvent($event);
                 $eIndex++;
@@ -253,6 +254,10 @@ EOH;
     public function createImageForEvent($event)
     {
         $this->deleteEventImagesForEvent($event);
+        if (!$event->eventType) {
+            Yii::log("Error: Event " . $event->id . " has no eventType", CLogger::LEVEL_ERROR);
+            return;
+        }
         $url = Yii::app()->params['event_image']['base_url'] . $event->eventType->class_name . '/default/createImage/' . $event->id;
 
         if (@Yii::app()->params['lightning_viewer']['debug_logging']) {

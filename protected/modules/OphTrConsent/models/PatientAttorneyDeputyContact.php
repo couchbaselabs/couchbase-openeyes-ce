@@ -159,4 +159,32 @@ class PatientAttorneyDeputyContact extends BaseActiveRecordVersioned
     {
         return $this->consideredDecision ? $this->consideredDecision->name : '';
     }
+
+    /**
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    /**
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

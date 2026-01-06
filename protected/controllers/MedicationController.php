@@ -23,6 +23,19 @@ class MedicationController extends BaseController
     }
 
     /**
+     * Lists medications.
+     * Patient medications are displayed within the patient context,
+     * so this action is typically not called directly.
+     */
+    public function actionList()
+    {
+        // This action exists to handle the /medication/list route.
+        // However, patient medications are typically displayed within a patient record context.
+        // If this is called directly, we render an empty or informational view.
+        $this->render('list', array('patient' => null, 'current' => true));
+    }
+
+    /**
      * @param int $patientId
      * @param int $medicationId
      */
@@ -57,7 +70,7 @@ class MedicationController extends BaseController
                 'form',
                 array(
                     'patient' => $this->fetchModel('Patient', $patientId),
-                    'ArchiveMedication' => $medication,
+                    'medication' => $medication,
                     'firm' => Firm::model()->findByPk($this->selectedFirmId),
                 ),
                 false,
@@ -67,63 +80,99 @@ class MedicationController extends BaseController
     }
 
     /**
-     * Searches across MedicationDrug and Drug models for the given term. If the term only matches
-     * on an alias, the alias will be included in the returned label for that entry.
+     * Searches across Medication models for the given term. If the term only matches
+     * on an alternative term from medication_search_index, the alternative term will be included 
+     * in the returned label for that entry.
      *
-     * Distinguishes between the data types to ensure relationship defined correctly.
+     * Uses both preferred_term/short_term and alternative_term (via medication_search_index) for search.
      */
     public function actionFindDrug()
     {
         $return = array();
 
         if (isset($_GET['term']) && $term = strtolower($_GET['term'])) {
+            // Search for medications by preferred_term or short_term
             $criteria = new CDbCriteria();
-            $criteria->compare('LOWER(t.name)', $term, true, 'OR');
-            $criteria->compare('LOWER(t.aliases)', $term, true, 'OR');
-
-            foreach (MedicationDrug::model()->with('tags')->findAll($criteria) as $md) {
-                $label = $md->name;
-                if (strpos(strtolower($md->name), $term) === false) {
-                    $label .= ' (' . $md->aliases . ')';
+            $criteria->compare('LOWER(t.preferred_term)', $term, true, 'OR');
+            $criteria->compare('LOWER(t.short_term)', $term, true, 'OR');
+            
+            $medications = Medication::model()->findAll($criteria);
+            $found_ids = array();
+            
+            foreach ($medications as $med) {
+                $found_ids[] = $med->id;
+                $label = $med->preferred_term;
+                // Check if this is a match on short_term
+                if (strpos(strtolower($med->preferred_term), $term) === false && !empty($med->short_term)) {
+                    $label .= ' (' . $med->short_term . ')';
                 }
                 $return[] = array(
-                    'name' => $md->name,
+                    'name' => $med->preferred_term,
                     'label' => $label,
                     'value' => $label,
-                    'id' => $md->id,
-                    'type' => 'md',
-                    'tags' => array_map(function ($t) {
-                        return $t->id;
-                    }, $md->tags)
+                    'id' => $med->id,
+                    'type' => 'medication',
                 );
+            }
+            
+            // Also search in medication_search_index for alternative terms
+            $search_criteria = new CDbCriteria();
+            $search_criteria->compare('LOWER(alternative_term)', $term, true);
+            $search_results = MedicationSearchIndex::model()->findAll($search_criteria);
+            
+            foreach ($search_results as $search_result) {
+                // Only add if we haven't already added this medication
+                if (!in_array($search_result->medication_id, $found_ids)) {
+                    $med = $search_result->medication;
+                    if ($med && !$med->deleted_date) {
+                        $found_ids[] = $med->id;
+                        $label = $med->preferred_term . ' (' . $search_result->alternative_term . ')';
+                        $return[] = array(
+                            'name' => $med->preferred_term,
+                            'label' => $label,
+                            'value' => $label,
+                            'id' => $med->id,
+                            'type' => 'medication',
+                        );
+                    }
+                }
             }
         }
 
         $this->renderJSON($return);
     }
 
-    public function actionDrugDefaults($drug_id)
+    public function actionDrugDefaults($drug_id = null)
     {
-        if (strpos($drug_id, '@@M') === false) {
+        if ($drug_id && strpos($drug_id, '@@M') === false) {
             $this->renderJSON($this->fetchModel('Drug', $drug_id)->getDefaults());
+        } else {
+            $this->renderJSON([]);
         }
     }
 
-    public function actionDrugRouteOptions($route_id)
+    public function actionDrugRouteOptions($route_id = null)
     {
+        if (!$route_id) {
+            throw new CHttpException(400, 'Route ID is required');
+        }
         $this->renderPartial(
             'route_option',
             array(
-                'ArchiveMedication' => new ArchiveMedication(),
+                'medication' => new ArchiveMedication(),
                 'route' => $this->fetchModel('DrugRoute', $route_id),
             )
         );
     }
 
-    public function actionRetrieveDrugRouteOptions($route_id)
+    public function actionRetrieveDrugRouteOptions($route_id = null)
     {
+        if (!$route_id) {
+            $this->renderJSON([]);
+            return;
+        }
         $route = MedicationRoute::model()->findByPk($route_id);
-        if ($route->has_laterality) {
+        if ($route && $route->has_laterality) {
             $this->renderJSON([
                 ['id' => 1, 'name' => 'Left'],
                 ['id' => 2, 'name' => 'Right'],
@@ -136,6 +185,10 @@ class MedicationController extends BaseController
 
     public function actionSave()
     {
+        if (!isset($_POST['patient_id']) || empty($_POST['patient_id'])) {
+            throw new CHttpException(400, 'patient_id parameter is required');
+        }
+
         if (@$_POST['MedicationAdherence']) {
             $patient = $this->fetchModel('Patient', @$_POST['patient_id']);
 
@@ -190,6 +243,13 @@ class MedicationController extends BaseController
 
     public function actionStop()
     {
+        if (!isset($_POST['patient_id']) || empty($_POST['patient_id'])) {
+            throw new CHttpException(400, 'patient_id parameter is required');
+        }
+        if (!isset($_POST['medication_id']) || empty($_POST['medication_id'])) {
+            throw new CHttpException(400, 'medication_id parameter is required');
+        }
+
         $patient = $this->fetchModel('Patient', @$_POST['patient_id']);
         $medication = $this->fetchModel('ArchiveMedication', @$_POST['medication_id']);
 
@@ -206,6 +266,13 @@ class MedicationController extends BaseController
 
     public function actionDelete()
     {
+        if (!isset($_POST['patient_id']) || empty($_POST['patient_id'])) {
+            throw new CHttpException(400, 'patient_id parameter is required');
+        }
+        if (!isset($_POST['medication_id']) || empty($_POST['medication_id'])) {
+            throw new CHttpException(400, 'medication_id parameter is required');
+        }
+
         $patient = $this->fetchModel('Patient', @$_POST['patient_id']);
         $medication = $this->fetchModel('ArchiveMedication', @$_POST['medication_id']);
 

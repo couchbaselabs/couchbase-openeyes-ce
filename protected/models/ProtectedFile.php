@@ -246,8 +246,39 @@ class ProtectedFile extends BaseActiveRecordVersioned
     public function afterDelete()
     {
         unlink($this->stored_path);
+        $this->deleteFromCouchbase();
 
         return parent::afterDelete();
+    }
+
+    /**
+     * @return bool
+     */
+    protected function afterSave()
+    {
+        $this->saveToCouchbase();
+
+        return parent::afterSave();
+    }
+
+    /**
+     * Returns the Couchbase scope name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    /**
+     * Returns the Couchbase collection name for this model.
+     *
+     * @return string
+     */
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 
     /**

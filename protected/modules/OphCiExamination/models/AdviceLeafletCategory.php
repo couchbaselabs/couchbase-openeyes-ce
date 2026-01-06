@@ -187,5 +187,22 @@ class AdviceLeafletCategory extends \BaseActiveRecordVersioned
             $leaflet_assignment->save(true);
         }
         parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'reference';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
     }
 }

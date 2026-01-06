@@ -144,8 +144,8 @@ class WorklistController extends BaseController
 
             $sync_interval_setting_key = 'worklist_auto_sync_interval';
             $sync_interval_settings = \SettingMetadata::model()->find("`key` = 'worklist_auto_sync_interval'");
-            $sync_interval_options = unserialize($sync_interval_settings->data, ['allowed_classes' => true]);
-            $sync_interval_value = $sync_interval_settings->getSetting();
+            $sync_interval_options = $sync_interval_settings ? unserialize($sync_interval_settings->data, ['allowed_classes' => true]) : array();
+            $sync_interval_value = $sync_interval_settings ? $sync_interval_settings->getSetting() : null;
             $prescriber_dom_data = $this->prescriberDomData(false);
 
             $picker_setup = $this->setupPicker();
@@ -186,8 +186,13 @@ class WorklistController extends BaseController
         }
     }
 
-    public function actionGetPresetDrugs($id)
+    public function actionGetPresetDrugs($id = null)
     {
+        if (!$id) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $preset = OphDrPGDPSD_PGDPSD::model()->findByPk($id);
         $laterality = Yii::app()->request->getQuery('laterality');
 
@@ -207,6 +212,8 @@ class WorklistController extends BaseController
                 $preset->assigned_meds
             );
             $this->renderJSON($json);
+        } else {
+            $this->renderJSON(array());
         }
     }
 
@@ -216,6 +223,12 @@ class WorklistController extends BaseController
     public function actionChangePathwayStatus()
     {
         $pathway_id = Yii::app()->request->getPost('visit_id');
+        
+        // Validate that required parameters are provided
+        if (!$pathway_id) {
+            throw new CHttpException(400, 'Missing required parameter: visit_id');
+        }
+        
         $new_status = Yii::app()->request->getPost('new_status');
         $step_action = Yii::app()->request->getPost('step_action');
         $pathway = Pathway::model()->findByPk($pathway_id);
@@ -295,6 +308,11 @@ class WorklistController extends BaseController
      */
     public function actionChangeStepStatus()
     {
+        // Validate that this is a POST request with required parameters
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
+        }
+
         $step_id = Yii::app()->request->getPost('step_id');
         $type_step_id = Yii::app()->request->getPost('step_type_id');
         $visit_id = Yii::app()->request->getPost('visit_id');
@@ -369,9 +387,19 @@ class WorklistController extends BaseController
      */
     public function actionCheckIn()
     {
+        // Validate that this is a POST request with required parameters
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
+        }
+
         $step_id = Yii::app()->request->getPost('step_id');
         $type_step_id = Yii::app()->request->getPost('step_type_id');
         $visit_id = Yii::app()->request->getPost('visit_id');
+
+        // Validate required parameters
+        if (empty($step_id) && (empty($type_step_id) || empty($visit_id))) {
+            throw new CHttpException(400, 'Missing required parameters: step_id or (step_type_id and visit_id) must be provided.');
+        }
 
         $step = PathwayStep::model()->find('id = :id', [':id' => $step_id]);
 
@@ -421,7 +449,17 @@ class WorklistController extends BaseController
      */
     public function actionUndoCheckIn()
     {
+        // Validate that this is a POST request with required parameters
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, 'Method Not Allowed. This action requires a POST request.');
+        }
+
         $step_id = Yii::app()->request->getPost('step_id');
+
+        // Validate required parameters
+        if (empty($step_id)) {
+            throw new CHttpException(400, 'Missing required parameter: step_id must be provided.');
+        }
 
         $step = PathwayStep::model()->findByPk($step_id);
 
@@ -469,6 +507,10 @@ class WorklistController extends BaseController
                 $pathway_steps = $type_step->pathway_type->instancePathway($visit);
                 $step = $pathway_steps[$type_step_id] ?? null;
             }
+        }
+
+        if (!$step) {
+            throw new CHttpException(404, 'Unable to locate pathway step.');
         }
 
         $step->status = PathwayStep::STEP_COMPLETED;
@@ -595,36 +637,38 @@ class WorklistController extends BaseController
             }
         }
 
-        if ($step) {
-            $old_order = $step->todo_order;
-            $new_order = $direction === 'left' ? $old_order - 1 : $old_order + 1;
-
-            // As we're only moving one step, we should only have to reorder at most a single step.
-            $step_to_reorder = PathwayStep::model()->find(
-                "pathway_id = :pathway_id AND (status IN (-1, 0) OR status IS NULL) AND id != :id AND todo_order = :order",
-                [
-                    'pathway_id' => $step->pathway_id,
-                    ':id' => $step->id,
-                    ':order' => $new_order
-                ]
-            );
-
-            // It should only be possible to request a reorder on requested steps or an active hold timer (which will revert its status to 'to-do').
-            if ((int)$step->status === PathwayStep::STEP_STARTED) {
-                $step->status = PathwayStep::STEP_REQUESTED;
-            }
-
-            if ($step_to_reorder) {
-                $step_to_reorder->todo_order = $old_order;
-                $step_to_reorder->save();
-                $step_to_reorder->refresh();
-            }
-            $step->todo_order = $new_order;
-            if (!$step->save()) {
-                throw new CHttpException('Unable to reorder step.');
-            }
-            $step->refresh();
+        if (!$step) {
+            throw new CHttpException(400, 'Step not found.');
         }
+
+        $old_order = $step->todo_order;
+        $new_order = $direction === 'left' ? $old_order - 1 : $old_order + 1;
+
+        // As we're only moving one step, we should only have to reorder at most a single step.
+        $step_to_reorder = PathwayStep::model()->find(
+            "pathway_id = :pathway_id AND (status IN (-1, 0) OR status IS NULL) AND id != :id AND todo_order = :order",
+            [
+                'pathway_id' => $step->pathway_id,
+                ':id' => $step->id,
+                ':order' => $new_order
+            ]
+        );
+
+        // It should only be possible to request a reorder on requested steps or an active hold timer (which will revert its status to 'to-do').
+        if ((int)$step->status === PathwayStep::STEP_STARTED) {
+            $step->status = PathwayStep::STEP_REQUESTED;
+        }
+
+        if ($step_to_reorder) {
+            $step_to_reorder->todo_order = $old_order;
+            $step_to_reorder->save();
+            $step_to_reorder->refresh();
+        }
+        $step->todo_order = $new_order;
+        if (!$step->save()) {
+            throw new CHttpException(400, 'Unable to reorder step.');
+        }
+        $step->refresh();
 
         $this->renderJSON(
             array(
@@ -638,8 +682,13 @@ class WorklistController extends BaseController
      * @param $id
      * @throws CHttpException
      */
-    public function actionGetVfPresetData($id)
+    public function actionGetVfPresetData($id = null)
     {
+        if (!$id) {
+            $this->renderJSON(array());
+            return;
+        }
+
         $preset = VisualFieldTestPreset::model()->findByPk($id);
         if ($preset) {
             $this->renderJSON(
@@ -650,6 +699,7 @@ class WorklistController extends BaseController
                     'option_name' => $preset->option->short_name,
                 )
             );
+            return;
         }
         throw new CHttpException(404, 'Unable to retrieve Fields preset.');
     }
@@ -810,7 +860,7 @@ class WorklistController extends BaseController
         $current_worklists = $this->manager->getCurrentManualWorklistsForUser(Yii::app()->user);
         $available_worklists = $this->manager->getAvailableManualWorklistsForUser(Yii::app()->user);
 
-        $this->render('//worklist/manual/index', array(
+        $this->render('manual/index', array(
             'current_worklists' => $current_worklists,
             'available_worklists' => $available_worklists,
         ));
@@ -830,7 +880,7 @@ class WorklistController extends BaseController
             }
         }
 
-        $this->render('//worklist/manual/add', array(
+        $this->render('manual/add', array(
             'worklist' => $worklist,
             'errors' => @$errors,
         ));
@@ -870,7 +920,7 @@ class WorklistController extends BaseController
         }
 
 
-        $this->render('//worklist/print', array('worklists' => $worklists, 'filter' => $filter));
+        $this->render('print', array('worklists' => $worklists, 'filter' => $filter));
     }
 
     public function actionClearDates()
@@ -986,6 +1036,8 @@ class WorklistController extends BaseController
             }
 
             $this->renderJSON($patientData);
+        } else {
+            $this->renderJSON(['error' => 'Patient ID is required']);
         }
     }
 
@@ -1816,6 +1868,10 @@ class WorklistController extends BaseController
         $visit_id = Yii::app()->request->getPost('visit_id');
         $wl_patient = WorklistPatient::model()->findByPk($visit_id);
 
+        if (!$wl_patient) {
+            throw new CHttpException(404, 'Worklist patient not found.');
+        }
+
         if (!$wl_patient->pathway) {
             $wl_patient->worklist->worklist_definition->pathway_type->instancePathway($wl_patient);
             $wl_patient->refresh();
@@ -1879,6 +1935,11 @@ class WorklistController extends BaseController
      */
     public function actionAddPathwayStepsToPathway()
     {
+        // Validate required POST data
+        if (!isset($_POST['selected_values']) || !is_array($_POST['selected_values']) || count($_POST['selected_values']) < 2) {
+            throw new CHttpException(400, 'Missing or invalid required parameters.');
+        }
+
         $id = $_POST['selected_values'][0]['value'];
         $position = $_POST['selected_values'][1]['value'];
         $pathway_type = PathwayType::model()->findByPk($id);
@@ -1924,6 +1985,10 @@ class WorklistController extends BaseController
         $visit_id = Yii::app()->request->getPost('target_visit_id');
         $visit = WorklistPatient::model()->findByPk($visit_id);
 
+        if (!$visit) {
+            throw new CHttpException(404, 'WorklistPatient not found.');
+        }
+
         if (!($visit->pathway)) {
             $visit->worklist->worklist_definition->pathway_type->instancePathway($visit);
             $visit->refresh();
@@ -1942,10 +2007,33 @@ class WorklistController extends BaseController
     public function actionAddComment()
     {
         $post = $_POST;
+        
+        // Validate required parameters
+        if (!isset($post['visit_id'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: visit_id'], 400);
+            return;
+        }
+        if (!isset($post['pathstep_id'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: pathstep_id'], 400);
+            return;
+        }
+        if (!isset($post['comment'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: comment'], 400);
+            return;
+        }
+        if (!isset($post['user_id'])) {
+            $this->renderJSON(['error' => 'Missing required parameter: user_id'], 400);
+            return;
+        }
+        
         $wl_patient = WorklistPatient::model()->findByPk($post['visit_id']);
         $step_id = $post['pathstep_id'];
         $pathway_instanced = false;
         if ($post['pathstep_id'] === 'comment') {
+            if (!isset($post['pathway_id'])) {
+                $this->renderJSON(['error' => 'Missing required parameter: pathway_id'], 400);
+                return;
+            }
             $pathway_id = $post['pathway_id'];
             if (!$wl_patient->pathway) {
                 $wl_patient->worklist->worklist_definition->pathway_type->instancePathway($wl_patient);
@@ -1959,6 +2047,10 @@ class WorklistController extends BaseController
             }
         } else {
             if (!$post['pathstep_id']) {
+                if (!isset($post['pathstep_type_id'])) {
+                    $this->renderJSON(['error' => 'Missing required parameter: pathstep_type_id'], 400);
+                    return;
+                }
                 $type_step = PathwayTypeStep::model()->findByPk($post['pathstep_type_id']);
                 if ($type_step) {
                     $steps = $type_step->pathway_type->instancePathway($wl_patient);
@@ -2127,6 +2219,11 @@ class WorklistController extends BaseController
         $type_step_id = Yii::app()->request->getPost('step_type_id');
         $visit_id = Yii::app()->request->getPost('visit_id');
 
+        // Validate that required POST parameters are present
+        if (!$pathstep_id && (!$visit_id || !$type_step_id)) {
+            throw new CHttpException(400, 'Required parameters missing: step_id or (visit_id and step_type_id) must be provided.');
+        }
+
         extract($this->getStepAndPathway($pathstep_id, $visit_id, $type_step_id));
 
         // push the step to completed status
@@ -2161,6 +2258,12 @@ class WorklistController extends BaseController
     public function actionRevertCheckout()
     {
         $pathstep_id = Yii::app()->request->getPost('step_id');
+        
+        // Validate that required parameters are provided
+        if (empty($pathstep_id)) {
+            throw new CHttpException(400, 'Missing required parameter: step_id must be provided.');
+        }
+        
         extract($this->getStepAndPathway($pathstep_id));
         // revert step
         $step->status = PathwayStep::STEP_REQUESTED;

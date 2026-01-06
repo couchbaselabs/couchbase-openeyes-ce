@@ -289,11 +289,32 @@ class BaseController extends Controller
             $institution = Institution::model()->getCurrent();
             $this->jsVars['institution_code'] = $institution->remote_id;
             $this->jsVars['institution_name'] = $institution->name;
+        } else {
+            // For unauthenticated users, set default values to prevent JavaScript errors
+            $this->jsVars['user_id'] = null;
+            $this->jsVars['user_full_name'] = null;
+            $this->jsVars['user_email'] = null;
+            $this->jsVars['user_username'] = null;
+            $this->jsVars['institution_code'] = null;
+            $this->jsVars['institution_name'] = null;
         }
         $this->jsVars['YII_CSRF_TOKEN'] = Yii::app()->request->csrfToken;
-        $this->jsVars['OE_core_asset_path'] = Yii::app()->assetManager->getPublishedPathOfAlias('application.assets');
-        $this->jsVars['OE_core_asset_js_path'] = Yii::app()->assetManager->getPublishedPathOfAlias('application.assets.js');
-        $this->jsVars['OE_core_widget_js_path'] = Yii::app()->assetManager->getPublishedPathOfAlias('application.widgets.js');
+        // Wrap asset manager calls in try-catch to handle symlink errors gracefully
+        try {
+            @$this->jsVars['OE_core_asset_path'] = Yii::app()->assetManager->getPublishedPathOfAlias('application.assets');
+        } catch (Exception $e) {
+            $this->jsVars['OE_core_asset_path'] = '/assets';
+        }
+        try {
+            @$this->jsVars['OE_core_asset_js_path'] = Yii::app()->assetManager->getPublishedPathOfAlias('application.assets.js');
+        } catch (Exception $e) {
+            $this->jsVars['OE_core_asset_js_path'] = '/assets/js';
+        }
+        try {
+            @$this->jsVars['OE_core_widget_js_path'] = Yii::app()->assetManager->getPublishedPathOfAlias('application.widgets.js');
+        } catch (Exception $e) {
+            $this->jsVars['OE_core_widget_js_path'] = '/assets/widgets/js';
+        }
         $this->jsVars['OE_module_name'] = $this->module ? $this->module->id : false;
         $this->jsVars['OE_html_autocomplete'] = SettingMetadata::model()->getSetting('html_autocomplete');
         $this->jsVars['OE_event_print_method'] = SettingMetadata::model()->getSetting('event_print_method');

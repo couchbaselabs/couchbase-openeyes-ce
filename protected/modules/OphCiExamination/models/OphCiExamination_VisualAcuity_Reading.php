@@ -44,9 +44,30 @@ use OEModule\OphCiExamination\models\traits\HasWithHeadPosture;
 class OphCiExamination_VisualAcuity_Reading extends \BaseActiveRecordVersioned
 {
     use HasWithHeadPosture;
-    use \OE\Models\Traits\CouchbaseModelBridge;
-    use HasRelationOptions;
+    use \OE\Models\Traits\CouchbaseModelBridge {
+        \OE\Models\Traits\CouchbaseModelBridge::__get as couchbaseGet;
+    }
+    use HasRelationOptions {
+        HasRelationOptions::__get insteadof \OE\Models\Traits\CouchbaseModelBridge;
+    }
     use HasFactory;
+    
+    /**
+     * Override __get to handle both HasRelationOptions and CouchbaseModelBridge
+     */
+    public function __get($name)
+    {
+        // First try HasRelationOptions (for _options suffix)
+        if (substr($name, -8) === '_options') {
+            $relation_name = strtolower(substr($name, 0, -8));
+            if (!$this->shouldSkipRelation($relation_name) && $this->getRelationByName($relation_name)) {
+                return $this->{"{$relation_name}Options"}();
+            }
+        }
+        
+        // Then try CouchbaseModelBridge for relation loading
+        return $this->couchbaseGet($name);
+    }
 
     const BEO = 2;
     const LEFT = 1;
@@ -269,5 +290,27 @@ class OphCiExamination_VisualAcuity_Reading extends \BaseActiveRecordVersioned
             },
             []
         );
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
     }
 }

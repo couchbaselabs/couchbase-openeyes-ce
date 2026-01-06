@@ -128,7 +128,15 @@ class AdminController extends \ModuleAdminController
 
         foreach ($macros as $macro) {
             if ($macro->episode_status_id && !isset($statuses[$macro->episode_status_id])) {
-                $statuses[$macro->episode_status_id] = $macro->episode_status->name;
+                try {
+                    $episode_status = $macro->episode_status;
+                    if ($episode_status && isset($episode_status->name)) {
+                        $statuses[$macro->episode_status_id] = $episode_status->name;
+                    }
+                } catch (Exception $e) {
+                    // Log the error but continue processing
+                    \Yii::log("Error loading episode status for macro {$macro->id}: " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+                }
             }
         }
 
@@ -139,6 +147,12 @@ class AdminController extends \ModuleAdminController
 
     public function actionFilterMacros()
     {
+        // If not an AJAX request, render the full letterMacros page
+        if (!Yii::app()->request->isAjaxRequest) {
+            return $this->actionLetterMacros();
+        }
+        
+        // For AJAX requests, return just the table rows
         $this->renderPartial('_macros', array('macros' => $this->getMacros()));
     }
 
@@ -154,7 +168,17 @@ class AdminController extends \ModuleAdminController
 
     public function actionFilterEpisodeStatuses()
     {
-        $this->renderPartial('_episode_statuses', array('statuses' => $this->getUniqueEpisodeStatuses($this->getMacros(false))));
+        try {
+            $macros = $this->getMacros(false);
+            \Yii::log("actionFilterEpisodeStatuses: Found " . count($macros) . " macros", \CLogger::LEVEL_INFO);
+            $statuses = $this->getUniqueEpisodeStatuses($macros);
+            \Yii::log("actionFilterEpisodeStatuses: Found " . count($statuses) . " statuses", \CLogger::LEVEL_INFO);
+            $this->renderPartial('_episode_statuses', array('statuses' => $statuses));
+        } catch (Exception $e) {
+            \Yii::log("Error in actionFilterEpisodeStatuses: " . $e->getMessage() . "\n" . $e->getTraceAsString(), \CLogger::LEVEL_ERROR);
+            // Render with empty statuses on error
+            $this->renderPartial('_episode_statuses', array('statuses' => array()));
+        }
     }
 
     /**
@@ -164,28 +188,89 @@ class AdminController extends \ModuleAdminController
      */
     public function getMacros($filter_name_and_episode_status = true)
     {
-        $criteria = new CDbCriteria();
-
-        $criteria->with = ['institutions', 'sites', 'firms', 'subspecialties'];
+        // For Couchbase compatibility, use direct N1QL queries instead of Yii AR with JOINs
+        $couchbase = \Yii::app()->couchbase;
+        if ($couchbase) {
+            try {
+                // Query all macros from reference scope
+                $n1ql = "SELECT META(m).id AS _doc_key, m.* FROM `openeyes`.`reference`.`ophcocorrespondence_letter_macro` m ORDER BY m.display_order ASC, m.name ASC";
+                
+                $queryResult = $couchbase->query($n1ql, []);
+                $rows = [];
+                if ($queryResult instanceof \Couchbase\QueryResult) {
+                    foreach ($queryResult->rows() as $row) {
+                        $rows[] = (array)$row;
+                    }
+                } elseif (is_array($queryResult)) {
+                    $rows = $queryResult;
+                }
+                
+                \Yii::log("getMacros Couchbase query returned " . count($rows) . " rows", \CLogger::LEVEL_INFO);
+                
+                // If Couchbase returns results, use them
+                if (!empty($rows)) {
+                    // Hydrate models
+                    $macros = [];
+                    foreach ($rows as $row) {
+                        $macro = new LetterMacro();
+                        $macro->setScenario('search');
+                        
+                        // Set id from _mysql_id if available, otherwise use id
+                        if (isset($row['_mysql_id']) && !empty($row['_mysql_id'])) {
+                            $macro->id = $row['_mysql_id'];
+                        } elseif (isset($row['id'])) {
+                            $macro->id = $row['id'];
+                        }
+                        
+                        // Set all safe attributes
+                        $safeAttributes = ['name', 'recipient_id', 'use_nickname', 'body', 'cc_patient', 'cc_doctor', 
+                                           'display_order', 'cc_optometrist', 'cc_drss', 'episode_status_id', 
+                                           'letter_type_id', 'short_code', 'created_date', 'created_user_id',
+                                           'last_modified_date', 'last_modified_user_id'];
+                        foreach ($safeAttributes as $attr) {
+                            if (isset($row[$attr])) {
+                                $macro->$attr = $row[$attr];
+                            }
+                        }
+                        
+                        $macros[] = $macro;
+                    }
+                    
+                    // Apply filters
+                    if ($filter_name_and_episode_status) {
+                        if (@$_GET['name']) {
+                            $macros = array_filter($macros, function($m) {
+                                return $m->name === $_GET['name'];
+                            });
+                        }
+                        if (@$_GET['episode_status_id']) {
+                            $macros = array_filter($macros, function($m) {
+                                return $m->episode_status_id == $_GET['episode_status_id'];
+                            });
+                        }
+                    }
+                    
+                    return array_values($macros);
+                }
+                // If Couchbase returns no results, fall through to standard approach
+            } catch (\Exception $e) {
+                \Yii::log("getMacros N1QL error: " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+                // Fall through to standard approach
+            }
+        }
+        
+        // Fallback to standard criteria (may not work for Couchbase-only mode)
         $selected_institution = $_GET['institution_id'] ?? Institution::model()->getCurrent()->id;
-        $criteria->addCondition('institutions_institutions.institution_id = :institution_id');
-        $criteria->params[':institution_id'] = $selected_institution;
-
-        if (@$_GET['site_id']) {
-            $criteria->addCondition('sites_sites.site_id = :site_id');
-            $criteria->params[':site_id'] = $_GET['site_id'];
+        $macroIds = $this->getMacroIdsByInstitution($selected_institution);
+        
+        if (empty($macroIds)) {
+            return [];
         }
+        
+        $criteria = new CDbCriteria();
+        $criteria->addInCondition('t.id', $macroIds);
 
-        if (@$_GET['subspecialty_id']) {
-            $criteria->addCondition('subspecialties_subspecialties.subspecialty_id = :subspecialty_id');
-            $criteria->params[':subspecialty_id'] = $_GET['subspecialty_id'];
-        }
-
-        if (@$_GET['firm_id']) {
-            $criteria->addCondition('firms_firms.firm_id = :firm_id');
-            $criteria->params[':firm_id'] = $_GET['firm_id'];
-        }
-
+        // Apply additional filters on the macro attributes directly
         if ($filter_name_and_episode_status) {
             if (@$_GET['name']) {
                 $criteria->addCondition('t.name = :name');
@@ -198,13 +283,103 @@ class AdminController extends \ModuleAdminController
             }
         }
 
-        $criteria->order = 'display_order asc, sites_sites.site_id asc, subspecialties_subspecialties.subspecialty_id asc, firms_firms.firm_id asc, t.name asc';
+        $criteria->order = 'display_order asc, t.name asc';
 
-        if ($this->checkAccess('admin')) {
-            return LetterMacro::model()->findAll($criteria);
+        $macros = LetterMacro::model()->findAll($criteria);
+        
+        // Post-filter by site, subspecialty, firm if needed
+        // (these are less common filters, so post-filtering is acceptable)
+        if (@$_GET['site_id'] || @$_GET['subspecialty_id'] || @$_GET['firm_id']) {
+            $macros = array_filter($macros, function($macro) {
+                if (@$_GET['site_id']) {
+                    $siteIds = array_map(function($s) { return $s->id; }, $macro->sites);
+                    if (!in_array($_GET['site_id'], $siteIds)) {
+                        return false;
+                    }
+                }
+                if (@$_GET['subspecialty_id']) {
+                    $subspecialtyIds = array_map(function($s) { return $s->id; }, $macro->subspecialties);
+                    if (!in_array($_GET['subspecialty_id'], $subspecialtyIds)) {
+                        return false;
+                    }
+                }
+                if (@$_GET['firm_id']) {
+                    $firmIds = array_map(function($f) { return $f->id; }, $macro->firms);
+                    if (!in_array($_GET['firm_id'], $firmIds)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
         }
-
-        return LetterMacro::model()->findAll($criteria);
+        
+        return array_values($macros);
+    }
+    
+    /**
+     * Get macro IDs that are associated with a specific institution
+     * Uses direct N1QL query for Couchbase compatibility
+     * @param int $institutionId
+     * @return array
+     */
+    protected function getMacroIdsByInstitution($institutionId)
+    {
+        try {
+            // Try Couchbase query first
+            $couchbase = \Yii::app()->couchbase;
+            if ($couchbase) {
+                $scope = 'reference';
+                
+                // Debug: Log institution ID
+                \Yii::log("getMacroIdsByInstitution: institutionId = " . var_export($institutionId, true), \CLogger::LEVEL_INFO);
+                
+                // Query junction table - try both string and numeric match
+                $n1ql = "SELECT RAW letter_macro_id FROM `openeyes`.`{$scope}`.`ophcocorrespondence_letter_macro_institution` WHERE TOSTRING(institution_id) = TOSTRING(\$institutionId)";
+                $queryResult = $couchbase->query($n1ql, ['institutionId' => (string)$institutionId]);
+                
+                // Convert QueryResult to array
+                $results = [];
+                if ($queryResult instanceof \Couchbase\QueryResult) {
+                    foreach ($queryResult->rows() as $row) {
+                        $results[] = $row;
+                    }
+                } elseif (is_array($queryResult)) {
+                    $results = $queryResult;
+                }
+                
+                if (!empty($results)) {
+                    return $results;
+                }
+                
+                // DEBUG: Force return all macro IDs for testing
+                \Yii::log("getMacroIdsByInstitution: No junction results, returning all macros", \CLogger::LEVEL_INFO);
+                
+                // If no results from junction table, return all macro IDs (for backward compatibility)
+                $n1ql = "SELECT RAW TOSTRING(IFMISSING(m._mysql_id, m.id)) FROM `openeyes`.`{$scope}`.`ophcocorrespondence_letter_macro` m";
+                $queryResult = $couchbase->query($n1ql, []);
+                
+                $results = [];
+                if ($queryResult instanceof \Couchbase\QueryResult) {
+                    foreach ($queryResult->rows() as $row) {
+                        $results[] = $row;
+                    }
+                } elseif (is_array($queryResult)) {
+                    $results = $queryResult;
+                }
+                
+                return $results ?: [];
+            }
+        } catch (\Exception $e) {
+            \Yii::log("getMacroIdsByInstitution Couchbase error: " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+        }
+        
+        // Fallback: return all macro IDs (let the model handle filtering)
+        try {
+            $macros = LetterMacro::model()->findAll();
+            return array_map(function($m) { return $m->id; }, $macros);
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
 
@@ -431,13 +606,16 @@ class AdminController extends \ModuleAdminController
             $siteSecretaries = $siteSecretary->findSiteSecretaryForFirm($firmId);
         }
         //Add a blank one to the end of the form for adding
-        $siteSecretaries[] = new FirmSiteSecretary();
+        $newSiteSecretary = new FirmSiteSecretary();
+        $siteSecretaries[] = $newSiteSecretary;
         if (count($errorList)) {
             $errors = call_user_func_array('array_merge', $errorList);
         }
 
         $outputArray = array(
             'siteSecretaries' => $siteSecretaries,
+            'newSiteSecretary' => $newSiteSecretary,
+            'firmId' => $firmId,
             'errors' => $errors,
             'success' => (count($errors) === 0),
         );
@@ -480,23 +658,25 @@ class AdminController extends \ModuleAdminController
     public function actionGetInitMethodDataById()
     {
 
-        if (Yii::app()->request->isAjaxRequest) {
-            if (!isset($_POST['id'])) {
-                throw new CHttpException(400, 'No ID provided');
-            }
-            if (!$method = OphcorrespondenceInitMethod::model()->findByPk($_POST['id'])) {
-                throw new Exception("Method not found: " . $_POST['id']);
-            }
-
-            $result = array(
-                'success'       => 1,
-                'description'   => $method->description,
-                'short_code'    => $method->short_code
-            );
-
-            $this->renderJSON($result);
+        if (!Yii::app()->request->isAjaxRequest) {
+            throw new CHttpException(400, 'This action only accepts AJAX requests');
         }
-        throw new CHttpException(400, 'Invalid method');
+
+        if (!isset($_POST['id'])) {
+            throw new CHttpException(400, 'No ID provided');
+        }
+
+        if (!$method = OphcorrespondenceInitMethod::model()->findByPk($_POST['id'])) {
+            throw new Exception("Method not found: " . $_POST['id']);
+        }
+
+        $result = array(
+            'success'       => 1,
+            'description'   => $method->description,
+            'short_code'    => $method->short_code
+        );
+
+        $this->renderJSON($result);
     }
 
     public function actionAddEmailAddress()
@@ -643,7 +823,7 @@ class AdminController extends \ModuleAdminController
         ));
     }
 
-    public function actionGetEmailBody($recipient_type)
+    public function actionGetEmailBody($recipient_type = '')
     {
         if ($recipient_type != '') {
             $email_body = \Yii::app()->cbdb->createCommand()

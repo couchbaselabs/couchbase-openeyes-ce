@@ -85,8 +85,10 @@ class DefaultController extends BaseEventTypeController
     {
         parent::initActionView();
         $el = Element_OphCoDocument_Document::model()->findByAttributes(array('event_id' => $this->event->id));
-        $this->sub_type = $el->sub_type;
-        $this->title = $el->sub_type->name;
+        if ($el) {
+            $this->sub_type = $el->sub_type;
+            $this->title = $el->sub_type->name;
+        }
     }
 
     public function initActionCreate()
@@ -120,7 +122,7 @@ class DefaultController extends BaseEventTypeController
     {
         $message = null;
 
-        switch ($files['Document']['error'][$index]) {
+        switch ($files['error'][$index]) {
             case UPLOAD_ERR_OK:
                 break;
             case UPLOAD_ERR_NO_FILE:
@@ -140,7 +142,7 @@ class DefaultController extends BaseEventTypeController
                 return $message;
         }
 
-        $file_contents = file_get_contents($files['Document']['tmp_name'][$index]);
+        $file_contents = file_get_contents($files['tmp_name'][$index]);
 
         if (strtolower(SettingMetadata::model()->getSetting('enable_virus_scanning')) === 'on') {
             try {
@@ -156,8 +158,8 @@ class DefaultController extends BaseEventTypeController
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
 
-        $file_mime = strtolower($finfo->file($files['Document']['tmp_name'][$index]));
-        $extension = pathinfo($files['Document']['name'][$index], PATHINFO_EXTENSION);
+        $file_mime = strtolower($finfo->file($files['tmp_name'][$index]));
+        $extension = pathinfo($files['name'][$index], PATHINFO_EXTENSION);
 
         if (false === array_search($file_mime, $this->allowed_file_types, true)) {
             $message = 'Only the following file types can be uploaded: ' . (implode(', ', $this->getAllowedFileTypes())) . '.';
@@ -195,6 +197,12 @@ class DefaultController extends BaseEventTypeController
     public function actionRemoveDocuments()
     {
         $doc_ids = \Yii::app()->request->getPost('doc_ids', []);
+        $result = array(
+            'success' => true,
+            'deleted_count' => 0,
+            'errors' => array()
+        );
+
         foreach ($doc_ids as $doc_id) {
             try {
                 // check to see if document is from a template
@@ -207,13 +215,24 @@ class DefaultController extends BaseEventTypeController
                 $doc = ProtectedFile::model()->findByPk($doc_id);
                 if ($doc && file_exists($doc->getFilePath() . '/' . $doc->uid)) {
                     $doc->delete();
+                    $result['deleted_count']++;
                 } else {
-                    OELog::log(($doc ? "Failed to delete the document from " . $doc->getFilePath() : "Failed to find document"));
+                    $error_msg = ($doc ? "Failed to delete the document from " . $doc->getFilePath() : "Failed to find document");
+                    OELog::log($error_msg);
+                    $result['errors'][] = $error_msg;
                 }
             } catch (Exception $e) {
-                OELog::log("Failed to delete the ProtectedFile with id = " . $doc_id);
+                $error_msg = "Failed to delete the ProtectedFile with id = " . $doc_id;
+                OELog::log($error_msg);
+                $result['errors'][] = $error_msg;
             }
         }
+
+        if (!empty($result['errors'])) {
+            $result['success'] = false;
+        }
+
+        $this->renderJSON($result);
     }
 
     /**
@@ -221,7 +240,7 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionGetImage()
     {
-        $return_data = null;
+        $return_data = [];
         if (isset($_POST['subTypeId'], $_POST['uploadMode'])) {
             $subTypeId = $_POST['subTypeId'];
             $documentId = OphCoDocument_Sub_Types::model()->findByPk($subTypeId)->document_id ?? null;
@@ -258,7 +277,7 @@ class DefaultController extends BaseEventTypeController
             $return_data = array();
             foreach (array('single_document_id', 'left_document_id', 'right_document_id') as $file_key) {
                 if (isset($file["name"][$file_key]) && strlen($file["name"][$file_key]) > 0) {
-                    $handler = $this->documentErrorHandler($_FILES, $file_key);
+                    $handler = $this->documentErrorHandler($file, $file_key);
                     if ($handler == null) {
                         [$protected_file_id, $errors] = $this->uploadFile($file["tmp_name"][$file_key], $file["name"][$file_key]);
 
@@ -316,8 +335,16 @@ class DefaultController extends BaseEventTypeController
      * @inheritdoc
      */
 
-    public function actionSavePDFprint($id)
+    public function actionSavePDFprint($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID parameter is required.');
+        }
+        
         $this->initWithEventId($id);
 
         $imgdir = $this->event->getImageDirectory();
@@ -401,8 +428,16 @@ class DefaultController extends BaseEventTypeController
      * @inheritdoc
      */
 
-    public function actionPDFPrint($id, $return_pdf_path = false, $inject_autoprint_js = true)
+    public function actionPDFPrint($id = null, $return_pdf_path = false, $inject_autoprint_js = true)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID parameter is required.');
+        }
+        
         $this->initWithEventId($id);
 
         if (in_array('other', $this->getDocumentTypes())) {
@@ -510,8 +545,16 @@ class DefaultController extends BaseEventTypeController
      * @param int $id The ID of the vent to genreate a preview image for
      * @throws Exception
      */
-    public function actionCreateImage($id)
+    public function actionCreateImage($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID parameter is required.');
+        }
+        
         try {
             $this->initActionView();
             $this->removeEventImages();
@@ -520,8 +563,8 @@ class DefaultController extends BaseEventTypeController
             $element = Element_OphCoDocument_Document::model()->findByAttributes(array('event_id' => $this->event->id));
             /* @var ProtectedFile $document */
 
-            // Create an image of whole event if there is no file (only comments)
-            if (!$element->left_document && !$element->right_document && !$element->single_document) {
+            // If no OphCoDocument element found, or if there is no file (only comments), create an image of whole event
+            if (!$element || (!$element->left_document && !$element->right_document && !$element->single_document)) {
                 parent::actionCreateImage($id);
                 return;
             }

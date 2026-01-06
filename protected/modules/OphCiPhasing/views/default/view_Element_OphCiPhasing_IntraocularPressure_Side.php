@@ -18,7 +18,10 @@
 ?>
 <?php if ($element->{'has' . $side}()) { ?>
     <div>
-        <?php echo $element->{strtolower($side) . '_instrument'}->name ?> <?php if ($element->{strtolower($side) . '_dilated'}) {
+        <?php 
+        $instrument = $element->{strtolower($side) . '_instrument'};
+        echo $instrument ? $instrument->name : 'Unknown instrument'; 
+        ?> <?php if ($element->{strtolower($side) . '_dilated'}) {
             ?>(dilated)<?php
         } ?>
     </div>

@@ -30,7 +30,7 @@ class CommonMedicationsController extends BaseAdminController
 
         $admin->setListFields(array(
             'id',
-            'medication_drug.name',
+            'medication_id',
         ));
 
         $admin->setCustomDeleteURL('/oeadmin/CommonMedications/delete');
@@ -53,13 +53,13 @@ class CommonMedicationsController extends BaseAdminController
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errorMessage' => 'notajaxcall'));
+            echo 'error: notajaxcall';
         } else {
             if ($commonMedications = CommonMedications::model()->findByPk($itemId)) {
                 $commonMedications->delete();
                 echo 'success';
             } else {
-                $this->render('errorpage', array('errormessage' => 'recordmissing'));
+                echo 'error: recordmissing';
             }
         }
     }
@@ -71,7 +71,7 @@ class CommonMedicationsController extends BaseAdminController
     {
         $medicationId = $this->request->getParam('medication_id');
         if (!Yii::app()->request->isAjaxRequest) {
-            $this->render('errorpage', array('errormessage' => 'notajaxcall'));
+            echo 'error: notajaxcall';
         } else {
             if (!is_numeric($medicationId)) {
                 echo 'error';
@@ -91,11 +91,11 @@ class CommonMedicationsController extends BaseAdminController
     {
         if (Yii::app()->request->isAjaxRequest) {
             $criteria = new CDbCriteria();
+            $params = array();
 
             if (isset($_GET['term']) && strlen($term = $_GET['term']) > 0) {
                 $criteria->addCondition(
-                    array('LOWER(name) LIKE :term'),
-                    'OR'
+                    'LOWER(name) LIKE :term'
                 );
                 $params[':term'] = '%'.strtolower(strtr($term, array('%' => '\%'))).'%';
             }
@@ -120,3 +120,4 @@ class CommonMedicationsController extends BaseAdminController
 
 
 }
+

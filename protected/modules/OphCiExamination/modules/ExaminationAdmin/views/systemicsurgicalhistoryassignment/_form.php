@@ -73,7 +73,7 @@
                     return
                         '<div>' .
                         CHtml::dropDownList(
-                            null,
+                            "operation_select_$row",
                             '',
                             $common_operations_options,
                             ['empty' => '- Select -', 'class' => 'common_prev_op_select']
@@ -174,7 +174,7 @@
                     'id',
                     'name'
                 );
-                echo CHtml::dropDownList(null, '', $list_data, ['empty' => '- Select -', 'class' => 'common_prev_op_select']);
+                echo CHtml::dropDownList('operation_select_{{row}}', '', $list_data, ['empty' => '- Select -', 'class' => 'common_prev_op_select']);
                 echo '<br />' .
                 CHtml::textField("OEModule_OphCiExamination_models_SystemicSurgerySetEntry[{{row}}][operation]", '', [
                         'placeholder' => 'Select from above or type',

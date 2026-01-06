@@ -113,4 +113,26 @@ class EpisodeSummaryItem extends BaseActiveRecord
     {
         return $this->event_type->class_name.'_Episode_'.str_replace(' ', '', $this->name);
     }
+
+    public function couchbaseScope(): string
+    {
+        return 'core';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
 }

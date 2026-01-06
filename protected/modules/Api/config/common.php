@@ -18,6 +18,12 @@ $config = array(
     'components' => [
         'urlManager' => [
             'rules' => [
+                // Admin interface routes for Api/Request/RequestAdmin module
+                'Api/Request/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'Api/Request/RequestAdmin/<controller>/<action>',
+                'Api/Request/admin/<controller:\w+>/<action:\w+>' => 'Api/Request/RequestAdmin/<controller>/<action>',
+                'Api/Request/<controller:\w+>/<action:\w+>/<id:\d+>' => 'Api/Request/RequestAdmin/<controller>/<action>',
+                'Api/Request/<controller:\w+>/<action:\w+>' => 'Api/Request/RequestAdmin/<controller>/<action>',
+                // REST API routes
                 ['Api/<controller>/<action>', 'pattern' => 'api/v1/<controller>/<action>', 'verb' => 'GET, POST, PUT']
             ],
         ],

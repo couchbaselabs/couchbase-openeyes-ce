@@ -73,30 +73,43 @@ class TagsAdminController extends BaseAdminController
 
     public function actionSave()
     {
-        $id = $_POST['Tag']['id'];
-
-        if ($id === '') {
-            $tag = new Tag();
-            $is_new = true;
-        } else {
-            $tag = Tag::model()->findByPk($id);
-            $is_new = false;
+        // Check if POST data contains the expected structure
+        if (!isset($_POST['Tag']) || !is_array($_POST['Tag'])) {
+            // Return a 400 Bad Request error for invalid POST data
+            header('HTTP/1.1 400 Bad Request');
+            echo json_encode(['error' => 'Invalid request data']);
+            Yii::app()->end();
         }
 
-        $tag->name = filter_var($_POST['Tag']['name'], FILTER_SANITIZE_STRING);
-        $tag->active = $_POST['Tag']['active'] == '1';
+        try {
+            $id = isset($_POST['Tag']['id']) ? $_POST['Tag']['id'] : '';
 
-        if ($tag->save()) {
-            Yii::app()->user->setFlash('success', 'Tag ' . ($is_new ? 'created' : 'updated'));
-            $this->redirect(array('/TagsAdmin/list'));
-        } else {
-            $errors = $tag->getErrors();
-            $err_str = '';
-            foreach ($errors as $field => $error_msg) {
-                $err_str .= implode('<br/>', $error_msg) . '<br/>';
+            if ($id === '') {
+                $tag = new Tag();
+                $is_new = true;
+            } else {
+                $tag = Tag::model()->findByPk($id);
+                $is_new = false;
             }
-            Yii::app()->user->setFlash('warning.alert', $err_str);
-            $this->redirect(array('/TagsAdmin/edit/' . $id));
+
+            $tag->name = isset($_POST['Tag']['name']) ? filter_var($_POST['Tag']['name'], FILTER_SANITIZE_STRING) : '';
+            $tag->active = isset($_POST['Tag']['active']) && $_POST['Tag']['active'] == '1';
+
+            if ($tag->save()) {
+                Yii::app()->user->setFlash('success', 'Tag ' . ($is_new ? 'created' : 'updated'));
+                $this->redirect(array('/TagsAdmin/list'));
+            } else {
+                $errors = $tag->getErrors();
+                $err_str = '';
+                foreach ($errors as $field => $error_msg) {
+                    $err_str .= implode('<br/>', $error_msg) . '<br/>';
+                }
+                Yii::app()->user->setFlash('warning.alert', $err_str);
+                $this->redirect(array('/TagsAdmin/edit/' . $id));
+            }
+        } catch (\Exception $e) {
+            Yii::app()->user->setFlash('error', 'An error occurred while processing the request: ' . $e->getMessage());
+            $this->redirect(array('/TagsAdmin/list'));
         }
     }
 

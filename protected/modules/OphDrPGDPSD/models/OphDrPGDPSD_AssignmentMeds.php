@@ -29,6 +29,28 @@ class OphDrPGDPSD_AssignmentMeds extends \BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
     use HasFactory;
 
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     const ADMINISTERED = 1;
     const ADMINISTERED_CANCELLED = 2;
     const FOR_FUTURE = 3;

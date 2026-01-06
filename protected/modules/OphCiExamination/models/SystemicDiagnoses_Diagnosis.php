@@ -113,6 +113,28 @@ class SystemicDiagnoses_Diagnosis extends \BaseEventTypeElement
         return parent::beforeSave();
     }
 
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
+    public function couchbaseScope(): string
+    {
+        return 'clinical';
+    }
+
+    public function couchbaseCollection(): string
+    {
+        return $this->tableName();
+    }
+
     protected function getSecondaryDiagnosisRelation()
     {
         return array(self::BELONGS_TO, 'SecondaryDiagnosis', 'secondary_diagnosis_id');

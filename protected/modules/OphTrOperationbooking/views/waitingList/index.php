@@ -56,7 +56,7 @@
                 )
             ) ?>
 
-        <h4><?= ucfirst(Yii::app()->params['service_firm_label']); ?></h4>
+        <h4><?= ucfirst(Yii::app()->params['service_firm_label'] ?? 'firm'); ?></h4>
 
             <?php
             $filtered_firms = $this->getFilteredFirms(@$_POST['subspecialty-id']);
@@ -64,7 +64,7 @@
             $options = array(
               'disabled' => !@$_POST['firm-id'],
               'class' => 'cols-full',
-              'empty' => "All " . Yii::app()->params['service_firm_label'] . "s",
+              'empty' => "All " . (Yii::app()->params['service_firm_label'] ?? 'firm') . "s",
             );
 
             echo CHtml::dropDownList('firm-id', $selected, $filtered_firms, $options) ?>

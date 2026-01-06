@@ -75,7 +75,7 @@
                                             $email = (isset($contact_id) ? ( isset(Contact::model()->findByPk($target->contact_id)->id) ? Contact::model()->findByPk($target->contact_id)->email : null ) : ( isset($target->email) ? $target->email : null) );
 
                                             $this->renderPartial('//docman/table/contact_name_type', array(
-                                                'address_targets' => $element->address_targets,
+                                                'address_targets' => (!$element->isNewRecord) ? $element->address_targets : array(),
                                                 'contact_id' => $target->contact_id,
                                                 'contact_name' => $target->contact_name,
                                                 'contact_nickname' => $contact_nick_name ,
