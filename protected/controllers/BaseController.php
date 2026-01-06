@@ -23,6 +23,9 @@
  *
  * @property CAction $action - defined by magic method in Yii
  */
+
+require_once dirname(__FILE__) . "/../components/traits/RenderJsonTrait.php";
+
 class BaseController extends Controller
 {
     use RenderJsonTrait;
