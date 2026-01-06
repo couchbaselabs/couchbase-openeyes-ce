@@ -780,7 +780,19 @@ trait CouchbaseModelBridge
             
             return $models;
         } catch (\Exception $e) {
-            \Yii::log("N1QL findAll failed: " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+            \Yii::log("N1QL findAll failed: " . $e->getMessage() . ", falling back to MariaDB", \CLogger::LEVEL_WARNING);
+            // Fall back to MariaDB query on error
+            try {
+                $manager = \CouchbaseCutoverManager::getInstance();
+                $config = $manager->getConfig();
+                if (($config['fallback_enabled'] ?? true) && ($config['fallback_on_error'] ?? true)) {
+                    return parent::findAll($condition, $params);
+                }
+            } catch (\Exception $fallbackError) {
+                \Yii::log("Fallback to MariaDB failed: " . $fallbackError->getMessage(), \CLogger::LEVEL_ERROR);
+                // Try parent directly anyway
+                return parent::findAll($condition, $params);
+            }
             return [];
         }
     }

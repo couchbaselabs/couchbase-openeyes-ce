@@ -75,7 +75,7 @@ Yii::app()->clientScript->registerScriptFile(Yii::app()->assetManager->createUrl
                     'options' => [
                         'label' => 'OPCS_Code',
                         'dropDown' => [
-                            'name' => null,
+                            'name' => 'opcs_codes',
                             'id' => '$opcs_code',
                             'data' => \CHtml::listData($opcs_code, 'id', function ($opcs) {
                                 return $opcs->name . ', ' . $opcs->description;
@@ -99,7 +99,7 @@ Yii::app()->clientScript->registerScriptFile(Yii::app()->assetManager->createUrl
                         'sas' => 1,
                         'wrapperSelector' => 'teszt',
                         'dropDown' => [
-                            'name' => null,
+                            'name' => 'benefits',
                             'id' => '$benefits',
                             'data' => \CHtml::listData($benefits, 'id', 'name'),
                             'htmlOptions' => ['empty' => 'Add a Benefit', 'class' => 'cols-full'],
@@ -119,7 +119,7 @@ Yii::app()->clientScript->registerScriptFile(Yii::app()->assetManager->createUrl
                     'options' => [
                         'label' => 'complications',
                         'dropDown' => [
-                            'name' => null,
+                            'name' => 'complications',
                             'id' => '$complications',
                             'data' => \CHtml::listData($complications, 'id', 'name'),
                             'htmlOptions' => ['empty' => 'Add Complication', 'class' => 'cols-full'],
@@ -139,7 +139,7 @@ Yii::app()->clientScript->registerScriptFile(Yii::app()->assetManager->createUrl
                         'options' => [
                             'label' => 'risks',
                             'dropDown' => [
-                                'name' => null,
+                                'name' => 'risks',
                                 'id' => '$risks',
                                 'data' => \CHtml::listData($risks, 'id', 'name'),
                                 'htmlOptions' => ['empty' => 'Add a Risk', 'class' => 'cols-full'],
@@ -155,18 +155,19 @@ Yii::app()->clientScript->registerScriptFile(Yii::app()->assetManager->createUrl
             <tr>
                 <td>Operation Note Element</td>
                 <?php
+                $operationNotes = isset($procedure->operationNotes) ? $procedure->operationNotes : [];
                 $this->widget('application.widgets.MultiSelectDropDownList', [
                     'options' => [
                         'label' => 'notes',
                         'dropDown' => [
-                            'name' => null,
+                            'name' => 'notes',
                             'id' => '$notes',
                             'data' => \CHtml::listData($notes, 'id', 'name'),
                             'htmlOptions' => ['empty' => 'Add a Operation Note Element', 'class' => 'cols-full'],
                             'selectedItemsInputName' => "notes[]",
                             'selectedItems' => array_map(function ($sub) {
                                 return $sub->id;
-                            }, $procedure->operationNotes),
+                            }, $operationNotes),
                         ],],
                     'template' => "<td class='js-multiselect-dropdown-wrapper'>{DropDown}<div class='list-filters js-multiselect-dropdown-list-wrapper'>{List}</div></td>"
                 ]);

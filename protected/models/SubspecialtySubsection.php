@@ -60,7 +60,7 @@ class SubspecialtySubsection extends BaseActiveRecordVersioned
         // will receive user inputs.
         return array(
             array('subspecialty_id, name', 'required'),
-            array('subspecialty_id', 'length', 'max' => 10),
+            array('subspecialty_id', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 255),
             array('name', 'filter', 'filter' => 'htmlspecialchars'),
             // The following rule is used by search().

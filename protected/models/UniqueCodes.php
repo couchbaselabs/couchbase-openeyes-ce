@@ -104,6 +104,15 @@ class UniqueCodes extends BaseActiveRecord
     {
         return false;
     }
+    
+    /**
+     * Override to disable Couchbase writes
+     * Always use MariaDB for writes
+     */
+    public function shouldUseCouchbase()
+    {
+        return false;
+    }
 
     /**
      * Override count to use MariaDB instead of Couchbase
@@ -133,33 +142,7 @@ class UniqueCodes extends BaseActiveRecord
         return parent::findAll($criteria, $params);
     }
 
-    /**
-     * Override insert to handle MariaDB unavailability
-     */
-    public function insert($attributes=null)
-    {
-        // Check if MariaDB is available
-        if (!$this->isMariaDbAvailable()) {
-            // MariaDB not available, but we have Couchbase
-            // Set audit fields and mark as inserted
-            $user_id = method_exists($this, 'getChangeUserId') ? $this->getChangeUserId() : 1;
-            $this->created_user_id = $user_id;
-            $this->last_modified_user_id = $user_id;
-            $this->created_date = date('Y-m-d H:i:s');
-            $this->last_modified_date = date('Y-m-d H:i:s');
-            
-            // Generate ID if needed
-            if (!$this->getPrimaryKey()) {
-                $this->id = time() * 1000 + rand(100, 999);
-            }
-            
-            $this->setIsNewRecord(false);
-            return true; // Return success - Couchbase sync will happen in afterSave()
-        }
-        
-        // Normal MariaDB insert
-        return parent::insert($attributes);
-    }
+
 
     /**
      * Check if MariaDB is available
@@ -193,12 +176,13 @@ class UniqueCodes extends BaseActiveRecord
     }
 
     /**
-     * After save, sync to Couchbase
+     * After save, sync to Couchbase (disabled for unique_codes - use MariaDB only)
      */
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Disable Couchbase sync for unique_codes as it's a reference table
+        // that should only be stored in MariaDB
     }
 
     /**

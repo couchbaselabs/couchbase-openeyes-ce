@@ -90,8 +90,39 @@ class ComplicationController extends BaseAdminController
         return $check_dependencies;
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
+        // Handle single ID deletion (from URL parameter)
+        if ($id !== null) {
+            $complication = Complication::model()->findByPk($id);
+
+            if (!$complication) {
+                throw new CHttpException(404, 'Complication not found.');
+            }
+
+            if (!$this->isComplicationDeletable($complication)) {
+                throw new CHttpException(400, 'Complication cannot be deleted. Other tables depend on it.');
+            }
+
+            if (!$complication->delete()) {
+                $errors = $complication->getErrors();
+                $error_msg = 'Could not delete complication.';
+                if (!empty($errors)) {
+                    // Format errors nicely
+                    $error_details = [];
+                    foreach ($errors as $field => $messages) {
+                        $error_details[] = "$field: " . implode(', ', $messages);
+                    }
+                    $error_msg .= ' ' . implode('; ', $error_details);
+                }
+                Yii::log('Complication deletion failed for ID ' . $id . ': ' . $error_msg, CLogger::LEVEL_ERROR);
+                throw new CHttpException(500, $error_msg);
+            }
+
+            $this->redirect('/complication/list/');
+        }
+
+        // Handle bulk deletion from POST data (for backwards compatibility)
         $complications = \Yii::app()->request->getPost('select', []);
 
         foreach ($complications as $complication_id) {

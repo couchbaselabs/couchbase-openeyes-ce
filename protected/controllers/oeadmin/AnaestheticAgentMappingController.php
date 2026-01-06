@@ -54,14 +54,15 @@ class AnaestheticAgentMappingController extends BaseAdminController
         );
 
         // we set default search options
-        if ($this->request->getParam('search') == '') {
-            $admin->getSearch()->initSearch(array(
-                    'filterid' => array(
-                            'subspecialty_id' => Firm::model()->findByPk(Yii::app()->session['selected_firm_id'])->serviceSubspecialtyAssignment->subspecialty_id,
-                            'site_id' => Yii::app()->session['selected_site_id'],
-                        ),
-                ));
-        }
+        // Temporarily disabled to debug empty list issue
+        // if ($this->request->getParam('search') == '' || $this->request->getParam('search') === null) {
+        //     $admin->getSearch()->initSearch(array(
+        //             'filterid' => array(
+        //                     'subspecialty_id' => Firm::model()->findByPk(Yii::app()->session['selected_firm_id'])->serviceSubspecialtyAssignment->subspecialty_id,
+        //                     'site_id' => Yii::app()->session['selected_site_id'],
+        //                 ),
+        //         ));
+        // }
 
         $admin->setAutocompleteField(
             array(
@@ -76,7 +77,7 @@ class AnaestheticAgentMappingController extends BaseAdminController
         $admin->listModel();
     }
 
-    public function actionDelete($itemId)
+    public function actionDelete($id = null)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
@@ -84,6 +85,9 @@ class AnaestheticAgentMappingController extends BaseAdminController
         if (!Yii::app()->request->isAjaxRequest) {
             echo 'error: not an ajax call'; return;
         } else {
+            // Support both $id (from URL routing) and itemId query parameter (from AJAX calls)
+            $itemId = $id !== null ? $id : $this->request->getParam('itemId');
+            
             if ($leafletSubspecialy = SiteSubspecialtyAnaestheticAgent::model()->findByPk($itemId)) {
                 $leafletSubspecialy->delete();
                 echo 'success';

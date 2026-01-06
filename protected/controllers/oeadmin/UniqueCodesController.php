@@ -85,8 +85,14 @@ class UniqueCodesController extends BaseAdminController
             $unique_code_object->code = $user_data['code'];
             $unique_code_object->active = isset($user_data['active']) ? 1 : 0;
 
-            // Enable Couchbase write if available
-            $unique_code_object->enableCouchbaseSync();
+            // Try to enable Couchbase write if available
+            try {
+                if (method_exists($unique_code_object, 'enableCouchbaseSync')) {
+                    $unique_code_object->enableCouchbaseSync();
+                }
+            } catch (\Exception $e) {
+                // Ignore errors if method doesn't exist or fails
+            }
 
             // try saving the data
             if (!$unique_code_object->save()) {
@@ -128,8 +134,14 @@ class UniqueCodesController extends BaseAdminController
             $unique_code_object->code = $user_data['code'];
             $unique_code_object->active = isset($user_data['active']) ? 1 : 0;
 
-            // Enable Couchbase write if available
-            $unique_code_object->enableCouchbaseSync();
+            // Try to enable Couchbase write if available
+            try {
+                if (method_exists($unique_code_object, 'enableCouchbaseSync')) {
+                    $unique_code_object->enableCouchbaseSync();
+                }
+            } catch (\Exception $e) {
+                // Ignore errors if method doesn't exist or fails
+            }
 
             // try saving the data
             if (!$unique_code_object->save()) {

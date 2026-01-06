@@ -47,7 +47,7 @@ class CommonMedicationsController extends BaseAdminController
         $admin->listModel();
     }
 
-    public function actionDelete($itemId)
+    public function actionDelete($id)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
@@ -55,7 +55,7 @@ class CommonMedicationsController extends BaseAdminController
         if (!Yii::app()->request->isAjaxRequest) {
             echo 'error: notajaxcall';
         } else {
-            if ($commonMedications = CommonMedications::model()->findByPk($itemId)) {
+            if ($commonMedications = CommonMedications::model()->findByPk($id)) {
                 $commonMedications->delete();
                 echo 'success';
             } else {

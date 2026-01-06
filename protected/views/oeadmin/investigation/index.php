@@ -84,12 +84,14 @@
                 <td><?php echo $investigation->snomed_code ?></td>
                 <td><?php echo $investigation->snomed_term ?></td>
                 <td><?php echo $investigation->ecds_code ?></td>
-                <?php
-                if ($investigation->specialty_id !== null) {
-                    $specialty_name = Specialty::model()->findByPk($investigation->specialty_id)->name ;
+                <td>
+                    <?php
+                    if ($investigation->specialty_id !== null) {
+                        $specialty_name = Specialty::model()->findByPk($investigation->specialty_id)->name;
+                        echo $specialty_name;
+                    }
                     ?>
-                    <td><?php echo $specialty_name?></td>
-                <?php } ?>
+                </td>
 
             </tr>
         <?php } ?>

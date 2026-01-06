@@ -86,7 +86,22 @@ class SubspecialtySubsectionAssignmentController extends BaseAdminController
 
     public function actionDelete()
     {
+        // Ensure this is a POST request
+        if (!Yii::app()->request->isPostRequest) {
+            http_response_code(405);
+            echo '0';
+            Yii::app()->end();
+        }
+
         $delete_ids = Yii::app()->request->getPost('select', []);
+
+        // Validate that at least one item was selected
+        if (empty($delete_ids)) {
+            http_response_code(400);
+            echo '0';
+            Yii::app()->end();
+        }
+
         $transaction = Yii::app()->cbdb->beginTransaction();
         $success = true;
 
@@ -100,6 +115,9 @@ class SubspecialtySubsectionAssignmentController extends BaseAdminController
                     }
 
                     Audit::add('admin-procedureSubspecialtySubsectionAssignment', 'delete', serialize($assignment));
+                } else {
+                    // Item not found, still a success for this iteration
+                    continue;
                 }
             }
         } catch (Exception $e) {
@@ -109,9 +127,11 @@ class SubspecialtySubsectionAssignmentController extends BaseAdminController
 
         if ($success) {
             $transaction->commit();
+            http_response_code(200);
             echo '1';
         } else {
             $transaction->rollback();
+            http_response_code(500);
             echo '0';
         }
     }

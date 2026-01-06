@@ -106,8 +106,30 @@ class PatientIdentifierTypeController extends BaseAdminController
 
     public function actionDelete()
     {
+        $request = Yii::app()->request;
+        
+        // Handle both GET (single ID) and POST (bulk delete) requests
+        $ids = [];
+        
+        // Try to get IDs from POST first (bulk delete)
+        $post_ids = $request->getPost('patient_identifier_types');
+        if (!empty($post_ids)) {
+            $ids = $post_ids;
+        } else {
+            // Fall back to GET parameter for single delete
+            $id = $request->getParam('id') ?: $request->getParam('patient_identifier_type_id');
+            if ($id) {
+                $ids = [$id];
+            }
+        }
+        
+        // If no IDs provided, return error
+        if (empty($ids)) {
+            throw new CHttpException(400, 'PatientIdentifierType ID is required');
+        }
+
         $criteria = new CDbCriteria();
-        $criteria->addInCondition('id', Yii::app()->request->getPost('patient_identifier_types'));
+        $criteria->addInCondition('id', $ids);
 
         $transaction = Yii::app()->cbdb->beginTransaction();
         try {
@@ -127,6 +149,12 @@ class PatientIdentifierTypeController extends BaseAdminController
 
         Audit::add('admin-PatientIdentifierType', 'delete');
 
-        echo '1';
+        // For AJAX or POST requests, return JSON/plain response
+        if ($request->isAjaxRequest || $request->isPostRequest) {
+            echo '1';
+        } else {
+            // For regular GET requests, redirect to the list page
+            $this->redirect('/Admin/PatientIdentifierType/index');
+        }
     }
 }

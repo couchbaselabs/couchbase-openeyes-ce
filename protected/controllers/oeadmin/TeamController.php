@@ -192,8 +192,10 @@ class TeamController extends BaseAdminController
 
         $owned_or_managed_team_ids = [];
 
+        $is_admin = $current_user->checkAccess('Super Team Manager') || $current_user->checkAccess('admin');
+
         // Show all teams if user is admin, Super Team Manager, or has team access
-        if ($current_user->checkAccess('Super Team Manager') || $current_user->checkAccess('admin')) {
+        if ($is_admin) {
             // For admins, get all teams without scope restrictions
             $allTeams = Team::model()->resetScope()->findAll();
             $owned_or_managed_team_ids = array_map(static function ($team) {
@@ -218,7 +220,12 @@ class TeamController extends BaseAdminController
             $criteria->compare('t.id', $_GET['search'], false, 'OR');
         }
 
-        $teams = Team::model()->findAll($criteria);
+        // Apply resetScope for admins to allow viewing teams from all institutions
+        if ($is_admin) {
+            $teams = Team::model()->resetScope()->findAll($criteria);
+        } else {
+            $teams = Team::model()->findAll($criteria);
+        }
 
         $search_uri = $this->index_url;
         $delete_uri = '/oeadmin/team/delete';
@@ -253,51 +260,96 @@ class TeamController extends BaseAdminController
         $this->createOrEditTeam($team, 'Edit');
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
-        $result = 1;
-        $team_data = Yii::app()->request->getParam('Team', array());
-        if ($team_data) {
-            $teams = Team::model()->findAllByPK($team_data);
-            foreach ($teams as $team) {
-                if (!$team->active) {
-                    continue;
-                }
-                try {
-                    $team->active = 0;
-                    if (!$team->save(false)) {
+        // Handle bulk delete via POST request with Team[] parameter
+        if (Yii::app()->request->isPostRequest) {
+            $result = 1;
+            $team_data = Yii::app()->request->getPost('Team', array());
+            if ($team_data) {
+                $teams = Team::model()->findAllByPK($team_data);
+                foreach ($teams as $team) {
+                    if (!$team->active) {
+                        continue;
+                    }
+                    try {
+                        $team->active = 0;
+                        if (!$team->save(false)) {
+                            $result = 0;
+                        }
+                    } catch (Exception $e) {
                         $result = 0;
                     }
-                } catch (Exception $e) {
-                    $result = 0;
-                }
 
-                if ($result) {
-                    Audit::add('admin-Team', 'deactivate');
+                    if ($result) {
+                        Audit::add('admin-Team', 'deactivate');
+                    }
                 }
             }
+            echo $result;
+            Yii::app()->end();
         }
-        echo $result;
+
+        // Handle GET request to display delete confirmation page
+        if (!$id) {
+            Yii::app()->user->setFlash('team-not-found', 'Team ID is required');
+            $this->redirect($this->index_url);
+        }
+
+        $team = Team::model()->findByPk($id);
+        if (!$team) {
+            Yii::app()->user->setFlash('team-not-found', 'Selected team does not exist');
+            $this->redirect($this->index_url);
+        }
+
+        $params = array(
+            'team' => $team,
+            'cancel_url' => $this->index_url,
+        );
+        $this->render('/oeadmin/team/delete', $params);
     }
 
     // ajax call and list team members
     public function actionCheckTeamMembers($id = null)
     {
-        $team = Team::model()->findByPk($id);
         $members = array();
-        if ($team) {
+        
+        // Validate that ID is provided
+        if (!$id) {
+            $this->renderJSON(array('error' => 'Team ID is required'));
+            return;
+        }
+        
+        $team = Team::model()->findByPk($id);
+        
+        // Check if team exists
+        if (!$team) {
+            $this->renderJSON(array('error' => 'Team not found'));
+            return;
+        }
+        
+        try {
             if (!$this->api) {
                 $this->api = \Yii::app()->moduleAPI->get('OphDrPGDPSD');
             }
+            
+            if (!$this->api) {
+                $this->renderJSON(array('error' => 'API not available'));
+                return;
+            }
+            
             $member_objs = $team->getAllUsers();
             $user_ids = array_map(function ($member) {
                 return $member->id;
             }, $member_objs);
+            
             $user_auth_objs = $this->api->getInstitutionUserAuth(true, $user_ids);
+            
             foreach ($user_auth_objs as $user_auth) {
                 $user_id = $user_auth->user_id;
                 $members[$user_id] = $user_auth;
             }
+            
             $members = array_map(function ($member) {
                 return array(
                     'name' => $member->user->getFullNameAndTitle(),
@@ -305,7 +357,11 @@ class TeamController extends BaseAdminController
                     'tooltips' => $member->user->getUserPermissionDetails(true),
                 );
             }, $members);
+        } catch (Exception $e) {
+            $this->renderJSON(array('error' => 'Failed to retrieve team members: ' . $e->getMessage()));
+            return;
         }
+        
         $this->renderJSON($members);
     }
 

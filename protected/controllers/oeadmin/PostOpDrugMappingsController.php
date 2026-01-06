@@ -76,11 +76,22 @@ class PostOpDrugMappingsController extends BaseAdminController
             )
         );
         //$admin->searchAll();
+        
+        // Ensure relations for listFields are properly loaded
+        $criteria = $admin->getSearch()->getCriteria();
+        if (!isset($criteria->with) || !is_array($criteria->with)) {
+            $criteria->with = array();
+        }
+        // Add the postopdrugs relation with LEFT JOIN to ensure records are shown even if drug doesn't exist
+        if (!in_array('postopdrugs', $criteria->with)) {
+            $criteria->with[] = 'postopdrugs';
+        }
+        
         $admin->div_wrapper_class = 'cols-7';
         $admin->listModel();
     }
 
-    public function actionDelete($itemId)
+    public function actionDelete($itemId = null)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
@@ -88,7 +99,9 @@ class PostOpDrugMappingsController extends BaseAdminController
         if (!Yii::app()->request->isAjaxRequest) {
             throw new CHttpException(400, 'This action requires an AJAX request.');
         } else {
-            if ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
+            if (!$itemId) {
+                $this->render('errorpage', array('errormessage' => 'missingitemid'));
+            } elseif ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
                 $leafletSubspecialy->delete();
                 echo 'success';
             } else {
@@ -97,7 +110,7 @@ class PostOpDrugMappingsController extends BaseAdminController
         }
     }
 
-    public function actionSetDefault($itemId)
+    public function actionSetDefault($itemId = null)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
@@ -105,7 +118,9 @@ class PostOpDrugMappingsController extends BaseAdminController
         if (!Yii::app()->request->isAjaxRequest) {
             throw new CHttpException(400, 'This action requires an AJAX request.');
         } else {
-            if ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
+            if (!$itemId) {
+                $this->render('errorpage', array('errormessage' => 'missingitemid'));
+            } elseif ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
                 $leafletSubspecialy->default = 1;
                 $leafletSubspecialy->save();
                 echo 'success';
@@ -115,7 +130,7 @@ class PostOpDrugMappingsController extends BaseAdminController
         }
     }
 
-    public function actionRemoveDefault($itemId)
+    public function actionRemoveDefault($itemId = null)
     {
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
@@ -123,7 +138,9 @@ class PostOpDrugMappingsController extends BaseAdminController
         if (!Yii::app()->request->isAjaxRequest) {
             $this->render('errorpage', array('errormessage' => 'notajaxcall'));
         } else {
-            if ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
+            if (!$itemId) {
+                $this->render('errorpage', array('errormessage' => 'missingitemid'));
+            } elseif ($leafletSubspecialy = OphTrOperationnote_PostopSiteSubspecialtyDrug::model()->findByPk($itemId)) {
                 $leafletSubspecialy->default = 0;
                 $leafletSubspecialy->save();
                 echo 'success';

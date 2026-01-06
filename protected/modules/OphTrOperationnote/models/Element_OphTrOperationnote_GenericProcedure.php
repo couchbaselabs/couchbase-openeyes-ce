@@ -76,7 +76,7 @@ class Element_OphTrOperationnote_GenericProcedure extends Element_OnDemand
      * 
      * @return string
      */
-    public function couchbaseScope()
+    public function couchbaseScope(): string
     {
         return 'clinical';
     }

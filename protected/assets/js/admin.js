@@ -201,6 +201,39 @@ $(document).ready(function () {
             }
         });
     });
+
+    $('#et_delete').click(function (e) {
+        e.preventDefault();
+
+        let $checked = $('input[name="select[]"]:checked');
+        if ($checked.length === 0) {
+            new OpenEyes.UI.Dialog.Alert({
+                content: "Please select one or more items to delete."
+            }).open();
+            return;
+        }
+
+        $.ajax({
+            'type': 'POST',
+            'url': baseUrl + '/eventLog/delete',
+            'data': $checked.serialize() + "&YII_CSRF_TOKEN=" + YII_CSRF_TOKEN,
+            'dataType': 'JSON',
+            'success': function (response) {
+                if (response['status'] === 1) {
+                    window.location.reload();
+                } else {
+                    new OpenEyes.UI.Dialog.Alert({
+                        content: "Error deleting items: " + (response['errors'] ? response['errors'].join(', ') : 'Unknown error')
+                    }).open();
+                }
+            },
+            'error': function () {
+                new OpenEyes.UI.Dialog.Alert({
+                    content: "Error communicating with server."
+                }).open();
+            }
+        });
+    });
 });
 
 function getInstitutionSites(institution_id, $site_dropdown) {

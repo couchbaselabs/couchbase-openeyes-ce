@@ -3,11 +3,11 @@
  * @var Worklist[] $worklists
  */
 
-$firm_id = Yii::app()->session['selected_firm_id'];
-$firm = Firm::model()->findByPk($firm_id);
+$firm_id = Yii::app()->session['selected_firm_id'] ?? null;
+$firm = $firm_id ? Firm::model()->findByPk($firm_id) : null;
 
-$site_id = Yii::app()->session['selected_site_id'];
-$site = Site::model()->findByPk($site_id);
+$site_id = Yii::app()->session['selected_site_id'] ?? null;
+$site = $site_id ? Site::model()->findByPk($site_id) : null;
 
 $date_from = Yii::app()->request->getParam('date_from');
 $date_to = Yii::app()->request->getParam('date_to');
@@ -89,11 +89,11 @@ if (empty($filter)) {
         <tbody>
         <tr>
             <th>Site</th>
-            <td><?= CHtml::encode($site->name); ?></td>
+            <td><?= CHtml::encode($site ? $site->name : 'N/A'); ?></td>
         </tr>
         <tr>
             <th><?= Firm::contextLabel(); ?></th>
-            <td><?= CHtml::encode($firm->name); ?></td>
+            <td><?= CHtml::encode($firm ? $firm->name : 'N/A'); ?></td>
         </tr>
         <tr>
             <th>Date range</th>

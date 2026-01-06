@@ -8,7 +8,7 @@
 return array (
   'enabled' => true,
   'read_source' => 'couchbase',
-  'write_mode' => 'couchbase_primary',
+  'write_mode' => 'dual_write',
   'couchbase_read_percentage' => 100,
   'fallback_enabled' => true,
   'fallback_on_error' => true,
@@ -78,8 +78,8 @@ return array (
     ),
     'SiteSubspecialtyAnaestheticAgent' => 
     array (
-      'read_source' => 'mariadb',
-      'percentage' => 0,
+      'read_source' => 'couchbase',
+      'percentage' => 100,
     ),
     'PathwayType' => 
     array (
@@ -145,6 +145,11 @@ return array (
     array (
       'read_source' => 'couchbase',
       'percentage' => 100,
+    ),
+    'ProcedureSubspecialtySubsectionAssignment' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
     ),
   ),
   'user_targeting' => 

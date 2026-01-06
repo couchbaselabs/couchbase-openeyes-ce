@@ -47,7 +47,7 @@ class CommonMedications extends BaseActiveRecordVersioned
      */
     public function tableName()
     {
-        return 'medication_common';
+        return 'archive_medication_common';
     }
 
     /**
@@ -59,7 +59,7 @@ class CommonMedications extends BaseActiveRecordVersioned
         // will receive user inputs.
         return array(
             array('medication_id', 'required'),
-            array('medication_id', 'length', 'max' => 10),
+            array('medication_id', 'numerical', 'integerOnly' => true),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
             array('id, medication_id', 'safe', 'on' => 'search'),
@@ -134,7 +134,7 @@ class CommonMedications extends BaseActiveRecordVersioned
      */
     public function couchbaseCollection(): string
     {
-        return $this->tableName();
+        return 'archive_medication_common';
     }
 
     /**

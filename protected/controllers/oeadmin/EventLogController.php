@@ -256,18 +256,44 @@ class EventLogController extends BaseAdminController
 
     /**
      * Deletes rows for the model.
+     * Expects POST request with 'select' array of IDs to delete
      */
     public function actionDelete()
     {
+        if (!Yii::app()->request->isPostRequest) {
+            throw new CHttpException(405, "Method not allowed");
+        }
+
         $eventLogs = \Yii::app()->request->getPost('select', []);
+
+        if (empty($eventLogs)) {
+            echo json_encode(['status' => 0, 'errors' => ['No event logs selected for deletion']]);
+            Yii::app()->end();
+        }
+
+        $errors = [];
+        $deleted_count = 0;
 
         foreach ($eventLogs as $eventLog_id) {
             $eventLog = AutomaticExaminationEventLog::model()->findByPk($eventLog_id);
 
+            if (!$eventLog) {
+                $errors[] = 'Event log with id: ' . $eventLog_id . ' not found';
+                continue;
+            }
+
             if (!$eventLog->delete()) {
-                echo 'Could not delete eventLog with id: ' . $eventLog_id . '.\n';
+                $errors[] = 'Could not delete event log with id: ' . $eventLog_id;
+            } else {
+                $deleted_count++;
             }
         }
-        echo 1;
+
+        if (empty($errors)) {
+            echo json_encode(['status' => 1]);
+        } else {
+            echo json_encode(['status' => 0, 'errors' => $errors]);
+        }
+        Yii::app()->end();
     }
 }

@@ -70,16 +70,6 @@
                 ); ?>
                 </td>
             </tr>
-            <tr>
-                <td>Display Order</td>
-                <td class="cols-full">
-                <?=\CHtml::activeNumberField(
-                    $model,
-                    'display_order',
-                    ['class' => 'cols-full']
-                ); ?>
-                </td>
-            </tr>
         </tbody>
     </table>
 

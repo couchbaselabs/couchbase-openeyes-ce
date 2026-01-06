@@ -191,5 +191,23 @@ if (!isset($uniqueid)) {
     </div>
             <?php else : ?>
     </form>
+    <script>
+        $(document).ready(function() {
+            // Initialize jQuery Sortable for display_order column
+            if ($('.sortable').length > 0) {
+                $('.sortable tbody').sortable({
+                    stop: function(e, ui) {
+                        $('.sortable tbody tr').each(function(index, tr) {
+                            $(tr).find("[name$='display_order]']").val(index);
+                        });
+                        // Show the Sort button when items are reordered
+                        $('button[data-uri*="/sort"]').show();
+                    }
+                });
+                // Show the Sort button to indicate sortable is active
+                $('button[data-uri*="/sort"]').show();
+            }
+        });
+    </script>
             <?php endif; ?>
 </div>

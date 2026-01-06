@@ -142,8 +142,10 @@ class WorklistController extends BaseAdminController
      */
     public function actionDefinitionDelete($id = null)
     {
+        // If no ID provided, redirect to definitions page with error message
         if (!$id) {
-            throw new CHttpException(400, 'Worklist definition ID is required for deletion.');
+            $this->flashMessage('error', 'Worklist definition ID is required for deletion.');
+            return $this->redirect('/Admin/worklist/definitions');
         }
 
         $definition = $this->getWorklistDefinition($id);
@@ -190,6 +192,10 @@ class WorklistController extends BaseAdminController
      */
     public function actionDefinitionWorklists($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist definition ID is required.');
+        }
+
         $definition = $this->getWorklistDefinition($id);
 
         $this->render('definition_worklists', array(
@@ -452,7 +458,12 @@ class WorklistController extends BaseAdminController
     public function actionWorklistPatients($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist ID is required.');
+            // Show list of all worklists when no ID is provided
+            $worklists = Worklist::model()->findAll();
+            $this->render('worklist_patients_list', array(
+                'worklists' => $worklists,
+            ));
+            return;
         }
         
         $worklist = $this->manager->getWorklist($id);
@@ -506,7 +517,8 @@ class WorklistController extends BaseAdminController
     public function actionDefinitionGenerate($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist definition ID is required for generation.');
+            $this->redirect(array('/Admin/worklist/definitions'));
+            return;
         }
         
         $definition = $this->getWorklistDefinition($id);
@@ -525,6 +537,7 @@ class WorklistController extends BaseAdminController
 
     /**
      * List the WorklistDefinitionMappings for the given id.
+     * If no id is provided, shows the list of definitions.
      *
      * @param $id
      *
@@ -533,7 +546,15 @@ class WorklistController extends BaseAdminController
     public function actionDefinitionMappings($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist definition ID is required.');
+            // If no ID provided, show the list of definitions
+            Yii::app()->clientScript->registerScriptFile(Yii::app()->assetManager->createUrl('js/oeadmin/list.js'), ClientScript::POS_END);
+            Yii::app()->clientScript->registerScriptFile(Yii::app()->assetManager->createUrl('js/oeadmin/OpenEyes.admin.js'), ClientScript::POS_END);
+            $definitions = $this->manager->getWorklistDefinitions();
+
+            $this->render('definitions', array(
+                'definitions' => $definitions,
+            ));
+            return;
         }
         $definition = $this->getWorklistDefinition($id);
 
@@ -644,25 +665,45 @@ class WorklistController extends BaseAdminController
      */
     public function actionDefinitionMappingDelete($id = null)
     {
-        if (!$id) {
-            throw new CHttpException(400, 'Worklist Definition Mapping ID is required for deletion.');
+        // Handle single ID deletion (from URL parameter)
+        if ($id !== null) {
+            if (!$mapping = WorklistDefinitionMapping::model()->findByPk($id)) {
+                throw new CHttpException(404, 'Worklist Definition Mapping not found.');
+            }
+
+            if (!$this->manager->canUpdateWorklistDefinition($mapping->worklist_definition)) {
+                throw new CHttpException(409, 'Cannot delete mapping for un-editable Definition');
+            }
+
+            $definition_id = $mapping->worklist_definition_id;
+            if ($mapping->delete()) {
+                $this->flashMessage('success', 'Mapping removed.');
+            } else {
+                $this->flashMessage('error', 'Cannot delete mapping.');
+            }
+
+            $this->redirect(array('/Admin/worklist/definitionMappings/' . $definition_id));
         }
 
-        if (!$mapping = WorklistDefinitionMapping::model()->findByPk($id)) {
-            throw new CHttpException(404, 'Worklist Definition Mapping not found.');
-        }
+        // Handle bulk deletion from POST data (for backwards compatibility)
+        $mappings = \Yii::app()->request->getPost('select', []);
 
-        if (!$this->manager->canUpdateWorklistDefinition($mapping->worklist_definition)) {
-            throw new CHttpException(409, 'Cannot delete mapping for un-editable Definition');
-        }
-
-        if ($mapping->delete()) {
-            $this->flashMessage('success', 'Mapping removed.');
+        if (count($mappings) > 0) {
+            foreach ($mappings as $mapping_id) {
+                $mapping = WorklistDefinitionMapping::model()->findByPk($mapping_id);
+                if ($mapping && $this->manager->canUpdateWorklistDefinition($mapping->worklist_definition)) {
+                    if (!$mapping->delete()) {
+                        echo 'Could not delete mapping with id: ' . $mapping_id . '.\n';
+                    }
+                } elseif ($mapping) {
+                    echo 'Cannot delete mapping for un-editable Definition.\n';
+                }
+            }
+            echo 1;
         } else {
-            $this->flashMessage('error', 'Cannot delete mapping.');
+            // If no ID provided and no POST data, redirect to definitions page
+            $this->redirect(array('/Admin/worklist/definitions'));
         }
-
-        $this->redirect(array('/Admin/worklist/definitionMappings/' . $mapping->worklist_definition_id));
     }
 
     /**
@@ -673,7 +714,8 @@ class WorklistController extends BaseAdminController
     public function actionDefinitionMappingSort($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist definition ID is required.');
+            $this->redirect(array('/Admin/worklist/definitions'));
+            return;
         }
         $definition = $this->getWorklistDefinition($id);
         $mapping_ids = @$_POST['item_ids'] ?: array();
@@ -693,7 +735,8 @@ class WorklistController extends BaseAdminController
     public function actionDefinitionDisplayContexts($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist definition ID is required.');
+            $this->flashMessage('error', 'Worklist definition ID is required.');
+            return $this->redirect('/Admin/worklist/definitions');
         }
         $definition = $this->getWorklistDefinition($id);
 
@@ -743,7 +786,8 @@ class WorklistController extends BaseAdminController
     public function actionDefinitionDisplayContextDelete($id = null)
     {
         if (!$id) {
-            throw new CHttpException(400, 'Worklist Definition Display Context ID is required for deletion.');
+            $this->flashMessage('error', 'Worklist Definition Display Context ID is required for deletion.');
+            return $this->redirect('/Admin/worklist/definitions');
         }
 
         if (!$display_context = WorklistDefinitionDisplayContext::model()->findByPk($id)) {
@@ -1033,6 +1077,12 @@ class WorklistController extends BaseAdminController
      */
     public function actionAssignUserToPathway()
     {
+        // This action requires POST request
+        if (!Yii::app()->request->isPostRequest) {
+            $this->renderJSON(array('error' => 'Method not allowed. This action requires a POST request.'), 405);
+            return;
+        }
+
         $id = Yii::app()->request->getPost('user_id');
         $pathway_id = Yii::app()->request->getPost('target_pathway_id');
 
@@ -1047,12 +1097,19 @@ class WorklistController extends BaseAdminController
             $pathway_type->owner_id = $id;
             $pathway_type->save();
             $pathway_type->refresh();
-            $this->renderJSON(array('id' => $id, 'initials' => $pathway_type->owner->getInitials()));
+            
+            // Add null-safety check for owner
+            if ($pathway_type->owner) {
+                $this->renderJSON(array('id' => $id, 'initials' => $pathway_type->owner->getInitials()));
+            } else {
+                $this->renderJSON(array('error' => 'Owner not found for pathway'));
+            }
             return;
         }
 
         $this->renderJSON(array('error' => 'Unable to retrieve pathway'));
     }
+
 
     public function actionGetPresetDrugs($id = null)
     {
@@ -1161,7 +1218,7 @@ class WorklistController extends BaseAdminController
             }
             $step->queue_order = $new_order;
             if (!$step->save()) {
-                throw new CHttpException('Unable to reorder step.');
+                throw new CHttpException(500, 'Unable to reorder step.');
             }
             $step->refresh();
             $altered_steps[$step->id] = $step;

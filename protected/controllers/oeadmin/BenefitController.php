@@ -125,9 +125,57 @@ class BenefitController extends BaseAdminController
 
     /**
      * Deletes rows for the model.
+     *
+     * @param int $id - benefit ID to delete
+     * @throws CHttpException
      */
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
+        // Handle single ID deletion (from URL parameter)
+        if ($id !== null) {
+            $benefit = Benefit::model()->findByPk($id);
+
+            if (!$benefit) {
+                throw new CHttpException(404, 'Benefit not found.');
+            }
+
+            if (!$this->isBenefitDeletable($benefit)) {
+                throw new CHttpException(400, 'Benefit cannot be deleted. Other tables depend on it.');
+            }
+
+            // Try model delete first
+            $deleted = false;
+            try {
+                $deleted = $benefit->delete();
+            } catch (Exception $e) {
+                Yii::log('Model delete failed: ' . $e->getMessage(), 'error');
+            }
+
+            // If model delete fails, try direct SQL delete
+            if (!$deleted) {
+                try {
+                    // Get table name from model
+                    $tableName = $benefit->tableName();
+                    // Use raw SQL for more reliable deletion
+                    $sql = "DELETE FROM " . $tableName . " WHERE id = " . intval($id);
+                    $command = Yii::app()->db->createCommand($sql);
+                    $result = $command->execute();
+                    $deleted = $result > 0;
+                    Yii::log('SQL delete result: ' . $result . ' for table: ' . $tableName . ', SQL: ' . $sql, 'info');
+                } catch (Exception $e) {
+                    Yii::log('SQL delete failed: ' . $e->getMessage(), 'error');
+                    throw new CHttpException(500, 'Failed to delete benefit: ' . $e->getMessage());
+                }
+            }
+
+            if ($deleted) {
+                $this->redirect('/oeadmin/benefit/list/');
+            } else {
+                throw new CHttpException(500, 'Could not delete benefit. Please check the logs.');
+            }
+        }
+
+        // Handle bulk deletion from POST data (for backwards compatibility)
         $benefits = \Yii::app()->request->getPost('select', []);
 
         foreach ($benefits as $benefit_id) {

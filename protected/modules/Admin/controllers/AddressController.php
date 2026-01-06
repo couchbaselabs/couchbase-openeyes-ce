@@ -95,16 +95,31 @@ class AddressController extends BaseAdminController
 
     public function actionDelete()
     {
-        $location_id = isset($_POST['address_id']) ? $_POST['address_id'] : null;
-        $address = Address::model()->findByPk($location_id);
-        if (!$address) {
-            throw new Exception('Address not found: ' . $location_id);
+        $request = Yii::app()->getRequest();
+        $location_id = $request->getPost('address_id') ?: $request->getParam('id');
+        
+        if (!$location_id) {
+            throw new CHttpException(400, 'Address ID is required');
         }
+        
+        $address = Address::model()->findByPk((int)$location_id);
+        if (!$address) {
+            throw new CHttpException(404, 'Address not found: ' . $location_id);
+        }
+        
         if (!$address->delete()) {
-            echo '-1';
+            throw new CHttpException(500, 'Failed to delete address');
+        }
+        
+        Audit::add('admin-Address', 'delete', $location_id);
+        
+        if ($request->isAjaxRequest) {
+            echo json_encode(['success' => true, 'message' => 'Address deleted successfully']);
             return;
         }
-        Audit::add('admin-Address', 'delete', $location_id);
-        return '1';
+        
+        // For non-AJAX requests, redirect back to contact edit page
+        $contact_id = $address->contact_id;
+        $this->redirect(array('/admin/editContact?contact_id=' . $contact_id));
     }
 }
