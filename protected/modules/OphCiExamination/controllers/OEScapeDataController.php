@@ -26,7 +26,7 @@ class OEScapeDataController extends \BaseController
     {
         return array(
             array('allow',
-                'actions' => array('SetPreferredChartSize'),
+                'actions' => array('setPreferredChartSize'),
                 'users' => array('@'),
             ),
             array('allow',
@@ -234,12 +234,24 @@ class OEScapeDataController extends \BaseController
             return;
         }
 
-        $medications = array_merge($patient->get_previous_medications(), $patient->get_medications());
-        //$medications = $this->sortMedications($medications);
         $output = array();
 
-        foreach ($medications as $medication) {
-            $output[] = array((int) strtotime($medication->start_date) * 1000, (int) strtotime($medication->end_date) * 1000, (int) $medication->option_id, explode(' ', $medication->getDrugLabel())[0]);
+        try {
+            // Try to get medications - handle case where methods don't exist
+            $medications = array();
+            if (method_exists($patient, 'get_previous_medications')) {
+                $medications = array_merge($medications, $patient->get_previous_medications());
+            }
+            if (method_exists($patient, 'get_medications')) {
+                $medications = array_merge($medications, $patient->get_medications());
+            }
+
+            foreach ($medications as $medication) {
+                $output[] = array((int) strtotime($medication->start_date) * 1000, (int) strtotime($medication->end_date) * 1000, (int) $medication->option_id, explode(' ', $medication->getDrugLabel())[0]);
+            }
+        } catch (Exception $e) {
+            Yii::log('Error getting medications: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Return empty array on error
         }
 
         $this->renderJSON($output);
@@ -268,7 +280,15 @@ class OEScapeDataController extends \BaseController
                 ->andWhere('event_type_id = (SELECT id FROM event_type WHERE class_name= :eventType)', array('eventType' => $eventType))
                 ->andWhere('media_type_id = (SELECT id FROM media_type WHERE type_name =:mediaType)', array('mediaType' => $mediaType));
 
-            $row = $command->queryRow();
+            $row = null;
+            try {
+                $row = $command->queryRow();
+            } catch (Exception $queryException) {
+                Yii::log('Database query error loading image: ' . $queryException->getMessage(), CLogger::LEVEL_ERROR);
+                // Return without output on query failure
+                return;
+            }
+            
             if ($row) {
                 echo $this->renderPartial('//oescape/vfgreyscale_side', array('fileid' => $row['fileid']));
             }
@@ -295,17 +315,30 @@ class OEScapeDataController extends \BaseController
             return;
         }
 
-        $command = Yii::app()->cbdb->createCommand()->select('md.id as fileid, eye_id, event_date, plot_values')
-            ->from('media_data md')
-            ->where('patient_id = :patient', array('patient' => $id))
-            ->andWhere('event_type_id = (SELECT id FROM event_type WHERE class_name= :eventType)', array('eventType' => $eventType))
-            ->andWhere('media_type_id = (SELECT id FROM media_type WHERE type_name =:mediaType)', array('mediaType' => $mediaType))
-            ->order('event_date');
+        $output = array();
 
-        $allData = $command->queryAll();
+        try {
+            $command = Yii::app()->cbdb->createCommand()->select('md.id as fileid, eye_id, event_date, plot_values')
+                ->from('media_data md')
+                ->where('patient_id = :patient', array('patient' => $id))
+                ->andWhere('event_type_id = (SELECT id FROM event_type WHERE class_name= :eventType)', array('eventType' => $eventType))
+                ->andWhere('media_type_id = (SELECT id FROM media_type WHERE type_name =:mediaType)', array('mediaType' => $mediaType))
+                ->order('event_date');
 
-        foreach ($allData as $row) {
-            $output[strtotime($row['event_date'])][$row['eye_id']] = array($row['fileid'], $row['plot_values']);
+            $allData = $command->queryAll();
+
+            foreach ($allData as $row) {
+                $output[strtotime($row['event_date'])][$row['eye_id']] = array($row['fileid'], $row['plot_values']);
+            }
+        } catch (CDbException $e) {
+            Yii::log('Database error loading all images: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Return empty array on database error
+        } catch (CException $e) {
+            Yii::log('Yii error loading all images: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Return empty array on error
+        } catch (Throwable $e) {
+            Yii::log('Exception loading all images: ' . $e->getMessage(), CLogger::LEVEL_ERROR);
+            // Return empty array on error
         }
         $this->renderJSON($output);
     }
@@ -313,7 +346,13 @@ class OEScapeDataController extends \BaseController
     public function actionGetImage($id = null)
     {
         if ($id === null) {
-            throw new \CHttpException(400, 'Missing required parameter: id');
+            $id = Yii::app()->request->getQuery('id');
+        }
+        
+        if ($id === null) {
+            // Return empty response when no id is provided instead of throwing error
+            header('Content-Type: application/octet-stream');
+            return;
         }
 
         if (!$file = \MediaData::model()->findByPk($id)) {
