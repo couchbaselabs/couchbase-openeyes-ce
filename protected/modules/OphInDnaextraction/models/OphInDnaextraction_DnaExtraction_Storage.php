@@ -230,20 +230,20 @@ class OphInDnaextraction_DnaExtraction_Storage extends BaseEventTypeElement
         //if id not exits, it means event is create, so we need only available box - letter - number combinations
         if ( $id == null) {
             $getAvailableBoxes = Yii::app()->cbdb->createCommand()
-                ->select("opaddress.id, CONCAT(opbox.value,' - ',opaddress.letter,' - ',opaddress.number ) AS value")
+                ->select("opaddress.id, (opbox.`value` || ' - ' || opaddress.letter || ' - ' || opaddress.number) AS storage_label")
                 ->from('ophindnaextraction_storage_address opaddress')
                 ->join('ophindnaextraction_dnaextraction_box opbox', 'opaddress.box_id = opbox.id')
                 ->where('opaddress.id NOT IN (SELECT storage_id FROM et_ophindnaextraction_dnaextraction WHERE id IS NOT NULL) ')
-                ->order('opbox.value ASC, opaddress.letter ASC, opaddress.number ASC')
+                ->order('opbox.`value` ASC, opaddress.letter ASC, opaddress.number ASC')
                 ->queryAll();
         } else {
             //We need available boxes - letters - numbers combinations and the stored row
             $getAvailableBoxes = Yii::app()->cbdb->createCommand()
-                ->select("opaddress.id, CONCAT(opbox.value,' - ',opaddress.letter,' - ',opaddress.number ) AS value")
+                ->select("opaddress.id, (opbox.`value` || ' - ' || opaddress.letter || ' - ' || opaddress.number) AS storage_label")
                 ->from('ophindnaextraction_storage_address opaddress')
                 ->join('ophindnaextraction_dnaextraction_box opbox', 'opaddress.box_id = opbox.id')
                 ->where('opaddress.id NOT IN (SELECT storage_id FROM et_ophindnaextraction_dnaextraction WHERE storage_id != '.$id.') ')
-                ->order('opbox.value ASC, opaddress.letter ASC, opaddress.number ASC')
+                ->order('opbox.`value` ASC, opaddress.letter ASC, opaddress.number ASC')
                 ->queryAll();
         }
 
