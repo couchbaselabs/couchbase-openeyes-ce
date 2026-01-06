@@ -97,6 +97,19 @@ class DefaultController extends \BaseEventTypeController
     protected static $FILTER_LIST_KEY = 'OphCoCvi_list_filter';
 
 
+    /**
+     * Initialize the render QR Signature action with proper event_id extraction and validation
+     *
+     * @throws \CHttpException
+     */
+    public function initActionRenderQRSignature()
+    {
+        $event_id = $this->request->getParam('event_id');
+        if (!$event_id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+    }
+
     public function actionRenderQRSignature($event_id)
     {
         $request = \Yii::app()->getRequest();
@@ -862,7 +875,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionIssue()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to issue a CVI.');
+        }
+        $this->initWithEventId($id);
         if (!$this->canIssue()) {
             throw new CHttpException(403, 'Event cannot be issued.');
         }
@@ -873,8 +890,11 @@ class DefaultController extends \BaseEventTypeController
     /**
      * @param $id
      */
-    public function actionIssue($id)
+    public function actionIssue($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to issue a CVI.');
+        }
         if ($this->getManager()->issueCvi($this->event, $this->getApp()->user->id)) {
             $this->getApp()->user->setFlash('success.cvi_issue', 'The CVI has been successfully generated.');
             //$this->redirect(array('/' . $this->event->eventType->class_name . '/default/pdfPrint/' . $id));
@@ -1086,7 +1106,11 @@ class DefaultController extends \BaseEventTypeController
      */
     public function initActionRemoveConsentSignature()
     {
-        $this->initWithEventId($this->request->getParam('id'));
+        $id = $this->request->getParam('id');
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
+        $this->initWithEventId($id);
     }
 
     /**
