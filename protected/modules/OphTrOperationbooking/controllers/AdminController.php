@@ -32,7 +32,7 @@ class AdminController extends ModuleAdminController
     public function actionEditERODRule($id)
     {
         if (!$erod = OphTrOperationbooking_Operation_EROD_Rule::model()->findByPk($id)) {
-            throw new Exception("EROD rule not found: $id");
+            throw new CHttpException(404, "EROD rule not found: $id");
         }
 
         $errors = array();
@@ -625,7 +625,7 @@ class AdminController extends ModuleAdminController
                 $errors = $rule->getErrors();
             } else {
                 Audit::add('admin', 'create', $rule->id, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Name_Rule'));
-                $this->redirect(array('/OphTrOperationbooking/admin/viewOperationNameRules'));
+                $this->redirect(array('viewOperationNameRules'));
             }
         }
 
@@ -726,7 +726,7 @@ class AdminController extends ModuleAdminController
                 $errors = $rule->getErrors();
             } else {
                 Audit::add('admin', 'update', $id, null, array('module' => 'OphTrOperationbooking', 'model' => 'OphTrOperationbooking_Operation_Name_Rule'));
-                $this->redirect(array('/OphTrOperationbooking/admin/viewOperationNameRules'));
+                $this->redirect(array('viewOperationNameRules'));
             }
         }
 

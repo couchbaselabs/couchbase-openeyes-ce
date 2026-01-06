@@ -614,11 +614,15 @@ class Admin
             if ($this->model->hasAttribute('display_order') && !$this->model->display_order) {
                 $table = $this->model->tableName();
 
-                $max_order = (int)Yii::app()->cbdb->createCommand()
-                    ->select('MAX(display_order)')
-                    ->from($table)
-                    ->queryScalar();
-                $this->model->display_order = ++$max_order;
+                try {
+                    $max_order = (int)Yii::app()->db->createCommand()
+                        ->select('MAX(display_order)')
+                        ->from($table)
+                        ->queryScalar();
+                    $this->model->display_order = ++$max_order;
+                } catch (Exception $e) {
+                    $this->model->display_order = 1;
+                }
             }
 
             if (!$this->model->validate()) {

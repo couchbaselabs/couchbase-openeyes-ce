@@ -95,9 +95,14 @@ class GenericProcedureDataController extends ModuleAdminController
             array('module' => 'OphTrOperationnote', 'model' => 'OphTrOperationNote_Generic_Procedure_Data')
         );
 
+        // Get all procedures for selection
+        $criteria = new CDbCriteria();
+        $criteria->order = 'term ASC';
+
         $this->render('/admin/edit', array(
             'model' => $model,
             'title' => 'Edit Generic Operation Data',
+            'procedures' => Procedure::model()->findAll($criteria),
             'cancel_uri' => '/OphTrOperationnote/GenericProcedureData/list',
         ));
     }

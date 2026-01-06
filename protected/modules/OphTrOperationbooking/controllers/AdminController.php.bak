@@ -976,14 +976,14 @@ class AdminController extends ModuleAdminController
             $changed = false;
 
             foreach (array('firm_id', 'theatre_id', 'start_time', 'end_time', 'interval_id', 'weekday', 'consultant', 'paediatric', 'anaesthetist', 'general_anaesthetic') as $field) {
-                if ($_POST['inline_'.$field] != '') {
+                if (isset($_POST['inline_'.$field]) && $_POST['inline_'.$field] != '') {
                     if ($sequence->$field != $_POST['inline_'.$field]) {
                         $sequence->$field = $_POST['inline_'.$field];
                         $changed = true;
                     }
                 }
             }
-            if ($_POST['inline_start_date'] != '') {
+            if (isset($_POST['inline_start_date']) && $_POST['inline_start_date'] != '') {
                 if (!strtotime($_POST['inline_start_date'])) {
                     $errors['start_date'] = 'Invalid start date';
                 }
@@ -992,7 +992,7 @@ class AdminController extends ModuleAdminController
                     $changed = true;
                 }
             }
-            if ($_POST['inline_end_date'] != '') {
+            if (isset($_POST['inline_end_date']) && $_POST['inline_end_date'] != '') {
                 if (!strtotime($_POST['inline_end_date'])) {
                     $errors['end_date'] = 'Invalid end date';
                 }
@@ -1001,13 +1001,13 @@ class AdminController extends ModuleAdminController
                     $changed = true;
                 }
             }
-            if ($_POST['inline_update_weeks']) {
+            if (isset($_POST['inline_update_weeks']) && $_POST['inline_update_weeks']) {
                 $weeks = 0;
-                $_POST['inline_week1'] && $weeks += 1;
-                $_POST['inline_week2'] && $weeks += 2;
-                $_POST['inline_week3'] && $weeks += 4;
-                $_POST['inline_week4'] && $weeks += 8;
-                $_POST['inline_week5'] && $weeks += 16;
+                isset($_POST['inline_week1']) && $_POST['inline_week1'] && $weeks += 1;
+                isset($_POST['inline_week2']) && $_POST['inline_week2'] && $weeks += 2;
+                isset($_POST['inline_week3']) && $_POST['inline_week3'] && $weeks += 4;
+                isset($_POST['inline_week4']) && $_POST['inline_week4'] && $weeks += 8;
+                isset($_POST['inline_week5']) && $_POST['inline_week5'] && $weeks += 16;
 
                 if ($sequence->week_selection != $weeks) {
                     $sequence->week_selection = $weeks;
@@ -1350,14 +1350,14 @@ class AdminController extends ModuleAdminController
             $changed = false;
 
             foreach (array('firm_id', 'theatre_id', 'start_time', 'end_time', 'consultant', 'paediatric', 'anaesthetist', 'general_anaesthetic', 'comments', 'available') as $field) {
-                if ($_POST['inline_'.$field] != '') {
+                if (isset($_POST['inline_'.$field]) && $_POST['inline_'.$field] != '') {
                     if ($session->$field != $_POST['inline_'.$field]) {
                         $session->$field = $_POST['inline_'.$field];
                         $changed = true;
                     }
                 }
             }
-            if ($_POST['inline_date'] != '') {
+            if (isset($_POST['inline_date']) && $_POST['inline_date'] != '') {
                 if (!strtotime($_POST['inline_date'])) {
                     $errors['date'] = 'Invalid start date';
                 }
@@ -1567,6 +1567,7 @@ class AdminController extends ModuleAdminController
 
         if (!empty($_POST)) {
             $theatre->attributes = $_POST['OphTrOperationbooking_Operation_Theatre'];
+            $theatre->setAttribute('institution_id', Institution::model()->getCurrent()->id);
             if (!$theatre->save()) {
                 $errors = $theatre->getErrors();
             } else {
@@ -1592,6 +1593,7 @@ class AdminController extends ModuleAdminController
 
         if (!empty($_POST)) {
             $theatre->attributes = $_POST['OphTrOperationbooking_Operation_Theatre'];
+            $theatre->setAttribute('institution_id', Institution::model()->getCurrent()->id);
             if (!$theatre->save()) {
                 $errors = $theatre->getErrors();
             } else {
@@ -1977,7 +1979,9 @@ class AdminController extends ModuleAdminController
         if (!empty($_POST)) {
             $transaction = Yii::app()->cbdb->beginTransaction();
             try {
-                $reason->attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                $attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                unset($attributes['enabled']);
+                $reason->attributes = $attributes;
                 if (!$reason->save()) {
                     $errors = $reason->getErrors();
                     $transaction->rollback();
@@ -2014,7 +2018,9 @@ class AdminController extends ModuleAdminController
         if (!empty($_POST)) {
             $transaction = Yii::app()->cbdb->beginTransaction();
             try {
-                $reason->attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                $attributes = $_POST['OphTrOperationbooking_Operation_Session_UnavailableReason'];
+                unset($attributes['enabled']);
+                $reason->attributes = $attributes;
                 if (!$reason->save()) {
                     $errors = $reason->getErrors();
                     $transaction->rollback();
@@ -2027,7 +2033,7 @@ class AdminController extends ModuleAdminController
                 throw $e;
             }
             if (empty($errors)) {
-                $this->redirect(array('admin/viewSessionUnavailableReasons'));
+                $this->redirect(array('/OphTrOperationbooking/admin/viewSessionUnavailableReasons'));
             }
         }
 

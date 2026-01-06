@@ -1034,7 +1034,9 @@ class DefaultController extends BaseEventTypeController
             }
             if ($show_error) {
                 $this->customErrorHeaderMessage = "Please review the following responses:";
-                $errors[$et_name][] = "Highlighted questions do not match with the " . $this->getCurrentStep()->name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
+                $current_step = $this->getCurrentStep();
+                $step_name = $current_step ? $current_step->name : 'current';
+                $errors[$et_name][] = "Highlighted questions do not match with the " . $step_name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
             }
         }
 
@@ -1082,7 +1084,9 @@ class DefaultController extends BaseEventTypeController
             }
             if ($show_error) {
                 $this->customErrorHeaderMessage = "Please review the following responses:";
-                $errors[$et_name][] = "Highlighted questions do not match with the " . $this->getCurrentStep()->name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
+                $current_step = $this->getCurrentStep();
+                $step_name = $current_step ? $current_step->name : 'current';
+                $errors[$et_name][] = "Highlighted questions do not match with the " . $step_name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
             }
         }
 
@@ -1130,7 +1134,9 @@ class DefaultController extends BaseEventTypeController
             }
             if ($show_error) {
                 $this->customErrorHeaderMessage = "Please review the following responses:";
-                $errors[$et_name][] = "Highlighted questions do not match with the " . $this->getCurrentStep()->name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
+                $current_step = $this->getCurrentStep();
+                $step_name = $current_step ? $current_step->name : 'current';
+                $errors[$et_name][] = "Highlighted questions do not match with the " . $step_name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
             }
         }
 
@@ -1178,7 +1184,9 @@ class DefaultController extends BaseEventTypeController
             }
             if ($show_error) {
                 $this->customErrorHeaderMessage = "Please review the following responses:";
-                $errors[$et_name][] = "Highlighted questions do not match with the " . $this->getCurrentStep()->name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
+                $current_step = $this->getCurrentStep();
+                $step_name = $current_step ? $current_step->name : 'current';
+                $errors[$et_name][] = "Highlighted questions do not match with the " . $step_name . " responses. Please review them. Responses can be saved by pressing the Save/Save draft button again.";
             }
         }
 
@@ -1341,7 +1349,10 @@ class DefaultController extends BaseEventTypeController
             }
 
             // update the information attribute on the event
-            $this->updateEventInfoByStep($this->getCurrentStep()->id);
+            $current_step = $this->getCurrentStep();
+            if ($current_step) {
+                $this->updateEventInfoByStep($current_step->id);
+            }
         }
         return $errors;
     }
@@ -1366,7 +1377,10 @@ class DefaultController extends BaseEventTypeController
             }
 
             // update the information attribute on the event
-            $this->updateEventInfoByStep($this->getCurrentStep()->id);
+            $current_step = $this->getCurrentStep();
+            if ($current_step) {
+                $this->updateEventInfoByStep($current_step->id);
+            }
         }
         return $errors;
     }

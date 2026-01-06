@@ -201,7 +201,12 @@ class OphTrOperationnote_Attribute extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        try {
+            $this->saveToCouchbase();
+        } catch (Exception $e) {
+            // Log the error but don't fail the save operation
+            Yii::log('Failed to sync to Couchbase: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+        }
     }
 
     /**
@@ -210,6 +215,11 @@ class OphTrOperationnote_Attribute extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        try {
+            $this->deleteFromCouchbase();
+        } catch (Exception $e) {
+            // Log the error but don't fail the delete operation
+            Yii::log('Failed to delete from Couchbase: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+        }
     }
 }
