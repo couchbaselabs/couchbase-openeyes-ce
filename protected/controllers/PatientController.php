@@ -3433,14 +3433,34 @@ class PatientController extends BaseController
         ));
     }
 
-    public function actionShowCurrentPathway()
+    public function actionShowCurrentPathway($id = null)
     {
-        $pathway = Pathway::model()->findByPk($_POST['pathway_id']);
-        $this->renderJSON($this->renderPartial('//patient/_patient_clinic_pathway', [
-            'pathway' => $pathway,
-            'display_wait_duration' => true,
-            'editable' => true,
-        ], true));
+        // Get pathway ID from URL parameter or POST data
+        $pathway_id = $id ?? (@$_POST['pathway_id'] ?? @$_GET['pathway_id']);
+        
+        if (!$pathway_id) {
+            throw new CHttpException(400, 'Pathway ID is required.');
+        }
+        
+        if (!$pathway = Pathway::model()->findByPk($pathway_id)) {
+            throw new CHttpException(404, 'Pathway not found.');
+        }
+        
+        // If this is an AJAX POST request, return JSON
+        if (Yii::app()->request->isPostRequest) {
+            $this->renderJSON($this->renderPartial('//patient/_patient_clinic_pathway', [
+                'pathway' => $pathway,
+                'display_wait_duration' => true,
+                'editable' => true,
+            ], true));
+        } else {
+            // Otherwise render a page view
+            $this->layout = '//layouts/events_and_episodes';
+            $this->pageTitle = 'Current Pathway';
+            $this->render('showCurrentPathway', array(
+                'pathway' => $pathway,
+            ));
+        }
     }
 
     /**
