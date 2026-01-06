@@ -108,6 +108,7 @@ class EventImageController extends BaseController
 
             $is_bilateral_document = EventImage::model()->count('event_id = ? AND eye_id is not null AND attachment_data_id IS NULL', [$event_id]) > 0;
             if ($is_bilateral_document) {
+                $image_info = [];
                 foreach (["left" => Eye::LEFT, "right" => Eye::RIGHT] as $side => $eye_id) {
                     $url = $this->actionGetImageUrl($event_id, true, $eye_id);
                     $page_count = EventImage::model()->count('event_id=? AND eye_id=? AND attachment_data_id IS NULL', [$event_id, $eye_id]);
@@ -152,10 +153,16 @@ class EventImageController extends BaseController
             throw new Exception("Event not found: $id");
         }
 
-        if (isset($_POST['last_modified_date']) && strtotime($event->last_modified_date) != $_POST['last_modified_date']) {
-            echo 'outofdate';
-
-            return;
+        if (isset($_POST['last_modified_date'])) {
+            $event_timestamp = strtotime($event->last_modified_date);
+            if ($event_timestamp === false) {
+                throw new Exception("Invalid date format for event {$id}: {$event->last_modified_date}");
+            }
+            $posted_timestamp = (int)$_POST['last_modified_date'];
+            if ($event_timestamp != $posted_timestamp) {
+                echo 'outofdate';
+                return;
+            }
         }
 
         // Regenerate the EventImage in the background
