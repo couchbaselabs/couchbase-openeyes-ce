@@ -135,13 +135,19 @@ class VirusScanController extends BaseController
     public function actionRemoveInfectedFiles($scan_id = null)
     {
         if ($scan_id === null) {
-            throw new CHttpException(400, 'Scan ID is required to remove infected files.');
+            // Redirect to index page if no scan_id provided
+            Yii::app()->user->setFlash('error', 'A scan ID is required to remove infected files.');
+            $this->redirect(array('index'));
+            return;
         }
 
         $scan_model = VirusScan::model()->findByPk($scan_id);
         
         if ($scan_model === null) {
-            throw new CHttpException(404, 'Scan record not found.');
+            // Redirect to index page if scan record not found
+            Yii::app()->user->setFlash('error', 'The specified scan record could not be found.');
+            $this->redirect(array('index'));
+            return;
         }
 
         $dirty_files = $scan_model->getAllDirtyFiles();
