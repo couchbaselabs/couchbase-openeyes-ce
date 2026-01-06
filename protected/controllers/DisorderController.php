@@ -276,9 +276,25 @@ class DisorderController extends BaseController
 
     public function actionIsCommonOphthalmic($id)
     {
+        // Check if firm_id is set in session
+        if (empty(Yii::app()->session['selected_firm_id'])) {
+            return;
+        }
+
         $firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
 
-        if ($cd = CommonOphthalmicDisorder::model()->find('disorder_id=? and subspecialty_id=? and institution_id=?', array($id, $firm->serviceSubspecialtyAssignment->subspecialty_id, Institution::model()->getCurrent()))) {
+        // Check if firm exists and has required relationships
+        if (!$firm || !$firm->serviceSubspecialtyAssignment) {
+            return;
+        }
+
+        // Check if institution is available
+        $institution = Institution::model()->getCurrent();
+        if (!$institution) {
+            return;
+        }
+
+        if ($cd = CommonOphthalmicDisorder::model()->find('disorder_id=? and subspecialty_id=? and institution_id=?', array($id, $firm->serviceSubspecialtyAssignment->subspecialty_id, $institution->id))) {
             echo "<option value=\"$cd->disorder_id\" data-order=\"{$cd->display_order}\">".$cd->disorder->term.'</option>';
         }
     }

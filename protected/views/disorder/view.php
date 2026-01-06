@@ -47,7 +47,10 @@ echo CHtml::link(
             Specialty:
         </td>
         <td>
-            <?= isset($model->specialty_id)? Specialty::model()->findByPk($model->specialty_id)->name: ''; ?>
+            <?php
+            $specialty = isset($model->specialty_id) ? Specialty::model()->findByPk($model->specialty_id) : null;
+            echo $specialty ? CHtml::encode($specialty->name) : '';
+            ?>
         </td>
     </tr>
     <tr>
