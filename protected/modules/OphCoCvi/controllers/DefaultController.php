@@ -1171,10 +1171,9 @@ class DefaultController extends \BaseEventTypeController
     public function initActionPrint()
     {
         $id = $this->request->getParam('id');
-        if (!$id) {
-            throw new CHttpException(400, 'Event ID is required.');
+        if ($id) {
+            $this->initWithEventId($id);
         }
-        $this->initWithEventId($id);
     }
 
     /**
@@ -1182,8 +1181,15 @@ class DefaultController extends \BaseEventTypeController
      *
      * @param int $id event id
      */
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        if (!$id) {
+            $id = $this->request->getParam('id');
+        }
+        if (!$id) {
+            echo "Event ID is required for printing.";
+            return;
+        }
         $this->printInit($id);
 
         if (\Yii::app()->request->getParam('sign')) {
@@ -1292,8 +1298,11 @@ class DefaultController extends \BaseEventTypeController
         $this->outputStaticPdfFile("CVI_info_sheet.pdf");
     }
 
-    public function actionConsentPage($event_id)
+    public function actionConsentPage($event_id = null)
     {
+        if (!$event_id) {
+            throw new CHttpException(400, 'Event ID is required.');
+        }
         $this->printInit($event_id);
         $this->layout = '//layouts/print';
         $this->pdf_print_suffix = 'consent_page';
@@ -1505,6 +1514,12 @@ class DefaultController extends \BaseEventTypeController
         $element = new Element_OphCoCvi_ClinicalInfo();
 
         $patient_type = \Yii::app()->request->getPost("patient_type");
+        
+        // If patient_type is not provided via POST, try GET or use default (ADULT = 0)
+        if ($patient_type === null) {
+            $patient_type = \Yii::app()->request->getParam("patient_type", OphCoCvi_ClinicalInfo_Disorder_Section::PATIENT_TYPE_ADULT);
+        }
+        
         $diagnosis_not_covered_list = \Yii::app()->request->getPost("diagnosis_not_covered_list");
 
         if (!is_null(\Yii::app()->request->getPost("transfer_data"))) {
@@ -1558,7 +1573,21 @@ class DefaultController extends \BaseEventTypeController
                 "order"     => "display_order"
             )
         );
-        $this->renderPartial('ajax_load_diagnosis_list', ['disorder_sections' => $disorder_sections, 'element' => $element]);
+        
+        // Check if this is an AJAX request or being accessed directly
+        $isAjax = \Yii::app()->request->isAjaxRequest;
+        if ($isAjax) {
+            // For AJAX requests, render only the partial view
+            $this->renderPartial('ajax_load_diagnosis_list', ['disorder_sections' => $disorder_sections, 'element' => $element]);
+        } else {
+            // For direct access, render a full page with the disorder list
+            echo '<html><head><title>Clinical Info Disorder List</title></head><body>';
+            echo '<h1>Clinical Info Disorder List</h1>';
+            echo 'Patient Type: ' . ($patient_type == 0 ? 'Adult' : 'Child') . '<br/>';
+            echo 'Disorder Sections: ' . count($disorder_sections) . '<br/>';
+            $this->renderPartial('ajax_load_diagnosis_list', ['disorder_sections' => $disorder_sections, 'element' => $element]);
+            echo '</body></html>';
+        }
     }
 
     public function actionPrintVisualyImpaired(int $event_id)
@@ -1568,11 +1597,37 @@ class DefaultController extends \BaseEventTypeController
         parent::actionPDFPrint($event_id);
     }
 
-    public function actionDeleteDiagnosisNotCoveredElement($data_id)
+    /**
+     * Delete a diagnosis not covered element by ID
+     * 
+     * @param int|null $data_id The ID of the diagnosis not covered element to delete
+     * @throws \CHttpException
+     */
+    public function actionDeleteDiagnosisNotCoveredElement($data_id = null)
     {
-        if (isset($data_id)) {
-            OphCoCvi_ClinicalInfo_Diagnosis_Not_Covered::model()->deleteByPk($data_id);
+        // Try to get data_id from request if not provided as parameter
+        if (!$data_id) {
+            $data_id = $this->request->getParam('data_id');
+        }
+        
+        if (!$data_id) {
+            throw new \CHttpException(400, 'Data ID is required.');
+        }
+        
+        // Validate that the data_id is numeric
+        if (!is_numeric($data_id)) {
+            throw new \CHttpException(400, 'Invalid Data ID format.');
+        }
+        
+        $diagnosis = OphCoCvi_ClinicalInfo_Diagnosis_Not_Covered::model()->findByPk($data_id);
+        if (!$diagnosis) {
+            throw new \CHttpException(404, 'Diagnosis not found.');
+        }
+        
+        if ($diagnosis->delete()) {
             return true;
+        } else {
+            throw new \CHttpException(500, 'Unable to delete diagnosis.');
         }
     }
 
