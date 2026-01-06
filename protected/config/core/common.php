@@ -431,10 +431,29 @@ $config = array(
                 array('api/search', 'pattern' => 'api/<resource_type:\w+>/_search', 'verb' => 'GET,POST'),
                 array('api/badrequest', 'pattern' => 'api/^(?!v1$).*$'),
 
-                '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>',
+                // OphCoCvi admin routes - bypass ExaminationAdmin for OphCoCvi
+                'OphCoCvi/admin/<action:\w+>/<id:\d+>' => 'OphCoCvi/Admin/<action>/<id>',
+                'OphCoCvi/admin/<action:\w+>' => 'OphCoCvi/Admin/<action>',
+
+                // OphDrPGDPSD admin routes - bypass ExaminationAdmin for OphDrPGDPSD
+                'OphDrPGDPSD/admin/<action:\w+>/<id:\d+>' => 'OphDrPGDPSD/Admin/<action>',
+                'OphDrPGDPSD/admin/<action:\w+>' => 'OphDrPGDPSD/Admin/<action>',
+
+                // OphCoTherapyapplication admin routes - bypass ExaminationAdmin for OphCoTherapyapplication
+                'OphCoTherapyapplication/admin/<action:\w+>/<id:\d+>' => 'OphCoTherapyapplication/Admin/<action>?id=<id>',
+                'OphCoTherapyapplication/admin/<action:\w+>' => 'OphCoTherapyapplication/Admin/<action>',
+
+                // OphInDnaextraction routes - handle path parameters as query parameters
+                'OphInDnaextraction/<controller:\w+>/<action:\w+>/<id:\d+>' => 'OphInDnaextraction/<controller>/<action>?id=<id>',
+                'OphInDnaextraction/<controller:\w+>/<action:\w+>' => 'OphInDnaextraction/<controller>/<action>',
+
+                // Generic admin routes for other modules - convert to ExaminationAdmin (but not OphCoCvi, OphDrPrescription, or OphDrPGDPSD)
+                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication)\w+>/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/ExaminationAdmin/<controller>/<action>?id=<id>',
+                '<module:(?!OphCoCvi|OphDrPrescription|OphDrPGDPSD|OphCoTherapyapplication)\w+>/admin/<controller:\w+>/<action:\w+>' => '<module>/ExaminationAdmin/<controller>/<action>',
+                '<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/<controller>/<action>?id=<id>',
                 '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>' => '<module>/oeadmin/<controller>/<action>',
-                '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>',
-                'oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'oeadmin/<controller>/<action>',
+                '<module:\w+>/oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => '<module>/oeadmin/<controller>/<action>?id=<id>',
+                'oeadmin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'oeadmin/<controller>/<action>?id=<id>',
                 'oeadmin/<controller:\w+>/<action:\w+>' => 'oeadmin/<controller>/<action>',
                 // Support direct access to oeadmin controllers without the oeadmin prefix
                 'benefit/<action:\w+>/<id:\d+>' => 'oeadmin/benefit/<action>',
@@ -464,7 +483,7 @@ $config = array(
                 'uniqueCodes/<action:\w+>/<id:\d+>' => 'oeadmin/uniqueCodes/<action>',
                 'uniqueCodes/<action:\w+>' => 'oeadmin/uniqueCodes/<action>',
                 '<controller:\w+>/<id:\d+>' => '<controller>/view',
-                '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
+                '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>?id=<id>',
                 '<controller:\w+>/<action:\w+>' => '<controller>/<action>',
                 '<controller:\w+>/<action:\w+>/<hospital_num:\d+>' => 'patient/results',
             ),
