@@ -195,11 +195,14 @@ class DefaultController extends \BaseEventTypeController
     public function actionAddComment($id = null)
     {
         if (!$id) {
-            $this->redirect('/');
-            return;
+            throw new \CHttpException(400, 'Event ID is required to add a comment to a message.');
         }
 
         $element = $this->getMessageElement();
+        if (!$element) {
+            throw new \CHttpException(400, 'Invalid event or message not found.');
+        }
+        
         $mailbox_id = isset($_POST['mailbox_id']) ? $_POST['mailbox_id'] : null;
 
         $comment = new OphCoMessaging_Message_Comment();

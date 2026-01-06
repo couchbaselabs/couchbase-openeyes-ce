@@ -139,7 +139,8 @@ class Event extends BaseActiveRecordVersioned
         return array(
             array('event_type_id, event_date, institution_id', 'required'),
             array('parent_id, worklist_patient_id, institution_id, firm_id, site_id, step_id', 'safe'),
-            array('episode_id, event_type_id', 'length', 'max' => 10),
+            array('episode_id', 'length', 'max' => 10),
+            array('event_type_id', 'length', 'max' => 255),
             array('worklist_patient_id', 'length', 'max' => 40),
             array('worklist_patient_id', 'validateWorklistPatient'),
             // The following rule is used by search().

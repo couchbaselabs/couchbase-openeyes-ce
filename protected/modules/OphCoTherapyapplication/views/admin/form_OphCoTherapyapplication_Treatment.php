@@ -29,7 +29,7 @@
 </tr>
 <tr>
     <td><?= $model->getAttributeLabel('decisiontree_id'); ?></td>
-    <td><?= CHtml::activeDropDownList($model, 'contraindications_required', [1 => 'Yes', 0 => 'No'], [
+    <td><?= CHtml::activeDropDownList($model, 'decisiontree_id', CHtml::listData(OphCoTherapyapplication_DecisionTree::model()->findAll(), 'id', 'name'), [
             'empty' => 'Select',
             'class' => 'cols-full'
         ]) ?>

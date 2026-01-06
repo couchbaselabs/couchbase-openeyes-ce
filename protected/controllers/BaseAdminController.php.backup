@@ -161,26 +161,18 @@ class BaseAdminController extends BaseController
 
         if ($key !== null) {
             $items = array($key => new $model());
-            
-            // Check if this is an AJAX request - only set get_row for AJAX
-            $isAjax = isset($_REQUEST['ajax']) || 
-                      (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
-            
-            if ($isAjax) {
-                $options['get_row'] = true;
-            }
-            
+            $options['get_row'] = true;
             if ($model::model()->hasAttribute('display_order')) {
                 $options['display_order'] = true;
             }
-            $this->render('//admin/generic_admin', array(
+            $this->renderPartial('//admin/generic_admin', array(
                 'title' => $title,
                 'model' => $model,
                 'items' => $items,
                 'errors' => $errors,
                 'options' => $options,
                 'is_mapping' => $is_mapping,
-            ));
+            ), false, true);
         } else {
             if ($options['filters_ready']) {
                 if (Yii::app()->request->isPostRequest) {

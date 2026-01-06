@@ -2824,7 +2824,28 @@ class BaseEventTypeController extends BaseModuleController
      */
     public function getEpisode()
     {
-        return Episode::model()->getCurrentEpisodeByFirm($this->patient->id, $this->firm);
+        $episode = Episode::model()->getCurrentEpisodeByFirm($this->patient->id, $this->firm);
+        if (!$episode && $this->patient && $this->firm) {
+            // Create a new episode if one doesn't exist
+            Yii::log('Creating new episode for patient ' . $this->patient->id . ', firm ' . $this->firm->id, CLogger::LEVEL_INFO);
+            $episode = new Episode();
+            $episode->patient_id = $this->patient->id;
+            $episode->firm_id = $this->firm->id;
+            $episode->support_services = false;
+            $episode->start_date = date('Y-m-d H:i:s');
+            if (!$episode->save()) {
+                // Log error but don't throw exception to avoid breaking existing behavior
+                $errors = $episode->getErrors();
+                Yii::log('Could not create episode for patient ' . $this->patient->id . ': ' . json_encode($errors), CLogger::LEVEL_ERROR);
+                return null;
+            }
+            Yii::log('Successfully created episode ' . $episode->id, CLogger::LEVEL_INFO);
+        } else if ($episode) {
+            Yii::log('Using existing episode ' . $episode->id, CLogger::LEVEL_INFO);
+        } else {
+            Yii::log('Could not get or create episode - patient or firm is missing', CLogger::LEVEL_ERROR);
+        }
+        return $episode;
     }
 
     /**

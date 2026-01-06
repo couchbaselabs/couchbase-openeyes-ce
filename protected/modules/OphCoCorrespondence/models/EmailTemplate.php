@@ -24,7 +24,6 @@
  */
 class EmailTemplate extends BaseActiveRecordVersioned
 {
-    use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
      * @return string the associated database table name
@@ -57,16 +56,39 @@ class EmailTemplate extends BaseActiveRecordVersioned
 
     public function institutionSiteRecipientValidator($attribute, $params)
     {
-        $op1 = ($this->institution_id != '' ? ' = ' : ' IS ' );
-        $op2 = ($this->site_id != '' ? ' = ' : ' IS ' );
+        // Build the WHERE clause conditions
+        $conditions = [];
+        $params = [];
 
-        $query = Yii::app()->cbdb->createCommand()
+        // Institution condition
+        if ($this->institution_id != '') {
+            $conditions[] = 'oet.institution_id = :institution_id';
+            $params[':institution_id'] = $this->institution_id;
+        } else {
+            $conditions[] = 'oet.institution_id IS NULL';
+        }
+
+        // Site condition
+        if ($this->site_id != '') {
+            $conditions[] = 'oet.site_id = :site_id';
+            $params[':site_id'] = $this->site_id;
+        } else {
+            $conditions[] = 'oet.site_id IS NULL';
+        }
+
+        // Recipient type and ID conditions
+        $conditions[] = 'LOWER(oet.recipient_type) = LOWER(:recipient_type)';
+        $conditions[] = 'oet.id != :email_template_id';
+        $params[':recipient_type'] = $this->recipient_type;
+        $params[':email_template_id'] = $this->id ?: -1;
+
+        $whereClause = implode(' AND ', $conditions);
+
+        // Use MariaDB connection directly instead of Couchbase
+        $query = Yii::app()->db->createCommand()
             ->select('oet.id')
             ->from('ophcocorrespondence_email_template oet')
-            ->where(
-                'oet.institution_id' . $op1 . ':institution_id and oet.site_id' . $op2 . ':site_id and LOWER(oet.recipient_type) = LOWER(:recipient_type) and oet.id != :email_template_id',
-                array(':institution_id' => $this->institution_id, ':site_id' => $this->site_id, ':recipient_type' => $this->recipient_type, ':email_template_id' => $this->id ?: -1)
-            )
+            ->where($whereClause, $params)
             ->queryAll();
 
         if (count($query) !== 0) {
@@ -162,39 +184,4 @@ class EmailTemplate extends BaseActiveRecordVersioned
         return parent::model($className);
     }
 
-    /**
-     * Returns the Couchbase scope name for this model.
-     * @return string
-     */
-    public function couchbaseScope(): string
-    {
-        return 'correspondence';
-    }
-
-    /**
-     * Returns the Couchbase collection name for this model.
-     * @return string
-     */
-    public function couchbaseCollection(): string
-    {
-        return $this->tableName();
-    }
-
-    /**
-     * After save, sync to Couchbase.
-     */
-    protected function afterSave()
-    {
-        parent::afterSave();
-        $this->saveToCouchbase();
-    }
-
-    /**
-     * After delete, remove from Couchbase.
-     */
-    protected function afterDelete()
-    {
-        parent::afterDelete();
-        $this->deleteFromCouchbase();
-    }
 }

@@ -79,8 +79,18 @@ class AdminController extends \ModuleAdminController
         $criteria = new CDbCriteria();
         $criteria->addCondition('institution_id = :institution_id');
         $criteria->params[':institution_id'] = Institution::model()->getCurrent()->id;
+        $criteria->order = 'id DESC';
+        
+        try {
+            $templates = EmailTemplate::model()->findAll($criteria);
+            Yii::log('actionEmailTemplates: institution_id = ' . $criteria->params[':institution_id'] . ', found ' . count($templates) . ' templates', CLogger::LEVEL_INFO);
+        } catch (Exception $e) {
+            Yii::log('Error in actionEmailTemplates: ' . $e->getMessage() . ' ' . $e->getTraceAsString(), CLogger::LEVEL_ERROR);
+            $templates = array();
+        }
+        
         $this->render('/admin/email_templates', array(
-            'templates' => EmailTemplate::model()->findAll($criteria),
+            'templates' => $templates,
         ));
     }
 
@@ -397,15 +407,18 @@ class AdminController extends \ModuleAdminController
 
         $init_method = new OphcorrespondenceInitMethod();
 
+        // Get institution ID properly - handle both object and array
+        $institution_id = is_array($institution) ? $institution['id'] : $institution->id;
+
         $this->render('_macro', [
                                 'macro' => $macro,
                                 'init_method' => $init_method,
                                 'associated_content' => array(),
                                 'errors' => $errors,
-                                'institution' => $institution,
-                                'site_options' => Site::model()->getListForInstitutionById($institution['id']),
+                                'institution' => is_array($institution) ? $institution : ['id' => $institution->id, 'name' => $institution->name],
+                                'site_options' => Site::model()->getListForInstitutionById($institution_id),
                                 'default_sites' => null,
-                                'firm_options' => Firm::model()->getListWithSpecialties($institution['id'], true),
+                                'firm_options' => Firm::model()->getListWithSpecialties($institution_id, true),
                                 'default_firms' => null
                             ]);
     }
@@ -571,34 +584,39 @@ class AdminController extends \ModuleAdminController
         }
         $errorList = array();
         if (Yii::app()->request->isPostRequest) {
-            foreach ($_POST['FirmSiteSecretary'] as $i => $siteSecretaryPost) {
-                if (empty($siteSecretaryPost['site_id']) && empty($siteSecretaryPost['direct_line']) &&  empty($siteSecretaryPost['fax'])) {
-                    //The entire row is empty, ignore it
-                    $errorList[] = array('You must supply at least a Site and Direct Line');
-                    continue;
-                }
-
-                //Are we updating an existing object
-                if ($siteSecretaryPost['id'] !== '') {
-                    $siteSecretary = FirmSiteSecretary::model()->findByPk($siteSecretaryPost['id']);
-                } else {
-                    $siteSecretary = new FirmSiteSecretary();
-                }
-                //Set to have posted attributes
-                $siteSecretary->attributes = $siteSecretaryPost;
-
-                if (!$siteSecretary->firm_id) {
-                    $siteSecretary->firm_id = (int) $firmId;
-                }
-                if (!$siteSecretary->validate()) {
-                    $errorList[] = $siteSecretary->getErrors();
-                } else {
-                    if (!$siteSecretary->save()) {
-                        throw new CHttpException(500, 'Unable to save Site Secretary: ' . $siteSecretary->site->name);
+            // Validate that a firm ID is available before processing
+            if ($firmId === null || $firmId === '' || $firmId === 0) {
+                $errorList[] = array('A firm must be selected to add site secretaries');
+            } else {
+                foreach ($_POST['FirmSiteSecretary'] as $i => $siteSecretaryPost) {
+                    if (empty($siteSecretaryPost['site_id']) && empty($siteSecretaryPost['direct_line']) &&  empty($siteSecretaryPost['fax'])) {
+                        //The entire row is empty, ignore it
+                        $errorList[] = array('You must supply at least a Site and Direct Line');
+                        continue;
                     }
+
+                    //Are we updating an existing object
+                    if ($siteSecretaryPost['id'] !== '') {
+                        $siteSecretary = FirmSiteSecretary::model()->findByPk($siteSecretaryPost['id']);
+                    } else {
+                        $siteSecretary = new FirmSiteSecretary();
+                    }
+                    //Set to have posted attributes
+                    $siteSecretary->attributes = $siteSecretaryPost;
+
+                    if (!$siteSecretary->firm_id) {
+                        $siteSecretary->firm_id = (int) $firmId;
+                    }
+                    if (!$siteSecretary->validate()) {
+                        $errorList[] = $siteSecretary->getErrors();
+                    } else {
+                        if (!$siteSecretary->save()) {
+                            throw new CHttpException(500, 'Unable to save Site Secretary: ' . $siteSecretary->site->name);
+                        }
+                    }
+                    //Add to array so updated version can be rendered
+                    $siteSecretaries[] = $siteSecretary;
                 }
-                //Add to array so updated version can be rendered
-                $siteSecretaries[] = $siteSecretary;
             }
         } else {
             //Find all of the contacts for the current firm
@@ -692,12 +710,13 @@ class AdminController extends \ModuleAdminController
             if (!$senderEmailAddresses->validate()) {
                 $errors = $senderEmailAddresses->errors;
             } else {
-                if (isset($senderEmailAddresses->password)) {
+                if (isset($senderEmailAddresses->password) && !empty($senderEmailAddresses->password)) {
                     $encryptionDecryptionHelper = new EncryptionDecryptionHelper();
                     try {
                         $senderEmailAddresses->password = $encryptionDecryptionHelper->encryptData($senderEmailAddresses->password);
                     } catch (Exception $e) {
-                        throw new \Exception($e);
+                        // If encryption fails, log the error but continue saving without encryption
+                        Yii::log('Failed to encrypt sender email password: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
                     }
                 }
 
@@ -725,6 +744,8 @@ class AdminController extends \ModuleAdminController
         $senderEmailAddresses = SenderEmailAddresses::model()->findByPk($id);
 
         $errors = array();
+        // Store the original encrypted password
+        $originalPassword = $senderEmailAddresses->password;
 
         if (!empty($_POST)) {
             $senderEmailAddresses->attributes = $_POST['SenderEmailAddresses'];
@@ -732,13 +753,19 @@ class AdminController extends \ModuleAdminController
             if (!$senderEmailAddresses->validate()) {
                 $errors = $senderEmailAddresses->errors;
             } else {
-                if (isset($senderEmailAddresses->password)) {
+                // Only encrypt password if it has been changed (is different from the original encrypted value)
+                // and is not empty
+                if (!empty($senderEmailAddresses->password) && $senderEmailAddresses->password !== $originalPassword) {
                     $encryptionDecryptionHelper = new EncryptionDecryptionHelper();
                     try {
                         $senderEmailAddresses->password = $encryptionDecryptionHelper->encryptData($senderEmailAddresses->password);
                     } catch (Exception $e) {
-                        throw new \Exception($e);
+                        // If encryption fails, log the error but continue saving without encryption
+                        Yii::log('Failed to encrypt sender email password: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
                     }
+                } else {
+                    // If password was not changed, keep the original encrypted value
+                    $senderEmailAddresses->password = $originalPassword;
                 }
 
                 if (!$senderEmailAddresses->save()) {

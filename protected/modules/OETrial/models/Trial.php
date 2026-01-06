@@ -151,6 +151,41 @@ class Trial extends BaseActiveRecordVersioned
     }
 
     /**
+     * Override save() to force MariaDB usage
+     * Trial uses MariaDB only, never Couchbase
+     * @param bool $runValidation
+     * @param null $attributes
+     * @param bool $allow_overriding
+     * @return bool
+     */
+    public function save($runValidation = true, $attributes = null, $allow_overriding = false)
+    {
+        // Force parent (BaseActiveRecord) save which uses MariaDB, bypassing BaseActiveRecordVersioned's Couchbase logic
+        // Call the grandparent class (BaseActiveRecord) directly to skip BaseActiveRecordVersioned's save logic
+        if ($runValidation && !$this->validate($attributes)) {
+            return false;
+        }
+        // Set change tracking fields if they exist
+        if (!$this->getIsNewRecord()) {
+            if ($this->hasAttribute('last_modified_user_id')) {
+                $this->last_modified_user_id = Yii::app()->user->id;
+            }
+            if ($this->hasAttribute('last_modified_date')) {
+                $this->last_modified_date = date('Y-m-d H:i:s');
+            }
+        } else {
+            if ($this->hasAttribute('created_user_id')) {
+                $this->created_user_id = Yii::app()->user->id;
+            }
+            if ($this->hasAttribute('created_date')) {
+                $this->created_date = date('Y-m-d H:i:s');
+            }
+        }
+        // Now call the CActiveRecord save which will handle database insert/update
+        return CActiveRecord::save($runValidation, $attributes, $allow_overriding);
+    }
+
+    /**
      * Returns the date this trial was started as a string
      *
      * @return string The started date as a string

@@ -136,7 +136,7 @@ $model_name = CHtml::modelName($model);
     }
 
         document.getElementById('file-remove').addEventListener('click', function () {
-        document.getElementById('OphCoDocument_Sub_Types_image').value = null;
+        document.getElementById('DrawingTemplate_image').value = null;
         document.getElementById('ophco-template').removeAttribute('src');
         document.getElementById('ophco-template-row').style.display = 'none';
     });

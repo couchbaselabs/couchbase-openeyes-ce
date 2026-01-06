@@ -1174,11 +1174,14 @@ class DefaultController extends BaseEventTypeController
      *
      * @throws Exception
      */
-    public function actionCreateImage($id)
+    public function actionCreateImage($id = null)
     {
         // mimic print request so that the print style sheet is applied
         $assetManager = Yii::app()->assetManager;
         $assetManager->isPrintRequest = true;
+        if (!$id) {
+            throw new CHttpException(400, "Event ID is required");
+        }
         if (!$event = Event::model()->findByPk($id)) {
             throw new Exception("Event not found: $id");
         }
@@ -1411,7 +1414,7 @@ class DefaultController extends BaseEventTypeController
 
         $site = Site::model()->findByPk(Yii::app()->session['selected_site_id']);
 
-        $this->jsVars['internal_referral_booking_address'] = $site->getCorrespondenceName();
+        $this->jsVars['internal_referral_booking_address'] = $site ? $site->getCorrespondenceName() : null;
 
         $this->jsVars['internal_referral_method_label'] = ElementLetter::model()->getInternalReferralSettings(
             'internal_referral_method_label'

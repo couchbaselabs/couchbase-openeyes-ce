@@ -34,6 +34,11 @@ class MultiSelectList extends BaseFieldWidget
     public function init()
     {
         // only use array 1 if we get a multidemension array (for example when passing in active, you still want the allocated entries to display but give the active ones the option to be selected)
+        // Handle null options gracefully
+        if (!is_array($this->options)) {
+            $this->options = array();
+        }
+        
         $lasttval = end($this->options);
         $firstval = reset($this->options);
         if (isset($firstval)&& is_array($firstval)) {

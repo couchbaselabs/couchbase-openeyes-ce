@@ -69,6 +69,11 @@ class DispenseConditionController extends BaseAdminController
 
     public function actionAddMapping()
     {
+        if (!Yii::app()->request->isPostRequest || !isset($_POST['model'])) {
+            $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+            return;
+        }
+
         $model = $_POST['model']::model();
 
         $ids = Yii::app()->request->getPost('select');
@@ -94,6 +99,11 @@ class DispenseConditionController extends BaseAdminController
 
     public function actionRemoveMapping()
     {
+        if (!Yii::app()->request->isPostRequest || !isset($_POST['model'])) {
+            $this->redirect(['/OphDrPrescription/admin/DispenseCondition/index']);
+            return;
+        }
+
         $model = $_POST['model']::model();
         $level = ReferenceData::LEVEL_INSTITUTION;
 

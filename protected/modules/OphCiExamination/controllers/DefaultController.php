@@ -344,7 +344,7 @@ class DefaultController extends \BaseEventTypeController
     {
         $step = $this->getCurrentStep();
 
-        return $step->getNextStep();
+        return $step ? $step->getNextStep() : null;
     }
 
     public function actionGetDrFeatures()

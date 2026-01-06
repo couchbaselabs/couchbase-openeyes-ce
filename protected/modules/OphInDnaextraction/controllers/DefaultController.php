@@ -52,16 +52,13 @@ class DefaultController extends BaseEventTypeController
 
     public function actionAddTransaction()
     {
-        if (!isset($_GET['i'])) {
-            throw new Exception('Row number not set');
-        }
-
+        $row_index = Yii::app()->request->getQuery('i', 0);
         $is_remove_allowed = Yii::app()->request->getQuery('is_remove_allowed');
 
         $transaction = new OphInDnaextraction_DnaTests_Transaction();
         $transaction->setDefaultOptions();
         $this->renderPartial('_dna_test', array(
-            'i' => $_GET['i'],
+            'i' => $row_index,
             'transaction' => $transaction,
             'disabled' => false,
             'is_remove_allowed' => $is_remove_allowed === 'false' ? false : true,
@@ -205,8 +202,13 @@ class DefaultController extends BaseEventTypeController
 
     public function actionSaveNewStorage()
     {
-        $storage = new OphInDnaextraction_DnaExtraction_Storage();
+        if (!Yii::app()->request->isPostRequest) {
+            $result = array('s' => 0, 'msg' => 'Invalid request method');
+            $this->renderJSON($result);
+            return;
+        }
 
+        $storage = new OphInDnaextraction_DnaExtraction_Storage();
 
         $storage->box_id = Yii::app()->request->getPost('dnaextraction_box_id');
         $storage->letter = Yii::app()->request->getPost('dnaextraction_letter');

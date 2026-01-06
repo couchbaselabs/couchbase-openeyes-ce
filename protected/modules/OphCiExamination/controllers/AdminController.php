@@ -741,8 +741,26 @@ class AdminController extends \ModuleAdminController
     {
         // Handle GET requests - display the form
         if (!\Yii::app()->request->isPostRequest) {
-            // Get list of workflows for dropdown
-            $workflows = models\OphCiExamination_Workflow::model()->findAll(array('order' => 'name asc'));
+            // Get list of workflows for dropdown using a simple find() approach to avoid performance issues
+            $workflows = array();
+            try {
+                // Use MariaDB connection for better performance
+                $db = \Yii::app()->db;
+                $sql = 'SELECT id, name FROM `OphCiExamination_Workflow` ORDER BY name ASC LIMIT 100';
+                $command = $db->createCommand($sql);
+                $rows = $command->queryAll();
+                
+                // Convert rows to model objects
+                foreach ($rows as $row) {
+                    $workflow = new models\OphCiExamination_Workflow();
+                    $workflow->id = $row['id'];
+                    $workflow->name = $row['name'];
+                    $workflows[] = $workflow;
+                }
+            } catch (\Exception $e) {
+                // If query fails, provide feedback
+                \Yii::app()->user->setFlash('error', 'Unable to load workflows: ' . $e->getMessage());
+            }
             
             $this->render('add_workflow_step', array(
                 'workflows' => $workflows,

@@ -46,6 +46,9 @@ class SystemicSurgicalHistoryAssignmentController extends BaseAssignmentControll
     {
         $errors = false;
         $model = new SystemicSurgerySet();
+        
+        // Set default institution to the current selected institution
+        $model->institution_id = \Yii::app()->session['selected_institution_id'];
 
         if (\Yii::app()->request->isPostRequest) {
             $errors = $this->populateAndSaveModel($model);

@@ -16,7 +16,7 @@
 
 <?php
 $event_info = $this->getOpenElementByClassName('OEModule_OphCoCvi_models_Element_OphCoCvi_EventInfo');
-$patient_sign = $event_info->getSignatureByType(\BaseSignature::TYPE_PATIENT);
+$patient_sign = $event_info ? $event_info->getSignatureByType(\BaseSignature::TYPE_PATIENT) : null;
 
 $selectOptions = [];
 if ($this->checkPrintAccess()) {

@@ -357,14 +357,11 @@ class AdminController extends ModuleAdminController
             // do the actual create
             $model->attributes = $_POST['OphCoTherapyapplication_DecisionTree'];
 
-            if (!$model->save()) {
-                // Log validation errors
-                Yii::app()->user->setFlash('error', 'Failed to save Decision Tree: ' . json_encode($model->getErrors()));
-            } else {
+            if ($model->save()) {
                 Audit::add('admin', 'create', $model->id, null, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_DecisionTree'));
                 Yii::app()->user->setFlash('success', 'Decision Tree created');
 
-                $this->redirect(array('viewdecisiontrees'));
+                $this->redirect(array('viewdecisiontree', 'id' => $model->id));
             }
         }
 
@@ -632,7 +629,7 @@ class AdminController extends ModuleAdminController
                     Yii::app()->user->setFlash('success', 'File Collection created');
 
                     $transaction->commit();
-                    $this->redirect(array('viewFileCollections'));
+                    $this->redirect(array('viewfilecollections'));
                 }
             }
 
@@ -731,7 +728,7 @@ class AdminController extends ModuleAdminController
         Audit::add('admin', 'list', null, false, array('module' => 'OphCoTherapyapplication', 'model' => 'OphCoTherapyapplication_Email_Recipient'));
 
         $criteria = new CDbCriteria();
-        $criteria->with = array('site' => array('joinType' => 'LEFT OUTER JOIN'));
+        $criteria->with = array('site');
         $criteria->condition = 't.institution_id = :institution_id OR t.site_id is null OR site.institution_id = :institution_id';
         $criteria->params = array(':institution_id' => Yii::app()->session['selected_institution_id']);
         $criteria->order = 'display_order asc';

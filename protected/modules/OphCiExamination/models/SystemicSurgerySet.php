@@ -172,19 +172,24 @@ class SystemicSurgerySet extends \BaseActiveRecordVersioned
 
     /**
      * After save, sync to Couchbase.
+     * NOTE: Couchbase sync is disabled for this admin configuration model
+     * as it is not required for configuration data and can cause timeouts.
      */
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Intentionally skip Couchbase sync for this admin model
+        // Configuration data is maintained in MariaDB only
     }
 
     /**
      * After delete, remove from Couchbase.
+     * NOTE: Couchbase sync is disabled for this admin configuration model.
      */
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Intentionally skip Couchbase delete for this admin model
+        // Configuration data is maintained in MariaDB only
     }
 }

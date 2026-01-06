@@ -78,7 +78,7 @@
             </td>
         </tr>
         <tr class="js-field-type-numeric-fields"
-            style="<?= $model->fieldType->name != "Numeric Field" ? "display:none" : "" ?>">
+            style="<?= $model->fieldType?->name != "Numeric Field" ? "display:none" : "" ?>">
             <td>Custom warning message</td>
             <td>
                 <?= \CHtml::activeTextArea(
@@ -89,7 +89,7 @@
             </td>
         </tr>
         <tr class="js-field-type-numeric-fields"
-            style="<?= $model->fieldType->name != "Numeric Field" ? "display:none" : "" ?>">
+            style="<?= $model->fieldType?->name != "Numeric Field" ? "display:none" : "" ?>">
             <td>Min Range</td>
             <td>
                 <?= \CHtml::activeNumberField(

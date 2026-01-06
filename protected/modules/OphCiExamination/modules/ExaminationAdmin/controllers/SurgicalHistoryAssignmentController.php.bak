@@ -41,8 +41,6 @@ class SurgicalHistoryAssignmentController extends BaseAssignmentController
     {
         $errors = false;
         $model = new SurgicalHistorySet();
-        // Initialize institution_id with the currently selected institution
-        $model->institution_id = \Yii::app()->session['selected_institution_id'];
 
         if (\Yii::app()->request->isPostRequest) {
             $errors = $this->populateAndSaveModel($model);

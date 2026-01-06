@@ -26,6 +26,11 @@ class BaseAssignmentController extends \ModuleAdminController
         $new_entries = [];
 
         $model->setAttributes($this->getSetPostData(), false);
+        
+        // Ensure institution_id is set from session if not already set
+        if (empty($model->institution_id)) {
+            $model->institution_id = \Yii::app()->session['selected_institution_id'];
+        }
 
         /** @var \CDbTransaction $transaction */
         $transaction = \Yii::app()->cbdb->beginTransaction();

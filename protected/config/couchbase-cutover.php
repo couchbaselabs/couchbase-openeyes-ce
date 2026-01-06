@@ -96,7 +96,37 @@ return array (
       'read_source' => 'mariadb',
       'percentage' => 0,
     ),
+    'OphCoTherapyapplication_TherapyDisorder' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
     'HistoryMacro' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'Mailbox' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'MailboxUser' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'MailboxTeam' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'OphCoTherapyapplication_DecisionTree' => 
+    array (
+      'read_source' => 'mariadb',
+      'percentage' => 0,
+    ),
+    'OphCoDocument_Sub_Types' => 
     array (
       'read_source' => 'mariadb',
       'percentage' => 0,

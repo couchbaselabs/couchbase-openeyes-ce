@@ -120,10 +120,14 @@ class SharedMailboxSettingsController extends \ModuleAdminController
         $user_ids = $data['mailboxUsers'] ?? [];
         $team_ids = $data['mailboxTeams'] ?? [];
 
-        $mailbox->users = $user_ids;
-        $mailbox->teams = $team_ids;
+        // Load User and Team model instances from the IDs
+        $users = !empty($user_ids) ? \User::model()->findAllByPk($user_ids) : [];
+        $teams = !empty($team_ids) ? \Team::model()->findAllByPk($team_ids) : [];
 
-        $transaction = \Yii::app()->cbdb->beginTransaction();
+        $mailbox->users = $users;
+        $mailbox->teams = $teams;
+
+        $transaction = \Yii::app()->db->beginTransaction();
         $errors = [];
 
         try {
