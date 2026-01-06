@@ -52,7 +52,7 @@ class MedicationController extends BaseController
             );
         } else {
             if ($medicationId) {
-                $medication = $this->fetchModel('ArchiveMedication', $medicationId, true);
+                $medication = $this->fetchModel('ArchiveMedication', $medicationId);
             } elseif ($prescriptionItemId) {
                 if ($api = Yii::app()->moduleAPI->get('OphDrPrescription')) {
                     $medication = $api->getMedicationForPrescriptionItem($patientId, $prescriptionItemId);
@@ -117,7 +117,7 @@ class MedicationController extends BaseController
             
             // Also search in medication_search_index for alternative terms
             $search_criteria = new CDbCriteria();
-            $search_criteria->compare('LOWER(alternative_term)', $term, true);
+            $search_criteria->compare('LOWER(alternative_term)', $term);
             $search_results = MedicationSearchIndex::model()->findAll($search_criteria);
             
             foreach ($search_results as $search_result) {
@@ -215,7 +215,7 @@ class MedicationController extends BaseController
             }
         } else {
             $patient = $this->fetchModel('Patient', @$_POST['patient_id']);
-            $medication = $this->fetchModel('ArchiveMedication', @$_POST['medication_id'], true);
+            $medication = $this->fetchModel('ArchiveMedication', @$_POST['medication_id']);
 
             $medication->patient_id = $patient->id;
 
@@ -270,15 +270,20 @@ class MedicationController extends BaseController
 
     public function actionDelete()
     {
-        if (!isset($_POST['patient_id']) || empty($_POST['patient_id'])) {
-            throw new CHttpException(400, 'patient_id parameter is required');
-        }
-        if (!isset($_POST['medication_id']) || empty($_POST['medication_id'])) {
+        // Try to get medication_id from GET or POST
+        $medicationId = isset($_GET['id']) ? $_GET['id'] : (isset($_POST['medication_id']) ? $_POST['medication_id'] : null);
+        $patientId = isset($_GET['patient_id']) ? $_GET['patient_id'] : (isset($_POST['patient_id']) ? $_POST['patient_id'] : null);
+
+        if (!$medicationId) {
             throw new CHttpException(400, 'medication_id parameter is required');
         }
 
-        $patient = $this->fetchModel('Patient', @$_POST['patient_id']);
-        $medication = $this->fetchModel('ArchiveMedication', @$_POST['medication_id']);
+        if (!$patientId) {
+            throw new CHttpException(400, 'patient_id parameter is required');
+        }
+
+        $patient = $this->fetchModel('Patient', $patientId);
+        $medication = $this->fetchModel('ArchiveMedication', $medicationId);
 
         if ($patient->id != $medication->patient_id) {
             throw new CHttpException(400, 'Patient ID mismatch');
@@ -286,6 +291,12 @@ class MedicationController extends BaseController
 
         $medication->delete();
 
-        $this->renderPartial('lists', array('patient' => $patient));
+        // If it's an AJAX request, render partial; otherwise render full page
+        if (Yii::app()->request->isAjaxRequest) {
+            $this->renderPartial('lists', array('patient' => $patient));
+        } else {
+            // Redirect to medication list or render confirmation
+            $this->render('list', array('patient' => $patient));
+        }
     }
 }
