@@ -111,10 +111,10 @@ Yii::app()->getClientScript()->registerScriptFile(
 <script>
 
     patientMerge.patients.primary = JSON.parse('<?php echo $primary_patient_JSON; ?>');
-    patientMerge.patients.primary['all-episodes'] = $('<textarea />').html(patientMerge.patients.primary['all-episodes']).text();
+    // No transformation needed - the JSON-decoded string already contains the correct HTML
 
     patientMerge.patients.secondary = JSON.parse('<?php echo $secondary_patient_JSON; ?>');
-    patientMerge.patients.secondary['all-episodes'] = $('<textarea />').html(patientMerge.patients.secondary['all-episodes']).text();
+    // No transformation needed - the JSON-decoded string already contains the correct HTML
 
     patientMerge.updateDOM('primary');
     patientMerge.updateDOM('secondary');
