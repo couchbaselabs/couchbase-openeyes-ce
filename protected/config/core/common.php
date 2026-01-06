@@ -124,6 +124,15 @@ $config = array(
         'anaestheticAgentMapping' => array(
             'class' => 'AnaestheticAgentMappingController',
         ),
+        'examinationElementAttributes' => array(
+            'class' => 'ExaminationElementAttributesController',
+        ),
+        'investigation' => array(
+            'class' => 'InvestigationController',
+        ),
+        'subspecialtySubsectionAssignment' => array(
+            'class' => 'SubspecialtySubsectionAssignmentController',
+        ),
     ),
 
     // Application components
@@ -426,6 +435,14 @@ $config = array(
                 'anaestheticAgentDefaults/<action:\w+>' => 'oeadmin/anaestheticAgentDefaults/<action>',
                 'eventLog/<action:\w+>/<id:\d+>' => 'oeadmin/eventLog/<action>',
                 'eventLog/<action:\w+>' => 'oeadmin/eventLog/<action>',
+                'subspecialtySubsections/<action:\w+>/<id:\d+>' => 'oeadmin/subspecialtySubsections/<action>',
+                'subspecialtySubsections/<action:\w+>' => 'oeadmin/subspecialtySubsections/<action>',
+                'team/<action:\w+>/<id:\d+>' => 'oeadmin/team/<action>',
+                'team/<action:\w+>' => 'oeadmin/team/<action>',
+                'postOpDrugMappings/<action:\w+>/<id:\d+>' => 'oeadmin/postOpDrugMappings/<action>',
+                'postOpDrugMappings/<action:\w+>' => 'oeadmin/postOpDrugMappings/<action>',
+                'uniqueCodes/<action:\w+>/<id:\d+>' => 'oeadmin/uniqueCodes/<action>',
+                'uniqueCodes/<action:\w+>' => 'oeadmin/uniqueCodes/<action>',
                 '<controller:\w+>/<id:\d+>' => '<controller>/view',
                 '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
                 '<controller:\w+>/<action:\w+>' => '<controller>/<action>',
