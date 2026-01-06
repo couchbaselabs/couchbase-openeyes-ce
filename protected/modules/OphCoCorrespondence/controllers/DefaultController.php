@@ -137,15 +137,28 @@ class DefaultController extends BaseEventTypeController
      */
     public function actionGetMacroData()
     {
-        if (!$patient = Patient::model()->findByPk(@$_GET['patient_id'])) {
-            throw new Exception('Patient not found: ' . @$_GET['patient_id']);
-        }
+        try {
+            // Validate required parameters
+            if (empty($_GET['patient_id'])) {
+                $this->renderJSON(['error' => 'Missing required parameter: patient_id']);
+                return;
+            }
+            if (empty($_GET['macro_id'])) {
+                $this->renderJSON(['error' => 'Missing required parameter: macro_id']);
+                return;
+            }
 
-        if (!$macro = LetterMacro::model()->findByPk(@$_GET['macro_id'])) {
-            throw new Exception('Macro not found: ' . @$_GET['macro_id']);
-        }
+            if (!$patient = Patient::model()->findByPk(@$_GET['patient_id'])) {
+                $this->renderJSON(['error' => 'Patient not found: ' . @$_GET['patient_id']]);
+                return;
+            }
 
-        $data = array();
+            if (!$macro = LetterMacro::model()->findByPk(@$_GET['macro_id'])) {
+                $this->renderJSON(['error' => 'Macro not found: ' . @$_GET['macro_id']]);
+                return;
+            }
+
+            $data = array();
 
         $macro->substitute($patient);
 
@@ -297,7 +310,10 @@ class DefaultController extends BaseEventTypeController
             ), true);
         }
 
-        $this->renderJSON($data);
+            $this->renderJSON($data);
+        } catch (Exception $e) {
+            $this->renderJSON(['error' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -569,8 +585,11 @@ class DefaultController extends BaseEventTypeController
      *
      * @param int $id
      */
-    public function actionPrint($id)
+    public function actionPrint($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required for print action.');
+        }
         $this->actionPrintForRecipient($id);
     }
 
@@ -825,8 +844,11 @@ class DefaultController extends BaseEventTypeController
      *
      * @param $id
      */
-    public function actionDoPrintAndView($id)
+    public function actionDoPrintAndView($id = null)
     {
+        if ($id === null) {
+            throw new CHttpException(400, 'Event ID is required for print and view action.');
+        }
         if ($this->setPrintForEvent($id)) {
             $this->redirect(array('default/view/' . $id));
         }
@@ -890,10 +912,15 @@ class DefaultController extends BaseEventTypeController
      * @param null $subspecialty_id
      */
     public function actionGetConsultantsBySiteAndSubspecialty(
-        $site_id,
+        $site_id = null,
         $subspecialty_id = null,
         $check_service_firms_filter_setting = false
     ) {
+        // Use the currently selected site if not provided
+        if ($site_id === null) {
+            $site_id = Yii::app()->session['selected_site_id'];
+        }
+
         $only_service_firms = $check_service_firms_filter_setting && SettingMetadata::checkSetting(
                 'filter_service_firms_internal_referral',
                 'on'
@@ -922,10 +949,12 @@ class DefaultController extends BaseEventTypeController
         if (!$firm) {
             throw new Exception(Firm::contextLabel() . " not found. ID: $firm_id");
         }
-        $user = User::model()->findByPk($firm->consultant_id);
+        $user = User::model()->with('contact')->findByPk($firm->consultant_id);
 
-        if ($user) {
-            $salutation = 'Dear ' . $user->getSalutationName() . " ({$firm->getSubspecialtyText()}),";
+        if ($user && $user->contact) {
+            $salutation = 'Dear ' . $user->contact->getSalutationName() . " ({$firm->getSubspecialtyText()}),";
+        } else if ($user) {
+            $salutation = 'Dear ' . ($user->getFullNameAndTitle() ?: $firm->getSubspecialtyText()) . " ({$firm->getSubspecialtyText()}),";
         } else {
             $salutation = 'Dear ' . $firm->getSubspecialtyText() . ' Service,';
         }
@@ -988,7 +1017,18 @@ class DefaultController extends BaseEventTypeController
         $check_service_firms_filter_setting = false
     ) {
         $to_location = OphCoCorrespondence_InternalReferral_ToLocation::model()->findByPk($to_location_id);
+        
+        if (!$to_location) {
+            $this->renderJSON(['error' => 'To location not found']);
+            Yii::app()->end();
+        }
+        
         $site = $to_location->site;
+        
+        if (!$site) {
+            $this->renderJSON(['error' => 'Site not found for this location']);
+            Yii::app()->end();
+        }
 
         $only_service_firms = $check_service_firms_filter_setting && SettingMetadata::checkSetting('filter_service_firms_internal_referral', 'on');
         $firms = InternalReferralSiteFirmMapping::findInternalReferralFirms($site->id, $subspecialty_id, $only_service_firms);
@@ -1004,10 +1044,21 @@ class DefaultController extends BaseEventTypeController
      *
      * @param $id Event Id
      */
-    public function actionGetDraftPrintRecipients($id)
+    public function actionGetDraftPrintRecipients($id = null)
     {
+        if ($id === null) {
+            $this->renderJSON(['error' => 'Event ID is required']);
+            return;
+        }
+        
         $return = false;
         $letter = ElementLetter::model()->find('event_id=?', array($id));
+        
+        if (!$letter) {
+            $this->renderJSON(['error' => 'Letter not found for event ID: ' . $id]);
+            return;
+        }
+        
 
         if (!$letter->draft) {
             $documentOutput = DocumentOutput::model()->with(
@@ -1273,7 +1324,9 @@ class DefaultController extends BaseEventTypeController
     public function actionGetDocumentOutputStatus($document_target_id)
     {
         $documentTarget = DocumentTarget::model()->findByPk($document_target_id);
-        echo $documentTarget->getEmailDocumentOutputStatus();
+        if ($documentTarget) {
+            echo $documentTarget->getEmailDocumentOutputStatus();
+        }
     }
 
     /**
@@ -1281,8 +1334,11 @@ class DefaultController extends BaseEventTypeController
      * @param $contact_id
      * @param $contact_type
      */
-    public function actionGetContactEmailAddress($contact_id)
+    public function actionGetContactEmailAddress($contact_id = null)
     {
+        if ($contact_id === null) {
+            $contact_id = Yii::app()->request->getParam('contact_id');
+        }
         $contact = Contact::model()->findByPk($contact_id);
         echo isset($contact) ? $contact->email : '';
     }
@@ -1299,15 +1355,20 @@ class DefaultController extends BaseEventTypeController
             'electronic_sending_method_label'
         );
 
-        $this->jsVars['send_email_immediately'] = SettingInstallation::model()->findByAttributes(
+        $send_email_immediately_setting = SettingInstallation::model()->findByAttributes(
             array('key' => 'send_email_immediately')
-        )['value'];
-        $this->jsVars['send_email_delayed'] = SettingInstallation::model()->findByAttributes(
+        );
+        $this->jsVars['send_email_immediately'] = $send_email_immediately_setting ? $send_email_immediately_setting['value'] : null;
+        
+        $send_email_delayed_setting = SettingInstallation::model()->findByAttributes(
             array('key' => 'send_email_delayed')
-        )['value'];
-        $this->jsVars['manually_add_emails_correspondence'] = SettingInstallation::model()->findByAttributes(
+        );
+        $this->jsVars['send_email_delayed'] = $send_email_delayed_setting ? $send_email_delayed_setting['value'] : null;
+        
+        $manually_add_emails_setting = SettingInstallation::model()->findByAttributes(
             array('key' => 'manually_add_emails_correspondence')
-        )['value'];
+        );
+        $this->jsVars['manually_add_emails_correspondence'] = $manually_add_emails_setting ? $manually_add_emails_setting['value'] : null;
 
         $patient = Patient::model()->findByPk(@$_GET['patient_id']);
         if ($patient) {
@@ -1480,6 +1541,11 @@ class DefaultController extends BaseEventTypeController
     private function generatePDF($event, $savefile = false)
     {
         $letter = ElementLetter::model()->find('event_id=?', array($event->id));
+        
+        if (!$letter) {
+            throw new Exception('No correspondence letter found for event ID: ' . $event->id);
+        }
+        
         $auto_print = Yii::app()->request->getParam('auto_print', true);
         $is_view = Yii::app()->request->getParam('is_view', false);
         $print_all = Yii::app()->request->getParam('all', false) === "true";

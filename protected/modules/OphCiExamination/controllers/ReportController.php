@@ -22,7 +22,7 @@ class ReportController extends \BaseReportController
 {
     public function actionIndex()
     {
-        echo "OK";
+        $this->redirect(array('readyForSecondEyeUnbooked'));
     }
 
     /**

@@ -373,6 +373,9 @@ $config = array(
                 'OphCoDocument/Default/update',
                 'OphCoDocument/Default/fileUpload',
                 'sso',
+                'OECaseSearch/caseSearch/renderPopups',
+                'OECaseSearch/caseSearch/lookedAtPopup',
+                'OphCiExamination/contact/saveNewContact',
             ),
         ),
         'service' => array(

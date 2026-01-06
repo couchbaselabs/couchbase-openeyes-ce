@@ -35,9 +35,11 @@ class ContactController extends \BaseController
                 $contact_label_id = $_GET['filter'];
                 if ($contact_label_id != 'false') {
                     $contact_label = \ContactLabel::model()->findByPk($contact_label_id);
-                    $criteria->addCondition(array(
-                            'cl.name = ' . '"' . $contact_label->name . '"'
-                        ));
+                    if ($contact_label !== null) {
+                        $criteria->addCondition(array(
+                                'cl.name = ' . '"' . $contact_label->name . '"'
+                            ));
+                    }
                 }
             }
             $criteria->addCondition(array('cl.is_private = 0'));
@@ -61,44 +63,51 @@ class ContactController extends \BaseController
      */
     public function actionPatientcontacts()
     {
-        if (\Yii::app()->request->isAjaxRequest) {
-            if (isset($_GET['filter'])) {
-                $contactLabelName = \ContactLabel::model()->findByPk($_GET['filter'])->name;
-                $criteria = new \CDbCriteria();
-
-                if (isset($_GET['term']) && $term = strtolower($_GET['term'])) {
-                    $criteria->addSearchCondition('LOWER(last_name)', $term, true, 'OR');
-                    $criteria->addSearchCondition('LOWER(first_name)', $term, true, 'OR');
-                }
-
-                if ($contactLabelName === 'General Practitioner') {
-                    $criteria->select = 'c.title, c.first_name, c.last_name';
-                    $criteria->join = "join patient p ON p.contact_id = t.id AND p.id = " . $_GET['code'];
-                    $criteria->join .= " join gp g ON g.id = p.gp_id";
-                    $criteria->join .= " join contact c ON c.id = g.contact_id";
-                    $contact = \Contact::model()->find($criteria);
-                    if (isset($contact)) {
-                        $fullName = trim(implode(' ', array($contact['title'], $contact['first_name'], $contact['last_name'])));
-                        $return = [
-                            'label' => $fullName,
-                            'name' => $fullName,
-                            'phone' => $contact['primary_phone'],
-                        ];
-                        echo \CJSON::encode($return);
-                        \Yii::app()->end();
-                    }
-                }
-                $criteria->select = 't.title, t.first_name, t.last_name, t.primary_phone';
-                $criteria->join = "join patient_contact_assignment pca ON pca.contact_id = t.id AND pca.patient_id = " . $_GET['code'];
-                $criteria->join .= " join contact_label cl ON cl.id = t.contact_label_id AND cl.id = " . $_GET['filter'];
-
-                $contacts = \Contact::model()->findAll($criteria);
-                $return = array();
-                foreach ($contacts as $contact) {
-                    $return[] = $this->contactStructure($contact);
-                }
-                $this->renderJSON($return);
+        if (!\Yii::app()->request->isAjaxRequest) {
+            throw new \CHttpException(400, 'Invalid request. This endpoint is for AJAX requests only.');
+        }
+        
+        if (isset($_GET['filter'])) {
+            $contactLabel = \ContactLabel::model()->findByPk($_GET['filter']);
+            if ($contactLabel === null) {
+                $this->renderJSON([]);
+                return;
             }
+            $contactLabelName = $contactLabel->name;
+            $criteria = new \CDbCriteria();
+
+            if (isset($_GET['term']) && $term = strtolower($_GET['term'])) {
+                $criteria->addSearchCondition('LOWER(last_name)', $term, true, 'OR');
+                $criteria->addSearchCondition('LOWER(first_name)', $term, true, 'OR');
+            }
+
+            if ($contactLabelName === 'General Practitioner') {
+                $criteria->select = 'c.title, c.first_name, c.last_name';
+                $criteria->join = "join patient p ON p.contact_id = t.id AND p.id = " . $_GET['code'];
+                $criteria->join .= " join gp g ON g.id = p.gp_id";
+                $criteria->join .= " join contact c ON c.id = g.contact_id";
+                $contact = \Contact::model()->find($criteria);
+                if (isset($contact)) {
+                    $fullName = trim(implode(' ', array($contact['title'], $contact['first_name'], $contact['last_name'])));
+                    $return = [
+                        'label' => $fullName,
+                        'name' => $fullName,
+                        'phone' => $contact['primary_phone'],
+                    ];
+                    echo \CJSON::encode($return);
+                    \Yii::app()->end();
+                }
+            }
+            $criteria->select = 't.title, t.first_name, t.last_name, t.primary_phone';
+            $criteria->join = "join patient_contact_assignment pca ON pca.contact_id = t.id AND pca.patient_id = " . $_GET['code'];
+            $criteria->join .= " join contact_label cl ON cl.id = t.contact_label_id AND cl.id = " . $_GET['filter'];
+
+            $contacts = \Contact::model()->findAll($criteria);
+            $return = array();
+            foreach ($contacts as $contact) {
+                $return[] = $this->contactStructure($contact);
+            }
+            $this->renderJSON($return);
         }
     }
 
@@ -150,21 +159,21 @@ class ContactController extends \BaseController
                 $contact = new \Contact();
 
                 $contact->scenario = $data->scenario ?? 'self_register';
-                $contact->first_name = $data->first_name;
-                $contact->last_name = $data->last_name;
-                $contact->primary_phone = $data->primary_phone;
-                $contact->mobile_phone = $data->mobile_phone;
-                $contact->contact_label_id = $data->contact_label_id;
+                $contact->first_name = $data->first_name ?? '';
+                $contact->last_name = $data->last_name ?? '';
+                $contact->primary_phone = $data->primary_phone ?? '';
+                $contact->mobile_phone = $data->mobile_phone ?? '';
+                $contact->contact_label_id = $data->contact_label_id ?? '';
                 $contact->created_institution_id = \Yii::app()->session['selected_institution_id'];
                 $contact->active = 1;
-                $contact->email = $data->email;
+                $contact->email = $data->email ?? '';
 
                 $address = new \Address();
-                $address->address1 = $data->address1;
-                $address->address2 = $data->address2;
-                $address->city = $data->city;
-                $address->postcode = $data->postcode;
-                $address->country_id = $data->country;
+                $address->address1 = $data->address1 ?? '';
+                $address->address2 = $data->address2 ?? '';
+                $address->city = $data->city ?? '';
+                $address->postcode = $data->postcode ?? '';
+                $address->country_id = $data->country ?? '';
                 $address->address_type_id = 3;
 
 

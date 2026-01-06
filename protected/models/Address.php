@@ -143,6 +143,18 @@ class Address extends BaseActiveRecordVersioned
         return parent::afterFind();
     }
 
+    protected function afterSave()
+    {
+        parent::afterSave();
+        $this->saveToCouchbase();
+    }
+
+    protected function afterDelete()
+    {
+        parent::afterDelete();
+        $this->deleteFromCouchbase();
+    }
+
     /**
      * Get embedded relations for Couchbase document
      * @return array
@@ -202,7 +214,7 @@ class Address extends BaseActiveRecordVersioned
             array('id, address1, address2, city, postcode, county, country_id, address_type_id, date_start, date_end', 'safe', 'on' => 'search'),
             array('city', 'cityValidator'),
             array('address1, address2, city, county, postcode', 'filter', 'filter' => function ($value) {
-                return strip_tags($value);
+                return $value !== null ? strip_tags($value) : $value;
             }),
         );
     }
@@ -224,13 +236,14 @@ class Address extends BaseActiveRecordVersioned
      */
     public function attributeLabels()
     {
+        $county_label = \SettingMetadata::model()->getSetting('county_label');
         return array(
             'id' => 'ID',
             'address1' => 'Address1',
             'address2' => 'Address2',
             'city' => 'City',
             'postcode' => 'Postcode',
-            'county' => \SettingMetadata::model()->getSetting('county_label'),
+            'county' => !empty($county_label) ? $county_label : 'County',
             'country_id' => 'Country',
             'address_type_id' => 'Address Type',
         );
@@ -401,9 +414,15 @@ class Address extends BaseActiveRecordVersioned
             if ($this->isNewRecord && !$this->address_type_id) {
                 // make correspondence the default address type
                 $this->address_type_id = AddressType::CORRESPOND;
-                $this->address1 = str_replace("\T\\", "&", $this->address1);
-                $this->address2 = str_replace("\T\\", "&", $this->address2);
-                $this->city = str_replace("\T\\", "&", $this->city);
+                if (isset($this->address1)) {
+                    $this->address1 = str_replace("\T\\", "&", $this->address1);
+                }
+                if (isset($this->address2)) {
+                    $this->address2 = str_replace("\T\\", "&", $this->address2);
+                }
+                if (isset($this->city)) {
+                    $this->city = str_replace("\T\\", "&", $this->city);
+                }
             }
 
             return true;

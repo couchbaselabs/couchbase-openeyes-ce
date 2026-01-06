@@ -57,7 +57,7 @@
             <img class="loader right" src="<?php echo Yii::app()->assetManager->createUrl('img/ajax-loader.gif') ?>"
                  alt="loading..." style="display: none;"/>
             <span class="right saved hidden" style="font-size:13px; color:#19b910">Saved</span>
-            <span class="right error hidden" style="font-size:13px"">Error, try again later</span>
+            <span class="right error hidden" style="font-size:13px">Error, try again later</span>
         </div>
     </div>
 
