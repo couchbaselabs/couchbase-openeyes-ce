@@ -235,7 +235,14 @@ class ExaminationElementAttributesController extends BaseAdminController
     {
         $post = Yii::app()->request->getPost(OphCiExamination_Attribute::class);
 
+        // Check if post data exists and has 'id' key
+        if (!$post || !array_key_exists('id', $post) || !is_array($post['id'])) {
+            echo 0;
+            return;
+        }
+
         $attributeIdsArray = $post['id'];
+        $response = 1;
 
         foreach ($attributeIdsArray as $key => $attributeId) {
             $element = OphCiExamination_AttributeElement::model()->findByAttributes(array('attribute_id' => $attributeId));
@@ -246,29 +253,32 @@ class ExaminationElementAttributesController extends BaseAdminController
 
             if ($element && $this->isAttributeElementDeletable($element)) {
                 if (!$element->delete()) {
-                                        print_r($element->getErrors(), true);
+                    $response = 0;
                 }
             } else {
-                echo "Cannot delete; Attribute Element is in use";
+                // Cannot delete; Attribute Element is in use
+                $response = 0;
             }
 
             $attribute = OphCiExamination_Attribute::model()->findByAttributes(array('id' => $attributeId));
             if ($attribute && $this->isAttributeDeletable($attribute)) {
-                if ($attribute->delete()) {
-                    echo true;
-                } else {
-                                        print_r($attribute->getErrors(), true);
+                if (!$attribute->delete()) {
+                    $response = 0;
                 }
             } else {
-                echo "Cannot delete; Attribute is in use";
+                // Cannot delete; Attribute is in use
+                $response = 0;
             }
         }
+
+        echo $response;
     }
 
     public function actionSearch()
     {
         if (Yii::app()->request->isAjaxRequest) {
             $criteria = new CDbCriteria();
+            $params = array();
             if (isset($_GET['term']) && strlen($_GET['term']) > 0) {
                 $criteria->addCondition(
                     array('LOWER(name) LIKE :term'),
@@ -293,6 +303,44 @@ class ExaminationElementAttributesController extends BaseAdminController
                 );
             }
             $this->renderJSON($return);
+        } else {
+            // Handle non-AJAX requests - display list like actionList()
+            $admin = new Admin(OphCiExamination_Attribute::model(), $this);
+
+            $admin->setListFields(array(
+                'display_order',
+                'name',
+                'label',
+                'attribute_elements.id',
+                'attribute_element_types.name',
+                'is_multiselect',
+            ));
+
+            $institution_id = Yii::app()->request->getQuery('institution_id', '');
+
+            if ($institution_id) {
+                $institution = Institution::model()->findByPk($institution_id);
+            } else {
+                $institution = null;
+            }
+
+            $criteria = new CDbCriteria();
+            $criteria->order = 't.display_order asc';
+
+            $admin->getSearch()->setCriteria(
+                OphCiExamination_Attribute::model()->getCriteriaForLevels(
+                    $institution ? ReferenceData::LEVEL_INSTITUTION : ReferenceData::LEVEL_INSTALLATION,
+                    $criteria,
+                    $institution,
+                )
+            );
+            $admin->setModelDisplayName('Element Attributes');
+            $admin->div_wrapper_class = 'cols-8';
+            $admin->has_global_institution_option  = true;
+            $admin->getSearch()->setItemsPerPage($this->itemsPerPage);
+
+            $admin->setListTemplate('//admin/generic/listInstitution');
+            $admin->listModel();
         }
     }
 
