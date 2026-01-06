@@ -142,14 +142,26 @@ class DisorderController extends BaseAdminController
         ));
     }
 
-    public function actionDelete()
+    public function actionDelete($id = null)
     {
         $result = [];
         $result['status'] = 1;
-        $result['errors'] = "";
+        $result['errors'] = [];
 
-        if (!empty($_POST['disorders'])) {
-            foreach (Disorder::model()->findAllByPk($_POST['disorders']) as $disorder) {
+        // Support both individual deletion by ID and batch deletion via POST
+        $disorder_ids = array();
+        
+        // If ID is provided via URL parameter (individual delete)
+        if (!empty($id)) {
+            $disorder_ids = array($id);
+        } 
+        // If disorders are provided via POST (batch delete)
+        elseif (!empty($_POST['disorders'])) {
+            $disorder_ids = $_POST['disorders'];
+        }
+
+        if (!empty($disorder_ids)) {
+            foreach (Disorder::model()->findAllByPk($disorder_ids) as $disorder) {
                 try {
                     if (!$disorder->delete()) {
                         $result['status'] = 0;
