@@ -91,7 +91,7 @@ if (!isset($uniqueid)) {
                 $retrieveResults = $admin->getSearch()->retrieveResults();
                 foreach ($retrieveResults as $i => $row) { ?>
                     <tr class="clickable" data-id="<?php echo $row->id ?>"
-                        data-uri="<?php echo $uniqueid ?>/<?php echo $admin->getListFieldsAction() ?>/<?php echo $row->id ?>?returnUri=<?= $returnUri ?>">
+                        data-uri="<?php echo $uniqueid ?>/<?php echo $admin->getListFieldsAction() ?>?id=<?php echo $row->id ?>&returnUri=<?= $returnUri ?>">
                         <td>
                             <input type="checkbox" name="<?php echo $admin->getModelName(); ?>[id][]" value="<?php echo $row->id ?>"/>
                         </td>
