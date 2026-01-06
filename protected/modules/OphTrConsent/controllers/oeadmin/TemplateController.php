@@ -123,18 +123,22 @@ class TemplateController extends BaseAdminController
             $model->attributes = $request->getPost('OphTrConsent_Template');
             $templateAtt = $request->getPost('OphTrConsent_Template');
 
-            if ($model->save()) {
-                Audit::add('admin', 'create', serialize($model->attributes), false, array('model' => 'Template'));
-                Yii::app()->user->setFlash('success', 'Template created');
-                if (!array_key_exists('firms', $templateAtt) || !is_array($templateAtt['firms'])) {
-                    $templateAtt['firms'] = array();
-                }
-                if (array_key_exists('procedures', $templateAtt) && is_array($templateAtt['procedures'])) {
-                    $model->saveProcedures($templateAtt['procedures']);
-                }
-                $this->redirect(array('List'));
-            } else {
+            if (!$model->validate()) {
                 $errors = $model->getErrors();
+            } else {
+                if ($model->save()) {
+                    Audit::add('admin', 'create', serialize($model->attributes), false, array('model' => 'Template'));
+                    Yii::app()->user->setFlash('success', 'Template created');
+                    if (!array_key_exists('firms', $templateAtt) || !is_array($templateAtt['firms'])) {
+                        $templateAtt['firms'] = array();
+                    }
+                    if (array_key_exists('procedures', $templateAtt) && is_array($templateAtt['procedures'])) {
+                        $model->saveProcedures($templateAtt['procedures']);
+                    }
+                    $this->redirect(array('List'));
+                } else {
+                    $errors = $model->getErrors();
+                }
             }
         }
         $this->render('/oeadmin/templates/edit', array(
