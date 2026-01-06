@@ -33,11 +33,18 @@ class MedicationManagementController extends BaseController
 
     public function actionGetDrugSetForm($set_id = null, $allergy_ids = null)
     {
+        // Handle case where parameters are not provided
         if ($set_id === null || $allergy_ids === null) {
-            throw new \CHttpException(400, 'Missing required parameters: set_id and allergy_ids.');
+            header('Content-type: application/json');
+            echo CJSON::encode(array());
+            return;
         }
         
         $allergy_ids = CJSON::decode($allergy_ids);
+        if ($allergy_ids === null) {
+            $allergy_ids = array();
+        }
+        
         $medication_set = MedicationSet::model()->findByPk($set_id);
         if ($medication_set) {
             $items = $medication_set->items;
@@ -48,10 +55,15 @@ class MedicationManagementController extends BaseController
                         $set_items[] = $this->extractEntryFromSet($item, $allergy_ids);
                     }
                 }
+                header('Content-type: application/json');
                 echo CJSON::encode($set_items);
+            } else {
+                header('Content-type: application/json');
+                echo CJSON::encode(array());
             }
         } else {
-            throw new \CHttpException(404, 'Could not find medication set.');
+            header('Content-type: application/json');
+            echo CJSON::encode(array());
         }
     }
     public function actionGetPGDSetForm($pgd_id = null, $allergy_ids = null, $key = null)
@@ -297,7 +309,8 @@ class MedicationManagementController extends BaseController
     public function actionGetPGDIcon($pgdpsd_id = null)
     {
         if ($pgdpsd_id === null) {
-            throw new \CHttpException(400, 'Missing required parameter: pgdpsd_id');
+            echo null;
+            return;
         }
         $pgd = OphDrPGDPSD_PGDPSD::model()->findByPk($pgdpsd_id);
         if ($pgd) {

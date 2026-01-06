@@ -106,20 +106,12 @@ EOD;
     }
 
     /**
-     * This method overrides the parent implementation by throwing exception
-     * if the request is an eventImage request, instead of changing returnUrl
-     * because we don't want returnUrl to be changed in this case
+     * This method overrides the parent implementation to properly handle eventImage requests.
+     * For eventImage requests, we call the parent method to properly redirect to login
+     * instead of throwing an exception, which allows the user to authenticate and access the page.
      */
     public function loginRequired()
     {
-        $app=Yii::app();
-        $request=$app->getRequest();
-        $url = $request->getUrl();
-
-        if(strpos($url, '/eventImage') !== false) {
-            // although this request might be not an Ajax Request, we do not want returnUrl to be changed
-            throw new CHttpException(403,Yii::t('yii','Login Required'));
-        }
         parent::loginRequired();
     }
 

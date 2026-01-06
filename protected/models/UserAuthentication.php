@@ -260,13 +260,13 @@ class UserAuthentication extends BaseActiveRecordVersioned
         if (!$this->password_salt) {
             $hash = $this->password_hash;
             // Normalize bcrypt prefix for PHP if stored as 2b/2y interchangeably
-            if (strpos($hash, '$2y$') === 0) {
+            if ($hash && strpos($hash, '$2y$') === 0) {
                 $hash = '$2y$' . substr($hash, 4);
-            } elseif (strpos($hash, '$2b$') === 0) {
+            } elseif ($hash && strpos($hash, '$2b$') === 0) {
                 $hash = '$2y$' . substr($hash, 4);
             }
 
-            if (!password_verify($password, $hash)) {
+            if (!$hash || !password_verify($password, $hash)) {
                 return false;
             }
 

@@ -647,11 +647,15 @@ class PatientController extends BaseController
             $data_provider = $patient_search->search($term);
             foreach ($data_provider->getData() as $patient) {
                 $pi = [];
-                foreach ($patient->identifiers as $identifier) {
-                    $pi[] = [
-                        'title' => $identifier->patientIdentifierType->long_title ?? $identifier->patientIdentifierType->short_title,
-                        'value' => $identifier->value
-                    ];
+                if ($patient->identifiers) {
+                    foreach ($patient->identifiers as $identifier) {
+                        if ($identifier->patientIdentifierType) {
+                            $pi[] = [
+                                'title' => $identifier->patientIdentifierType->long_title ?? $identifier->patientIdentifierType->short_title,
+                                'value' => $identifier->value
+                            ];
+                        }
+                    }
                 }
 
                 $primary_identifier = PatientIdentifierHelper::getIdentifierForPatient(
@@ -668,6 +672,13 @@ class PatientController extends BaseController
                     $site_id
                 );
 
+                $primary_identifier_prompt = null;
+                $primary_identifier_value = null;
+                if ($primary_identifier) {
+                    $primary_identifier_prompt = PatientIdentifierHelper::getIdentifierPrompt($primary_identifier);
+                    $primary_identifier_value = PatientIdentifierHelper::getIdentifierValue($primary_identifier);
+                }
+
                 $result[] = array(
                     'id' => $patient->id,
                     'first_name' => $patient->first_name,
@@ -680,8 +691,8 @@ class PatientController extends BaseController
                     'is_deceased' => $patient->is_deceased,
                     'patient_identifiers' => $pi,
                     'primary_patient_identifiers' => [
-                        'title' => PatientIdentifierHelper::getIdentifierPrompt($primary_identifier),
-                        'value' => PatientIdentifierHelper::getIdentifierValue($primary_identifier)
+                        'title' => $primary_identifier_prompt,
+                        'value' => $primary_identifier_value
                     ]
                 );
             }
@@ -1409,13 +1420,28 @@ class PatientController extends BaseController
     }
 
         /**
-        * Remove patient/allergy assignment.
+        * Remove patient risk assignment.
         *
         * @throws Exception
         */
     public function actionRemoveRisk()
     {
-        PatientRiskAssignment::model()->deleteByPk(@$_GET['assignment_id']);
+        $assignment_id = isset($_GET['assignment_id']) ? (int)$_GET['assignment_id'] : null;
+        
+        if (!$assignment_id) {
+            throw new CHttpException(400, 'Invalid assignment ID');
+        }
+        
+        $assignment = PatientRiskAssignment::model()->findByPk($assignment_id);
+        
+        if (!$assignment) {
+            throw new CHttpException(404, 'Risk assignment not found');
+        }
+        
+        if (!$assignment->delete()) {
+            throw new CHttpException(500, 'Failed to delete risk assignment');
+        }
+        
         echo 'success';
     }
 
@@ -1833,15 +1859,24 @@ class PatientController extends BaseController
             return;
         }
 
-        $date = explode('-', $po->date);
+        $result = array(
+            'operation' => $po->operation,
+            'side_id' => $po->side_id,
+        );
 
-        $this->renderJSON(array(
-        'operation' => $po->operation,
-        'side_id' => $po->side_id,
-        'fuzzy_year' => $date[0],
-        'fuzzy_month' => preg_replace('/^0/', '', $date[1]),
-        'fuzzy_day' => preg_replace('/^0/', '', $date[2]),
-        ));
+        // Handle null or empty dates safely
+        if (!empty($po->date)) {
+            $date = explode('-', $po->date);
+            $result['fuzzy_year'] = isset($date[0]) ? $date[0] : '';
+            $result['fuzzy_month'] = isset($date[1]) ? preg_replace('/^0/', '', $date[1]) : '';
+            $result['fuzzy_day'] = isset($date[2]) ? preg_replace('/^0/', '', $date[2]) : '';
+        } else {
+            $result['fuzzy_year'] = '';
+            $result['fuzzy_month'] = '';
+            $result['fuzzy_day'] = '';
+        }
+
+        $this->renderJSON($result);
     }
 
     public function processJsVars()
@@ -2030,6 +2065,36 @@ class PatientController extends BaseController
         $data['name'] = $location->contact->fullName;
 
         $this->renderJSON($data);
+    }
+
+    /**
+     * Display institution sites for the current institution.
+     *
+     * @return void
+     */
+    public function actionInstitutionSites()
+    {
+        // Get the current institution ID from the session
+        $institution_id = Yii::app()->session['selected_institution_id'] ?? null;
+
+        if (!$institution_id) {
+            throw new CHttpException(400, 'No institution selected.');
+        }
+
+        // Fetch the institution
+        $institution = Institution::model()->findByPk($institution_id);
+        if (!$institution) {
+            throw new CHttpException(404, 'Institution not found.');
+        }
+
+        // Fetch all sites for this institution
+        $sites = Site::model()->findAllByAttributes(array('institution_id' => $institution_id));
+
+        // Render the view
+        $this->render('institutionSites', array(
+            'institution' => $institution,
+            'sites' => $sites,
+        ));
     }
 
     public function actionValidateEditContact()
@@ -3424,5 +3489,26 @@ class PatientController extends BaseController
             \OELog::log($message);
             $this->renderJSON(array('success' => false, 'message' => 'Something went wrong trying to contact CITO. If this issue persists, please contact support.'));
         }
+    }
+
+    /**
+     * Find duplicates by patient identifier
+     * Searches for duplicate patients based on provided identifier values
+     */
+    public function actionFindDuplicatesByIdentifier()
+    {
+        $identifier_type_id = Yii::app()->request->getQuery('identifier_type_id');
+        $identifier_value = Yii::app()->request->getQuery('identifier_value');
+
+        if (!$identifier_type_id || !$identifier_value) {
+            throw new CHttpException(400, 'Identifier type and value are required.');
+        }
+
+        $this->pageTitle = 'Find Duplicate Patients';
+        $this->render('find_duplicates_by_identifier', array(
+            'identifier_type_id' => $identifier_type_id,
+            'identifier_value' => $identifier_value,
+            'duplicates' => array(),
+        ));
     }
 }

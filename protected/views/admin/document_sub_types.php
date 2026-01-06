@@ -20,5 +20,31 @@
   <div class="cols-4 column end">
         <?=\CHtml::htmlButton('Add sub type', array('class' => 'button large addSubType'))?>
   </div>
-<b> i say yes</b>
+  <?php if (isset($document_sub_types) && !empty($document_sub_types)): ?>
+    <table class="standard sortable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Display Order</th>
+          <th>Active</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($document_sub_types as $subType): ?>
+          <tr>
+            <td><?= CHtml::encode($subType->name) ?></td>
+            <td><?= CHtml::encode($subType->display_order) ?></td>
+            <td><?= CHtml::encode($subType->is_active ? 'Yes' : 'No') ?></td>
+            <td>
+              <?= CHtml::link('Edit', array('update', 'id' => $subType->id)) ?>
+              | <?= CHtml::link('Delete', array('delete', 'id' => $subType->id), array('confirm' => 'Are you sure?')) ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php else: ?>
+    <div class="empty-message">No document sub types configured yet.</div>
+  <?php endif; ?>
 </div>

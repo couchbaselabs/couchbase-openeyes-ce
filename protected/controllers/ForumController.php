@@ -26,14 +26,13 @@ class ForumController extends BaseController
     {
         $user = Yii::app()->user;
 
-        $user->returnUrl = Yii::app()->request->urlReferrer;
-
         if (!$user->getState('forum_enabled')) {
             $user->setState('forum_enabled', 'on');
         } else {
             $user->setState('forum_enabled', null);
         }
 
-        $this->redirect($user->returnUrl);
+        $returnUrl = Yii::app()->request->urlReferrer ?: Yii::app()->homeUrl;
+        $this->redirect($returnUrl);
     }
 }

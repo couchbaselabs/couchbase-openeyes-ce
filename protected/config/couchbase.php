@@ -82,7 +82,7 @@ return [
     // Feature flags for migration phases
     'features' => [
         'enabled' => true,           // Master switch for Couchbase functionality
-        'dual_write' => true,        // Write to both MariaDB and Couchbase (Phase 4+) - ENABLED for Phase 13
-        'read_from_couchbase' => false, // Read from Couchbase (Phase 6+)
+        'dual_write' => false,       // Write to both MariaDB and Couchbase (Phase 4+) - DISABLED, MariaDB removed
+        'read_from_couchbase' => true, // Read from Couchbase (Phase 6+) - ENABLED, MariaDB no longer available
     ],
 ];

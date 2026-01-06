@@ -49,6 +49,12 @@ class NodExportController extends BaseController
         return array(
           array(
             'allow',
+            'actions' => array('index'),
+            'users' => array('*'),
+            ),
+          array(
+            'allow',
+            'actions' => array('generate'),
             'roles' => array('NOD Export'),
             ),
         );

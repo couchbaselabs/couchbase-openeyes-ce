@@ -413,6 +413,7 @@ $config = array(
                 '' => 'site/index',
                 'patient/viewpas/<pas_key:\d+>' => 'patient/viewpas',
                 'patient/getCitoUrl/<hos_num:\d+>' => 'patient/getCitoUrl',
+                'patient/getHieSource/<id:\d+>' => 'patient/getHieSource',
                 'file/view/<id:\d+>/<dimensions:\d+(x\d+)?>/<name:\w+\.\w+>' => 'protectedFile/thumbnail',
                 'file/view/<id:\d+>/<name:\w+\.\w+>' => 'protectedFile/view',
                 

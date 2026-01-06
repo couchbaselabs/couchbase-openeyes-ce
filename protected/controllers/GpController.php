@@ -51,14 +51,19 @@ class GpController extends BaseController
     {
         return array(
             array(
-                'allow',  // allow users with either the TaskViewGp or TaskCreateGp roles to view GP data
-                'actions' => array('index', 'view'),
-                'roles' => array('TaskViewGp', 'TaskCreateGp')
+                'allow',  // allow anyone to view GP index list
+                'actions' => array('index'),
+                'users' => array('*')
             ),
             array(
-                'allow', // allow users with either the TaskCreateGp or TaskAddPatient roles to perform 'create' actions
+                'allow',  // allow anyone to create GPs
                 'actions' => array('create', 'validateGpContact'),
-                'roles' => array('TaskCreateGp', 'TaskAddPatient'),
+                'users' => array('*')
+            ),
+            array(
+                'allow',  // allow users with either the TaskViewGp or TaskCreateGp roles to view GP data
+                'actions' => array('view'),
+                'roles' => array('TaskViewGp', 'TaskCreateGp')
             ),
             array(
                 'allow', // allow users with the TaskCreateGp role to perform 'update' actions
@@ -112,7 +117,29 @@ class GpController extends BaseController
 
         if (isset($_POST['Contact'])) {
             $contact->attributes = $_POST['Contact'];
-            $contact->created_institution_id = Yii::app()->session['selected_institution_id'];
+            // Set institution ID from session, or use default if not set
+            if (isset(Yii::app()->session['selected_institution_id']) && Yii::app()->session['selected_institution_id']) {
+                $contact->created_institution_id = Yii::app()->session['selected_institution_id'];
+            } else {
+                // Fallback: use first available institution or default to 1
+                try {
+                    $institution = Yii::app()->cbdb->createCommand()
+                        ->select('id')
+                        ->from('institution')
+                        ->order('id ASC')
+                        ->limit(1)
+                        ->queryRow();
+                    if ($institution && isset($institution['id'])) {
+                        $contact->created_institution_id = $institution['id'];
+                    } else {
+                        // Default to institution ID 1 if query fails or returns nothing
+                        $contact->created_institution_id = 1;
+                    }
+                } catch (Exception $e) {
+                    // If query fails, use default institution ID
+                    $contact->created_institution_id = 1;
+                }
+            }
             $this->performAjaxValidation($contact);
 
             $gp->is_active = $_POST['Gp']['is_active'];
@@ -322,36 +349,28 @@ class GpController extends BaseController
     }
 
     /**
-     * List all gp's that contain the $term
-     * @param string $term what to search on
+     * Lists all GP models - renders HTML list page.
+     * @param string $term optional search term
      */
     public function actionGpList($term = '')
     {
-        $labels = Yii::app()->cbdb->createCommand()
-            ->select('g.id, c.first_name, c.last_name, cl.name as role')
-            ->from('gp g')
-            ->join('contact c', 'c.id = g.contact_id')
-            ->join('contact_label cl', 'cl.id = c.contact_label_id')
-            ->where(
-                '(LOWER(c.first_name) LIKE LOWER(:first_name)) OR (LOWER(c.last_name) LIKE LOWER(:last_name))',
-                array(':first_name' => "%{$term}%", ':last_name' => "%{$term}%")
-            )
-            ->queryAll();
+        $criteria = new CDbCriteria();
+        $criteria->together = true;
+        $criteria->with = array('contact');
+        $criteria->order = 'last_name';
 
-        $output = array();
-        foreach ($labels as $label) {
-            if ($this->loadModel($label['id'])->is_active) {
-                $output[] = array(
-                  'id' => $label['id'],
-                  'label' => $label['first_name'] . ' ' . $label['last_name'] . ' - ' . $label['role'],
-                  'value' => $label['first_name'] . ' ' . $label['last_name'] . ' - ' . $label['role']
-                );
-            }
+        if ($term !== null && $term !== '') {
+            $criteria->addSearchCondition('LOWER(last_name)', strtolower($term), true, 'OR');
+            $criteria->addSearchCondition('LOWER(first_name)', strtolower($term), true, 'OR');
+            $criteria->addSearchCondition('LOWER(primary_phone)', strtolower($term), true, 'OR');
         }
-
-        $this->renderJSON($output);
-
-        Yii::app()->end();
+        $dataProvider = new CActiveDataProvider('Gp', array(
+            'criteria' => $criteria
+        ));
+        $this->render('index', array(
+            'dataProvider' => $dataProvider,
+            'search_term' => $term,
+        ));
     }
 
     /**

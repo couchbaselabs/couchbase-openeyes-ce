@@ -188,7 +188,7 @@ class DocmanController extends BaseController
         $patient = Patient::model()->findByPk($patient_id);
         
         if (!$patient) {
-            $this->getApp()->end();
+            Yii::app()->end();
             return;
         }
         
@@ -253,7 +253,7 @@ class DocmanController extends BaseController
                 'patient_id' => $patient_id,
             )
         );
-        $this->getApp()->end();
+        Yii::app()->end();
     }
 
 

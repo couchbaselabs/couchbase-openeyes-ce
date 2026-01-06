@@ -150,7 +150,7 @@ class MedicationInfoBox extends \BaseCWidget
     private function getInfoBoxHTML()
     {
         if ($this->error) {
-            return '<i>Error while retrieving data for medication.</i>';
+            return 'Error while retrieving data for medication.';
         } else {
             $lines = [];
             if (isset($this->data['label'])) {
@@ -184,6 +184,6 @@ class MedicationInfoBox extends \BaseCWidget
     {
         $content = $this->getInfoBoxHTML();
         return ($content) ?
-            ('<i class="oe-i ' .  $this->icon . ' pad small js-has-tooltip" data-tooltip-content="' . $content . '"></i>') : '';
+            ('<i class="oe-i ' .  $this->icon . ' pad small js-has-tooltip" data-tooltip-content="' . htmlspecialchars($content, ENT_QUOTES, 'UTF-8') . '"></i>') : '';
     }
 }

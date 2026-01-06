@@ -34,12 +34,27 @@ class DocumentController extends BaseAdminController
      */
     public function actionList()
     {
-        $model = OphCoDocument_Sub_Types::model();
-        if ($this->checkAccess('admin')) {
-            $document_sub_types = $model->findAll();
-            $this->render('//admin/document_sub_types', array('document_sub_types' => $document_sub_types));
-        } else {
+        if (!$this->checkAccess('admin')) {
             throw new CHttpException(403, 'Only a system admin is permitted to change these settings.');
+        }
+
+        try {
+            $model = OphCoDocument_Sub_Types::model();
+            if (!$model) {
+                throw new CHttpException(500, 'Unable to load document sub types model.');
+            }
+
+            $document_sub_types = $model->findAll();
+            if ($document_sub_types === null) {
+                $document_sub_types = array();
+            }
+
+            $this->render('//admin/document_sub_types', array('document_sub_types' => $document_sub_types));
+        } catch (Exception $e) {
+            if ($e instanceof CHttpException) {
+                throw $e;
+            }
+            throw new CHttpException(500, 'Error loading document sub types: ' . $e->getMessage());
         }
     }
 }
