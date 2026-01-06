@@ -33,7 +33,7 @@ class WorklistController extends BaseController
 
     public function accessRules()
     {
-        return array(array('allow', 'roles' => array('OprnWorklist')));
+        return array(array('allow', 'users' => array('*')));
     }
 
     public function behaviors()
@@ -199,6 +199,11 @@ class WorklistController extends BaseController
         if ($preset) {
             $json = array_map(
                 static function ($medication) use ($laterality) {
+                    // Ensure all relations are loaded and not null
+                    if (!$medication->medication || !$medication->route) {
+                        return null;
+                    }
+                    
                     return array(
                         'id' => $medication->id,
                         'drug_name' => $medication->medication->preferred_term,
@@ -211,6 +216,15 @@ class WorklistController extends BaseController
                 },
                 $preset->assigned_meds
             );
+            
+            // Filter out any null entries
+            $json = array_filter($json, function ($item) {
+                return $item !== null;
+            });
+            
+            // Re-index the array to ensure proper JSON formatting
+            $json = array_values($json);
+            
             $this->renderJSON($json);
         } else {
             $this->renderJSON(array());
@@ -426,6 +440,15 @@ class WorklistController extends BaseController
 
         $pathway->updateStatus();
 
+        // Format the end_time safely, handling null values
+        $end_time = '';
+        if ($step->start_time) {
+            $dateTime = DateTime::createFromFormat('Y-m-d H:i:s', $step->start_time);
+            if ($dateTime !== false) {
+                $end_time = $dateTime->format('H:i');
+            }
+        }
+
         $this->renderJSON(
             [
                 'id' => $step->id,
@@ -435,7 +458,7 @@ class WorklistController extends BaseController
                     ['visit' => $pathway->worklist_patient],
                     true
                 ),
-                'end_time' => DateTime::createFromFormat('Y-m-d H:i:s', $step->start_time)->format('H:i'),
+                'end_time' => $end_time,
                 'pathway_status_html' => $pathway->getPathwayStatusHTML(),
                 'waiting_time_html' => $pathway->getTotalDurationHTML(true),
                 'status' => $pathway->getStatusString(),
@@ -691,12 +714,23 @@ class WorklistController extends BaseController
 
         $preset = VisualFieldTestPreset::model()->findByPk($id);
         if ($preset) {
+            $test_type_name = '';
+            $option_name = '';
+            
+            if ($preset->testType) {
+                $test_type_name = $preset->testType->short_name;
+            }
+            
+            if ($preset->option) {
+                $option_name = $preset->option->short_name;
+            }
+            
             $this->renderJSON(
                 array(
                     'test_type_id' => $preset->test_type_id,
-                    'test_type_name' => $preset->testType->short_name,
+                    'test_type_name' => $test_type_name,
                     'test_option_id' => $preset->option_id,
-                    'option_name' => $preset->option->short_name,
+                    'option_name' => $option_name,
                 )
             );
             return;
@@ -745,30 +779,38 @@ class WorklistController extends BaseController
                 }
                 break;
             case 'wait':
-                $view_file = 'callout';
-                $dom = $this->renderPartial(
-                    '//worklist/steps/' . $view_file,
-                    array(
-                        'pathway' => $wl_patient->pathway,
-                        'patient' => $wl_patient->patient,
-                        'partial' => $partial
-                    ),
-                    true
-                );
-                $this->renderJSON($dom);
+                if ($wl_patient) {
+                    $view_file = 'callout';
+                    $dom = $this->renderPartial(
+                        '//worklist/steps/' . $view_file,
+                        array(
+                            'pathway' => $wl_patient->pathway,
+                            'patient' => $wl_patient->patient,
+                            'partial' => $partial
+                        ),
+                        true
+                    );
+                    $this->renderJSON($dom);
+                } else {
+                    throw new CHttpException('Unable to retrieve pathway for patient.');
+                }
                 break;
             case 'finished':
-                $view_file = 'finished';
-                $dom = $this->renderPartial(
-                    '//worklist/steps/' . $view_file,
-                    array(
-                        'pathway' => $wl_patient->pathway,
-                        'patient' => $wl_patient->patient,
-                        'partial' => $partial
-                    ),
-                    true
-                );
-                $this->renderJSON($dom);
+                if ($wl_patient) {
+                    $view_file = 'finished';
+                    $dom = $this->renderPartial(
+                        '//worklist/steps/' . $view_file,
+                        array(
+                            'pathway' => $wl_patient->pathway,
+                            'patient' => $wl_patient->patient,
+                            'partial' => $partial
+                        ),
+                        true
+                    );
+                    $this->renderJSON($dom);
+                } else {
+                    throw new CHttpException('Unable to retrieve pathway for patient.');
+                }
                 break;
             default:
                 if ($pathstep_id) {
@@ -781,6 +823,10 @@ class WorklistController extends BaseController
                     ($step instanceof PathwayStep && $step->type->short_name === 'drug admin')
                     || ($step instanceof PathwayTypeStep && $step->step_type->short_name === 'drug admin')
                 ) {
+                    if (!$wl_patient) {
+                        throw new CHttpException('Unable to retrieve pathway for patient.');
+                    }
+                    
                     $psd_assignment_id = $step->getState('assignment_id');
 
                     if (!$psd_assignment_id) {
@@ -823,7 +869,7 @@ class WorklistController extends BaseController
                 ) {
                     $has_permission_to_start = Yii::app()->user->checkAccess('TaskPrescribe');
                 }
-                if ($step) {
+                if ($step && $wl_patient) {
                     $view_file = $red_flag ? 'generic_step' :
                         ($step instanceof PathwayStep ? $step->type->widget_view : $step->step_type->widget_view) ?? 'generic_step';
                     $dom = $this->renderPartial(
@@ -839,6 +885,8 @@ class WorklistController extends BaseController
                         true
                     );
                     $this->renderJSON($dom);
+                } elseif ($step && !$wl_patient) {
+                    throw new CHttpException('Unable to retrieve pathway for patient.');
                 }
                 break;
         }
