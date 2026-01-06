@@ -57,6 +57,10 @@ class RisksController extends \BaseController
 
     public function actionForTags($tag_ids = '')
     {
+        if (empty($tag_ids)) {
+            echo \CJSON::encode(array());
+            return;
+        }
         echo \CJSON::encode($this->riskIdsForTagIds(explode(",", $tag_ids)));
     }
 
