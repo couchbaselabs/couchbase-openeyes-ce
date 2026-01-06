@@ -86,7 +86,7 @@ class PathwayStepTypePresetAssignment extends BaseActiveRecordVersioned
 
     public function getStateDataTemplate()
     {
-        if ($this->standard_pathway_step_type->state_data_template !== null) {
+        if ($this->standard_pathway_step_type && $this->standard_pathway_step_type->state_data_template !== null) {
             $preset_state_template = json_decode($this->standard_pathway_step_type->state_data_template, true, 512,
                 JSON_THROW_ON_ERROR);
             switch ($this->preset_short_name) {

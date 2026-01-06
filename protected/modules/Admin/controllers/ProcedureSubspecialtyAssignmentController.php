@@ -66,9 +66,9 @@ class ProcedureSubspecialtyAssignmentController extends \BaseAdminController
                         $assignment = new ProcedureSubspecialtyAssignment();
                     }
 
-                    $assignment->proc_id = $assignment_id['procedure_id'];
+                    $assignment->proc_id = (int)$assignment_id['procedure_id'];
                     $assignment->display_order = $display_orders[$key];
-                    $assignment->subspecialty_id = $subspecialty_id;
+                    $assignment->subspecialty_id = (int)$subspecialty_id;
                     $assignment->need_eur = $assignment_id['need_eur'] ?? 0;
 
                     if ($this->checkAccess('admin')) {

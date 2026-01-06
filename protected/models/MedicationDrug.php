@@ -134,8 +134,22 @@ class MedicationDrug extends BaseActiveRecordVersioned
      */
     protected function afterSave()
     {
-        parent::afterSave();
-        $this->saveToCouchbase();
+        if (!parent::afterSave()) {
+            return false;
+        }
+        
+        try {
+            $this->saveToCouchbase();
+        } catch (\Exception $e) {
+            // Log the error but don't fail the save
+            \Yii::log(
+                "Failed to sync MedicationDrug #{$this->id} to Couchbase: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.couchbase'
+            );
+        }
+        
+        return true;
     }
 
     /**
@@ -143,7 +157,21 @@ class MedicationDrug extends BaseActiveRecordVersioned
      */
     protected function afterDelete()
     {
-        parent::afterDelete();
-        $this->deleteFromCouchbase();
+        if (!parent::afterDelete()) {
+            return false;
+        }
+        
+        try {
+            $this->deleteFromCouchbase();
+        } catch (\Exception $e) {
+            // Log the error but don't fail the delete
+            \Yii::log(
+                "Failed to delete MedicationDrug #{$this->id} from Couchbase: " . $e->getMessage(),
+                \CLogger::LEVEL_WARNING,
+                'application.couchbase'
+            );
+        }
+        
+        return true;
     }
 }

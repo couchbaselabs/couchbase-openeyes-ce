@@ -126,7 +126,10 @@ class UniqueCodesController extends BaseAdminController
             $user_data = \Yii::app()->request->getPost('UniqueCodes');
 
             $unique_code_object->code = $user_data['code'];
-            $unique_code_object->active = $user_data['active'];
+            $unique_code_object->active = isset($user_data['active']) ? 1 : 0;
+
+            // Enable Couchbase write if available
+            $unique_code_object->enableCouchbaseSync();
 
             // try saving the data
             if (!$unique_code_object->save()) {

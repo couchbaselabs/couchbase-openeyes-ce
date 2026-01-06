@@ -97,6 +97,59 @@ class UniqueCodes extends BaseActiveRecord
     }
 
     /**
+     * Override to disable Couchbase reads since collection doesn't exist
+     * Always use MariaDB for reads
+     */
+    public function shouldUseCouchbaseForRead()
+    {
+        return false;
+    }
+
+    /**
+     * Override count to use MariaDB instead of Couchbase
+     */
+    public function count($condition = '', $params = [])
+    {
+        $command = $this->getCommandBuilder()->createCountCommand($this->tableName(), $condition, $params);
+        return (int)$command->queryScalar();
+    }
+
+    /**
+     * Override findAll to use MariaDB instead of Couchbase
+     */
+    public function findAll($condition = '', $params = [])
+    {
+        $criteria = $this->getDbCriteria();
+        if (is_string($condition)) {
+            $criteria->condition = $condition;
+            $criteria->params = $params;
+        } elseif (is_array($condition)) {
+            $criteria->condition = $condition['condition'] ?? '';
+            $criteria->params = $condition['params'] ?? [];
+        }
+
+        return $this->query($criteria)->queryAll();
+    }
+
+    /**
+     * Override findByPk to use MariaDB instead of Couchbase
+     */
+    public function findByPk($pk, $condition = '', $params = [])
+    {
+        $criteria = $this->getDbCriteria();
+        $criteria->addCondition($this->getTableAlias(true, false).'.id=:pk');
+        $criteria->params[':pk'] = $pk;
+
+        if (is_string($condition)) {
+            $criteria->addCondition($condition);
+            $criteria->params = array_merge($criteria->params, $params);
+        }
+
+        $record = $this->query($criteria)->queryRow();
+        return $record ? $this->populateRecord($record) : null;
+    }
+
+    /**
      * Override insert to handle MariaDB unavailability
      */
     public function insert($attributes=null)

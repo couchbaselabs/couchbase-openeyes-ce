@@ -38,14 +38,12 @@ class DisorderController extends BaseAdminController
         
         if ($query) {
             if (is_numeric($query)) {
-                $n1ql .= " AND disorder.id = ?";
-                $params[] = (int)$query;
+                $n1ql .= " AND disorder.id = \$queryId";
+                $params['queryId'] = (int)$query;
             } else {
                 $searchTerm = '%' . strtolower($query) . '%';
-                $n1ql .= " AND (LOWER(disorder.fully_specified_name) LIKE ? OR LOWER(disorder.term) LIKE ? OR LOWER(disorder.aliases) LIKE ?)";
-                $params[] = $searchTerm;
-                $params[] = $searchTerm;
-                $params[] = $searchTerm;
+                $n1ql .= " AND (LOWER(disorder.fully_specified_name) LIKE \$searchTerm OR LOWER(disorder.term) LIKE \$searchTerm OR LOWER(disorder.aliases) LIKE \$searchTerm)";
+                $params['searchTerm'] = $searchTerm;
             }
         }
         
@@ -53,8 +51,8 @@ class DisorderController extends BaseAdminController
             if ($specialty == "None") {
                 $n1ql .= " AND disorder.specialty_id IS NULL";
             } else {
-                $n1ql .= " AND disorder.specialty_id = ?";
-                $params[] = (int)$specialty;
+                $n1ql .= " AND disorder.specialty_id = \$specialtyId";
+                $params['specialtyId'] = (int)$specialty;
             }
         }
         
@@ -89,8 +87,8 @@ class DisorderController extends BaseAdminController
         
         // Query Couchbase directly to find the disorder
         $cbRest = \Yii::app()->couchbaseRest;
-        $n1ql = "SELECT disorder.* FROM `openeyes`.`reference`.`disorder` AS disorder WHERE disorder.id = ?";
-        $result = $cbRest->query($n1ql, array($id));
+        $n1ql = "SELECT disorder.* FROM `openeyes`.`reference`.`disorder` AS disorder WHERE disorder.id = \$disorderId";
+        $result = $cbRest->query($n1ql, array('disorderId' => $id));
         $result = isset($result[0]) ? $result[0] : null;
         
         if (!$result) {
@@ -99,7 +97,6 @@ class DisorderController extends BaseAdminController
         
         $model = new Disorder();
         $model->setAttributes($result['disorder'] ?? $result, false);
-        $model->markAttributesDirty();  // Mark as existing (not new record)
         if ($request->getPost('Disorder')) {
             $model->attributes = $request->getPost('Disorder');
             if (!$model->validate()) {

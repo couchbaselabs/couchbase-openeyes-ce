@@ -327,7 +327,7 @@ class WorklistController extends BaseAdminController
 
             $preset_model->custom_pathway_step_type_id = $id;
             $preset_model->standard_pathway_step_type_id = $pathwayStepTypePreset['standard_pathway_step_type_id'];
-            $preset_model->preset_short_name = $preset_model->standard_pathway_step_type->short_name;
+            $preset_model->preset_short_name = $preset_model->standard_pathway_step_type ? $preset_model->standard_pathway_step_type->short_name : null;
             if ($preset_model->preset_short_name === 'Book Apt.') {
                 /**
                  * The preset ID is saved as a three digit value, where
@@ -357,7 +357,9 @@ class WorklistController extends BaseAdminController
             } elseif (array_key_exists('preset_id', $pathwayStepTypePreset)) {
                 $preset_model->preset_id = $pathwayStepTypePreset['preset_id'];
             }
-            $model->widget_view = $preset_model->standard_pathway_step_type->widget_view;
+            if ($preset_model->standard_pathway_step_type) {
+                $model->widget_view = $preset_model->standard_pathway_step_type->widget_view;
+            }
             if (array_key_exists('site_id', $pathwayStepTypePreset)) {
                 $preset_model->site_id = $pathwayStepTypePreset['site_id'];
             }
@@ -595,8 +597,12 @@ class WorklistController extends BaseAdminController
      *
      * @throws CHttpException
      */
-    public function actionDefinitionMappingUpdate($id)
+    public function actionDefinitionMappingUpdate($id = null)
     {
+        if (!$id) {
+            throw new CHttpException(400, 'Worklist Definition Mapping ID is required.');
+        }
+
         if (!$mapping = WorklistDefinitionMapping::model()->findByPk($id)) {
             throw new CHttpException(404, 'Worklist Definition Mapping not found.');
         }

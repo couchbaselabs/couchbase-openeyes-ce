@@ -3549,6 +3549,7 @@ class BaseEventTypeController extends BaseModuleController
             if (!$hotlistItem) {
                 $hotlistItem = new UserHotlistItem();
                 $hotlistItem->patient_id = $patient->id;
+                $hotlistItem->created_user_id = $user->id;
             }
 
             $hotlistItem->is_open = 1;

@@ -239,6 +239,43 @@ class OEDbConnection extends CDbConnection
     }
     
     /**
+     * Override quoteValue to handle no-connection case
+     * @param mixed $value
+     * @return string
+     */
+    public function quoteValue($value)
+    {
+        if (!$this->isConnectionAvailable()) {
+            // Return a quoted value without using PDO
+            if (is_string($value)) {
+                return "'" . addcslashes($value, "\\000\n\r\\\\\\032") . "'";
+            } elseif (is_bool($value)) {
+                return $value ? '1' : '0';
+            } elseif ($value === null) {
+                return 'NULL';
+            } else {
+                return (string)$value;
+            }
+        }
+        return parent::quoteValue($value);
+    }
+
+    /**
+     * Override quote to handle no-connection case
+     * @param mixed $value
+     * @param int $type
+     * @return string
+     */
+    public function quote($value, $type = \PDO::PARAM_STR)
+    {
+        if (!$this->isConnectionAvailable()) {
+            // Handle without using PDO
+            return $this->quoteValue($value);
+        }
+        return parent::quote($value, $type);
+    }
+
+    /**
      * Override getDriverName to handle no-connection case
      * @return string
      */

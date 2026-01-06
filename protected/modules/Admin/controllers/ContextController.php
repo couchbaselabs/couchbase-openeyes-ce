@@ -83,6 +83,55 @@ class ContextController extends BaseAdminController
             if (!$firm->validate()) {
                 $errors = $firm->getErrors();
             } else {
+                // Ensure ServiceSubspecialtyAssignment exists if subspecialty is selected
+                if ($firm->subspecialty_id && !$firm->service_subspecialty_assignment_id) {
+                    $ssa = ServiceSubspecialtyAssignment::model()->find('subspecialty_id=?', array($firm->subspecialty_id));
+                    if (!$ssa) {
+                        // Create a default service if none exist
+                        $service = Service::model()->find();
+                        if (!$service) {
+                            $service = new Service();
+                            $service->name = 'Default Service';
+                            // Use reflection to disable Couchbase sync
+                            try {
+                                $reflection = new ReflectionClass($service);
+                                $property = $reflection->getProperty('_couchbaseSyncDisabled');
+                                $property->setAccessible(true);
+                                $property->setValue($service, true);
+                            } catch (Exception $e) {
+                                // Ignore reflection errors, just proceed
+                            }
+                            if (!$service->save()) {
+                                throw new Exception('Unable to create default service: ' . print_r($service->getErrors(), true));
+                            }
+                        }
+                        
+                        // Check if the assignment already exists for this service+subspecialty
+                        $existing = ServiceSubspecialtyAssignment::model()->find('service_id=? AND subspecialty_id=?', array($service->id, $firm->subspecialty_id));
+                        if (!$existing) {
+                            // Create the ServiceSubspecialtyAssignment
+                            $ssa = new ServiceSubspecialtyAssignment();
+                            $ssa->service_id = $service->id;
+                            $ssa->subspecialty_id = $firm->subspecialty_id;
+                            // Use reflection to disable Couchbase sync
+                            try {
+                                $reflection = new ReflectionClass($ssa);
+                                $property = $reflection->getProperty('_couchbaseSyncDisabled');
+                                $property->setAccessible(true);
+                                $property->setValue($ssa, true);
+                            } catch (Exception $e) {
+                                // Ignore reflection errors, just proceed
+                            }
+                            if (!$ssa->save()) {
+                                throw new Exception('Unable to create ServiceSubspecialtyAssignment: ' . print_r($ssa->getErrors(), true));
+                            }
+                        } else {
+                            $ssa = $existing;
+                        }
+                    }
+                    $firm->service_subspecialty_assignment_id = $ssa->id;
+                }
+                
                 if (!$firm->save()) {
                     throw new Exception('Unable to save firm: ' . print_r($firm->getErrors(), true));
                 }

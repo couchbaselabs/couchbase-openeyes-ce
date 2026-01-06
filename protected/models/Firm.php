@@ -540,6 +540,8 @@ class Firm extends BaseActiveRecordVersioned
             if ($ssa) {
                 $this->service_subspecialty_assignment_id = $ssa->id;
             }
+            // Note: if no ServiceSubspecialtyAssignment exists, service_subspecialty_assignment_id remains NULL,
+            // which is allowed by the database schema
         }
 
         if ($this->service_email === "") {

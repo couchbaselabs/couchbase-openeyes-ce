@@ -128,9 +128,9 @@ class ExaminationElementAttributesController extends BaseAdminController
         if (!Yii::app()->request->isPostRequest) {
             $id = Yii::app()->request->getParam('id');
             if ($id) {
-                $this->redirect(array('edit', 'id' => $id));
+                Yii::app()->controller->redirect(array('edit', 'id' => $id));
             } else {
-                $this->redirect(array('list'));
+                Yii::app()->controller->redirect(array('list'));
             }
             return;
         }
@@ -142,7 +142,8 @@ class ExaminationElementAttributesController extends BaseAdminController
         
         // Check if POST data is null
         if (!$post) {
-                        Yii::app()->end();
+            echo 'error: No POST data provided';
+            Yii::app()->end();
         }
 
         $attributeId = isset($post['id']) ? $post['id'] : null;
@@ -159,10 +160,11 @@ class ExaminationElementAttributesController extends BaseAdminController
             $newOCEA->is_multiselect = $attributeIsMultiSelect;
 
             if ($newOCEA->save()) {
-                $this->redirect(array('list'));
+                Yii::app()->request->redirect(array('list'));
                 Yii::app()->end();
             } else {
-                                print_r($newOCEA->getErrors(), true);
+                echo 'error1';
+                print_r($newOCEA->getErrors(), true);
             }
         } else {
             //Add New
@@ -179,13 +181,15 @@ class ExaminationElementAttributesController extends BaseAdminController
                     $newOCEAE->element_type_id = $attributeElements;
 
                     if ($newOCEAE->save()) {
-                        $this->redirect(array('list'));
+                        Yii::app()->request->redirect(array('list'));
                         Yii::app()->end();
                     } else {
-                                                print_r($newOCEA->getErrors(), true);
+                        echo 'error';
+                        print_r($newOCEA->getErrors(), true);
                     }
                 } else {
-                                        print_r($newOCEA->getErrors(), true);
+                    echo 'error';
+                    print_r($newOCEA->getErrors(), true);
                 }
             } else {
                 //Edit
@@ -203,10 +207,11 @@ class ExaminationElementAttributesController extends BaseAdminController
                         $element->save();
                     }
 
-                    $this->redirect(array('list'));
+                    Yii::app()->request->redirect(array('list'));
                     Yii::app()->end();
                 } else {
-                                        print_r($newOCEA->getErrors(), true);
+                    echo 'error1';
+                    print_r($newOCEA->getErrors(), true);
                 }
             }
         }
@@ -246,7 +251,8 @@ class ExaminationElementAttributesController extends BaseAdminController
 
             if ($element && $this->isAttributeElementDeletable($element)) {
                 if (!$element->delete()) {
-                                        print_r($element->getErrors(), true);
+                    echo 'error';
+                    print_r($element->getErrors(), true);
                 }
             } else {
                 echo "Cannot delete; Attribute Element is in use";
@@ -257,7 +263,8 @@ class ExaminationElementAttributesController extends BaseAdminController
                 if ($attribute->delete()) {
                     echo true;
                 } else {
-                                        print_r($attribute->getErrors(), true);
+                    echo 'error';
+                    print_r($attribute->getErrors(), true);
                 }
             } else {
                 echo "Cannot delete; Attribute is in use";
