@@ -98,7 +98,8 @@ $primary_identifier_prompt = PatientIdentifierHelper::getIdentifierDefaultPrompt
                         $html .= ' is a ' . $relationship->relationship->relationship . ' to the patient.';
                         $html .= '</li>';
                     }
-                    return $html .= '<ul>';
+                    $html .= '</ul>';
+                    return $html;
                 }
             ),
              array(
