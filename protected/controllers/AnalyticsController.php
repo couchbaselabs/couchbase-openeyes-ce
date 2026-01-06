@@ -62,8 +62,13 @@ class AnalyticsController extends BaseController
     {
         $ret = null;
         $params = Yii::app()->request->getParam('params');
+        
+        // Ensure params is an array to prevent null access errors
+        if (!is_array($params)) {
+            $params = array();
+        }
 
-        if (is_array($params) && array_key_exists('report_type',$params) && $params['report_type'] === 'vf') {
+        if (array_key_exists('report_type',$params) && $params['report_type'] === 'vf') {
             $ret = $this->getVfPatientList($params);
         } else {
             $ret = $this->getPatientList($params);
@@ -437,7 +442,7 @@ class AnalyticsController extends BaseController
                     $headers = array_keys($patient_list['res'][0]);
                 }
             }
-            $data = isset($event_list) ? count($event_list) : (is_array($patient_list) ? count($patient_list) : 0);
+            $data = isset($event_list) ? count($event_list) : (isset($patient_list) && isset($patient_list['res']) ? count($patient_list['res']) : 0);
             if ($data > 0) {
                 $dom = $this->renderPartial(
                     '/analytics/analytics_drill_down_list',
