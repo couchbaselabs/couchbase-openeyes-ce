@@ -97,9 +97,12 @@ class OperativeDeviceMappingController extends ModuleAdminController
                 echo 'error';
                 return;
             }
-            if ($leafletSubspecialy = SiteSubspecialtyOperativeDevice::model()->findByPk($itemId)) {
-                $leafletSubspecialy->delete();
-                echo 'success';
+            if ($mapping = SiteSubspecialtyOperativeDevice::model()->findByPk($itemId)) {
+                if ($mapping->delete()) {
+                    echo 'success';
+                } else {
+                    echo 'error';
+                }
             } else {
                 echo 'error';
             }
