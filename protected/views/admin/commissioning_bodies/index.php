@@ -38,7 +38,7 @@
                     </td>
                     <td><?php echo $cb->code ?></td>
                     <td><?php echo $cb->name ?></td>
-                    <td><?php echo $cb->type->name ?></td>
+                    <td><?php echo $cb->type ? $cb->type->name : 'None' ?></td>
                     <td><?php echo $cb->address ? $cb->address->address1 : 'None' ?></td>
                 </tr>
             <?php } ?>

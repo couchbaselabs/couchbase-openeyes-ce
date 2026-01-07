@@ -173,4 +173,64 @@ class AuthAssignment extends BaseActiveRecord
         parent::afterDelete();
         $this->deleteFromCouchbase();
     }
+
+    /**
+     * Override exists to ensure userid is cast to string for Couchbase comparison
+     * The authassignment table stores userid as a string, but queries often pass integers
+     * @param mixed $condition
+     * @param array $params
+     * @return bool
+     */
+    public function exists($condition = '', $params = [])
+    {
+        // Cast userid parameter to string for proper Couchbase N1QL comparison
+        foreach ($params as $key => $value) {
+            // Handle both :uid and uid style parameters
+            $cleanKey = ltrim($key, ':');
+            if (in_array($cleanKey, ['uid', 'userid', 'user_id']) && is_numeric($value)) {
+                $params[$key] = (string)$value;
+            }
+        }
+        
+        // Check if we should read from Couchbase
+        if ($this->shouldReadFromCouchbase()) {
+            return $this->existsInCouchbase($condition, $params);
+        }
+        
+        return parent::exists($condition, $params);
+    }
+    
+    /**
+     * Check if record exists in Couchbase
+     * @param mixed $condition SQL condition
+     * @param array $params Query parameters
+     * @return bool
+     */
+    protected function existsInCouchbase($condition, $params = [])
+    {
+        $scope = $this->couchbaseScope();
+        $collection = $this->couchbaseCollection();
+        
+        // Build N1QL query
+        $n1ql = "SELECT 1 FROM `openeyes`.`{$scope}`.`{$collection}` WHERE 1=1";
+        
+        // Convert SQL condition to N1QL
+        if (!empty($condition)) {
+            // Convert Yii-style :param placeholders to N1QL $param style
+            $n1qlCondition = preg_replace('/:([a-zA-Z_][a-zA-Z0-9_]*)/', '\$$1', $condition);
+            $n1ql .= " AND ({$n1qlCondition})";
+        }
+        
+        $n1ql .= " LIMIT 1";
+        
+        \Yii::log("AuthAssignment.existsInCouchbase: {$n1ql}, params: " . json_encode($params), \CLogger::LEVEL_INFO, 'application.couchbase');
+        
+        try {
+            $results = $this->executeN1ql($n1ql, $params);
+            return !empty($results);
+        } catch (\Exception $e) {
+            \Yii::log("AuthAssignment.existsInCouchbase failed: " . $e->getMessage(), \CLogger::LEVEL_ERROR, 'application.couchbase');
+            return false;
+        }
+    }
 }

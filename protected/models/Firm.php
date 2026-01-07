@@ -410,7 +410,7 @@ class Firm extends BaseActiveRecordVersioned
         $data = array();
         foreach ($firms as $firm) {
             $display = $firm['name'];
-            if ($firm['subspecialty']) {
+            if (isset($firm['subspecialty']) && $firm['subspecialty']) {
                 $display .= ' (' . $firm['subspecialty'] . ')';
             }
             $data[$firm['id']] = $display;

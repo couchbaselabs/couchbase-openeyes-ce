@@ -57,6 +57,32 @@ return [
         'firm_user_assignment',
         'service',
         'service_subspecialty_assignment',
+        
+        // Consent Module (OphTrConsent)
+        'ophtrconsent_type_type',
+        'ophtrconsent_type_assessment',
+        'ophtrconsent_additional_risk',
+        'ophtrconsent_additional_risk_subspecialty_assignment',
+        'ophtrconsent_patient_contact_method',
+        'ophtrconsent_procedure_extra',
+        'ophtrconsent_extra_proc_subspecialty_assignment',
+        'ophtrconsent_template',
+        'ophtrconsent_template_procedure',
+        'ophtrconsent_leaflets',
+        'ophtrconsent_leaflet_firm',
+        'ophtrconsent_leaflet_subspecialty',
+        'ophtrconsent_patient_relationship',
+        'ophtrconsent_supplementary_consent_question_type',
+        'ophtrconsent_supplementary_consent_question_assignment',
+        'ophtrconsent_supplementary_consent_question_answer',
+        'ophtrconsent_authorised_decision',
+        'ophtrconsent_considered_decision',
+        'ophtrconsent_lack_of_capacity_reason',
+        'ophtrconsent_medical_capacity_advocate_instructed',
+        'ophtrconsent_paper_copies',
+        'ophtrconsent_signature',
+        'ophtrconsent_procedure_anaesthetic_type',
+        'ophtrconsent_procedure_extra_assignment',
     ],
     
     // ============================================
@@ -400,6 +426,9 @@ return [
         'pedigree_gene',
         'pedigree_inheritance',
         'pedigree_status',
+        // Consent Reference Data
+        'ophtrconsent_leaflet',
+        'ophtrconsent_supplementary_consent_question',
         // PASAPI - XPath Remapping
         'pasapi_xpath_remap',
     ],

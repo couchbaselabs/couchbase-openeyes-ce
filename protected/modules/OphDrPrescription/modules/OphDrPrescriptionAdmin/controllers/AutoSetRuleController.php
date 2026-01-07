@@ -101,8 +101,21 @@ class AutoSetRuleController extends BaseAdminController
     {
         $criteria = new \CDbCriteria();
 
-        $criteria->with = ['medicationSetRules'];
-        $criteria->together = true;
+        // Check if we need to filter by related table fields (site_id, subspecialty_id)
+        $needsRelatedFilter = false;
+        foreach (['site_id', 'subspecialty_id'] as $search_key) {
+            if (isset($filters[$search_key]) && $filters[$search_key]) {
+                $needsRelatedFilter = true;
+                break;
+            }
+        }
+
+        // Only use eager loading with JOINs if we need to filter by related fields
+        // This is incompatible with Couchbase N1QL, so skip it when not needed
+        if ($needsRelatedFilter) {
+            $criteria->with = ['medicationSetRules'];
+            $criteria->together = true;
+        }
 
         if (isset($filters['usage_code_ids']) &&
             $filters['usage_code_ids'] &&
@@ -116,10 +129,13 @@ class AutoSetRuleController extends BaseAdminController
 
         $criteria->addCondition("automatic = 1");
 
-        foreach (['site_id', 'subspecialty_id'] as $search_key) {
-            if (isset($filters[$search_key]) && $filters[$search_key]) {
-                $criteria->addCondition("medicationSetRules . {$search_key} = :$search_key");
-                $criteria->params[":$search_key"] = $filters[$search_key];
+        // Only add related table conditions if we're using eager loading
+        if ($needsRelatedFilter) {
+            foreach (['site_id', 'subspecialty_id'] as $search_key) {
+                if (isset($filters[$search_key]) && $filters[$search_key]) {
+                    $criteria->addCondition("medicationSetRules . {$search_key} = :$search_key");
+                    $criteria->params[":$search_key"] = $filters[$search_key];
+                }
             }
         }
 

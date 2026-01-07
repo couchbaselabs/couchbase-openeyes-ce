@@ -44,11 +44,13 @@
             <tbody>
             <?php
             $criteria = new CDbCriteria();
-            $criteria->with = array('commissioning_body');
-            $criteria->order = 'LOWER(t.name) asc';
+            // Note: Removed eager loading with 'with' clause as it's not compatible with Couchbase
+            // Relations will be loaded lazily when accessed
+            $criteria->order = 'LOWER(name) asc';
 
             if (isset($commissioning_bt)) {
-                $criteria->addColumnCondition(array('commissioning_body.commissioning_body_type_id' => $commissioning_bt->id));
+                $criteria->addCondition('commissioning_body_id IN (SELECT id FROM commissioning_body WHERE commissioning_body_type_id = :cbt_id)');
+                $criteria->params[':cbt_id'] = $commissioning_bt->id;
                 $url_query = 'commissioning_body_type_id=' . $commissioning_bt->id;
             }
             if (isset($service_type)) {
@@ -65,7 +67,7 @@
                                class="wards"/></td>
                     <td><?php echo $cbs->code ?></td>
                     <td><?php echo $cbs->name ?></td>
-                    <td><?php echo $cbs->type->name ?></td>
+                    <td><?php echo $cbs->type ? $cbs->type->name : '-' ?></td>
                     <td><?php echo $cbs->commissioning_body ? $cbs->commissioning_body->name : 'None' ?></td>
                 </tr>
             <?php } ?>

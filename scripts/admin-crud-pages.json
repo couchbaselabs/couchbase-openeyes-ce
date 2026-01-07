@@ -1,7 +1,10 @@
 {
-  "description": "Admin pages that require CRUD verification (create -> list visibility check)",
+  "description": "Admin pages that require CRUD verification (create -> list visibility check). This tests the full round-trip: create data -> refresh page -> verify data is visible.",
+  "version": "2.0",
+  "lastUpdated": "2026-01-07",
   "pages": [
     {
+      "category": "Genetics",
       "url": "/Genetics/aminoAcidChangeAdmin",
       "listUrl": "/Genetics/aminoAcidChangeAdmin/list",
       "model": "PedigreeAminoAcidChangeType",
@@ -10,6 +13,7 @@
       "listSelector": "table tbody, .admin-list"
     },
     {
+      "category": "Genetics",
       "url": "/Genetics/gene",
       "listUrl": "/Genetics/gene/list",
       "model": "PedigreeGene",
@@ -18,6 +22,7 @@
       "listSelector": "table tbody"
     },
     {
+      "category": "Genetics",
       "url": "/Genetics/baseChangeAdmin",
       "listUrl": "/Genetics/baseChangeAdmin/list",
       "model": "PedigreeBaseChangeType",
@@ -26,14 +31,17 @@
       "listSelector": "table tbody"
     },
     {
+      "category": "Admin",
       "url": "/admin/users",
       "model": "User",
       "displayField": "username",
       "createFields": { "username": "testuser", "first_name": "Test", "last_name": "User" },
       "listSelector": "table tbody",
-      "skipAutoCreate": true
+      "skipAutoCreate": true,
+      "notes": "User creation has complex requirements"
     },
     {
+      "category": "Admin",
       "url": "/admin/contactlabels",
       "listUrl": "/admin/contactlabels",
       "model": "ContactLabel",
@@ -42,51 +50,62 @@
       "listSelector": "table tbody"
     },
     {
+      "category": "Admin",
+      "url": "/oeadmin/team",
+      "listUrl": "/oeadmin/team/list",
+      "model": "Team",
+      "displayField": "name",
+      "createFields": { "name": "Test Team" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Admin",
+      "url": "/admin/addresstypes",
+      "listUrl": "/admin/addresstypes",
+      "model": "AddressType",
+      "displayField": "name",
+      "createFields": { "name": "Test Address Type" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Admin",
+      "url": "/admin/countries",
+      "listUrl": "/admin/countries",
+      "model": "Country",
+      "displayField": "name",
+      "createFields": { "name": "Test Country", "code": "TC" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Admin",
+      "url": "/admin/ethnicgroups",
+      "listUrl": "/admin/ethnicgroups",
+      "model": "EthnicGroup",
+      "displayField": "name",
+      "createFields": { "name": "Test Ethnic Group" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "PatientTicketing",
       "url": "/PatientTicketing/admin",
       "model": "OEModule\\PatientTicketing\\models\\QueueSet",
       "displayField": "name",
       "createFields": { "name": "Test Queue Set" },
       "listSelector": "[data-test='patient-ticketing-list']",
-      "skipAutoCreate": true
+      "skipAutoCreate": true,
+      "notes": "Queue sets require complex setup"
     },
     {
+      "category": "OphCiExamination",
       "url": "/OphCiExamination/admin/postOpComplications",
       "listUrl": "/OphCiExamination/admin/postOpComplications",
       "model": "OEModule\\OphCiExamination\\models\\OphCiExamination_PostOpComplications",
       "displayField": "name",
       "createFields": { "name": "Test Complication" },
-      "listSelector": "[data-test='complications-select']"
+      "listSelector": "table tbody, [data-test='complications-select']"
     },
     {
-      "url": "/OphCoCorrespondence/admin/letterMacros",
-      "listUrl": "/OphCoCorrespondence/admin/letterMacros",
-      "model": "LetterMacro",
-      "displayField": "name",
-      "createFields": { "name": "Test Macro", "body": "Test body" },
-      "listSelector": "table tbody"
-    },
-    {
-      "url": "/admin/commonOphthalmicDisorder",
-      "model": "CommonOphthalmicDisorder",
-      "displayField": "disorder.term",
-      "listSelector": "table tbody",
-      "skipAutoCreate": true
-    },
-    {
-      "url": "/admin/commonSystemicDisorder",
-      "model": "CommonSystemicDisorder", 
-      "displayField": "disorder.term",
-      "listSelector": "table tbody",
-      "skipAutoCreate": true
-    },
-    {
-      "url": "/OphDrPrescription/admin/commonMedications",
-      "model": "SiteSubspecialtyDrug",
-      "displayField": "drug.name",
-      "listSelector": "table tbody",
-      "skipAutoCreate": true
-    },
-    {
+      "category": "OphCiExamination",
       "url": "/OphCiExamination/admin/risks",
       "listUrl": "/OphCiExamination/admin/risks",
       "model": "OEModule\\OphCiExamination\\models\\OphCiExaminationRisk",
@@ -95,6 +114,7 @@
       "listSelector": "table tbody"
     },
     {
+      "category": "OphCiExamination",
       "url": "/OphCiExamination/admin/socialHistoryDrivingStatus",
       "listUrl": "/OphCiExamination/admin/socialHistoryDrivingStatus",
       "model": "OEModule\\OphCiExamination\\models\\SocialHistoryDrivingStatus",
@@ -103,12 +123,221 @@
       "listSelector": "table tbody"
     },
     {
-      "url": "/oeadmin/team",
-      "listUrl": "/oeadmin/team/list",
-      "model": "Team",
+      "category": "OphCiExamination",
+      "url": "/OphCiExamination/admin/allergyReaction",
+      "listUrl": "/OphCiExamination/admin/allergyReaction",
+      "model": "OEModule\\OphCiExamination\\models\\OphCiExamination_Allergy_Reaction",
       "displayField": "name",
-      "createFields": { "name": "Test Team" },
+      "createFields": { "name": "Test Allergy Reaction" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphCoCorrespondence",
+      "url": "/OphCoCorrespondence/admin/letterMacros",
+      "listUrl": "/OphCoCorrespondence/admin/letterMacros",
+      "model": "LetterMacro",
+      "displayField": "name",
+      "createFields": { "name": "Test Macro", "body": "Test body" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Clinical",
+      "url": "/admin/commonOphthalmicDisorder",
+      "model": "CommonOphthalmicDisorder",
+      "displayField": "disorder.term",
+      "listSelector": "table tbody",
+      "skipAutoCreate": true,
+      "notes": "Requires existing disorder reference"
+    },
+    {
+      "category": "Clinical",
+      "url": "/admin/commonSystemicDisorder",
+      "model": "CommonSystemicDisorder", 
+      "displayField": "disorder.term",
+      "listSelector": "table tbody",
+      "skipAutoCreate": true,
+      "notes": "Requires existing disorder reference"
+    },
+    {
+      "category": "Clinical",
+      "url": "/admin/allergies",
+      "listUrl": "/admin/allergies",
+      "model": "Allergy",
+      "displayField": "name",
+      "createFields": { "name": "Test Allergy" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Clinical",
+      "url": "/admin/risks",
+      "listUrl": "/admin/risks",
+      "model": "Risk",
+      "displayField": "name",
+      "createFields": { "name": "Test Risk" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Clinical",
+      "url": "/admin/commissioningBodyTypes",
+      "listUrl": "/admin/commissioningBodyTypes",
+      "model": "CommissioningBodyType",
+      "displayField": "name",
+      "createFields": { "name": "Test CBT", "shortname": "TCBT" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Prescription",
+      "url": "/OphDrPrescription/admin/commonMedications",
+      "model": "SiteSubspecialtyDrug",
+      "displayField": "drug.name",
+      "listSelector": "table tbody",
+      "skipAutoCreate": true,
+      "notes": "Requires existing drug reference"
+    },
+    {
+      "category": "Reference",
+      "url": "/admin/procedures",
+      "listUrl": "/admin/procedures",
+      "model": "Procedure",
+      "displayField": "term",
+      "createFields": { "term": "Test Procedure", "short_format": "TP", "snomed_code": "99999" },
+      "listSelector": "table tbody",
+      "skipAutoCreate": true,
+      "notes": "Procedures have complex requirements"
+    },
+    {
+      "category": "Reference",
+      "url": "/admin/benefits",
+      "listUrl": "/admin/benefits",
+      "model": "Benefit",
+      "displayField": "name",
+      "createFields": { "name": "Test Benefit" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Reference",
+      "url": "/admin/complications",
+      "listUrl": "/admin/complications",
+      "model": "Complication",
+      "displayField": "name",
+      "createFields": { "name": "Test Complication" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Reference",
+      "url": "/admin/anaestheticAgents",
+      "listUrl": "/admin/anaestheticAgents",
+      "model": "AnaestheticAgent",
+      "displayField": "name",
+      "createFields": { "name": "Test Anaesthetic Agent" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Reference",
+      "url": "/admin/anaestheticDelivery",
+      "listUrl": "/admin/anaestheticDelivery",
+      "model": "AnaestheticDelivery",
+      "displayField": "name",
+      "createFields": { "name": "Test Delivery" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "Pathway",
+      "url": "/admin/pathwayStepTypes",
+      "listUrl": "/admin/pathwayStepTypes",
+      "model": "PathwayStepType",
+      "displayField": "long_name",
+      "createFields": { "long_name": "Test Step Type", "short_name": "TST" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphTrOperationbooking",
+      "url": "/OphTrOperationbooking/admin/sequences",
+      "model": "OEModule\\OphTrOperationbooking\\models\\OphTrOperationbooking_Operation_Sequence",
+      "displayField": "name",
+      "listSelector": "table tbody",
+      "skipAutoCreate": true,
+      "notes": "Sequences require theatre/session setup"
+    },
+    {
+      "category": "OphTrLaser",
+      "url": "/OphTrLaser/admin/laserProcedures",
+      "listUrl": "/OphTrLaser/admin/laserProcedures",
+      "model": "OEModule\\OphTrLaser\\models\\OphTrLaser_LaserProcedure",
+      "displayField": "name",
+      "createFields": { "name": "Test Laser Procedure" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphInGeneticresults",
+      "url": "/OphInGeneticresults/methodAdmin/list",
+      "model": "OEModule\\OphInGeneticresults\\models\\OphInGeneticresults_Test_Method",
+      "displayField": "name",
+      "createFields": { "name": "Test Method" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphInGeneticresults",
+      "url": "/OphInGeneticresults/effectAdmin/list",
+      "model": "OEModule\\OphInGeneticresults\\models\\OphInGeneticresults_Test_Effect",
+      "displayField": "name",
+      "createFields": { "name": "Test Effect" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphTrConsent",
+      "url": "/OphTrConsent/oeadmin/PatientRelationship/list",
+      "model": "OphTrConsent_PatientRelationship",
+      "displayField": "name",
+      "createFields": { "name": "Test Relationship" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphTrConsent",
+      "url": "/OphTrConsent/oeadmin/PatientContactMethod/list",
+      "model": "OphTrConsent_PatientContactMethod",
+      "displayField": "name",
+      "createFields": { "name": "Test Contact Method" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphTrConsent",
+      "url": "/OphTrConsent/oeadmin/AdditionalRisks/list",
+      "model": "OphTrConsent_AdditionalRisk",
+      "displayField": "name",
+      "createFields": { "name": "Test Additional Risk" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphTrConsent",
+      "url": "/OphTrConsent/oeadmin/Leaflets/list",
+      "model": "OphTrConsent_Leaflet",
+      "displayField": "name",
+      "createFields": { "name": "Test Leaflet" },
+      "listSelector": "table tbody"
+    },
+    {
+      "category": "OphTrConsent",
+      "url": "/OphTrConsent/oeadmin/Template/list",
+      "model": "OphTrConsent_Template",
+      "displayField": "name",
+      "createFields": { "name": "Test Template" },
       "listSelector": "table tbody"
     }
-  ]
+  ],
+  "categories": {
+    "Genetics": "Genetics module admin pages",
+    "Admin": "Core admin pages",
+    "PatientTicketing": "Patient ticketing/queue management",
+    "OphCiExamination": "Examination module admin",
+    "OphCoCorrespondence": "Correspondence module admin",
+    "Clinical": "Clinical reference data",
+    "Prescription": "Prescription module admin",
+    "Reference": "Reference data admin",
+    "Pathway": "Pathway configuration",
+    "OphTrOperationbooking": "Operation booking admin",
+    "OphTrLaser": "Laser treatment admin",
+    "OphInGeneticresults": "Genetic results admin",
+    "OphTrConsent": "Consent form admin"
+  }
 }

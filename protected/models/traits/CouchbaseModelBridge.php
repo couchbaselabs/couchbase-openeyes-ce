@@ -61,8 +61,11 @@ trait CouchbaseModelBridge
      */
     protected function shouldReadFromCouchbase()
     {
+        $modelClass = (new \ReflectionClass($this))->getShortName();
+        
         // First check if MariaDB is unavailable - always use Couchbase then
         if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+            \Yii::log("shouldReadFromCouchbase({$modelClass}): true (MariaDB unavailable)", \CLogger::LEVEL_INFO, 'application.couchbase.routing');
             return true;
         }
         
@@ -72,21 +75,25 @@ trait CouchbaseModelBridge
                 $manager = \CouchbaseCutoverManager::getInstance();
                 $config = $manager->getConfig();
                 
+                \Yii::log("shouldReadFromCouchbase({$modelClass}): config read_source={$config['read_source']}, enabled={$config['enabled']}, emergency_disable={$config['emergency_disable']}", \CLogger::LEVEL_INFO, 'application.couchbase.routing');
+                
                 // Only route to Couchbase if read_source is explicitly 'couchbase'
                 // AND we're not in emergency_disable mode
                 if ($config['read_source'] === 'couchbase' && 
                     !$config['emergency_disable'] && 
                     $config['enabled']) {
-                    // Get the short model class name for the cutover manager
-                    $modelClass = (new \ReflectionClass($this))->getShortName();
-                    return $manager->shouldUseCouchbase($modelClass, 'read');
+                    $result = $manager->shouldUseCouchbase($modelClass, 'read');
+                    \Yii::log("shouldReadFromCouchbase({$modelClass}): manager->shouldUseCouchbase returned " . ($result ? 'true' : 'false'), \CLogger::LEVEL_INFO, 'application.couchbase.routing');
+                    return $result;
                 }
             } catch (\Exception $e) {
+                \Yii::log("shouldReadFromCouchbase({$modelClass}): exception " . $e->getMessage(), \CLogger::LEVEL_ERROR, 'application.couchbase.routing');
                 // Fall back to MariaDB on error
             }
         }
         
         // Default: use MariaDB
+        \Yii::log("shouldReadFromCouchbase({$modelClass}): false (default)", \CLogger::LEVEL_INFO, 'application.couchbase.routing');
         return false;
     }
     
@@ -163,6 +170,195 @@ trait CouchbaseModelBridge
         }
         
         return 'mariadb_only';
+    }
+    
+    /**
+     * Override save to handle couchbase_primary mode
+     * In couchbase_primary mode, skip MariaDB and write directly to Couchbase
+     * 
+     * @param bool $runValidation
+     * @param array $attributes
+     * @param bool $allow_overriding - if true allows created/modified user/date to be set via the model
+     * @return bool
+     */
+    public function save($runValidation = true, $attributes = null, $allow_overriding = false)
+    {
+        // For couchbase_primary mode, we need special handling
+        if ($this->getWriteMode() === 'couchbase_primary') {
+            return $this->saveToCouchbasePrimary($runValidation, $attributes, $allow_overriding);
+        }
+        
+        // For dual_write or mariadb_only modes, use parent save (with afterSave hook for Couchbase)
+        return parent::save($runValidation, $attributes, $allow_overriding);
+    }
+    
+    /**
+     * Save directly to Couchbase (primary mode)
+     * This bypasses MariaDB completely
+     * 
+     * @param bool $runValidation
+     * @param array $attributes
+     * @param bool $allow_overriding - if true allows created/modified user/date to be set via the model
+     * @return bool
+     */
+    protected function saveToCouchbasePrimary($runValidation = true, $attributes = null, $allow_overriding = false)
+    {
+        // Run validation if requested
+        if ($runValidation && !$this->validate($attributes)) {
+            return false;
+        }
+        
+        // Set timestamps and user IDs (mimicking BaseActiveRecord behavior)
+        // Handle models that don't extend BaseActiveRecord and don't have getChangeUserId()
+        $user_id = null;
+        if (method_exists($this, 'getChangeUserId')) {
+            $user_id = $this->getChangeUserId();
+        } elseif (\Yii::app()->user && \Yii::app()->user->id) {
+            $user_id = \Yii::app()->user->id;
+        }
+        $now = date('Y-m-d H:i:s');
+        
+        $isNewRecord = $this->getIsNewRecord();
+        
+        if ($isNewRecord) {
+            // Generate a new ID for new records
+            if (!$this->id) {
+                $this->id = $this->generateCouchbaseId();
+            }
+            if ($this->hasAttribute('created_user_id') && !$allow_overriding) {
+                $this->created_user_id = $user_id;
+            }
+            if ($this->hasAttribute('created_date') && (!$allow_overriding || $this->created_date == '1900-01-01 00:00:00')) {
+                $this->created_date = $now;
+            }
+        }
+        
+        if ($this->hasAttribute('last_modified_user_id') && !$allow_overriding) {
+            $this->last_modified_user_id = $user_id;
+        }
+        if ($this->hasAttribute('last_modified_date') && (!$allow_overriding || $this->last_modified_date == '1900-01-01 00:00:00')) {
+            $this->last_modified_date = $now;
+        }
+        
+        // Call beforeSave
+        if (!$this->beforeSave()) {
+            return false;
+        }
+        
+        try {
+            $restClient = \Yii::app()->couchbaseRest;
+            $doc = $this->toCouchbaseDocument();
+            $scope = $this->couchbaseScope();
+            $collection = $this->couchbaseCollection();
+            $pk = $this->getPrimaryKey();
+            $docId = $collection . '::' . $pk;
+            
+            // Upsert via REST API
+            $restClient->upsert($scope, $collection, $docId, $doc);
+            
+            // Mark as not new after successful save
+            if ($isNewRecord) {
+                $this->setIsNewRecord(false);
+            }
+            
+            // Call afterSave (but skip the Couchbase sync since we already saved)
+            $this->_couchbaseSyncDisabled = true;
+            $this->afterSave();
+            $this->_couchbaseSyncDisabled = false;
+            
+            return true;
+        } catch (\Exception $e) {
+            \Yii::log(
+                "Couchbase primary save failed for {$this->tableName()}: " . $e->getMessage() . "\nStack: " . $e->getTraceAsString(),
+                \CLogger::LEVEL_ERROR,
+                'application.couchbase'
+            );
+            // Add error to model so it can be displayed
+            $this->addError('id', 'Failed to save to Couchbase: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Generate a unique ID for Couchbase documents
+     * Uses a combination of timestamp and random bytes for uniqueness
+     * 
+     * @return int
+     */
+    protected function generateCouchbaseId()
+    {
+        // Get next ID from Couchbase counter or generate a unique one
+        try {
+            $restClient = \Yii::app()->couchbaseRest;
+            $scope = $this->couchbaseScope();
+            $collection = $this->couchbaseCollection();
+            
+            // Try to get the max ID from the collection and increment
+            $result = $restClient->query(
+                "SELECT MAX(id) as max_id FROM `openeyes`.`{$scope}`.`{$collection}`"
+            );
+            
+            $maxId = isset($result[0]['max_id']) ? (int)$result[0]['max_id'] : 0;
+            return $maxId + 1;
+        } catch (\Exception $e) {
+            // Fallback: use timestamp-based ID
+            return (int)(microtime(true) * 1000) % PHP_INT_MAX;
+        }
+    }
+    
+    /**
+     * Override delete to handle couchbase_primary mode
+     * In couchbase_primary mode, delete from Couchbase instead of MariaDB
+     * 
+     * @return bool
+     */
+    public function delete()
+    {
+        // For couchbase_primary mode, delete from Couchbase
+        if ($this->getWriteMode() === 'couchbase_primary') {
+            return $this->deleteFromCouchbasePrimary();
+        }
+        
+        // For other modes, use parent delete (with afterDelete hook for Couchbase)
+        return parent::delete();
+    }
+    
+    /**
+     * Delete from Couchbase (primary mode)
+     * This bypasses MariaDB completely
+     * 
+     * @return bool
+     */
+    protected function deleteFromCouchbasePrimary()
+    {
+        // Call beforeDelete
+        if (!$this->beforeDelete()) {
+            return false;
+        }
+        
+        try {
+            $restClient = \Yii::app()->couchbaseRest;
+            $scope = $this->couchbaseScope();
+            $collection = $this->couchbaseCollection();
+            $pk = $this->getPrimaryKey();
+            $docId = $collection . '::' . $pk;
+            
+            $restClient->remove($scope, $collection, $docId);
+            
+            // Call afterDelete (but skip the Couchbase sync since we already deleted)
+            $this->_couchbaseSyncDisabled = true;
+            $this->afterDelete();
+            $this->_couchbaseSyncDisabled = false;
+            
+            return true;
+        } catch (\Exception $e) {
+            \Yii::log(
+                "Couchbase primary delete failed for {$this->tableName()}: " . $e->getMessage(),
+                \CLogger::LEVEL_ERROR,
+                'application.couchbase'
+            );
+            return false;
+        }
     }
     
     /**
@@ -310,6 +506,7 @@ trait CouchbaseModelBridge
     
     /**
      * Save to Couchbase (for dual-write support)
+     * Uses REST API instead of SDK to avoid ARM64 crashes
      * @return bool Success status
      */
     protected function saveToCouchbase()
@@ -328,12 +525,16 @@ trait CouchbaseModelBridge
         }
         
         try {
-            $adapter = $this->getCouchbaseAdapter();
+            // Use REST API instead of SDK (bypasses ARM64 crash issues)
+            $restClient = \Yii::app()->couchbaseRest;
             $doc = $this->toCouchbaseDocument();
+            $scope = $this->couchbaseScope();
             $collection = $this->couchbaseCollection();
             $pk = $this->getPrimaryKey();
-            // Upsert to avoid document_exists errors when a document already exists in Couchbase
-            $adapter->upsert($collection, $pk, $doc);
+            $docId = $collection . '::' . $pk;
+            
+            // Upsert via REST API
+            $restClient->upsert($scope, $collection, $docId, $doc);
             
             // Call hook if exists
             if (method_exists($this, 'afterCouchbaseSync')) {
@@ -357,6 +558,7 @@ trait CouchbaseModelBridge
     
     /**
      * Delete from Couchbase (for dual-write support)
+     * Uses REST API instead of SDK to avoid ARM64 crashes
      * @return bool Success status
      */
     protected function deleteFromCouchbase()
@@ -369,8 +571,14 @@ trait CouchbaseModelBridge
         }
         
         try {
-            $adapter = $this->getCouchbaseAdapter();
-            $adapter->delete($this->couchbaseCollection(), $this->getPrimaryKey());
+            // Use REST API instead of SDK (bypasses ARM64 crash issues)
+            $restClient = \Yii::app()->couchbaseRest;
+            $scope = $this->couchbaseScope();
+            $collection = $this->couchbaseCollection();
+            $pk = $this->getPrimaryKey();
+            $docId = $collection . '::' . $pk;
+            
+            $restClient->remove($scope, $collection, $docId);
             return true;
         } catch (\Exception $e) {
             \Yii::log(
@@ -967,14 +1175,38 @@ trait CouchbaseModelBridge
             $params = $newParams;
         }
         
-        // Handle boolean-like fields that may be stored as strings in Couchbase
-        // Convert `active = 1` to `(active = 1 OR active = "1")` for type-agnostic matching
+        // Handle boolean-like fields that may be stored as strings or booleans in Couchbase
+        // Convert `active = 1` to `(active = 1 OR active = "1" OR active = true)` for type-agnostic matching
         $booleanFields = ['active', 'is_active', 'enabled', 'default', 'deleted'];
         foreach ($booleanFields as $field) {
-            // Match patterns like `active = 1`, `active=1`, active = 0, etc.
+            // Match patterns like `active = 1`, `active=1`, active = 0, etc. (literal values)
             $condition = preg_replace(
-                '/\b' . $field . '\s*=\s*([01])\b/',
-                '(' . $field . ' = $1 OR ' . $field . ' = "$1")',
+                '/`?' . $field . '`?\s*=\s*1\b/',
+                '(' . $field . ' = 1 OR ' . $field . ' = "1" OR ' . $field . ' = true)',
+                $condition
+            );
+            $condition = preg_replace(
+                '/`?' . $field . '`?\s*=\s*0\b/',
+                '(' . $field . ' = 0 OR ' . $field . ' = "0" OR ' . $field . ' = false)',
+                $condition
+            );
+            // Match patterns with parameters like `deleted`=$param - convert to boolean-aware check
+            $condition = preg_replace(
+                '/`?' . $field . '`?\s*=\s*(\$\w+)/',
+                '(' . $field . ' = $1 OR ' . $field . ' = (CASE WHEN $1 = 0 THEN false WHEN $1 = 1 THEN true ELSE $1 END))',
+                $condition
+            );
+        }
+        
+        // Convert LIKE to case-insensitive for name fields (MariaDB LIKE is case-insensitive, N1QL is not)
+        // Pattern matches: field LIKE $param or field LIKE 'value%'
+        // Converts: contact.last_name LIKE $ycp0 -> LOWER(contact.last_name) LIKE LOWER($ycp0)
+        $nameFields = ['first_name', 'last_name', 'maiden_name', 'nick_name', 'name'];
+        foreach ($nameFields as $field) {
+            // Match patterns like `contact.last_name LIKE $param` or `last_name LIKE $param`
+            $condition = preg_replace(
+                '/\b(contact\.)?' . $field . '\s+LIKE\s+(\$\w+|\'[^\']+\')/i',
+                'LOWER($1' . $field . ') LIKE LOWER($2)',
                 $condition
             );
         }
@@ -992,6 +1224,10 @@ trait CouchbaseModelBridge
         
         // Convert MySQL RAND() to N1QL RANDOM()
         $order = preg_replace('/\bRAND\s*\(\s*\)/i', 'RANDOM()', $order);
+        
+        // Escape 'value' which is a reserved word in N1QL
+        // Handle cases like "value*1 asc" or just "value"
+        $order = preg_replace('/\bvalue\b(?!\s*\`)/', '`value`', $order);
         
         return $order;
     }
@@ -1038,11 +1274,31 @@ trait CouchbaseModelBridge
     {
         // Convert Yii-style :param keys to N1QL $param keys
         $n1qlParams = [];
+        
+        // Keys that should REMAIN as strings even if they look like numbers
+        // because the data in Couchbase stores them as strings
+        $stringKeys = ['uid', 'userid', 'user_id'];
+        
         foreach ($params as $key => $value) {
             // Remove : prefix and add $ prefix for N1QL
             $cleanKey = ltrim($key, ':');
+            
+            // Check if this key should remain as string (userid fields)
+            $keepAsString = in_array(strtolower($cleanKey), $stringKeys);
+            
+            // Cast numeric string values to integers for proper N1QL type matching
+            // EXCEPT for userid fields which are stored as strings in Couchbase
+            // This is critical because Couchbase N1QL uses strict type comparison
+            // e.g., 4 != '4', so we need to convert "4" to 4 for most fields
+            if (!$keepAsString && is_string($value) && ctype_digit($value)) {
+                $value = (int)$value;
+            }
+            
             $n1qlParams[$cleanKey] = $value;
         }
+        
+        // Debug: Log final params being sent
+        \Yii::log('executeN1ql params after conversion: ' . json_encode($n1qlParams), \CLogger::LEVEL_INFO, 'application.couchbase.debug');
         
         // Use REST client to bypass SDK crash
         $restClient = \Yii::app()->couchbaseRest;

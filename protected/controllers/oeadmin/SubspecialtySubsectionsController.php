@@ -24,21 +24,16 @@ class SubspecialtySubsectionsController extends BaseAdminController
         $model = SubspecialtySubsection::model();
         $subspecialty_id = Yii::app()->request->getParam('subspecialty_id');
         
-        // Query directly using the MariaDB connection to avoid Couchbase errors
+        // Use model's findAllByAttributes to query from Couchbase
         $model_list = [];
         if ($subspecialty_id) {
-            $command = Yii::app()->db->createCommand()
-                ->select('*')
-                ->from('subspecialty_subsection')
-                ->where('subspecialty_id = :subspecialty_id', [':subspecialty_id' => $subspecialty_id])
-                ->order('display_order ASC');
-            
-            $rows = $command->queryAll();
-            foreach ($rows as $row) {
-                $subsection = new SubspecialtySubsection();
-                $subsection->setAttributes($row, false);
-                $model_list[] = $subsection;
-            }
+            // Use findAllByAttributes which works better with Couchbase N1QL
+            // Cast subspecialty_id to integer for proper N1QL matching
+            // Reset scopes to avoid defaultScope adding table alias that breaks N1QL
+            $model_list = SubspecialtySubsection::model()->resetScope()->findAllByAttributes(
+                ['subspecialty_id' => (int)$subspecialty_id],
+                ['order' => 'display_order ASC']
+            );
         }
 
         $assetManager = Yii::app()->getAssetManager();

@@ -47,7 +47,8 @@ class CouchbaseAuthManagerShim extends CDbAuthManager
             Yii::log("AuthManager Couchbase check failed: " . $e->getMessage(), CLogger::LEVEL_WARNING);
 
             try {
-                return AuthAssignment::model()->exists('itemname = :item AND userid = :uid', [':item' => $itemName, ':uid' => $userId]);
+                // Cast userId to string since authassignment stores userid as string
+                return AuthAssignment::model()->exists('itemname = :item AND userid = :uid', [':item' => $itemName, ':uid' => (string)$userId]);
             } catch (Exception $nested) {
                 Yii::log("AuthManager Couchbase fallback failed: " . $nested->getMessage(), CLogger::LEVEL_ERROR);
                 return false;

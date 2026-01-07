@@ -22,6 +22,8 @@ $config = [
             'rules' => [
                 'OphGeneric/admin/<controller:\w+>/<action:\w+>' => '/OphGeneric/OphGenericAdmin/<controller>/<action>',
                 'OphGeneric/admin/<controller:\w+>/<action:\w+>/<id:[\w\s]+>' => '/OphGeneric/OphGenericAdmin/<controller>/<action>',
+                'OphGeneric/admin/Default/<action:\w+>' => '/OphGeneric/OphGenericAdmin/default/<action>',
+                'OphGeneric/admin/Default/<action:\w+>/<id:[\w\s]+>' => '/OphGeneric/OphGenericAdmin/default/<action>',
             ]
         ]
     ]
