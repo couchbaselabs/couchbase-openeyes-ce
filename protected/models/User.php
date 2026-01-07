@@ -18,6 +18,7 @@
  */
 
 use OE\Models\Traits\CouchbaseModelBridge;
+use OE\factories\models\traits\HasFactory;
 use OEModule\OESysEvent\events\UserSavedSystemEvent;
 use OEModule\OphCoMessaging\models\Mailbox;
 use OEModule\OphCoMessaging\models\MailboxUser;
@@ -44,6 +45,7 @@ use OEModule\OphCoMessaging\models\MailboxUser;
 class User extends BaseActiveRecordVersioned
 {
     use CouchbaseModelBridge;
+    use HasFactory;
 
     private const PIN_REGEN_LIMIT = 5;
     /**

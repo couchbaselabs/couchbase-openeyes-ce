@@ -162,7 +162,7 @@ class DefaultController extends BaseEventTypeController
     public function actionWhiteboard($id = null)
     {
         if ($id === null) {
-            $this->render('whiteboard_no_id');
+            $this->redirect(Yii::app()->createUrl('/'));
         } else {
             $this->redirect(Yii::app()->createUrl('/OphTrOperationbooking/whiteboard/view/' . $id));
         }
@@ -1226,9 +1226,6 @@ class DefaultController extends BaseEventTypeController
     protected function getUserSettings($surgeon_id): array
     {
         $element_type = ElementType::model()->find('class_name = :class_name', array(':class_name' => 'Element_OphTrOperationnote_Cataract'));
-        if (!$element_type) {
-            return [];
-        }
         $user_settings = SettingUser::model()->findAll('user_id = :user_id AND element_type_id = :element_type_id', array(':user_id' => $surgeon_id, ':element_type_id' => $element_type->id));
         $settings = [];
 

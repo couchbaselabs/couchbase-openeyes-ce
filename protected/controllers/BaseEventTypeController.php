@@ -3204,7 +3204,7 @@ class BaseEventTypeController extends BaseModuleController
                 'active' => true,
             ),
         );
-        if ($this->editable) {
+        if ($this->editable && $this->event->eventType) {
             $this->event_tabs[] = array(
                 'label' => 'Edit',
                 'href' => Yii::app()->createUrl(

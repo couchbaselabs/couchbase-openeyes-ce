@@ -101,12 +101,15 @@
             ) ?>
 
           <h4>Status</h4>
+                <?php
+                $criteria = new CDbCriteria();
+                $criteria->addInCondition('name', array('On-Hold', 'Requires scheduling', 'Requires rescheduling'));
+                $statuses = OphTrOperationbooking_Operation_Status::model()->findAll($criteria);
+                ?>
                 <?=\CHtml::dropDownList(
                     'booking_status',
                     \Yii::app()->request->getParam('booking_status', ''),
-                    \CHtml::listData(OphTrOperationbooking_Operation_Status::model()->findAllByAttributes(
-                        [ 'name' => [ 'On-Hold', 'Requires scheduling', 'Requires rescheduling', ], ]
-                    ), 'id', 'name'),
+                    \CHtml::listData($statuses, 'id', 'name'),
                     array(
                         'empty' => 'All',
                         'class' => 'cols-full',

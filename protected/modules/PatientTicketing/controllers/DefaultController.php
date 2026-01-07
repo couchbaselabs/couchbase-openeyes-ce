@@ -455,22 +455,22 @@ class DefaultController extends \BaseModuleController
      */
     public function actionGetQueueAssignmentForm($id = null)
     {
-        if (!$id) {
-            throw new \CHttpException(404, 'Invalid queue id.');
-        }
-        if (!$q = models\Queue::model()->findByPk($id)) {
-            throw new \CHttpException(404, 'Invalid queue id.');
-        }
-
-        $qs_svc = Yii::app()->service->getService(self::$QUEUESET_SERVICE);
-        $queueset = $qs_svc->getQueueSetForQueue($q->id);
-
-        //anyone can process
-        /*if (!$this->checkQueueSetProcessAccess($queueset)) {
-            throw new \CHttpException(403, 'Not authorised to take ticket');
-        }*/
-
         $template_vars = array('queue_id' => $id, 'patient_id' => null);
+        
+        // If an ID is provided, validate the queue exists
+        if ($id) {
+            if (!$q = models\Queue::model()->findByPk($id)) {
+                throw new \CHttpException(404, 'Invalid queue id.');
+            }
+
+            $qs_svc = Yii::app()->service->getService(self::$QUEUESET_SERVICE);
+            $queueset = $qs_svc->getQueueSetForQueue($q->id);
+
+            //anyone can process
+            /*if (!$this->checkQueueSetProcessAccess($queueset)) {
+                throw new \CHttpException(403, 'Not authorised to take ticket');
+            }*/
+        }
         $p = new \CHtmlPurifier();
 
         foreach (array('label_width' => 2, 'data_width' => 8) as $id => $default) {
@@ -502,6 +502,11 @@ class DefaultController extends \BaseModuleController
      */
     public function actionMoveTicket($id = null)
     {
+        // Get ID from URL parameter or POST data
+        if (empty($id)) {
+            $id = \Yii::app()->request->getParam('ticket_id');
+        }
+        
         if (empty($id)) {
             throw new \CHttpException(400, 'Ticket ID is required.');
         }
@@ -644,8 +649,12 @@ class DefaultController extends \BaseModuleController
      *
      * @throws \CHttpException
      */
-    public function actionGetTicketTableRow($id)
+    public function actionGetTicketTableRow($id = null)
     {
+        if (empty($id)) {
+            throw new \CHttpException(400, 'Ticket ID is required.');
+        }
+        
         if (!$ticket = models\Ticket::model()->with('current_queue')->findByPk($id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
         }

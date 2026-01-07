@@ -43,6 +43,12 @@ class TransportController extends BaseModuleController
         );
     }
 
+    protected function beforeAction($action)
+    {
+        Yii::app()->clientScript->registerScriptFile($this->assetPath . '/js/TransportController.js');
+        return parent::beforeAction($action);
+    }
+
     /**
      * @return array
      *               (non-phpdoc)
@@ -229,7 +235,10 @@ class TransportController extends BaseModuleController
     {
         $operation_ids = (isset($_GET['operations'])) ? $_GET['operations'] : array();
         if (!is_array($operation_ids) || empty($operation_ids)) {
-            $this->redirect(array('index'));
+            !isset($_GET['include_bookings']) and $_GET['include_bookings'] = 1;
+            !isset($_GET['include_reschedules']) and $_GET['include_reschedules'] = 1;
+            !isset($_GET['include_cancellations']) and $_GET['include_cancellations'] = 1;
+            $this->render('index');
             return;
         }
         $bookings = OphTrOperationbooking_Operation_Booking::model()->findAllByPk($operation_ids);
@@ -268,6 +277,11 @@ class TransportController extends BaseModuleController
      */
     public function actionConfirm()
     {
+        // This action is intended for AJAX POST requests only
+        if (Yii::app()->request->getRequestType() !== 'POST') {
+            throw new CHttpException(405, 'This action requires a POST request.');
+        }
+
         if (is_array(@$_POST['operations'])) {
             foreach ($_POST['operations'] as $operation_id) {
                 if (!$operation = Element_OphTrOperationbooking_Operation::model()->with('latestBooking')->findByPk($operation_id)) {

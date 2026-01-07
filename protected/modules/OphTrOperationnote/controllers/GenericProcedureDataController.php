@@ -30,8 +30,10 @@ class GenericProcedureDataController extends ModuleAdminController
 
         $search = \Yii::app()->request->getPost('search', ['query' => '']);
         $criteria = new \CDbCriteria();
-        $criteria->with = 'procedure';
-        $criteria->order = 'term asc';
+        // Note: Removed eager loading ($criteria->with = 'procedure') because it caused 
+        // fallback to MariaDB which is not available in this Couchbase-enabled environment.
+        // The procedure relation will be lazy-loaded when accessed in the view.
+        $criteria->order = 'ophtroperationnote_generic_procedure_data.id asc';
 
         if (Yii::app()->request->isPostRequest) {
             if ($search['query']) {
@@ -146,11 +148,19 @@ class GenericProcedureDataController extends ModuleAdminController
 
     public function actionDelete()
     {
-        $criteria = new CDbCriteria();
-        $criteria->addInCondition('id', $_POST['genericProcedures']);
+        $request = Yii::app()->getRequest();
+        
+        // Check if this is a POST request and has the genericProcedures parameter
+        if ($request->isPostRequest && isset($_POST['genericProcedures']) && !empty($_POST['genericProcedures'])) {
+            $criteria = new CDbCriteria();
+            $criteria->addInCondition('id', $_POST['genericProcedures']);
 
-        OphTrOperationNote_Generic_Procedure_Data::model()->deleteAll($criteria);
-        echo '1';
+            OphTrOperationNote_Generic_Procedure_Data::model()->deleteAll($criteria);
+            echo '1';
+        } else {
+            // Handle GET request or invalid POST request
+            throw new CHttpException(400, 'Invalid request. This action requires POST data with genericProcedures IDs.');
+        }
     }
 
 

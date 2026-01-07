@@ -478,29 +478,31 @@ class V1Controller extends \CController
     public function actionDelete($resource_type, $id)
     {
         if (!in_array($resource_type, static::$resources)) {
-            $this->sendErrorResponse(404, "Unrecognised Resource type {$resource_type}");
+            $this->sendErrorResponse(404, array("Unrecognised Resource type {$resource_type}"));
         }
 
         if (!$id) {
-            $this->sendResponse(404, 'External Resource ID required');
+            $this->sendErrorResponse(404, array('External Resource ID required'));
         }
 
         $resource_model = $this->getResourceModel($resource_type);
 
         if (!method_exists($resource_model, 'delete')) {
-            $this->sendResponse(405);
+            $this->sendErrorResponse(405, array('DELETE method not supported for this resource'));
         }
 
         try {
             if (!$resource = $resource_model::fromResourceId(static::$version, $id)) {
-                $this->sendResponse(404, 'Could not find resource for external Id');
+                $this->sendErrorResponse(404, array('Could not find resource for external Id'));
             }
 
             if ($resource->delete()) {
                 $this->sendResponse(204);
+            } else {
+                $this->sendErrorResponse(400, $resource->errors ?: array('Failed to delete resource'));
             }
         } catch (\Exception $e) {
-            $errors[] = $e->getMessage();
+            $errors = array($e->getMessage());
 
             $this->sendErrorResponse(500, $errors);
         }

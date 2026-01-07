@@ -92,9 +92,7 @@ class OperativeDeviceMappingController extends ModuleAdminController
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
-        if (!Yii::app()->request->isAjaxRequest) {
-            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
-        } else {
+        if (Yii::app()->request->isAjaxRequest) {
             if (!$itemId) {
                 echo 'error';
                 return;
@@ -105,6 +103,9 @@ class OperativeDeviceMappingController extends ModuleAdminController
             } else {
                 echo 'error';
             }
+        } else {
+            // Handle non-AJAX requests - redirect to list page
+            $this->redirect(array('list'));
         }
     }
 
@@ -117,9 +118,7 @@ class OperativeDeviceMappingController extends ModuleAdminController
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
-        if (!Yii::app()->request->isAjaxRequest) {
-            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
-        } else {
+        if (Yii::app()->request->isAjaxRequest) {
             if (!$itemId) {
                 echo 'error';
                 return;
@@ -135,6 +134,9 @@ class OperativeDeviceMappingController extends ModuleAdminController
             } else {
                 echo 'error';
             }
+        } else {
+            // Handle non-AJAX requests - redirect to list page
+            $this->redirect(array('list'));
         }
     }
 
@@ -147,9 +149,7 @@ class OperativeDeviceMappingController extends ModuleAdminController
         /*
         * We make sure to not allow deleting directly with the URL, user must come from the commondrugs list page
         */
-        if (!Yii::app()->request->isAjaxRequest) {
-            throw new CHttpException(400, 'This action can only be accessed via AJAX request.');
-        } else {
+        if (Yii::app()->request->isAjaxRequest) {
             if (!$itemId) {
                 echo 'error';
                 return;
@@ -165,6 +165,9 @@ class OperativeDeviceMappingController extends ModuleAdminController
             } else {
                 echo 'error';
             }
+        } else {
+            // Handle non-AJAX requests - redirect to list page
+            $this->redirect(array('list'));
         }
     }
 
@@ -279,6 +282,9 @@ class OperativeDeviceMappingController extends ModuleAdminController
                 );
             }
             $this->renderJSON($return);
+        } else {
+            // Handle non-AJAX requests - redirect to list page
+            $this->redirect(array('list'));
         }
     }
 

@@ -56,7 +56,7 @@
                 <tr class="clickable" data-id="<?php echo $model->id ?>"
                     data-uri="OphTrOperationnote/GenericProcedureData/edit/<?php echo $model->id ?>">
                     <td><input type="checkbox" name="genericProcedures[]" value="<?php echo $model->id ?>"/></td>
-                    <td><?php echo $model->procedure->term ?></td>
+                    <td><?php echo ($model->procedure ? $model->procedure->term : 'N/A (Procedure ID: ' . $model->proc_id . ')') ?></td>
                     <td style="overflow-wrap: break-word;"><?= $model->default_text ?></td>
                     <td>
                         <?= \CHtml::link(

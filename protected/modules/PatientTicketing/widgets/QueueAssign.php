@@ -57,7 +57,7 @@ class QueueAssign extends \CWidget
             $queue = null;
         }
 
-        $form_fields = $queue->getFormFields();
+        $form_fields = $queue ? $queue->getFormFields() : array();
         $auto_save = false;
         if (isset($_POST[$form_fields[0]['form_name']])) { // if post contains patient ticket data
             $form_data = $_POST;

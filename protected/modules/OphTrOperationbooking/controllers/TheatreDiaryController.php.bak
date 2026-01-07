@@ -21,24 +21,6 @@ class TheatreDiaryController extends BaseModuleController
     public $layout = '//layouts/main';
     public $renderPatientPanel = false;
 
-    public function filters()
-    {
-        return array(
-            array(
-                'CsrfTokenValidationFilter - filterFirms - filterTheatres - filterWards - setDiaryFilter - checkRequired',
-            ),
-        );
-    }
-
-    public function beforeAction($action)
-    {
-        // Skip layout for AJAX filter actions
-        if (in_array($action->id, array('filterFirms', 'filterTheatres', 'filterWards', 'setDiaryFilter', 'checkRequired'))) {
-            $this->layout = false;
-        }
-        return parent::beforeAction($action);
-    }
-
     public function accessRules()
     {
         return array(
@@ -138,6 +120,27 @@ class TheatreDiaryController extends BaseModuleController
     {
         Audit::add('diary', 'print');
 
+        // Validate that required POST parameters are present
+        $emergency_list = isset($_POST['emergency_list']) && $_POST['emergency_list'] === '1' ? true : false;
+        
+        // Dates are always required
+        $required_fields = array('date-start', 'date-end');
+        foreach ($required_fields as $field) {
+            if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+                throw new CHttpException(400, 'Missing required parameter: ' . $field);
+            }
+        }
+        
+        // These fields are only required for non-emergency lists
+        if (!$emergency_list) {
+            $emergency_only_fields = array('subspecialty-id', 'site-id');
+            foreach ($emergency_only_fields as $field) {
+                if (!isset($_POST[$field]) || trim($_POST[$field]) === '') {
+                    throw new CHttpException(400, 'Missing required parameter: ' . $field);
+                }
+            }
+        }
+
         $this->renderPartial('_print_diary', array('diary' => $this->getDiaryTheatres($_POST), 'ward_id' => @$_POST['ward-id']), false, true);
     }
 
@@ -177,6 +180,11 @@ class TheatreDiaryController extends BaseModuleController
      */
     public function actionSearch()
     {
+        // If no POST data is provided, redirect to the main index page
+        if (empty($_POST)) {
+            $this->redirect(array('index'));
+        }
+
         Audit::add('diary', 'search');
         Yii::app()->session['theatre_searchoptions'] = $_POST;
         $list = $this->renderPartial('_list', array(
@@ -496,13 +504,8 @@ class TheatreDiaryController extends BaseModuleController
         $order_is_changed = false;
         $comments_is_changed = false;
 
-        // Validate required POST parameter
-        if (!isset($_POST['session_id']) || empty($_POST['session_id'])) {
-            throw new CHttpException(400, 'session_id parameter is required');
-        }
-
         if (!$session = OphTrOperationbooking_Operation_Session::model()->findByPk(@$_POST['session_id'])) {
-            throw new CHttpException(404, 'Session not found: ' . @$_POST['session_id']);
+            throw new Exception('Session not found: ' . @$_POST['session_id']);
         }
 
         $errors = array();
@@ -716,26 +719,17 @@ class TheatreDiaryController extends BaseModuleController
      * Ajax method to check whether various attributes are required on a given session
      * (used to prevent them being turned off when they are needed on the session).
      *
-     * @throws CHttpException
+     * @throws Exception
      */
     public function actionCheckRequired()
     {
-        // Validate required parameters
-        if (empty($_POST['session_id'])) {
-            throw new CHttpException(400, 'session_id parameter is required');
-        }
-
-        if (empty($_POST['type'])) {
-            throw new CHttpException(400, 'type parameter is required');
-        }
-
-        if (!$session = OphTrOperationbooking_Operation_Session::model()->findByPk($_POST['session_id'])) {
-            throw new CHttpException(404, 'Session not found: ' . $_POST['session_id']);
+        if (!$session = OphTrOperationbooking_Operation_Session::model()->findByPk(@$_POST['session_id'])) {
+            throw new Exception('Session not found: ' . @$_POST['session_id']);
         }
 
         Yii::app()->event->dispatch('start_batch_mode');
 
-        switch ($_POST['type']) {
+        switch (@$_POST['type']) {
             case 'consultant':
                 $criteria = new CDbCriteria();
                 $criteria->addInCondition('`t`.status_id', array(2, 4));
@@ -811,6 +805,6 @@ class TheatreDiaryController extends BaseModuleController
                 return;
         }
 
-        throw new CHttpException(400, 'Unknown type: ' . $_POST['type']);
+        throw new Exception('Unknown type: ' . @$_POST['type']);
     }
 }

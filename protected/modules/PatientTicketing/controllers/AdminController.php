@@ -218,7 +218,11 @@ class AdminController extends \ModuleAdminController
     public function actionQueueSetPermissions($id = null)
     {
         if ($id === null) {
-            $this->redirect($this->createUrl('index'));
+            // Show a selection page to choose which queue set to manage permissions for
+            $queuesets = models\QueueSet::model()->findAll();
+            $this->render('form_queueset_perms_select', array(
+                'queuesets' => $queuesets,
+            ));
 
             return;
         }
@@ -378,7 +382,8 @@ class AdminController extends \ModuleAdminController
             $id = Yii::app()->request->getParam('id');
         }
         if ($id === null || $id === '') {
-            throw new \CHttpException(400, 'Queue ID is required');
+            $this->redirect($this->createUrl('index'));
+            return;
         }
         if (!$queue = models\Queue::model()->findByPk((int) $id)) {
             throw new \CHttpException(404, "Queue not found with id {$id}");
@@ -472,7 +477,7 @@ class AdminController extends \ModuleAdminController
     /**
      * Retrieve the count of ticket assignments for the given Queue and whether it can be deleted.
      *
-     * @param int $id Queue ID
+     * @param int $id Queue ID (optional)
      *
      * @throws \CHttpException
      */
@@ -481,8 +486,15 @@ class AdminController extends \ModuleAdminController
         if ($id === null) {
             $id = Yii::app()->request->getParam('id');
         }
+
+        // If no ID is provided, return empty response
         if ($id === null || $id === '') {
-            throw new \CHttpException(400, 'Queue ID parameter is required');
+            $resp = array(
+                'current_count' => 0,
+                'can_delete' => true,
+            );
+            echo \CJSON::encode($resp);
+            return;
         }
 
         $qs = Yii::app()->service->getService(self::$QUEUE_SERVICE);

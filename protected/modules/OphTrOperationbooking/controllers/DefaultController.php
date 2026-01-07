@@ -474,8 +474,14 @@ class DefaultController extends OphTrOperationbookingEventController
      * Make sure the EUR is displayed properly in lightning viewer
      * @param $id: event id
      */
-    public function actionRenderEventImage($id)
+    public function actionRenderEventImage($id = null)
     {
+        if ($id === null) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required');
+        }
         $eur = EUREventResults::model()->findByAttributes(array('event_id' => $id));
         if ($eur) {
             $this->extraViewProperties = array('eur' => $eur);
@@ -651,12 +657,9 @@ class DefaultController extends OphTrOperationbookingEventController
      */
     protected function initActionCancel()
     {
+        // Cancel actions handle their own initialization and ID validation
+        // Set operation_required flag for validation, but dont initialize here
         $this->operation_required = true;
-        $id = isset($_GET['id']) ? $_GET['id'] : null;
-        if (!$id) {
-            throw new CHttpException(400, 'Event ID is required to cancel an operation');
-        }
-        $this->initWithEventId($id);
     }
 
     /**
@@ -750,8 +753,21 @@ class DefaultController extends OphTrOperationbookingEventController
      * @throws CHttpException
      * @throws Exception
      */
-    public function actionCancel($id)
+    public function actionCancel($id = null)
     {
+        // Handle case where ID is not provided in action parameter
+        if (!$id) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        // Validate that an ID was provided
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to cancel an operation');
+        }
+        
+        // Initialize the event and operation
+        $this->initWithEventId($id);
+        
         $operation = $this->operation;
 
         if ($operation->status->name == 'Cancelled') {
@@ -882,8 +898,12 @@ class DefaultController extends OphTrOperationbookingEventController
 
     protected function initActionAdmissionForm()
     {
+        $event_id = isset($_GET['id']) ? $_GET['id'] : null;
+        if (!$event_id) {
+            throw new CHttpException(400, 'Event ID is required to view admission form');
+        }
         $this->operation_required = true;
-        $this->initWithEventId(@$_GET['id']);
+        $this->initWithEventId($event_id);
     }
 
     public function actionAdmissionForm()
@@ -907,8 +927,12 @@ class DefaultController extends OphTrOperationbookingEventController
         echo $this->pdf_print_html;
     }
 
-    public function actionPrintAdmissionFormPdf($id)
+    public function actionPrintAdmissionFormPdf($id = null)
     {
+        // Handle case where ID is not provided in action parameter
+        if (!$id) {
+            $id = Yii::app()->request->getParam('id');
+        }
         $this->printInit($id);
         $this->pdf_print_suffix = 'admission_form';
         $wk = Yii::app()->puppeteer;
@@ -942,19 +966,30 @@ class DefaultController extends OphTrOperationbookingEventController
     }
 
     /**
-     * initialise the controller with the event id.
+     * Setup event properties.
      */
     protected function initActionPutOnHold()
     {
-        $event_id = isset($_GET['id']) ? $_GET['id'] : null;
-        if (!$event_id) {
-            throw new CHttpException(400, 'Event ID is required to put an operation on hold');
-        }
-        $this->initWithEventId($event_id);
+        // Put on hold actions handle their own initialization and ID validation
+        // Set operation_required flag for validation, but dont initialize here
+        $this->operation_required = true;
     }
 
-    public function actionPutOnHold()
+    public function actionPutOnHold($id = null)
     {
+        // Handle case where ID is not provided in action parameter
+        if (!$id) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        // Validate that an ID was provided
+        if (!$id) {
+            throw new CHttpException(400, 'Event ID is required to put an operation on hold');
+        }
+        
+        // Initialize the event and operation
+        $this->initWithEventId($id);
+
         if (isset($_POST['et_cancel_put_on_hold'])) {
             return $this->redirect(array('/' . $this->event_type->class_name . '/default/view/' . $this->event->id));
         }
@@ -983,15 +1018,27 @@ class DefaultController extends OphTrOperationbookingEventController
 
     protected function initActionPutOffHold()
     {
-        $event_id = isset($_GET['id']) ? $_GET['id'] : null;
-        if (!$event_id) {
-            throw new CHttpException(400, 'Event ID is required to remove an operation from hold');
-        }
-        $this->initWithEventId($event_id);
+        // Put off hold actions handle their own initialization and ID validation
+        // Set operation_required flag for validation, but dont initialize here
+        $this->operation_required = true;
     }
 
-    public function actionPutOffHold()
+    public function actionPutOffHold($id = null)
     {
+        // Handle case where ID is not provided in action parameter
+        if (!$id) {
+            $id = Yii::app()->request->getParam('id');
+        }
+        
+        // Validate that an ID was provided
+        if (!$id) {
+            // Redirect to home if no ID provided
+            return $this->redirect(array('/'));
+        }
+        
+        // Initialize the event and operation
+        $this->initWithEventId($id);
+        
         $this->operation->status_id = OphTrOperationbooking_Operation_Status::model()->find('name = "Requires rescheduling"')->id;
         $this->operation->on_hold_reason = null;
         $this->operation->on_hold_comment = null;

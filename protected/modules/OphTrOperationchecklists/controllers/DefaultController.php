@@ -107,6 +107,7 @@ class DefaultController extends BaseEventTypeController
             return;
         }
         
+        // Step action processes step workflow - initialize update action
         $this->initActionUpdate();
     }
 
@@ -247,6 +248,7 @@ class DefaultController extends BaseEventTypeController
 
     public function actionView($id)
     {
+        $this->isDraft = false;
         $model = OphTrOperationchecklists_Event::model()
             ->findBySql('SELECT * FROM ophtroperationchecklists_event WHERE event_id = :id', [':id' => $id]);
 
@@ -1319,7 +1321,7 @@ class DefaultController extends BaseEventTypeController
      *
      * @param $id
      */
-    public function actionStep($id)
+    public function actionStep($id = null)
     {
         // This is the same as update.
         $this->actionUpdate($id);

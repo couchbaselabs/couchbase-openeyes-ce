@@ -49,7 +49,7 @@ $site_id = Yii::app()->session['selected_site_id'];
                     <td style="width: 83px;"><?= date('j-M-Y', strtotime($operation->latestBooking->session_date))?></td>
                     <td style="width: 73px;"><?= $operation->latestBooking->session_start_time?></td>
                     <td style="width: 95px;"><?= $operation->latestBooking->theatre->site->shortName?></td>
-                    <td style="width: 170px;"><?= $operation->latestBooking->ward->name?></td>
+                    <td style="width: 170px;"><?= $operation->latestBooking->ward ? $operation->latestBooking->ward->name : 'N/A'?></td>
                     <td style="width: 53px;"><?= $operation->transportStatus?></td>
                     <td style="width: 43px;"><?= $operation->event->episode->firm->pas_code?></td>
                     <td style="width: 53px;"><?= $operation->event->episode->firm->serviceSubspecialtyAssignment->subspecialty->ref_spec?></td>

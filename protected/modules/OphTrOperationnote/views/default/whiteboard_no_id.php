@@ -1,6 +1,8 @@
 <?php
 /**
- * (C) OpenEyes Foundation, 2018
+ * OpenEyes.
+ *
+ * (C) OpenEyes Foundation, 2019
  * This file is part of OpenEyes.
  * OpenEyes is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
  * OpenEyes is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
@@ -12,22 +14,11 @@
  * @copyright Copyright (c) 2019, OpenEyes Foundation
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
+?>
 
-$config = [
-    'params' => [
-        'admin_menu' => array(
-            'PASAPI' => ['Value Remaps' => '/PASAPI/admin/default/viewXpathRemaps'],
-        ),
-    ],
-
-    'components' => [
-        'urlManager' => [
-            'rules' => [
-                'PASAPI/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'PASAPI/PASAPIAdmin/<controller>/<action>&id=<id>',
-                'PASAPI/admin/<controller:\w+>/<action:\w+>' => 'PASAPI/PASAPIAdmin/<controller>/<action>',
-            ]
-        ]
-    ]
-];
-
-return $config;
+<div class="content">
+    <div class="alert alert-info">
+        <p>No operation ID provided. Please select an operation to view its whiteboard.</p>
+        <p><a href="/" class="btn btn-primary">Go to Home Page</a></p>
+    </div>
+</div>

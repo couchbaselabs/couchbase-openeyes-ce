@@ -189,10 +189,27 @@ class WaitingListController extends BaseModuleController
             $criteria->addCondition('t.status_id = :status_id');
             $criteria->params[':status_id'] = $booking_status;
         } else {
-            $booking_status_ids = Yii::app()->cbdb->createCommand()->select('id')->from('ophtroperationbooking_operation_status')
-                ->where(['in','name', ['On-Hold', 'Requires scheduling', 'Requires rescheduling', ]])->queryColumn();
-            $booking_status_ids = "(" . implode(',', $booking_status_ids) . ")";
-            $criteria->addCondition("t.status_id IN $booking_status_ids");
+            try {
+                $statuses_to_find = array('On-Hold', 'Requires scheduling', 'Requires rescheduling');
+                $status_criteria = new CDbCriteria();
+                $status_criteria->addInCondition('name', $statuses_to_find);
+                $statuses = OphTrOperationbooking_Operation_Status::model()->findAll($status_criteria);
+                
+                if (!empty($statuses)) {
+                    $booking_status_ids = array();
+                    foreach ($statuses as $status) {
+                        $booking_status_ids[] = $status->id;
+                    }
+                    $criteria->addInCondition('t.status_id', $booking_status_ids);
+                } else {
+                    // If no booking statuses found, add a condition that will return no results
+                    $criteria->addCondition('1 = 0');
+                }
+            } catch (Exception $e) {
+                // If query fails, just return empty result set
+                $criteria->addCondition('1 = 0');
+                Yii::log('Error fetching operation statuses: ' . $e->getMessage(), 'error');
+            }
         }
 
         $criteria->with = $criteria_with;
@@ -223,14 +240,16 @@ class WaitingListController extends BaseModuleController
      */
     public function actionFilterFirms()
     {
-        YiiSession::set('waitinglist_searchoptions', 'subspecialty-id', $_POST['subspecialty_id']);
+        if (isset($_POST['subspecialty_id'])) {
+            YiiSession::set('waitinglist_searchoptions', 'subspecialty-id', $_POST['subspecialty_id']);
 
-        echo CHtml::tag('option', array('value' => ''), CHtml::encode("All ".Yii::app()->params['service_firm_label']."s"), true);
+            echo CHtml::tag('option', array('value' => ''), CHtml::encode("All ".Yii::app()->params['service_firm_label']."s"), true);
 
-        $firms = $this->getFilteredFirms($_POST['subspecialty_id']);
+            $firms = $this->getFilteredFirms($_POST['subspecialty_id']);
 
-        foreach ($firms as $id => $name) {
-            echo CHtml::tag('option', array('value' => $id), CHtml::encode($name), true);
+            foreach ($firms as $id => $name) {
+                echo CHtml::tag('option', array('value' => $id), CHtml::encode($name), true);
+            }
         }
     }
 
@@ -318,6 +337,11 @@ class WaitingListController extends BaseModuleController
      */
     public function actionPrintLetters()
     {
+        // Check if required parameters are missing and redirect to waiting list index
+        if (!isset($_REQUEST['event_id']) && !isset($_REQUEST['operations'])) {
+            $this->redirect(array('index'));
+        }
+
         Audit::add('waiting list', (@$_REQUEST['all'] == 'true' ? 'print all' : 'print selected'), serialize($_POST));
         if (isset($_REQUEST['event_id'])) {
             $operations = Element_OphTrOperationbooking_Operation::model()->findAll('event_id=?', array($_REQUEST['event_id']));
@@ -632,6 +656,10 @@ class WaitingListController extends BaseModuleController
      */
     public function actionConfirmPrinted()
     {
+        if (!isset($_POST['operations']) || empty($_POST['operations'])) {
+            throw new CHttpException(400, 'operations parameter is required');
+        }
+
         Audit::add('waiting list', 'confirm');
 
         foreach ($_POST['operations'] as $operation_id) {
@@ -651,12 +679,17 @@ class WaitingListController extends BaseModuleController
      * Marks an Operation Booking "booked"
      */
 
-    public function actionSetBooked($event_id)
+    public function actionSetBooked($event_id = null)
     {
         $success = true;
 
+        if (!$event_id) {
+            $this->renderJSON(array('success' => false, 'message' => 'event_id parameter is required'));
+            exit;
+        }
+
         if (!$element = Element_OphTrOperationbooking_Operation::model()->find("event_id = :event_id", array(":event_id" => $event_id))) {
-            $this->renderJSON(array('success'=>false, 'This event could not be found.'));
+            $this->renderJSON(array('success'=>false, 'message' => 'This event could not be found.'));
             exit;
         }
 
