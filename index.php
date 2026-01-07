@@ -42,7 +42,8 @@ $common_config = $dirname . '/protected/config/core/common.php';
 $local_common_config = $dirname . '/protected/config/local/common.php';
 
 // specify how many levels of call stack should be shown in each log message
-defined('YII_TRACE_LEVEL') or define('YII_TRACE_LEVEL', 3);
+// Reduced from 3 to 0 to avoid memory exhaustion from debug_backtrace() calls
+defined('YII_TRACE_LEVEL') or define('YII_TRACE_LEVEL', 0);
 
 // Ensure sessions directory exists before Yii initialization
 $sessionsDir = $dirname . '/protected/runtime/sessions';

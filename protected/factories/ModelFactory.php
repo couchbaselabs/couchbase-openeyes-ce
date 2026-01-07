@@ -26,6 +26,7 @@ use OE\factories\exceptions\CannotMakeModelException;
 use OE\factories\traits\MapsModelsToFormData;
 use OE\factories\traits\SupportsDBUniqueAttributes;
 use Yii;
+use OE\factories\models\GenericActiveRecordFactory;
 
 abstract class ModelFactory
 {
@@ -59,9 +60,12 @@ abstract class ModelFactory
 
     public static function factoryFor(string $modelName)
     {
-        $factoryClass = static::resolveFactoryName($modelName);
-
-        return $factoryClass::new();
+        try {
+            $factoryClass = static::resolveFactoryName($modelName);
+            return $factoryClass::new();
+        } catch (FactoryNotFoundException $e) {
+            return GenericActiveRecordFactory::forModel($modelName);
+        }
     }
 
     public static function resolveFactoryName(string $modelName)

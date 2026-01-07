@@ -396,8 +396,11 @@ return [
         'referral_type',
         // Pedigree/Inheritance
         'pedigree',
+        'pedigree_amino_acid_change_type',
         'pedigree_gene',
         'pedigree_inheritance',
         'pedigree_status',
+        // PASAPI - XPath Remapping
+        'pasapi_xpath_remap',
     ],
 ];

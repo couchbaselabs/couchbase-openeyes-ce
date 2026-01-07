@@ -615,7 +615,7 @@ EOF
   status="ok"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "$page_url|DRY_RUN|DRY_RUN|0|0|NO|NONE|Dry run mode|0" > "$tmpout"
-  elif ! droid exec --skip-permissions-unsafe -m claude-haiku-4-5-20251001 -r high "$prompt" > "$tmpout" 2>/dev/null; then
+  elif ! droid exec --skip-permissions-unsafe -m gpt-5.2 -r high "$prompt" > "$tmpout" 2>/dev/null; then
     echo "$page_url|ERROR|ERROR|0|0|NO|NONE|Droid exec failed|0" > "$tmpout"
     echo "$page_entry" >> "$FAIL_FILE"
     status="fail"

@@ -521,7 +521,12 @@ class AdminController extends \ModuleAdminController
             throw new \CHttpException(400, 'Queue ID is required');
         }
         $qs = Yii::app()->service->getService(self::$QUEUE_SERVICE);
-        $qr = $qs->read((int) $id);
+        
+        try {
+            $qr = $qs->read((int) $id);
+        } catch (\services\NotFound $e) {
+            throw new \CHttpException(404, 'Queue not found');
+        }
 
         $qs->delete($qr->getId());
         echo 1;

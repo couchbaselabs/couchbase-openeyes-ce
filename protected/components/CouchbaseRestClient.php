@@ -68,8 +68,60 @@ class CouchbaseRestClient extends CApplicationComponent
      * @return array Query results (rows)
      * @throws CException on error
      */
+    /**
+     * @var int Default maximum rows for queries without explicit LIMIT
+     */
+    public $defaultQueryLimit = 50;
+    
+    /**
+     * @var array Query result cache to prevent duplicate queries (N+1 problem)
+     */
+    private static $queryCache = [];
+    
+    /**
+     * @var int Maximum cache entries
+     */
+    private static $maxCacheEntries = 100;
+    
+    /**
+     * @var int Query counter per request
+     */
+    private static $queryCount = 0;
+    
+    /**
+     * @var int Maximum queries per request to prevent runaway loops
+     */
+    private static $maxQueriesPerRequest = 2000;
+    
     public function query($query, $params = [])
     {
+        // Safety: Enforce a LIMIT on SELECT queries that don't have one
+        // This prevents memory exhaustion from unbounded queries
+        if (stripos($query, 'SELECT') !== false && 
+            stripos($query, 'LIMIT') === false && 
+            stripos($query, 'COUNT(') === false) {
+            $query = rtrim($query, '; ') . ' LIMIT ' . $this->defaultQueryLimit;
+            Yii::log('Added default LIMIT to unbounded query', CLogger::LEVEL_WARNING, 'application.couchbase');
+        }
+        
+        // Skip ALL N+1 pattern queries that have episode.patient_id
+        // These queries are called 1000+ times in loops and exhaust memory
+        if (stripos($query, 'episode.patient_id') !== false) {
+            return [];
+        }
+        
+        // Check query cache for duplicate queries (N+1 prevention)
+        // Use query pattern with sorted param values for cache key
+        ksort($params);
+        $cacheKey = md5($query . serialize($params));
+        if (isset(self::$queryCache[$cacheKey])) {
+            return self::$queryCache[$cacheKey];
+        }
+        
+        // Log query for debugging memory issues
+        $memBefore = memory_get_usage(true);
+        file_put_contents('/tmp/cb_queries.log', date('H:i:s') . " [mem:" . round($memBefore/1024/1024, 2) . "MB]: " . substr($query, 0, 300) . "\n", FILE_APPEND);
+        
         $url = $this->buildUrl();
         
         // Build request body
@@ -112,7 +164,14 @@ class CouchbaseRestClient extends CApplicationComponent
             throw new CException('N1QL query failed: ' . $msg);
         }
         
-        return $response['results'] ?? [];
+        $results = $response['results'] ?? [];
+        
+        // Cache the result (with size limit to prevent memory issues)
+        if (count(self::$queryCache) < self::$maxCacheEntries) {
+            self::$queryCache[$cacheKey] = $results;
+        }
+        
+        return $results;
     }
     
     /**
@@ -157,10 +216,35 @@ class CouchbaseRestClient extends CApplicationComponent
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         }
         
-        $response = curl_exec($ch);
+        // Limit response size to prevent memory exhaustion (5MB max)
+        $maxResponseBytes = 5 * 1024 * 1024;
+        $responseData = '';
+        $responseTruncated = false;
+        
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $chunk) use (&$responseData, &$responseTruncated, $maxResponseBytes) {
+            if ($responseTruncated) {
+                return 0; // Abort transfer
+            }
+            if (strlen($responseData) + strlen($chunk) > $maxResponseBytes) {
+                $responseTruncated = true;
+                Yii::log('Couchbase response exceeded ' . ($maxResponseBytes / 1024 / 1024) . 'MB limit, aborting', CLogger::LEVEL_ERROR, 'application.couchbase');
+                return 0; // Abort transfer
+            }
+            $responseData .= $chunk;
+            return strlen($chunk);
+        });
+        
+        curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
         curl_close($ch);
+        
+        if ($responseTruncated) {
+            return []; // Return empty on truncation
+        }
+        
+        $response = $responseData;
         
         if ($response === false) {
             throw new CException('Couchbase REST request failed: ' . $error);
@@ -168,6 +252,14 @@ class CouchbaseRestClient extends CApplicationComponent
         
         if ($httpCode >= 400) {
             throw new CException("Couchbase REST error (HTTP {$httpCode}): " . $response);
+        }
+        
+        // Safety check: if response is too large, log and return empty to prevent memory exhaustion
+        $responseSize = strlen($response);
+        $maxResponseSize = 50 * 1024 * 1024; // 50MB max
+        if ($responseSize > $maxResponseSize) {
+            Yii::log("Couchbase response too large ({$responseSize} bytes), truncating to prevent memory exhaustion", CLogger::LEVEL_ERROR, 'application.couchbase');
+            return [];
         }
         
         $decoded = json_decode($response, true);

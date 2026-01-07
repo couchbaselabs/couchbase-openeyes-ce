@@ -40,12 +40,15 @@ class NewEventDialogHelper
 
         if ($subspecialty = $episode->getSubspecialty()) {
             $structured_subspecialty = static::structureSubspecialty($subspecialty);
-            $firm = static::structureFirm(\Firm::model()->findByPk($episode->firm_id));
+            $firmModel = \Firm::model()->findByPk($episode->firm_id);
+            $firm = $firmModel ? static::structureFirm($firmModel) : ['id' => $episode->firm_id, 'name' => 'Unknown'];
             $criteria = new CDbCriteria();
             $criteria->addCondition('can_own_an_episode=1 AND id<>:firm_id AND service_subspecialty_assignment_id=:ssaid');
             $criteria->params = [
                 ':firm_id' => $episode->firm_id,
-                ':ssaid' => $episode->firm->service_subspecialty_assignment_id
+                ':ssaid' => $firmModel && $firmModel->service_subspecialty_assignment_id 
+                    ? $firmModel->service_subspecialty_assignment_id 
+                    : 0
             ];
             foreach (Firm::model()->findAllAtLevels(ReferenceData::LEVEL_ALL, $criteria) as $service) {
                 array_push($services_available, static::structureFirm($service));

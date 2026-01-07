@@ -23,8 +23,10 @@ $config = [
     'components' => [
         'urlManager' => [
             'rules' => [
-                'PASAPI/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'PASAPI/PASAPIAdmin/<controller>/<action>&id=<id>',
+                'PASAPI/admin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'PASAPI/PASAPIAdmin/<controller>/<action>',
                 'PASAPI/admin/<controller:\w+>/<action:\w+>' => 'PASAPI/PASAPIAdmin/<controller>/<action>',
+                'PASAPI/PASAPIAdmin/<controller:\w+>/<action:\w+>/<id:\d+>' => 'PASAPI/PASAPIAdmin/<controller>/<action>',
+                'PASAPI/PASAPIAdmin/<controller:\w+>/<action:\w+>' => 'PASAPI/PASAPIAdmin/<controller>/<action>',
             ]
         ]
     ]

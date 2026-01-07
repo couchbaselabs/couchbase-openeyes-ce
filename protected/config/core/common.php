@@ -564,7 +564,7 @@ $config = array(
         'enable_dual_write' => false, // Deprecated - kept for backward compatibility
         
         // DEPRECATED: Couchbase is now the only database
-        'enable_couchbase_read' => true, // Always true
+        'enable_couchbase_read' => false, // Temporarily disabled for memory issue debugging
 
         // Couchbase is the authoritative store for all data
         'require_couchbase_patient_writes' => true,

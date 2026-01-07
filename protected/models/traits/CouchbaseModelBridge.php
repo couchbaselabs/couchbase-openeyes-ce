@@ -748,6 +748,18 @@ trait CouchbaseModelBridge
     }
     
     /**
+     * Default maximum rows for N1QL queries to prevent memory exhaustion.
+     * This is set as a method to work around traits not supporting constants.
+     * @return int
+     */
+    protected function getN1qlDefaultLimit(): int
+    {
+        // Default limit to prevent memory exhaustion from unbounded queries
+        // 1000 rows should be sufficient for most UI operations
+        return 1000;
+    }
+    
+    /**
      * N1QL implementation of findAll
      */
     protected function n1qlFindAll($condition = '', $params = [])
@@ -760,9 +772,12 @@ trait CouchbaseModelBridge
             if ($criteria->order) {
                 $n1ql .= " ORDER BY " . $this->convertOrderBy($criteria->order);
             }
-            if ($criteria->limit > 0) {
-                $n1ql .= " LIMIT " . (int)$criteria->limit;
-            }
+            
+            // Always apply a LIMIT to prevent memory exhaustion from unbounded queries
+            // Use the specified limit if provided, otherwise use the default safety limit
+            $limit = $criteria->limit > 0 ? (int)$criteria->limit : $this->getN1qlDefaultLimit();
+            $n1ql .= " LIMIT " . $limit;
+            
             if ($criteria->offset > 0) {
                 $n1ql .= " OFFSET " . (int)$criteria->offset;
             }

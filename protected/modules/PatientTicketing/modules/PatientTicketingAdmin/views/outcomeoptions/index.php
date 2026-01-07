@@ -34,7 +34,7 @@ use OEModule\PatientTicketing\models\TicketAssignOutcomeOption;
     ]) ?>
 </div>
 <?php $this->renderPartial('//base/_messages') ?>
-<div class="outcompe-options-wrapper" style="display:<?=($queueset_id ? 'block' : 'none')?>">
+<div class="outcome-options-wrapper" style="display:<?=($queueset_id ? 'block' : 'none')?>">
     <div class="row divider cols-9">
         <h2>Outcome Options</h2>
     </div>

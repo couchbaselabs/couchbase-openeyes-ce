@@ -671,9 +671,22 @@ class Patient extends BaseActiveRecordVersioned
         if (!isset($this->_orderedepisodes)) {
             $episodes = $this->episodes;
 
-            // Couchbase fallback when AR relation fetch returns empty (alias/ON clauses not supported)
+            // Couchbase fallback when AR relation fetch returns empty (only if not in emergency_disable mode)
             if (empty($episodes)) {
-                $episodes = $this->fetchEpisodesFromCouchbase();
+                $useCouchbaseFallback = true;
+                if (class_exists('CouchbaseCutoverManager')) {
+                    try {
+                        $manager = \CouchbaseCutoverManager::getInstance();
+                        $config = $manager->getConfig();
+                        $useCouchbaseFallback = !$config['emergency_disable'];
+                    } catch (\Exception $e) {
+                        $useCouchbaseFallback = false;
+                    }
+                }
+                
+                if ($useCouchbaseFallback) {
+                    $episodes = $this->fetchEpisodesFromCouchbase();
+                }
             }
             $by_specialty = array();
 

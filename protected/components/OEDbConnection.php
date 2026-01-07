@@ -70,9 +70,26 @@ class OEDbConnection extends CDbConnection
             return false;
         }
         
-        // Default to false - will be set to true only on successful connection
-        $this->_connectionAvailable = false;
-        return false;
+        // Try to get the active PDO connection to test availability
+        try {
+            // Check if we already have an active connection
+            if ($this->getActive()) {
+                $pdo = $this->getPdoInstance();
+                if ($pdo !== null) {
+                    $this->_connectionAvailable = true;
+                    return true;
+                }
+            }
+            // Connection not yet established - try to establish it
+            $this->setActive(true);
+            $this->_connectionAvailable = true;
+            return true;
+        } catch (\Throwable $e) {
+            // Connection failed
+            Yii::log('MariaDB connection check failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+            $this->_connectionAvailable = false;
+            return false;
+        }
     }
     
     /**

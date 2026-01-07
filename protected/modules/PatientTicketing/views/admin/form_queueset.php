@@ -116,5 +116,10 @@ $this->renderPartial('//elements/form_errors', array('errors' => $errors, 'botto
     </table>
     <?php }?>
 
+<div class="form-actions">
+    <button type="submit" class="button green" id="et_save_queueset">Save</button>
+    <a href="/PatientTicketing/admin" class="button">Cancel</a>
+</div>
+
 <?php
 $this->endWidget();

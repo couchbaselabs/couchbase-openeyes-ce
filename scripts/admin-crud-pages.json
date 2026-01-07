@@ -1,0 +1,114 @@
+{
+  "description": "Admin pages that require CRUD verification (create -> list visibility check)",
+  "pages": [
+    {
+      "url": "/Genetics/aminoAcidChangeAdmin",
+      "listUrl": "/Genetics/aminoAcidChangeAdmin/list",
+      "model": "PedigreeAminoAcidChangeType",
+      "displayField": "change",
+      "createFields": { "change": "Test Amino Acid Change" },
+      "listSelector": "table tbody, .admin-list"
+    },
+    {
+      "url": "/Genetics/gene",
+      "listUrl": "/Genetics/gene/list",
+      "model": "PedigreeGene",
+      "displayField": "name",
+      "createFields": { "name": "Test Gene", "location": "LOC" },
+      "listSelector": "table tbody"
+    },
+    {
+      "url": "/Genetics/baseChangeAdmin",
+      "listUrl": "/Genetics/baseChangeAdmin/list",
+      "model": "PedigreeBaseChangeType",
+      "displayField": "change",
+      "createFields": { "change": "Test Base Change" },
+      "listSelector": "table tbody"
+    },
+    {
+      "url": "/admin/users",
+      "model": "User",
+      "displayField": "username",
+      "createFields": { "username": "testuser", "first_name": "Test", "last_name": "User" },
+      "listSelector": "table tbody",
+      "skipAutoCreate": true
+    },
+    {
+      "url": "/admin/contactlabels",
+      "listUrl": "/admin/contactlabels",
+      "model": "ContactLabel",
+      "displayField": "name",
+      "createFields": { "name": "Test Contact Label" },
+      "listSelector": "table tbody"
+    },
+    {
+      "url": "/PatientTicketing/admin",
+      "model": "OEModule\\PatientTicketing\\models\\QueueSet",
+      "displayField": "name",
+      "createFields": { "name": "Test Queue Set" },
+      "listSelector": "[data-test='patient-ticketing-list']",
+      "skipAutoCreate": true
+    },
+    {
+      "url": "/OphCiExamination/admin/postOpComplications",
+      "listUrl": "/OphCiExamination/admin/postOpComplications",
+      "model": "OEModule\\OphCiExamination\\models\\OphCiExamination_PostOpComplications",
+      "displayField": "name",
+      "createFields": { "name": "Test Complication" },
+      "listSelector": "[data-test='complications-select']"
+    },
+    {
+      "url": "/OphCoCorrespondence/admin/letterMacros",
+      "listUrl": "/OphCoCorrespondence/admin/letterMacros",
+      "model": "LetterMacro",
+      "displayField": "name",
+      "createFields": { "name": "Test Macro", "body": "Test body" },
+      "listSelector": "table tbody"
+    },
+    {
+      "url": "/admin/commonOphthalmicDisorder",
+      "model": "CommonOphthalmicDisorder",
+      "displayField": "disorder.term",
+      "listSelector": "table tbody",
+      "skipAutoCreate": true
+    },
+    {
+      "url": "/admin/commonSystemicDisorder",
+      "model": "CommonSystemicDisorder", 
+      "displayField": "disorder.term",
+      "listSelector": "table tbody",
+      "skipAutoCreate": true
+    },
+    {
+      "url": "/OphDrPrescription/admin/commonMedications",
+      "model": "SiteSubspecialtyDrug",
+      "displayField": "drug.name",
+      "listSelector": "table tbody",
+      "skipAutoCreate": true
+    },
+    {
+      "url": "/OphCiExamination/admin/risks",
+      "listUrl": "/OphCiExamination/admin/risks",
+      "model": "OEModule\\OphCiExamination\\models\\OphCiExaminationRisk",
+      "displayField": "name",
+      "createFields": { "name": "Test Risk" },
+      "listSelector": "table tbody"
+    },
+    {
+      "url": "/OphCiExamination/admin/socialHistoryDrivingStatus",
+      "listUrl": "/OphCiExamination/admin/socialHistoryDrivingStatus",
+      "model": "OEModule\\OphCiExamination\\models\\SocialHistoryDrivingStatus",
+      "displayField": "name",
+      "createFields": { "name": "Test Driving Status" },
+      "listSelector": "table tbody"
+    },
+    {
+      "url": "/oeadmin/team",
+      "listUrl": "/oeadmin/team/list",
+      "model": "Team",
+      "displayField": "name",
+      "createFields": { "name": "Test Team" },
+      "listSelector": "table tbody"
+    }
+  ]
+}

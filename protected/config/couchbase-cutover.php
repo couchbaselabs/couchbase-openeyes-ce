@@ -156,6 +156,11 @@ return array (
       'read_source' => 'mariadb',
       'percentage' => 0,
     ),
+    'PedigreeAminoAcidChangeType' => 
+    array (
+      'read_source' => 'couchbase',
+      'percentage' => 100,
+    ),
   ),
   'user_targeting' => 
   array (

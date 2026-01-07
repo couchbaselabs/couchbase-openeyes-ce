@@ -31,8 +31,16 @@ class PrescriptionDrugSetsAdminController extends RefSetAdminController
         $admin->getSearch()->setItemsPerPage(30);
 
 
-        $default_site_id = Yii::app()->session['selected_site_id'];
-        $default_subspecialty_id = Firm::model()->findByPk(Yii::app()->session['selected_firm_id'])->serviceSubspecialtyAssignment->subspecialty_id;
+        $default_site_id = Yii::app()->session['selected_site_id'] ?? null;
+        $default_subspecialty_id = null;
+
+        $selected_firm_id = Yii::app()->session['selected_firm_id'] ?? null;
+        if ($selected_firm_id) {
+            $firm = Firm::model()->findByPk($selected_firm_id);
+            if ($firm && $firm->serviceSubspecialtyAssignment) {
+                $default_subspecialty_id = $firm->serviceSubspecialtyAssignment->subspecialty_id;
+            }
+        }
 
 
         /*
@@ -55,13 +63,19 @@ class PrescriptionDrugSetsAdminController extends RefSetAdminController
 
 
         if ($this->request->getParam('search') == '') {
-            $admin->getSearch()->initSearch(array(
-                    'filterid' => array(
-                        'medicationSetRules.site_id' => $default_site_id,
-                        'medicationSetRules.subspecialty_id' => $default_subspecialty_id,
-                        'medicationSetRules.usageCode.usage_code' => 'PRESCRIPTION_SET'
-                    ),
-                ));
+            $filter = [
+                'medicationSetRules.usageCode.usage_code' => 'PRESCRIPTION_SET',
+            ];
+            if ($default_site_id !== null) {
+                $filter['medicationSetRules.site_id'] = $default_site_id;
+            }
+            if ($default_subspecialty_id !== null) {
+                $filter['medicationSetRules.subspecialty_id'] = $default_subspecialty_id;
+            }
+
+            $admin->getSearch()->initSearch([
+                'filterid' => $filter,
+            ]);
         }
 
         $admin->getSearch()->getCriteria()->addCondition('medicationSetRules.usageCode.usage_code = "PRESCRIPTION_SET"');

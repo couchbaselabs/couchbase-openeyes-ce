@@ -15,7 +15,7 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
-use OEModule\PatientTicketing\models\ClinicLocation;
+use OEModule\PatientTicketing\models\TicketAssignOutcomeOption;
 
 ?>
 <div class="row divider cols-9">
@@ -28,30 +28,32 @@ use OEModule\PatientTicketing\models\ClinicLocation;
         null,
         ["class" => "alert-box alert with-icon"]
     ); ?>
-    <?php $this->renderPartial('/cliniclocation/_filter', [
+    <?php $this->renderPartial('/outcomeoptions/_filter', [
             'institution' => $institution,
             'queueset_id' => $queueset_id
     ]) ?>
 </div>
 <?php $this->renderPartial('//base/_messages') ?>
-<div class="clinic-locations-wrapper" style="display:<?=($queueset_id ? 'block' : 'none')?>">
+<div class="outcompe-options-wrapper" style="display:<?=($queueset_id ? 'block' : 'none')?>">
     <div class="row divider cols-9">
-        <h2>Clinic Locations</h2>
+        <h2>Outcome Options</h2>
     </div>
-    <div class="cols-3">
-        <form id="clinic-locations" method="post">
+    <div class="cols-7">
+        <form id="outcome-optios" method="post">
             <input type="hidden" value="<?= Yii::app()->request->csrfToken ?>" name="YII_CSRF_TOKEN">
             <?=\CHtml::hiddenField('institution_id', $institution->id);?>
-            <table id="options" class="standard generic-admin sortable" data-sort-uri="/PatientTicketing/PatientTicketingAdmin/ClinicLocations/sortOptions">
+            <table id="options" class="standard generic-admin sortable" data-sort-uri="/PatientTicketing/PatientTicketingAdmin/OutcomeOptions/sortOptions">
                 <thead>
                 <tr>
                     <th>Order</th>
+                    <th><input type="checkbox" value="1" name="select-all" id="select-all"></th>
                     <th>Name</th>
+                    <th>Episode Status</th>
+                    <th>Followup</th>
                     <th>Actions</th>
                 </tr>
                 </thead>
                 <tbody>
-
                 <?php foreach ($options as $i => $option) : ?>
                     <tr class="" data-row="<?=$i;?>">
                         <td class="reorder">
@@ -60,7 +62,18 @@ use OEModule\PatientTicketing\models\ClinicLocation;
                             <?=\CHtml::activeHiddenField($option, "[{$i}]queueset_id");?>
                         </td>
                         <td>
+                            <input type="checkbox" name="selected[]" value="0" id="selected_<?=$i?>">
+                        </td>
+                        <td>
                             <?=\CHtml::activeTextField($option, "[{$i}]name");?>
+                        </td>
+                        <td>
+                            <?=\CHtml::activeDropDownList($option, "[{$i}]episode_status_id", \CHtml::listData(EpisodeStatus::model()->findAll(), 'id', 'name'), [
+                                    'empty' => '-'
+                            ]); ?>
+                        </td>
+                        <td>
+                            <?=\CHtml::activeCheckBox($option, "[{$i}]followup");?>
                         </td>
                         <td>
                             <button type="button"><a href="#" class="deleteRow">delete</a></button>
@@ -73,7 +86,7 @@ use OEModule\PatientTicketing\models\ClinicLocation;
                     <td colspan="10">
                         <input name="admin-add" id="et_admin-add" class="generic-admin-add button large" type="button" value="Add">&nbsp;
                         <input name="admin-save" id="et_admin-save" class="generic-admin-save button large" type="submit" value="Save">&nbsp;
-                        <input type="hidden" value="/PatientTicketing/PatientTicketingAdmin/ClinicLocations/index" name="return_url" id="return_url">
+                        <input type="hidden" value="/PatientTicketing/admin/ticketAssignOutcomes" name="return_url" id="return_url">
                     </td>
                 </tr>
                 </tfoot>
@@ -103,7 +116,7 @@ use OEModule\PatientTicketing\models\ClinicLocation;
     const $filer_btn = document.querySelector('.js-filter');
     const $institution_select = document.getElementById('filter_institution');
     const $queueset_select = document.getElementById('queueset_institution');
-    const $form = document.getElementById('clinic-locations');
+    const $form = document.getElementById('outcome-optios');
     const $table = document.getElementById('options');
     const $add_btn = document.getElementById('et_admin-add');
 
@@ -151,11 +164,22 @@ use OEModule\PatientTicketing\models\ClinicLocation;
     <tr class="" data-row="{{row}}">
         <td class="reorder">
             <span>↑↓</span>
-            <input name="OEModule_PatientTicketing_models_ClinicLocation[{{row}}][id]" id="OEModule_PatientTicketing_models_ClinicLocation_{{row}}_id" type="hidden" value="">
-            <input name="OEModule_PatientTicketing_models_ClinicLocation[{{row}}][queueset_id]" id="OEModule_PatientTicketing_models_ClinicLocation_{{row}}_queueset_id" type="hidden" value="{{queueset_id}}">
+            <input name="OEModule_PatientTicketing_models_TicketAssignOutcomeOption[{{row}}][id]" id="OEModule_PatientTicketing_models_TicketAssignOutcomeOption_{{row}}_id" type="hidden" value="">
+            <input name="OEModule_PatientTicketing_models_TicketAssignOutcomeOption[{{row}}][queueset_id]" id="OEModule_PatientTicketing_models_TicketAssignOutcomeOption_{{row}}_queueset_id" type="hidden" value="{{queueset_id}}">
         </td>
         <td>
-            <input name="OEModule_PatientTicketing_models_ClinicLocation[{{row}}][name]" id="OEModule_PatientTicketing_models_ClinicLocation_{{row}}_name" type="text" value="">
+            <input type="checkbox" value="0" id="selected_{{row}}">
+        </td>
+        <td>
+            <input name="OEModule_PatientTicketing_models_TicketAssignOutcomeOption[{{row}}][name]" id="OEModule_PatientTicketing_models_TicketAssignOutcomeOption_{{row}}_name" type="text" value="">
+        </td>
+        <td>
+            <?=\CHtml::activeDropDownList(new TicketAssignOutcomeOption(), "[{{row}}]episode_status_id", \CHtml::listData(EpisodeStatus::model()->findAll(), 'id', 'name'), [
+                'empty' => '-'
+            ]); ?>
+        </td>
+        <td>
+            <?=\CHtml::activeCheckBox(new TicketAssignOutcomeOption(), "[{{row}}]followup");?>
         </td>
         <td>
             <button type="button"><a href="#" class="deleteRow">delete</a></button>

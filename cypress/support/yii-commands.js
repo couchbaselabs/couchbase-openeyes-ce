@@ -111,10 +111,16 @@ Cypress.Commands.add('createModels', (className, states, attributes, count) => {
         }
     })
     .then((response) => {
-        if ((response.body.models.length) === 1) {
-            return response.body.models[0];
+        const body = response && response.body ? response.body : null;
+        if (!body || !body.models || !Array.isArray(body.models)) {
+            const msg = body && body.message ? body.message : 'Unexpected response from createModels';
+            throw new Error(`${msg} (model_class=${className})`);
         }
-        return response.body.models;
+
+        if ((body.models.length) === 1) {
+            return body.models[0];
+        }
+        return body.models;
     });
 });
 

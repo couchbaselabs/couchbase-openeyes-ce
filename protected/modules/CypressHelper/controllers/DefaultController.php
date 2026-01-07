@@ -277,17 +277,44 @@ class DefaultController extends \CController
             ], 400);
         }
 
-        $model_factory = ModelFactory::factoryFor($model_class);
+        $states = $_POST['states'] ?? [];
+        $attributes = $_POST['attributes'] ?? [];
 
-        $this->applyStatesTo($model_factory, $_POST['states'] ?? []);
+        // Handle cases where callers accidentally send JSON strings
+        if (is_string($states)) {
+            $states = json_decode($states, true) ?: [];
+        }
+        if (is_string($attributes)) {
+            $attributes = json_decode($attributes, true) ?: [];
+        }
 
-        $model_factory->count(($_POST['count'] ?? null) ? (int) $_POST['count'] : 1);
+        try {
+            $classExists = @class_exists($model_class, true);
+            if (!$classExists) {
+                throw new \CHttpException(400, "Model class '$model_class' does not exist");
+            }
 
-        $instances = $model_factory->create($_POST['attributes'] ?? []);
+            $model_factory = ModelFactory::factoryFor($model_class);
 
-        $this->sendJsonResponse([
-            'models' => $this->modelsToArrays($instances)
-        ]);
+            $this->applyStatesTo($model_factory, is_array($states) ? $states : []);
+
+            $model_factory->count(($_POST['count'] ?? null) ? (int) $_POST['count'] : 1);
+
+            $instances = $model_factory->create(is_array($attributes) ? $attributes : []);
+
+            $this->sendJsonResponse([
+                'models' => $this->modelsToArrays($instances)
+            ]);
+        } catch (\Exception $e) {
+            $status = 500;
+            if ($e instanceof \CHttpException) {
+                $status = $e->statusCode;
+            }
+            $this->sendJsonResponse(
+                ['message' => $e->getMessage(), 'trace' => $e->getTrace()],
+                $status
+            );
+        }
     }
 
     public function actionSetSystemSettingValue()

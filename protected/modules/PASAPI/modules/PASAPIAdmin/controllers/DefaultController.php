@@ -28,16 +28,31 @@ class DefaultController extends \BaseAdminController
     {
         \Audit::add('admin', 'list', null, false, array('module' => 'PASAPI', 'model' => 'OEModule\PASAPI\models\XpathRemap'));
 
-        // Query using CActiveRecord parent to bypass CouchbaseModelBridge integration
-        $model = new XpathRemap('search');
-        
-        // Use parent's findAll method by calling it on the parent class directly
-        // This bypasses the CouchbaseModelBridge findAll override
-        $model_list = XpathRemap::model()->findAll(array(
-            'condition' => 'institution_id = :inst_id',
-            'params' => array(':inst_id' => \Yii::app()->session['selected_institution_id']),
-            'order' => 'name asc'
-        ));
+        // Get default institution if not set
+        $selected_inst_id = \Yii::app()->session['selected_institution_id'];
+        if (empty($selected_inst_id)) {
+            $institution = Institution::model()->find();
+            $selected_inst_id = $institution ? $institution->id : 1;
+        }
+
+        // Query with institution filter
+        try {
+            $model_list = \BaseActiveRecord::model('OEModule\PASAPI\models\XpathRemap')->findAll(array(
+                'condition' => 'institution_id = :inst_id',
+                'params' => array(':inst_id' => $selected_inst_id),
+                'order' => 'name asc'
+            ));
+        } catch (\Exception $e) {
+            \Yii::log('Error querying XpathRemap: ' . $e->getMessage(), \CLogger::LEVEL_ERROR);
+            // Fallback to no filter if filtered query fails
+            try {
+                $model_list = \BaseActiveRecord::model('OEModule\PASAPI\models\XpathRemap')->findAll(array(
+                    'order' => 'name asc'
+                ));
+            } catch (\Exception $e2) {
+                $model_list = array();
+            }
+        }
 
         $this->render('list_XpathRemap', array(
             'model_class' => 'XpathRemap',
@@ -49,15 +64,27 @@ class DefaultController extends \BaseAdminController
     public function actionCreateXpathRemap()
     {
         $model = new XpathRemap();
+        // Set default institution from session if not already set
+        $selected_inst_id = \Yii::app()->session['selected_institution_id'];
+        // If no institution selected, use first institution as default
+        if (empty($selected_inst_id)) {
+            $institution = Institution::model()->find();
+            $selected_inst_id = $institution ? $institution->id : 1;
+        }
+        $model->institution_id = $selected_inst_id;
 
         if (isset($_POST[\CHtml::modelName($model)])) {
             $model->attributes = $_POST[\CHtml::modelName($model)];
+            // Ensure institution_id is set from session to prevent tampering
+            $model->institution_id = $selected_inst_id;
 
             if ($model->save()) {
                 \Audit::add('admin', 'create', serialize($model->attributes), false, array('module' => 'PASAPI', 'model' => '\OEModule\PASAPI\models\XpathRemap'));
                 \Yii::app()->user->setFlash('success', 'Xpath Remap '.$model->name.' added');
 
                 $this->redirect(array('viewXpathRemaps'));
+            } else {
+                \Yii::app()->user->setFlash('error', 'Failed to save Xpath Remap: ' . implode(', ', $model->getErrors()));
             }
         }
 

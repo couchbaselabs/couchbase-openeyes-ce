@@ -35,13 +35,13 @@
             ?>
             <tr data-attr-id="<?php echo $model->id?>">
                 <td>
-                    <a href="<?php echo Yii::app()->createUrl('PASAPI/admin/default/update' . Helper::getNSShortname($model)) . '/' . $model->id ?>"><?php echo $model->name?></a>
+                    <a href="<?php echo Yii::app()->createUrl('PASAPI/admin/default/update' . Helper::getNSShortname($model), array('id' => $model->id)); ?>"><?php echo $model->name?></a>
                 </td>
                 <td>
-                    <a href="<?php echo Yii::app()->createUrl('PASAPI/admin/default/viewRemapValues') . '/' . $model->id ?>"><?= count($model->values) ?></a>
+                    <a href="<?php echo Yii::app()->createUrl('PASAPI/admin/default/viewRemapValues', array('id' => $model->id)); ?>"><?= count($model->values) ?></a>
                 </td>
                 <td>
-                    <a href="<?php echo Yii::app()->createUrl('PASAPI/admin/default/deleteXpathRemap') . '/' . $model->id; ?>">Delete</a>
+                    <a href="<?php echo Yii::app()->createUrl('PASAPI/admin/default/deleteXpathRemap', array('id' => $model->id)); ?>">Delete</a>
                 </td>
             </tr>
             <?php

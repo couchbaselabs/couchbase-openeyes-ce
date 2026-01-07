@@ -303,14 +303,27 @@ class PatientController extends BaseController
             $this->patient->audit('patient', 'view-summary');
 
             $episodes = $this->patient->episodes;
-            // Couchbase fallback if relation returns empty
+            // Couchbase fallback if relation returns empty (only if not in emergency_disable mode)
             if (empty($episodes)) {
-                $episodes = $this->patient->fetchEpisodesFromCouchbase();
-                // keep patient relation hydrated for downstream views
-                $this->patient->episodes = $episodes;
-                // reset ordered episodes cache to rebuild with fresh episodes
-                if (method_exists($this->patient, 'resetOrderedEpisodesCache')) {
-                    $this->patient->resetOrderedEpisodesCache();
+                $useEpisodesFallback = true;
+                if (class_exists('CouchbaseCutoverManager')) {
+                    try {
+                        $manager = CouchbaseCutoverManager::getInstance();
+                        $config = $manager->getConfig();
+                        $useEpisodesFallback = !$config['emergency_disable'];
+                    } catch (Exception $e) {
+                        $useEpisodesFallback = false;
+                    }
+                }
+                
+                if ($useEpisodesFallback) {
+                    $episodes = $this->patient->fetchEpisodesFromCouchbase();
+                    // keep patient relation hydrated for downstream views
+                    $this->patient->episodes = $episodes;
+                    // reset ordered episodes cache to rebuild with fresh episodes
+                    if (method_exists($this->patient, 'resetOrderedEpisodesCache')) {
+                        $this->patient->resetOrderedEpisodesCache();
+                    }
                 }
             }
 
@@ -325,8 +338,8 @@ class PatientController extends BaseController
             $support_service_episodes = $this->patient->supportserviceepisodes;
 
             $criteria = new \CDbCriteria();
-            $criteria->with = ['episode', 'episode.patient'];
-            $criteria->addCondition('patient.id=:patient_id');
+            $criteria->with = ['episode'];
+            $criteria->addCondition('episode.patient_id=:patient_id');
             $criteria->params['patient_id'] = $this->patient->id;
             $criteria->order = 't.last_modified_date desc';
             $criteria->limit = 3;
@@ -336,47 +349,73 @@ class PatientController extends BaseController
             $criteria->addCondition('episode.change_tracker IS NULL OR episode.change_tracker = 0');
             $active_events = Event::model()->findAll($criteria);
 
-            // Couchbase fallback if AR join returns empty
+            // Couchbase fallback if AR join returns empty (only if not in emergency_disable mode)
             if (empty($events)) {
-                try {
-                    $n1ql = "SELECT e.* FROM `openeyes`.`core`.`event` e "
-                        . "JOIN `openeyes`.`core`.`episode` ep ON ep.id = e.episode_id "
-                        . "WHERE ep.patient_id = $id AND e.deleted = FALSE "
-                        . "ORDER BY e.last_modified_date DESC LIMIT 3";
-                    $rows = Yii::app()->couchbaseRest->query($n1ql);
-                    $events = array();
-                    foreach ($rows as $row) {
-                        $ev = new Event(null);
-                        $ev->setIsNewRecord(false);
-                        foreach ($row as $attr => $value) {
-                            if ($ev->hasAttribute($attr)) {
-                                $ev->$attr = $value;
-                            }
-                        }
-                        if (isset($row['id'])) {
-                            $ev->setPrimaryKey($row['id']);
-                        }
-                        // hydrate event type for link rendering
-                        if (isset($row['event_type_id'])) {
-                            $et = EventType::model()->findByPk($row['event_type_id']);
-                            if ($et) {
-                                $ev->addRelatedRecord('eventType', $et, false);
-                            }
-                        }
-                        $events[] = $ev;
+                $useEventsFallback = true;
+                if (class_exists('CouchbaseCutoverManager')) {
+                    try {
+                        $manager = CouchbaseCutoverManager::getInstance();
+                        $config = $manager->getConfig();
+                        $useEventsFallback = !$config['emergency_disable'];
+                    } catch (Exception $e) {
+                        $useEventsFallback = false;
                     }
-                } catch (Exception $e) {
-                    Yii::log('Event Couchbase fallback (summary) failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+                }
+                
+                if ($useEventsFallback) {
+                    try {
+                        $n1ql = "SELECT e.* FROM `openeyes`.`core`.`event` e "
+                            . "JOIN `openeyes`.`core`.`episode` ep ON ep.id = e.episode_id "
+                            . "WHERE ep.patient_id = $id AND e.deleted = FALSE "
+                            . "ORDER BY e.last_modified_date DESC LIMIT 3";
+                        $rows = Yii::app()->couchbaseRest->query($n1ql);
+                        $events = array();
+                        foreach ($rows as $row) {
+                            $ev = new Event(null);
+                            $ev->setIsNewRecord(false);
+                            foreach ($row as $attr => $value) {
+                                if ($ev->hasAttribute($attr)) {
+                                    $ev->$attr = $value;
+                                }
+                            }
+                            if (isset($row['id'])) {
+                                $ev->setPrimaryKey($row['id']);
+                            }
+                            // hydrate event type for link rendering
+                            if (isset($row['event_type_id'])) {
+                                $et = EventType::model()->findByPk($row['event_type_id']);
+                                if ($et) {
+                                    $ev->addRelatedRecord('eventType', $et, false);
+                                }
+                            }
+                            $events[] = $ev;
+                        }
+                    } catch (Exception $e) {
+                        Yii::log('Event Couchbase fallback (summary) failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
+                    }
                 }
             }
 
             if (empty($active_events)) {
+                // Only use Couchbase fallback if not in emergency_disable mode
+                $useCoubbaseFallback = true;
+                if (class_exists('CouchbaseCutoverManager')) {
+                    try {
+                        $manager = CouchbaseCutoverManager::getInstance();
+                        $config = $manager->getConfig();
+                        $useCoubbaseFallback = !$config['emergency_disable'];
+                    } catch (Exception $e) {
+                        $useCoubbaseFallback = false;
+                    }
+                }
+                
+                if ($useCoubbaseFallback) {
                 try {
                     $n1ql = "SELECT e.* FROM `openeyes`.`core`.`event` e "
                         . "JOIN `openeyes`.`core`.`episode` ep ON ep.id = e.episode_id "
                         . "WHERE ep.patient_id = $id AND e.deleted = FALSE "
                         . "AND (ep.change_tracker IS NULL OR ep.change_tracker = FALSE) "
-                        . "ORDER BY e.last_modified_date DESC";
+                        . "ORDER BY e.last_modified_date DESC LIMIT 1000";
                     $rows = Yii::app()->couchbaseRest->query($n1ql);
                     $active_events = array();
                     foreach ($rows as $row) {
@@ -401,6 +440,7 @@ class PatientController extends BaseController
                 } catch (Exception $e) {
                     Yii::log('Active event Couchbase fallback (summary) failed: ' . $e->getMessage(), CLogger::LEVEL_WARNING);
                 }
+                } // end if ($useCoubbaseFallback)
             }
 
             // Attach events to their episodes so the sidebar can render them
