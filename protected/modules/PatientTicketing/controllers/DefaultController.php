@@ -679,8 +679,14 @@ class DefaultController extends \BaseModuleController
      */
     public function actionGetTicketTableRowHistory($id = null)
     {
+        // Try to get ID from request parameters if not passed as argument
         if ($id === null) {
-            throw new \CHttpException(400, 'Ticket ID is required.');
+            $id = \Yii::app()->request->getParam('id');
+        }
+        
+        // If no ticket ID is provided, silently return
+        if (!$id) {
+            return;
         }
         
         /* @var models\Ticket $ticket */
@@ -705,7 +711,9 @@ class DefaultController extends \BaseModuleController
     public function actionTakeTicket($id = null)
     {
         if (empty($id)) {
-            throw new \CHttpException(400, 'Ticket ID is required.');
+            $resp = array('status' => 0, 'message' => 'Ticket ID is required.');
+            echo \CJSON::encode($resp);
+            return;
         }
         if (!$ticket = models\Ticket::model()->with('current_queue')->findByPk($id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
@@ -751,18 +759,34 @@ class DefaultController extends \BaseModuleController
      */
     public function actionReleaseTicket($id = null)
     {
+        // Get ID from URL parameter or request parameter
         if (empty($id)) {
-            throw new \CHttpException(400, 'Ticket ID is required.');
+            $id = \Yii::app()->request->getParam('ticket_id');
+        }
+        if (empty($id)) {
+            echo \CJSON::encode(array(
+                'status' => 0,
+                'message' => 'Ticket ID is required.'
+            ));
+            return;
         }
         if (!$ticket = models\Ticket::model()->with('current_queue')->findByPk($id)) {
-            throw new \CHttpException(404, 'Invalid ticket id.');
+            echo \CJSON::encode(array(
+                'status' => 0,
+                'message' => 'Invalid ticket id.'
+            ));
+            return;
         }
 
         $qs_svc = Yii::app()->service->getService(self::$QUEUESET_SERVICE);
         $queueset = $qs_svc->getQueueSetForTicket($ticket->id);
 
         if (!$this->checkQueueSetProcessAccess($queueset)) {
-            throw new \CHttpException(403, 'Not authorised to take ticket');
+            echo \CJSON::encode(array(
+                'status' => 0,
+                'message' => 'Not authorised to take ticket'
+            ));
+            return;
         }
 
         $resp = array('status' => null);
@@ -843,8 +867,15 @@ class DefaultController extends \BaseModuleController
      */
     public function actionStartTicketProcess($ticket_id = null)
     {
+        // Try to get ticket_id from request parameters if not passed as argument
         if (!$ticket_id) {
-            throw new \CHttpException(400, 'Ticket ID is required.');
+            $ticket_id = Yii::app()->request->getParam('ticket_id');
+        }
+        
+        // If no ticket_id is provided, redirect to home page
+        if (!$ticket_id) {
+            $this->redirect(Yii::app()->homeUrl);
+            return;
         }
         
         if (!$ticket = models\Ticket::model()->findByPk($ticket_id)) {
@@ -881,8 +912,9 @@ class DefaultController extends \BaseModuleController
             $ticket_id = \Yii::app()->request->getParam('ticket_id');
         }
 
+        // If no ticket_id is provided, silently return
         if (!$ticket_id) {
-            throw new \CHttpException(400, 'Ticket ID is required.');
+            return;
         }
         if (!$ticket = models\Ticket::model()->findByPk((int)$ticket_id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
@@ -903,8 +935,9 @@ class DefaultController extends \BaseModuleController
             $ticket_id = \Yii::app()->request->getParam('ticket_id');
         }
 
+        // If no ticket_id is provided, silently return
         if (!$ticket_id) {
-            throw new \CHttpException(400, 'Ticket ID is required.');
+            return;
         }
         if (!$ticket = models\Ticket::model()->findByPk((int)$ticket_id)) {
             throw new \CHttpException(404, 'Invalid ticket id.');
@@ -940,7 +973,7 @@ class DefaultController extends \BaseModuleController
     public function actionGetFirmsForSubspecialty()
     {
         if (!$subspecialty = \Subspecialty::model()->findByPk(@$_GET['subspecialty_id'])) {
-            throw new \Exception('Subspecialty not found: ' . @$_GET['subspecialty_id']);
+            throw new \CHttpException(400, 'Subspecialty not found: ' . @$_GET['subspecialty_id']);
         }
 
         echo \CHtml::dropDownList(
@@ -953,28 +986,54 @@ class DefaultController extends \BaseModuleController
 
     public function actionUndoLastStep($id = null)
     {
-        // Get id from request parameters if not provided as route parameter
-        $id = $id ?: \Yii::app()->request->getParam('id');
+        // Get ID from URL parameter or request parameter
+        if (empty($id)) {
+            $id = \Yii::app()->request->getParam('ticket_id');
+        }
         
         if (empty($id)) {
-            throw new \CHttpException(400, 'Ticket ID is required.');
+            $this->renderJSON(array(
+                'success' => false,
+                'message' => 'Ticket ID is required.'
+            ));
+            return;
         }
         
         if (!$ticket = models\Ticket::model()->findByPk($id)) {
-            throw new \CHttpException(404, "Ticket not found: $id");
+            $this->renderJSON(array(
+                'success' => false,
+                'message' => "Ticket not found: $id"
+            ));
+            return;
         }
 
         $queue_assignments = $ticket->queue_assignments;
+        if (!is_array($queue_assignments) || empty($queue_assignments)) {
+            $this->renderJSON(array(
+                'success' => false,
+                'message' => 'No queue assignments found for this ticket'
+            ));
+            return;
+        }
+
         $last_assignment = array_pop($queue_assignments);
 
         if (!$last_assignment) {
-            throw new \CHttpException(400, 'No queue assignments found for this ticket');
+            $this->renderJSON(array(
+                'success' => false,
+                'message' => 'No queue assignments found for this ticket'
+            ));
+            return;
         }
 
         if (!$last_assignment->delete()) {
-            throw new \CHttpException(500, 'Unable to remove ticket queue assignment: ' . print_r($last_assignment->errors, true));
+            $this->renderJSON(array(
+                'success' => false,
+                'message' => 'Unable to remove ticket queue assignment: ' . implode(', ', $last_assignment->getErrors())
+            ));
+            return;
         }
 
-        $this->renderJSON(['success' => true]);
+        $this->renderJSON(array('success' => true));
     }
 }
