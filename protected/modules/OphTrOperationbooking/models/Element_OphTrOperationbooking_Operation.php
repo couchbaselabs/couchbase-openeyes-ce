@@ -166,6 +166,67 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
         
         $value = parent::__get($name);
         
+        // Handle status that might be returned as an array from Couchbase embedded data
+        if ($name === 'status') {
+            // If status is already a model, return it
+            if ($value instanceof \OphTrOperationbooking_Operation_Status) {
+                return $value;
+            }
+            // If status is embedded array data, hydrate it
+            if (is_array($value) && isset($value['id'])) {
+                $status = \OphTrOperationbooking_Operation_Status::model()->findByPk($value['id']);
+                if ($status) {
+                    return $status;
+                }
+                // If we can't load from DB, create a stub object with the embedded data
+                $status = new \OphTrOperationbooking_Operation_Status();
+                $status->id = $value['id'];
+                $status->name = $value['name'] ?? 'Unknown';
+                return $status;
+            }
+            // If status_id is set but relation returned null, try to load by ID
+            if ($value === null && $this->status_id) {
+                $status = \OphTrOperationbooking_Operation_Status::model()->findByPk($this->status_id);
+                if ($status) {
+                    return $status;
+                }
+            }
+            return $value;
+        }
+        
+        // Handle booking relation that might need to be loaded from Couchbase
+        if ($name === 'booking') {
+            // If booking is already a model, return it
+            if ($value instanceof \OphTrOperationbooking_Operation_Booking) {
+                return $value;
+            }
+            // If booking is embedded array data, hydrate it
+            if (is_array($value) && isset($value['id'])) {
+                $booking = \OphTrOperationbooking_Operation_Booking::model()->findByPk($value['id']);
+                if ($booking) {
+                    return $booking;
+                }
+            }
+            // If booking is null but latest_booking_id is set, try to load by ID
+            if ($value === null && $this->latest_booking_id) {
+                $booking = \OphTrOperationbooking_Operation_Booking::model()->findByPk($this->latest_booking_id);
+                if ($booking && $booking->booking_cancellation_date === null) {
+                    return $booking;
+                }
+            }
+            // If still null, try to find by element_id (the standard HAS_ONE lookup)
+            if ($value === null && $this->id) {
+                $booking = \OphTrOperationbooking_Operation_Booking::model()->find(
+                    'element_id = :element_id AND booking_cancellation_date IS NULL',
+                    [':element_id' => $this->id]
+                );
+                if ($booking) {
+                    return $booking;
+                }
+            }
+            return $value;
+        }
+        
         // Handle procedures that might be returned as arrays from Couchbase embedded data
         if ($name === 'procedures' && is_array($value) && !empty($value)) {
             // Check if the first item is an array (embedded data) rather than a Procedure object
@@ -206,6 +267,46 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
             }
         }
         parent::__set($name, $value);
+    }
+    
+    /**
+     * Override __isset to handle booking relation for Couchbase-primary mode.
+     * PHP's empty() calls __isset before __get, so we need to return true
+     * for relations that we hydrate in __get.
+     */
+    public function __isset($name)
+    {
+        // For booking, check if we can load it from Couchbase/latest_booking_id
+        if ($name === 'booking') {
+            // Check if parent has it
+            if (parent::__isset($name)) {
+                return true;
+            }
+            // Check if we have latest_booking_id or embedded booking data
+            if ($this->latest_booking_id || (is_array($this->getAttribute('booking')) && isset($this->getAttribute('booking')['id']))) {
+                return true;
+            }
+            // Check if we can find by element_id
+            if ($this->id) {
+                $booking = \OphTrOperationbooking_Operation_Booking::model()->find(
+                    'element_id = :element_id AND booking_cancellation_date IS NULL',
+                    [':element_id' => $this->id]
+                );
+                return $booking !== null;
+            }
+            return false;
+        }
+        
+        // For status, check if we can load it
+        if ($name === 'status') {
+            if (parent::__isset($name)) {
+                return true;
+            }
+            // Check if status_id is set or we have embedded status
+            return $this->status_id !== null || (is_array($this->getAttribute('status')) && isset($this->getAttribute('status')['id']));
+        }
+        
+        return parent::__isset($name);
     }
 
     /**

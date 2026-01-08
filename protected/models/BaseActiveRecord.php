@@ -278,10 +278,20 @@ class BaseActiveRecord extends CActiveRecord
     protected function beforeSave()
     {
         // Detect nullable foreign keys and replace "" with null (to fix html dropdowns breaking contraints)
-        foreach ($this->tableSchema->foreignKeys as $field => $stuff) {
-            if ($this->tableSchema->columns[$field]->allowNull && !$this->{$field}) {
-                $this->{$field} = null;
+        // Skip this check in Couchbase-primary mode when MariaDB schema is unavailable
+        try {
+            $schema = $this->tableSchema;
+            if ($schema && isset($schema->foreignKeys)) {
+                foreach ($schema->foreignKeys as $field => $stuff) {
+                    if (isset($schema->columns[$field]) && $schema->columns[$field]->allowNull && !$this->{$field}) {
+                        $this->{$field} = null;
+                    }
+                }
             }
+        } catch (Exception $e) {
+            // Schema unavailable (e.g., Couchbase-primary mode with MariaDB down)
+            // Skip foreign key null conversion - Couchbase doesn't have FK constraints
+            Yii::log("beforeSave: Schema unavailable, skipping FK null conversion: " . $e->getMessage(), CLogger::LEVEL_INFO, 'application.model');
         }
 
         return parent::beforeSave();

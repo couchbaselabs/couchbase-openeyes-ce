@@ -628,7 +628,17 @@ class BaseEventTypeElement extends BaseElement
     {
         if (count($this->audit)) {
             $user = $this->getChangeUser();
+            // In Couchbase-primary mode, event relation may not be loaded
+            // Skip auditing if event or patient is not available
+            if (!$this->event) {
+                $this->audit = array();
+                return;
+            }
             $patient = $this->event->getPatient();
+            if (!$patient) {
+                $this->audit = array();
+                return;
+            }
             foreach ($this->audit as $a) {
                 $user->audit('patient', $a, null, false, array('patient_id' => $patient->id));
             }
