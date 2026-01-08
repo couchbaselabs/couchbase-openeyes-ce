@@ -38,6 +38,33 @@ class OphTrOperationbooking_Operation_Theatre extends BaseActiveRecordVersioned
     use \OE\Models\Traits\CouchbaseModelBridge;
 
     /**
+     * @var array|null Cached sessions for Couchbase mode
+     */
+    private $_cachedSessions = null;
+
+    /**
+     * Set sessions directly (used in Couchbase mode to avoid relation loading)
+     * @param array $sessions
+     */
+    public function setCachedSessions($sessions)
+    {
+        $this->_cachedSessions = $sessions;
+    }
+
+    /**
+     * Get sessions - returns cached sessions if set, otherwise uses relation
+     * @return array
+     */
+    public function getSessions()
+    {
+        if ($this->_cachedSessions !== null) {
+            return $this->_cachedSessions;
+        }
+        // Fall back to relation
+        return $this->getRelated('sessions');
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      *
      * @return OphTrOperationbooking_Operation_Theatre|BaseActiveRecord the static model class
@@ -184,20 +211,86 @@ class OphTrOperationbooking_Operation_Theatre extends BaseActiveRecordVersioned
      */
     public static function getSiteList($current_site_id = null)
     {
-        $model = static::model();
-        $cmd = Yii::app()->cbdb->createCommand()
-            ->selectDistinct('site_id')
-            ->where('active = 1')
-            ->from($model->tableName());
+        try {
+            OELog::log("getSiteList: Starting method");
+            $model = static::model();
+            // Use full Couchbase collection path
+            $collectionPath = '`openeyes`.`' . $model->couchbaseScope() . '`.`' . $model->couchbaseCollection() . '`';
+            OELog::log("getSiteList: Collection path: " . $collectionPath);
+            
+            $cmd = Yii::app()->cbdb->createCommand()
+                ->selectDistinct('site_id')
+                ->where('(active = 1 OR active = true OR active = "1")')
+                ->from($collectionPath);
 
-        $ids = array_map(function ($r) {
-            return $r['site_id'];
-        }, $cmd->queryAll());
+            $ids = array_map(function ($r) {
+                // Convert site_id to integer to match Site.id type
+                return (int)$r['site_id'];
+            }, $cmd->queryAll());
+            
+            OELog::log("getSiteList: Theatre site_ids before filter: " . implode(',', $ids));
+        } catch (Exception $e) {
+            OELog::log("getSiteList: Exception: " . $e->getMessage());
+            return [];
+        }
 
+        // Filter out invalid IDs (0 or negative)
+        $ids = array_filter($ids, function ($id) {
+            return $id > 0;
+        });
+        
+        OELog::log("getSiteList: Theatre site_ids after filter: " . implode(',', $ids));
+
+        if (empty($ids)) {
+            OELog::log("getSiteList: No valid theatre site_ids found, returning empty");
+            return [];
+        }
+
+        $institution = Institution::model()->getCurrent();
+        $institutionId = $institution ? $institution->id : 1;
+        OELog::log("getSiteList: Current institution ID: " . $institutionId);
+
+        // Use direct N1QL query to bypass CDbCriteria issues with IN conditions
+        try {
+            $idList = implode(',', array_map('intval', $ids));
+            $n1ql = "SELECT META(`site`).id AS _doc_key, `site`.* FROM `openeyes`.`core`.`site` WHERE (active = true OR active = 1) AND short_name IS NOT NULL AND short_name != '' AND institution_id = {$institutionId} AND id IN [{$idList}] ORDER BY short_name";
+            OELog::log("getSiteList: N1QL query: " . $n1ql);
+            
+            $rows = Yii::app()->cbdb->createCommand()
+                ->setText($n1ql)
+                ->queryAll();
+            
+            OELog::log("getSiteList: N1QL result count: " . count($rows));
+            
+            $sites = [];
+            foreach ($rows as $row) {
+                $site = new Site();
+                // Use the existing attribute assignment pattern from CouchbaseModelBridge
+                foreach ($row as $key => $value) {
+                    if ($key !== '_doc_key' && $site->hasAttribute($key)) {
+                        $site->setAttribute($key, $value);
+                    }
+                }
+                // Ensure id is set correctly
+                if (isset($row['id'])) {
+                    $site->id = $row['id'];
+                }
+                $site->setIsNewRecord(false);
+                $sites[] = $site;
+            }
+            OELog::log("getSiteList: Found " . count($sites) . " sites after hydration");
+            return $sites;
+        } catch (Exception $e) {
+            OELog::log("getSiteList: Exception in N1QL query: " . $e->getMessage());
+            // Fall back to original CDbCriteria approach
+        }
+
+        // Fallback to CDbCriteria
         $criteria = new CDbCriteria();
-        $criteria->addCondition("active = 1 and short_name != ''");
+        $criteria->addCondition("(active = 1 OR active = true)");
+        $criteria->addCondition("short_name IS NOT NULL AND short_name != ''");
         $criteria->addCondition("institution_id = :institution_id");
-        $criteria->params[':institution_id'] = Institution::model()->getCurrent()->id;
+        $criteria->params[':institution_id'] = $institutionId;
         $criteria->addInCondition('id', $ids);
         if ($current_site_id) {
             $criteria->addCondition('id = :id', 'OR');
@@ -205,7 +298,10 @@ class OphTrOperationbooking_Operation_Theatre extends BaseActiveRecordVersioned
         }
         $criteria->order = 'short_name';
 
-        return Site::model()->findAll($criteria);
+        $sites = Site::model()->findAll($criteria);
+        OELog::log("getSiteList: Found " . count($sites) . " sites (fallback)");
+        
+        return $sites;
     }
 
     public static function getTheatresForCurrentInstitution()

@@ -27,7 +27,9 @@ if (isset($operation) && $operation) {
 
     $warnings = $this->patient->getWarnings($clinical);
     $this->moduleNameCssClass .= ' highlight-fields';
-    $this->title .= ' ('.Element_OphTrOperationbooking_Operation::model()->find('event_id=?', array($this->event->id))->status->name.')';
+    $operationElement = Element_OphTrOperationbooking_Operation::model()->find('event_id=?', array($this->event->id));
+    $statusName = ($operationElement && $operationElement->status) ? $operationElement->status->name : 'Unknown';
+    $this->title .= ' ('.$statusName.')';
     if ($warnings) { ?>
         <div class="cols-12">
             <div class="alert-box patient with-icon">
@@ -57,30 +59,30 @@ if (isset($operation) && $operation) {
         <?php } ?>
     <?php } ?>
 
-    <?php if (!$operation->has_gp) {?>
+    <?php if ($operation->getPatient() && !$operation->has_gp) {?>
         <div class="alert-box alert with-icon">
             Patient has no <?php echo \SettingMetadata::model()->getSetting('gp_label') ?> practice address, please correct in PAS before printing <?php echo \SettingMetadata::model()->getSetting('gp_label') ?> letter.
         </div>
     <?php } ?>
-    <?php if (!$operation->has_address) { ?>
+    <?php if ($operation->getPatient() && !$operation->has_address) { ?>
         <div class="alert-box alert with-icon">
             Patient has no address, please correct in PAS before printing letter.
         </div>
     <?php } ?>
 
-    <?php if ($operation->event->hasIssue()) {?>
+    <?php if ($operation->event && $operation->event->hasIssue()) {?>
         <div class="alert-box issue with-icon">
             <?=\CHtml::encode($operation->event->getIssueText())?>
         </div>
     <?php }?>
 
-    <?php if ($operation->status->name === "On-Hold") { ?>
+    <?php if ($operation->status && $operation->status->name === "On-Hold") { ?>
         <div class="alert-box issue with-icon">
             This event is On-hold: <?= $operation->on_hold_reason . (isset($operation->on_hold_comment) ? ' - ' . $operation->on_hold_comment : "");?>
         </div>
     <?php } ?>
 
-    <?php if ($this->event->delete_pending) {?>
+    <?php if ($this->event && $this->event->delete_pending) {?>
         <div class="alert-box alert with-icon">
             This event is pending deletion and has been locked.
         </div>

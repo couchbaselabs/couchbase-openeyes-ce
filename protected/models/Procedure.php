@@ -154,23 +154,24 @@ class Procedure extends BaseActiveRecordVersioned
     {
         $search = "%{$term}%";
 
-        $select = 'term, short_format, id, default_duration';
+        // Use Couchbase collection path instead of MySQL table alias
+        $collectionPath = '`openeyes`.`reference`.`procedure`';
 
-        $where = '(term like :search or short_format like :search or snomed_term like :search or snomed_code = :term or aliases like :search)';
+        $where = '(LOWER(term) LIKE LOWER(:search) OR LOWER(short_format) LIKE LOWER(:search) OR LOWER(snomed_term) LIKE LOWER(:search) OR snomed_code = :term OR LOWER(aliases) LIKE LOWER(:search))';
 
         if ($restrict == 'unbooked') {
-            $where .= ' and unbooked = 1';
+            $where .= ' AND (unbooked = 1 OR unbooked = true)';
         } elseif ($restrict == 'booked') {
-            $where .= ' and unbooked = 0';
+            $where .= ' AND (unbooked = 0 OR unbooked = false OR unbooked IS MISSING)';
         } elseif ($restrict === 'clinical') {
-            $where .= ' and is_clinic_proc = 1';
+            $where .= ' AND (is_clinic_proc = 1 OR is_clinic_proc = true)';
         }
 
-        $where .= ' and proc.active = 1';
+        $where .= ' AND (active = 1 OR active = true)';
 
         return Yii::app()->cbdb->createCommand()
-            ->select('proc.term as label,proc.id')
-            ->from('proc')
+            ->select('term as label, id')
+            ->from($collectionPath)
             ->where($where, array(
                 ':term' => $term,
                 ':search' => $search,
@@ -223,17 +224,36 @@ class Procedure extends BaseActiveRecordVersioned
     {
         $where = '';
         if ($restrict == 'unbooked') {
-            $where = ' and unbooked = 1';
+            $where = ' AND (proc.unbooked = 1 OR proc.unbooked = true)';
         } elseif ($restrict == 'booked') {
-            $where = ' and unbooked = 0';
+            $where = ' AND (proc.unbooked = 0 OR proc.unbooked = false OR proc.unbooked IS MISSING)';
         }
+        
+        // Use Couchbase collection paths
+        $procCollection = '`openeyes`.`reference`.`procedure` proc';
+        $psaCollection = '`openeyes`.`reference`.`proc_subspecialty_assignment` psa';
+        
+        // First try to get procedures filtered by subspecialty
         $procedures = Yii::app()->cbdb->createCommand()
             ->select('proc.id, proc.term')
-            ->from('proc')
-            ->join('proc_subspecialty_assignment psa', 'psa.proc_id = proc.id')
-            ->where('psa.subspecialty_id = :id and proc.active = 1' . $where, array(':id' => $subspecialtyId))
-            ->order('display_order, proc.term ASC')
+            ->from($procCollection)
+            ->join($psaCollection, 'psa.proc_id = proc.id')
+            ->where('psa.subspecialty_id = :id AND (proc.active = 1 OR proc.active = true)' . $where, array(':id' => $subspecialtyId))
+            ->order('psa.display_order, proc.term ASC')
             ->queryAll();
+
+        // If no procedures found (possibly because proc_subspecialty_assignment is empty),
+        // fallback to returning all active procedures
+        if (empty($procedures)) {
+            $whereClause = '(proc.active = 1 OR proc.active = true)' . $where;
+            $procedures = Yii::app()->cbdb->createCommand()
+                ->select('proc.id, proc.term')
+                ->from($procCollection)
+                ->where($whereClause)
+                ->order('proc.term ASC')
+                ->limit(100)
+                ->queryAll();
+        }
 
         $data = array();
 

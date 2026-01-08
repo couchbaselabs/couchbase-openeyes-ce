@@ -185,6 +185,13 @@ class Element_OphTrOperationbooking_Diagnosis extends BaseEventTypeElement
      */
     protected function afterSave()
     {
+        // Skip diagnosis syncing logic if event/episode/patient relationships are not available
+        // This can happen in Couchbase-primary mode where relationships might not be fully loaded
+        if (!$this->event || !$this->event->episode || !$this->event->episode->patient) {
+            $this->saveToCouchbase();
+            return parent::afterSave();
+        }
+
         $patient_has_disorder = true;
         if (!SecondaryDiagnosis::model()->count('patient_id=? and disorder_id=? and eye_id in (' . $this->eye_id . ',3)', array($this->event->episode->patient_id, $this->disorder_id))) {
             if (!Episode::model()->count('patient_id=? and disorder_id=? and eye_id in (' . $this->eye_id . ',3)', array($this->event->episode->patient_id, $this->disorder_id))) {
@@ -196,7 +203,7 @@ class Element_OphTrOperationbooking_Diagnosis extends BaseEventTypeElement
             if (!$patient_has_disorder) {
                 $this->event->episode->setPrincipalDiagnosis($this->disorder_id, $this->eye_id, (isset($this->date) ? $this->date : false));
                 $sd = SecondaryDiagnosis::model()->find('patient_id=? and disorder_id=? and eye_id = ?', array($this->event->episode->patient_id, $this->disorder_id, 3));
-                if ($sd) {
+                if ($sd && $this->event->episode->patient) {
                     $this->event->episode->patient->removeDiagnosis($sd->id);
 
                     if (in_array($this->eye_id, array(1, 2))) {
@@ -204,7 +211,7 @@ class Element_OphTrOperationbooking_Diagnosis extends BaseEventTypeElement
                     }
                 }
             }
-        } elseif (!$patient_has_disorder) {
+        } elseif (!$patient_has_disorder && $this->event->episode->patient) {
             $this->event->episode->patient->addDiagnosis($this->disorder_id, $this->eye_id);
         }
 

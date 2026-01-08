@@ -88,10 +88,21 @@ if (!Yii::app()->user->checkAccess('Super schedule operation') && SettingMetadat
                                 <?php } ?>
                             </div>
                         </td>
-                        <?php if ($session->id != @$selectedSession->id) { ?>
+                        <?php if ($session->id != @$selectedSession->id) { 
+                            // Get event type class name - handle null event relation from Couchbase
+                            $eventTypeClassName = 'OphTrOperationbooking'; // default
+                            if ($operation->event && $operation->event->eventType) {
+                                $eventTypeClassName = $operation->event->eventType->class_name;
+                            } elseif ($operation->event_id) {
+                                $event = Event::model()->findByPk($operation->event_id);
+                                if ($event && $event->eventType) {
+                                    $eventTypeClassName = $event->eventType->class_name;
+                                }
+                            }
+                        ?>
                             <td>
                                 <a href="<?php echo
-                                    Yii::app()->createUrl('/' . $operation->event->eventType->class_name . '/booking/' . ($operation->booking ? 're' : '')
+                                    Yii::app()->createUrl('/' . $eventTypeClassName . '/booking/' . ($operation->booking ? 're' : '')
                                         . 'schedule/' . $operation->event_id) . '?' .
                                          implode('&', array(
                                          'firm_id=' . ($firm->id ? $firm->id : 'EMG'),

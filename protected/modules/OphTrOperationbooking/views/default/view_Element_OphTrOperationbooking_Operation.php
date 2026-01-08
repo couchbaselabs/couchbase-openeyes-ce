@@ -33,7 +33,7 @@
                         <tr>
                             <td>
                                 <span class="priority-text">
-                                    <?php echo $element->eye->adjective ?>
+                                    <?php echo $element->eye ? $element->eye->adjective : '' ?>
                                     <?php echo $procedure->term ?>
                                 </span>
                             </td>
@@ -128,7 +128,7 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="data-value"><?= $element->anaesthetic_choice->name ?></div>
+                                <div class="data-value"><?= $element->anaesthetic_choice ? $element->anaesthetic_choice->name : 'N/A' ?></div>
                             </td>
                         </tr>
                     <?php endif ?>
@@ -168,7 +168,7 @@
                             <div class="data-label"><?= CHtml::encode($element->getAttributeLabel('site_id')) ?></div>
                         </td>
                         <td>
-                            <div class="data-value"><?php echo $element->site->name ?></div>
+                            <div class="data-value"><?php echo $element->site ? $element->site->name : 'N/A' ?></div>
                         </td>
                     </tr>
                     <tr>
@@ -176,7 +176,7 @@
                             <div class="data-label">Operation priority</div>
                         </td>
                         <td>
-                            <div class="data-value"><?php echo $element->priority->name ?></div>
+                            <div class="data-value"><?php echo $element->priority ? $element->priority->name : 'N/A' ?></div>
                         </td>
                     </tr>
                     <?php if (!empty($element->comments)) { ?>
@@ -408,12 +408,14 @@
                     <li>
                         Originally scheduled for <strong><?php echo $booking->NHSDate('session_date'); ?>,
                             <?php echo date('H:i', strtotime($booking->session_start_time)); ?> -
-                            <?php echo date('H:i', strtotime($booking->session_end_time)); ?></strong>,
-                        in <strong><?php echo $booking->theatre->nameWithSite; ?></strong>.
+                            <?php echo date('H:i', strtotime($booking->session_end_time)); ?></strong><?php if ($booking->theatre) { ?>,
+                        in <strong><?php echo $booking->theatre->nameWithSite; ?></strong><?php } ?>.
                     </li>
                     <li>
                         Cancelled on <?php echo $booking->NHSDate('booking_cancellation_date'); ?>
+                        <?php if ($booking->usercancelled) { ?>
                         by <strong><?php echo $booking->usercancelled->FullName; ?></strong>
+                        <?php } ?>
                         due to <?= CHtml::encode($booking->cancellationReasonWithComment) ?>
                         <?php if ($booking->erod) { ?>
                             <br/><span class="erod">EROD was <?= $booking->erod->getDescription() ?></span>
@@ -426,7 +428,7 @@
 <?php } ?>
 
 <?php if (
-    ($element->status->name === 'Cancelled' || $element->status->name === 'Requires rescheduling')
+    $element->status && ($element->status->name === 'Cancelled' || $element->status->name === 'Requires rescheduling')
     && $element->operation_cancellation_date
 ) { ?>
     <section class="element flex-layout">
@@ -467,9 +469,10 @@ if ($whiteboard_display_mode === 'CURRENT') {
         array('class' => 'small button' . " $disabled", 'id' => 'js-close-whiteboard', 'data-id' => $element->event_id)
     );
 } else {
+    $eventTypeClassName = ($element->event && $element->event->eventType) ? $element->event->eventType->class_name : 'OphTrOperationbooking';
     $this->event_actions[] = EventAction::link(
         'Whiteboard',
-        Yii::app()->createUrl('/' . $element->event->eventType->class_name . '/whiteboard/view/' . $element->event_id),
+        Yii::app()->createUrl('/' . $eventTypeClassName . '/whiteboard/view/' . $element->event_id),
         null,
         array('class' => 'small button' . " $disabled", 'target' => '_blank')
     );
@@ -478,19 +481,20 @@ if ($whiteboard_display_mode === 'CURRENT') {
 if ($element->isEditable()) {
     $td_disabled = $this->module->isTheatreDiaryDisabled();
 
-    $status = strtolower($element->status->name);
+    $status = $element->status ? strtolower($element->status->name) : '';
+    $eventTypeClassName = ($element->event && $element->event->eventType) ? $element->event->eventType->class_name : 'OphTrOperationbooking';
 
     if ($status === 'on-hold') {
         $this->event_actions[] = EventAction::link(
             'Take off hold',
-            Yii::app()->createUrl('/' . $element->event->eventType->class_name . '/default/putOffHold/' . $element->event_id),
+            Yii::app()->createUrl('/' . $eventTypeClassName . '/default/putOffHold/' . $element->event_id),
             null,
             array('class' => 'small button', 'id' => 'js-put-off-hold')
         );
     } else {
         $this->event_actions[] = EventAction::link(
             'Place on hold',
-            Yii::app()->createUrl('/' . $element->event->eventType->class_name . '/default/putOnHold/' . $element->event_id),
+            Yii::app()->createUrl('/' . $eventTypeClassName . '/default/putOnHold/' . $element->event_id),
             null,
             array('class' => 'small button', 'id' => 'js-put-on-hold')
         );
@@ -517,7 +521,7 @@ if ($element->isEditable()) {
         if (!$td_disabled && $this->checkScheduleAccess()) {
             $this->event_actions[] = EventAction::link(
                 'Schedule now',
-                Yii::app()->createUrl('/' . $element->event->eventType->class_name . '/booking/schedule/' . $element->event_id),
+                Yii::app()->createUrl('/' . $eventTypeClassName . '/booking/schedule/' . $element->event_id),
                 array('level' => 'secondary'),
                 array('id' => 'btn_schedule-now', 'class' => 'button small')
             );
@@ -539,7 +543,7 @@ if ($element->isEditable()) {
         if (!$td_disabled && $this->checkScheduleAccess()) {
             $this->event_actions[] = EventAction::link(
                 'Reschedule now',
-                Yii::app()->createUrl('/' . $element->event->eventType->class_name . '/booking/reschedule/' . $element->event_id),
+                Yii::app()->createUrl('/' . $eventTypeClassName . '/booking/reschedule/' . $element->event_id),
                 array('level' => 'secondary'),
                 array('id' => 'btn_reschedule-now', 'class' => 'button small')
             );
@@ -547,7 +551,7 @@ if ($element->isEditable()) {
         if ($this->checkEditAccess()) {
             $this->event_actions[] = EventAction::link(
                 'Reschedule later',
-                Yii::app()->createUrl('/' . $element->event->eventType->class_name . '/booking/rescheduleLater/' . $element->event_id),
+                Yii::app()->createUrl('/' . $eventTypeClassName . '/booking/rescheduleLater/' . $element->event_id),
                 array('level' => 'secondary'),
                 array('id' => 'btn_reschedule-later', 'class' => 'button small')
             );
@@ -556,7 +560,7 @@ if ($element->isEditable()) {
     if ($this->checkEditAccess()) {
         $this->event_actions[] = EventAction::link(
             'Cancel operation',
-            Yii::app()->createUrl('/' . $element->event->eventType->class_name . '/default/cancel/' . $element->event_id),
+            Yii::app()->createUrl('/' . $eventTypeClassName . '/default/cancel/' . $element->event_id),
             array(),
             array('id' => 'btn_cancel-operation', 'class' => 'warning button small')
         );

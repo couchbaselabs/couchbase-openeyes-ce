@@ -118,7 +118,7 @@ ksort($eventTypes);
                     if (!is_array($eventType)) {
                         $args = $this->getCreateArgsForEventTypeOprn($eventType, array('episode'));
                         if ($this->checkAccess(...$args)) { ?>
-                    <li id="<?php echo $eventType->class_name ?>-link" class="oe-event-type step-3" data-eventType-id="<?= $eventType->id ?>" data-support-services="<?= $eventType->support_services ?>" data-test="add-new-event-<?= $eventType->class_name ?>">
+                    <li id="<?php echo $eventType->class_name ?>-link" class="oe-event-type step-3" data-eventType-id="<?= $eventType->id ?: $eventType->getPrimaryKey() ?>" data-support-services="<?= $eventType->support_services ?>" data-test="add-new-event-<?= $eventType->class_name ?>">
                               <?= $eventType->getEventIcon() ?><?= $name ?>
                     </li>
                         <?php } else { ?>
@@ -127,7 +127,7 @@ ksort($eventTypes);
                     </li>
                         <?php }
                     } else { ?>
-                  <li id="<?php echo $eventType['eventType']->class_name ?>-link" class="oe-event-type step-3" data-eventType-id="<?= $eventType['eventType']->id; ?>" data-test="add-new-event-<?= $eventType['eventType']->class_name ?>" <?php
+                  <li id="<?php echo $eventType['eventType']->class_name ?>-link" class="oe-event-type step-3" data-eventType-id="<?= $eventType['eventType']->id ?: $eventType['eventType']->getPrimaryKey(); ?>" data-test="add-new-event-<?= $eventType['eventType']->class_name ?>" <?php
                     if (array_key_exists('eventSubType', $eventType)) {
                         ?> data-eventSubType="<?= $eventType['eventSubType']['event_subtype']; ?>" <?php
                     }

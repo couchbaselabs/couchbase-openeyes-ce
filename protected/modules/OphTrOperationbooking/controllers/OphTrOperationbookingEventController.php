@@ -53,8 +53,27 @@ class OphTrOperationbookingEventController extends BaseEventTypeController
 
     public function checkScheduleAccess($priority = false)
     {
-        if ($this->event && !$this->event->isNewRecord && !$this->checkEditAccess()) {
-            return false;
+        // Check if event relationships are properly loaded for RBAC check
+        // In Couchbase-primary mode, episode/patient may not be auto-loaded
+        if ($this->event && !$this->event->isNewRecord) {
+            // Ensure episode is loaded
+            if (!$this->event->episode && $this->event->episode_id) {
+                $episode = Episode::model()->findByPk($this->event->episode_id);
+                if ($episode) {
+                    $this->event->addRelatedRecord('episode', $episode, false);
+                }
+            }
+            // Ensure patient is loaded on episode
+            if ($this->event->episode && !$this->event->episode->patient && $this->event->episode->patient_id) {
+                $patient = Patient::model()->findByPk($this->event->episode->patient_id);
+                if ($patient) {
+                    $this->event->episode->addRelatedRecord('patient', $patient, false);
+                }
+            }
+            
+            if (!$this->checkEditAccess()) {
+                return false;
+            }
         }
 
         if (!$priority) {

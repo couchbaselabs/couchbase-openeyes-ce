@@ -139,3 +139,9 @@ db.session.sql
 # ignore nxblu in v6.7.x
 protected/assets/NxBlu
 protected/assets/nxblu
+
+# Factory AI configuration
+.factory/
+
+# Local scripts (debugging, fixing, migration)
+/scripts/

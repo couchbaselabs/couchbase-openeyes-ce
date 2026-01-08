@@ -502,7 +502,12 @@ class DefaultController extends OphTrOperationbookingEventController
         $procs = array();
         if (isset($data['Procedures_procs'])) {
             foreach ($data['Procedures_procs'] as $proc_id) {
-                $procs[] = Procedure::model()->findByPk($proc_id);
+                $proc = Procedure::model()->findByPk($proc_id);
+                if ($proc !== null) {
+                    $procs[] = $proc;
+                } else {
+                    \Yii::log("Procedure not found for ID: {$proc_id}", \CLogger::LEVEL_WARNING, 'application.opbooking');
+                }
             }
         }
         $element->procedures = $procs;
@@ -801,14 +806,30 @@ class DefaultController extends OphTrOperationbookingEventController
             throw new CHttpException(500, 'Operation not found');
         }
 
-        $this->patient = $operation->event->episode->patient;
+        // Load patient with fallback for Couchbase mode
+        $patient = null;
+        if ($operation->event && $operation->event->episode) {
+            $patient = $operation->event->episode->patient;
+        }
+        if (!$patient && $operation->event) {
+            // Fallback: load patient directly via episode_id
+            $event = $operation->event;
+            if ($event->episode_id) {
+                $episode = Episode::model()->findByPk($event->episode_id);
+                if ($episode && $episode->patient_id) {
+                    $patient = Patient::model()->findByPk($episode->patient_id);
+                }
+            }
+        }
+
+        $this->patient = $patient;
         $this->title = 'Cancel operation';
 
         $this->processJsVars();
 
         $this->render('cancel', array(
             'operation' => $operation,
-            'patient' => $operation->event->episode->patient,
+            'patient' => $patient,
             'date' => $operation->minDate,
             'errors' => $errors,
         ));

@@ -20,7 +20,12 @@
  * @var PatientSummaryPopup $this
  */
 ?>
-<?php foreach ($this->patient->identifiers as $identifier) { ?>
+<?php foreach ($this->patient->identifiers as $identifier) {
+    // Skip if identifier is an array (from Couchbase) - only process model objects
+    if (!is_object($identifier)) {
+        continue;
+    }
+    ?>
     <?php if ($identifier->patientIdentifierStatus) { ?>
         <div class="alert-box <?= $identifier->patientIdentifierStatus->icon->banner_class_name ?: 'issue' ?>">
             <i class="oe-i exclamation pad-right no-click medium-icon"></i>

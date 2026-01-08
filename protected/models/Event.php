@@ -139,7 +139,8 @@ class Event extends BaseActiveRecordVersioned
         return array(
             array('event_type_id, event_date, institution_id', 'required'),
             array('parent_id, worklist_patient_id, institution_id, firm_id, site_id, step_id', 'safe'),
-            array('episode_id', 'length', 'max' => 10),
+            // Removed length validation for episode_id as it's a numeric ID that can be large in Couchbase
+            array('episode_id', 'numerical', 'integerOnly' => true),
             array('event_type_id', 'length', 'max' => 255),
             array('worklist_patient_id', 'length', 'max' => 40),
             array('worklist_patient_id', 'validateWorklistPatient'),
@@ -1093,9 +1094,9 @@ class Event extends BaseActiveRecordVersioned
                     // 'Reserved ... ' => 'flag', for OE-7194
                 ];
                 $operation = $this->getElementByClass('Element_OphTrOperationbooking_Operation');
-                if ($operation) {
+                if ($operation && $operation->status) {
                     $status_name = $operation->status->name;
-                    $css_class = $operation_status_to_css_class[$status_name];
+                    $css_class = isset($operation_status_to_css_class[$status_name]) ? $operation_status_to_css_class[$status_name] : '';
                     $event_icon_class .= ' ' . $css_class;
                     if (!$this->hasIssue('Operation requires scheduling')) {
                         // this needs to be checked to avoid issue duplication, because the issue

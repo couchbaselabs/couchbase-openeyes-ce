@@ -1197,6 +1197,12 @@ class CouchbaseDbCommand
      */
     private function replaceTableReferences($sql, $scope)
     {
+        // Skip if the SQL already contains fully-qualified Couchbase paths (bucket.scope.collection)
+        // This prevents double-processing when the caller already provides the full path
+        if (preg_match('/`openeyes`\s*\.\s*`\w+`\s*\.\s*`\w+`/', $sql)) {
+            return $sql;
+        }
+        
         // Pattern to match table names (handling various quoting styles)
         $pattern = '/\b(FROM|JOIN|INTO|UPDATE)\s+[`"\']?(\w+)[`"\']?/i';
         

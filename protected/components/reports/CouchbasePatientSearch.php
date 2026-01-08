@@ -117,14 +117,19 @@ class CouchbasePatientSearch
 
                 if (!empty($data['contact'])) {
                     $contactData = is_object($data['contact']) ? (array)$data['contact'] : $data['contact'];
-                    $contact = $patient->contact ?: new \Contact();
+                    $contact = new \Contact();
                     $contact->setIsNewRecord(false);
                     foreach (['id','first_name','last_name','title','primary_phone'] as $cField) {
                         if (isset($contactData[$cField])) {
                             $contact->{$cField} = $contactData[$cField];
                         }
                     }
-                    $patient->contact = $contact;
+                    // Set contact_id to enable relation lookup
+                    if (isset($contactData['id'])) {
+                        $patient->contact_id = $contactData['id'];
+                    }
+                    // Use addRelatedRecord with contact_id as index for BELONGS_TO relation
+                    $patient->addRelatedRecord('contact', $contact, $patient->contact_id);
                 }
             } else {
                 // Create a pseudo-Patient from Couchbase data for display
@@ -157,6 +162,9 @@ class CouchbasePatientSearch
         $patient->date_of_death = $data['date_of_death'] ?? null;
         $patient->is_deceased = $data['is_deceased'] ?? false;
         
+        // Mark as not new record so it can be displayed (must be done before addRelatedRecord)
+        $patient->setIsNewRecord(false);
+        
         // Handle embedded contact data
         if (!empty($data['contact'])) {
             $contact = new \Contact();
@@ -166,13 +174,13 @@ class CouchbasePatientSearch
             $contact->last_name = $contactData['last_name'] ?? '';
             $contact->title = $contactData['title'] ?? '';
             $contact->primary_phone = $contactData['primary_phone'] ?? '';
+            $contact->setIsNewRecord(false);
             
-            // Set as relation
-            $patient->contact = $contact;
+            // Set contact_id for the relation
+            $patient->contact_id = $contact->id;
+            // Use addRelatedRecord with contact_id as index for BELONGS_TO relation
+            $patient->addRelatedRecord('contact', $contact, $patient->contact_id);
         }
-        
-        // Mark as not new record so it can be displayed
-        $patient->setIsNewRecord(false);
         
         return $patient;
     }

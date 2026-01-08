@@ -78,7 +78,9 @@ class BookingController extends OphTrOperationbookingEventController
         $operation = $this->operation;
         $schedule_options = Element_OphTrOperationbooking_ScheduleOperation::model()->find('event_id = ?', array($this->event->id));
 
-        if ($operation->status->name == 'Cancelled') {
+        // Null-safe check for status in Couchbase-primary mode
+        $statusName = ($operation->status && $operation->status->name) ? $operation->status->name : '';
+        if ($statusName == 'Cancelled') {
             return $this->redirect(array('default/view/'.$this->event->id));
         }
 
@@ -103,13 +105,13 @@ class BookingController extends OphTrOperationbookingEventController
             }
         }
 
-        if (preg_match('/^([0-9]{4})([0-9]{2})$/', @$_GET['date'], $m)) {
+        if (preg_match('/^([0-9]{4})([0-9]{2})$/', $_GET['date'] ?? '', $m)) {
             $date = mktime(0, 0, 0, $m[2], 1, $m[1]);
         } else {
             $date = $operation->minDate;
         }
 
-        if (ctype_digit(@$_GET['day'])) {
+        if (ctype_digit($_GET['day'] ?? '')) {
             $selectedDate = date('Y-m-d', mktime(0, 0, 0, date('m', $date), $_GET['day'], date('Y', $date)));
             $theatres = $operation->getTheatres($selectedDate, $firm->id);
 

@@ -52,6 +52,11 @@ class SiteController extends BaseController
      */
     public function actionIndex()
     {
+        if (Yii::app()->user->isGuest) {
+            $this->redirect(array('site/login'));
+            return;
+        }
+
         if (Yii::app()->session['esigndevice']) {
             $this->redirect(self::ESIGN_DEVICE_READY_URL);
         }

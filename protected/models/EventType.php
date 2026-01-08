@@ -221,8 +221,34 @@ class EventType extends BaseActiveRecordVersioned
                             $et->$attr = $value;
                         }
                     }
+                    // Set primary key from id, _mysql_id, or doc key
+                    $pkValue = null;
                     if (isset($row['id'])) {
-                        $et->setPrimaryKey($row['id']);
+                        $pkValue = $row['id'];
+                    } elseif (isset($row['_mysql_id'])) {
+                        $pkValue = $row['_mysql_id'];
+                    }
+                    if ($pkValue !== null) {
+                        $et->setPrimaryKey($pkValue);
+                        // Force set id attribute using reflection (schema may be unavailable)
+                        try {
+                            $refClass = new ReflectionClass($et);
+                            $propClass = $refClass;
+                            while ($propClass) {
+                                if ($propClass->hasProperty('_attributes')) {
+                                    $prop = $propClass->getProperty('_attributes');
+                                    $prop->setAccessible(true);
+                                    $attrs = $prop->getValue($et);
+                                    $attrs['id'] = $pkValue;
+                                    $prop->setValue($et, $attrs);
+                                    break;
+                                }
+                                $propClass = $propClass->getParentClass();
+                            }
+                        } catch (Exception $e) {
+                            // Fallback: try direct assignment
+                            $et->id = $pkValue;
+                        }
                     }
                     $eventTypes[] = $et;
                 }

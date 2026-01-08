@@ -866,6 +866,12 @@ class BaseEventTypeController extends BaseModuleController
                     $this->episode = $ev->episode;
                     $this->patient = $ev->episode->patient;
                 }
+                
+                // Fallback: if patient is null but episode has patient_id, load patient directly
+                if (!$this->patient && $this->episode && $this->episode->patient_id) {
+                    $this->patient = Patient::model()->findByPk($this->episode->patient_id);
+                }
+                
                 $this->successUri = $this->successUri . $ev->id;
                 return;
             }
@@ -2225,9 +2231,12 @@ class BaseEventTypeController extends BaseModuleController
         $eventTypeName = $this->event_type ? $this->event_type->name : 'Event';
 
         $elementTypes = $this->getAllElementTypes();
+        OELog::log("setAndValidateElementsFromData: Found " . count($elementTypes) . " element types for event type " . $eventTypeName);
 
         foreach ($elementTypes as $element_type) {
+            OELog::log("Processing element type: " . $element_type->class_name . " (required: " . ($element_type->required ? 'yes' : 'no') . ")");
             $from_data = $this->getElementsForElementType($element_type, $data);
+            OELog::log("Elements from data for " . $element_type->class_name . ": " . count($from_data));
 
             if (count($from_data) > 0) {
                 $elements = array_merge($elements, $from_data);
@@ -2403,7 +2412,11 @@ class BaseEventTypeController extends BaseModuleController
         foreach ($this->open_elements as $element) {
             $element->event_id = $this->event->id;
             // No need to validate as it has already been validated and the event id was just generated.
-            if (!$element->save(false)) {
+            OELog::log("Saving element: " . get_class($element) . ", event_id=" . $element->event_id);
+            $saveResult = $element->save(false);
+            OELog::log("Element save result for " . get_class($element) . ": " . ($saveResult ? 'true' : 'false'));
+            if (!$saveResult) {
+                OELog::log("Element save FAILED for " . get_class($element) . ": " . json_encode($element->getErrors()));
                 throw new Exception('Unable to save element ' . get_class($element) . '.');
             }
         }

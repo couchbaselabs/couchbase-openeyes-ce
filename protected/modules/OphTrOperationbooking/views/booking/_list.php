@@ -16,10 +16,16 @@
  * @license http://www.gnu.org/licenses/agpl-3.0.html The GNU Affero General Public License V3.0
  */
 
+// Get event_id - handle null event relation from Couchbase
+$eventId = $operation->event_id;
+if (!$eventId && $operation->event) {
+    $eventId = $operation->event->id;
+}
+
 if (!$reschedule) {
-    echo CHtml::form(Yii::app()->createUrl('/OphTrOperationbooking/booking/schedule/' . $operation->event->id . '?firm_id=' . $_GET['firm_id'] . '&date=' . $_GET['date'] . '&day=' . $_GET['day'] . '&session_id=' . $_GET['session_id']), 'post', array('id' => 'bookingForm'));
+    echo CHtml::form(Yii::app()->createUrl('/OphTrOperationbooking/booking/schedule/' . $eventId . '?firm_id=' . $_GET['firm_id'] . '&date=' . $_GET['date'] . '&day=' . $_GET['day'] . '&session_id=' . $_GET['session_id']), 'post', array('id' => 'bookingForm'));
 } else {
-    echo CHtml::form(Yii::app()->createUrl('/OphTrOperationbooking/booking/reschedule/' . $operation->event->id . '?firm_id=' . $_GET['firm_id'] . '&date=' . $_GET['date'] . '&day=' . $_GET['day'] . '&session_id=' . $_GET['session_id']), 'post', array('id' => 'bookingForm'));
+    echo CHtml::form(Yii::app()->createUrl('/OphTrOperationbooking/booking/reschedule/' . $eventId . '?firm_id=' . $_GET['firm_id'] . '&date=' . $_GET['date'] . '&day=' . $_GET['day'] . '&session_id=' . $_GET['session_id']), 'post', array('id' => 'bookingForm'));
 }
 ?>
 <header class="element-header">

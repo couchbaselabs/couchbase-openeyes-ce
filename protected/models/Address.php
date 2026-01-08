@@ -146,13 +146,19 @@ class Address extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Only sync to Couchbase if not already disabled (e.g., during couchbase_primary save)
+        if (!$this->_couchbaseSyncDisabled) {
+            $this->saveToCouchbase();
+        }
     }
 
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Only sync to Couchbase if not already disabled (e.g., during couchbase_primary delete)
+        if (!$this->_couchbaseSyncDisabled) {
+            $this->deleteFromCouchbase();
+        }
     }
 
     /**

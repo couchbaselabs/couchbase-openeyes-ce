@@ -183,8 +183,11 @@ trait CouchbaseModelBridge
      */
     public function save($runValidation = true, $attributes = null, $allow_overriding = false)
     {
+        $writeMode = $this->getWriteMode();
+        \Yii::log("CouchbaseModelBridge::save() called for {$this->tableName()}, writeMode={$writeMode}, runValidation={$runValidation}", \CLogger::LEVEL_INFO, 'application.couchbase.save');
+        
         // For couchbase_primary mode, we need special handling
-        if ($this->getWriteMode() === 'couchbase_primary') {
+        if ($writeMode === 'couchbase_primary') {
             return $this->saveToCouchbasePrimary($runValidation, $attributes, $allow_overriding);
         }
         
@@ -203,8 +206,11 @@ trait CouchbaseModelBridge
      */
     protected function saveToCouchbasePrimary($runValidation = true, $attributes = null, $allow_overriding = false)
     {
+        \Yii::log("saveToCouchbasePrimary called for {$this->tableName()}, runValidation={$runValidation}", \CLogger::LEVEL_INFO, 'application.couchbase.save');
+        
         // Run validation if requested
         if ($runValidation && !$this->validate($attributes)) {
+            \Yii::log("saveToCouchbasePrimary validation FAILED for {$this->tableName()}: " . json_encode($this->getErrors()), \CLogger::LEVEL_ERROR, 'application.couchbase.save');
             return false;
         }
         
@@ -242,8 +248,11 @@ trait CouchbaseModelBridge
         
         // Call beforeSave
         if (!$this->beforeSave()) {
+            \Yii::log("saveToCouchbasePrimary beforeSave FAILED for {$this->tableName()}", \CLogger::LEVEL_ERROR, 'application.couchbase.save');
             return false;
         }
+        
+        \Yii::log("saveToCouchbasePrimary beforeSave passed for {$this->tableName()}, proceeding with upsert", \CLogger::LEVEL_INFO, 'application.couchbase.save');
         
         try {
             $restClient = \Yii::app()->couchbaseRest;
@@ -1318,6 +1327,17 @@ trait CouchbaseModelBridge
         $model = new $className(null);
         $model->setIsNewRecord(false);
         
+        // Check if data is nested under collection name (common with N1QL `collection.*` syntax)
+        $collection = $this->couchbaseCollection();
+        if (isset($row[$collection]) && is_array($row[$collection])) {
+            // Preserve _doc_key if present
+            $docKey = isset($row['_doc_key']) ? $row['_doc_key'] : null;
+            $row = $row[$collection];
+            if ($docKey !== null) {
+                $row['_doc_key'] = $docKey;
+            }
+        }
+        
         // Set attributes from row
         foreach ($row as $attr => $value) {
             if (strpos($attr, '_') === 0) {
@@ -1325,6 +1345,10 @@ trait CouchbaseModelBridge
             }
             if ($model->hasAttribute($attr)) {
                 $model->$attr = $value;
+            } elseif (is_array($value)) {
+                // This might be embedded relation data (e.g., contact, address)
+                // Store it in _attributes so it can be retrieved by resolveContactRelation
+                $this->forceSetAttribute($model, $attr, $value);
             }
         }
         
@@ -1347,8 +1371,15 @@ trait CouchbaseModelBridge
             }
         } elseif (isset($row['id'])) {
             $model->setPrimaryKey($row['id']);
+            // Also set the id attribute directly
+            if ($model->hasAttribute('id')) {
+                $model->id = $row['id'];
+            }
         } elseif (isset($row['_mysql_id'])) {
             $model->setPrimaryKey($row['_mysql_id']);
+            // Set the id attribute directly - use reflection to bypass schema checks
+            // This is necessary when MariaDB is unavailable and schema metadata is missing
+            $this->forceSetAttribute($model, 'id', $row['_mysql_id']);
         } elseif (isset($row['_doc_key']) && is_string($pk)) {
             // Extract ID from document key (e.g., "event::123" -> 123)
             // Only for simple (non-composite) primary keys
@@ -1357,14 +1388,59 @@ trait CouchbaseModelBridge
                 $parts = explode('::', $docKey);
                 $extractedId = end($parts);
                 if (is_numeric($extractedId)) {
-                    $model->setPrimaryKey((int)$extractedId);
-                } else {
-                    $model->setPrimaryKey($extractedId);
+                    $extractedId = (int)$extractedId;
                 }
+                $model->setPrimaryKey($extractedId);
+                // Set the id attribute directly - use reflection to bypass schema checks
+                $this->forceSetAttribute($model, 'id', $extractedId);
             }
         }
         
         return $model;
+    }
+    
+    /**
+     * Force set an attribute on a model, bypassing schema validation.
+     * Uses reflection to directly access the internal _attributes array.
+     * This is necessary when MariaDB is unavailable and schema metadata is missing.
+     * 
+     * @param \CActiveRecord $model The model to set the attribute on
+     * @param string $name The attribute name
+     * @param mixed $value The attribute value
+     */
+    protected function forceSetAttribute($model, $name, $value)
+    {
+        // First try the normal way
+        if ($model->setAttribute($name, $value) === true) {
+            return;
+        }
+        
+        // If normal way failed, use reflection to access _attributes directly
+        // This is needed when MariaDB schema is unavailable
+        try {
+            $reflection = new \ReflectionClass($model);
+            $property = null;
+            
+            // Search up the class hierarchy for _attributes
+            $class = $reflection;
+            while ($class) {
+                if ($class->hasProperty('_attributes')) {
+                    $property = $class->getProperty('_attributes');
+                    break;
+                }
+                $class = $class->getParentClass();
+            }
+            
+            if ($property) {
+                $property->setAccessible(true);
+                $attributes = $property->getValue($model);
+                $attributes[$name] = $value;
+                $property->setValue($model, $attributes);
+            }
+        } catch (\Exception $e) {
+            // Log but don't fail
+            \Yii::log("Failed to force set attribute {$name}: " . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application');
+        }
     }
     
     /**
@@ -1410,12 +1486,30 @@ trait CouchbaseModelBridge
      */
     public function __get($name)
     {
-        // First try parent __get to handle normal attributes and relations
+        // Check upfront if MariaDB is unavailable and this is a relation
+        // We need to do this BEFORE calling parent::__get because Yii's lazy loading
+        // doesn't throw exceptions when MariaDB returns empty - it just returns null
+        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+            $md = $this->getMetaData();
+            if (isset($md->relations[$name])) {
+                // Check cache first
+                if (isset($this->_couchbaseRelationCache[$name])) {
+                    return $this->_couchbaseRelationCache[$name];
+                }
+                
+                // Load from Couchbase
+                $result = $this->loadRelationFromCouchbase($name);
+                $this->_couchbaseRelationCache[$name] = $result;
+                return $result;
+            }
+        }
+        
+        // For non-relation properties or when MariaDB is available, use parent
         try {
             return parent::__get($name);
         } catch (\CException $e) {
             // If parent threw an exception for an undefined property, check if it's a relation
-            // that needs to be loaded from Couchbase
+            // that needs to be loaded from Couchbase (fallback for edge cases)
             $md = $this->getMetaData();
             if (isset($md->relations[$name])) {
                 // Check if we should use Couchbase for relation loading

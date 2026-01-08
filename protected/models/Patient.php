@@ -1401,6 +1401,78 @@ class Patient extends BaseActiveRecordVersioned
             return $related;
         }
 
+        // Check for embedded contact data from Couchbase (stored in _attributes)
+        // Use reflection to access _attributes directly as getAttribute would trigger __get
+        try {
+            $reflection = new \ReflectionClass($this);
+            $class = $reflection;
+            while ($class) {
+                if ($class->hasProperty('_attributes')) {
+                    $property = $class->getProperty('_attributes');
+                    $property->setAccessible(true);
+                    $attributes = $property->getValue($this);
+                    if (isset($attributes['contact']) && is_array($attributes['contact'])) {
+                        // Hydrate a Contact model from embedded Couchbase data
+                        $contactData = $attributes['contact'];
+                        $contact = new Contact();
+                        $contact->setIsNewRecord(false);
+                        // Use reflection to set attributes directly on Contact model
+                        // This bypasses hasAttribute check which may fail without MariaDB schema
+                        $contactAttrsProperty = null;
+                        $contactClass = new \ReflectionClass($contact);
+                        $cClass = $contactClass;
+                        while ($cClass) {
+                            if ($cClass->hasProperty('_attributes')) {
+                                $contactAttrsProperty = $cClass->getProperty('_attributes');
+                                break;
+                            }
+                            $cClass = $cClass->getParentClass();
+                        }
+                        if ($contactAttrsProperty) {
+                            $contactAttrsProperty->setAccessible(true);
+                            $contactAttrs = $contactAttrsProperty->getValue($contact);
+                            foreach ($contactData as $attr => $value) {
+                                $contactAttrs[$attr] = $value;
+                            }
+                            $contactAttrsProperty->setValue($contact, $contactAttrs);
+                        }
+                        if (isset($contactData['id'])) {
+                            $contact->setPrimaryKey($contactData['id']);
+                        }
+                        // Cache the hydrated contact. 
+                        // For BELONGS_TO relations, we set _related['contact'] directly
+                        // because addRelatedRecord expects array-style storage
+                        $relProp = null;
+                        try {
+                            $relReflect = new \ReflectionClass($this);
+                            $rClass = $relReflect;
+                            while ($rClass) {
+                                if ($rClass->hasProperty('_related')) {
+                                    $relProp = $rClass->getProperty('_related');
+                                    break;
+                                }
+                                $rClass = $rClass->getParentClass();
+                            }
+                            if ($relProp) {
+                                $relProp->setAccessible(true);
+                                $related = $relProp->getValue($this);
+                                $related['contact'] = $contact;
+                                $relProp->setValue($this, $related);
+                            }
+                        } catch (\Exception $e) {
+                            // Fallback to addRelatedRecord
+                            $this->addRelatedRecord('contact', $contact, $contactData['id'] ?? 0);
+                        }
+                        return $contact;
+                    }
+                    break;
+                }
+                $class = $class->getParentClass();
+            }
+        } catch (\Exception $e) {
+            // Fall through to traditional lookup
+        }
+
         if (!$this->contact_id) {
             return null;
         }
@@ -3065,7 +3137,10 @@ class Patient extends BaseActiveRecordVersioned
     protected function afterSave()
     {
         parent::afterSave();
-        $this->saveToCouchbase();
+        // Only sync to Couchbase if not already disabled (e.g., during couchbase_primary save)
+        if (!$this->_couchbaseSyncDisabled) {
+            $this->saveToCouchbase();
+        }
     }
     
     /**
@@ -3074,6 +3149,9 @@ class Patient extends BaseActiveRecordVersioned
     protected function afterDelete()
     {
         parent::afterDelete();
-        $this->deleteFromCouchbase();
+        // Only sync to Couchbase if not already disabled (e.g., during couchbase_primary delete)
+        if (!$this->_couchbaseSyncDisabled) {
+            $this->deleteFromCouchbase();
+        }
     }
 }

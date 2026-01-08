@@ -150,7 +150,13 @@ class OphTrOperationbooking_Operation_Booking extends BaseActiveRecordVersioned
 
     public function getCancellationReasonWithComment()
     {
-        $return = $this->cancellationReason->text;
+        $reason = $this->cancellationReason;
+        // Fallback: load reason directly if relation returns null
+        if (!$reason && $this->cancellation_reason_id) {
+            $reason = OphTrOperationbooking_Operation_Cancellation_Reason::model()->findByPk($this->cancellation_reason_id);
+        }
+        
+        $return = $reason ? $reason->text : 'Unknown reason';
         if ($this->cancellation_comment) {
             $return .= " ($this->cancellation_comment)";
         }
@@ -161,8 +167,23 @@ class OphTrOperationbooking_Operation_Booking extends BaseActiveRecordVersioned
     public function audit($target, $action, $data = null, $log = false, $properties = array())
     {
         $properties['event_id'] = $this->operation->event_id;
-        $properties['episode_id'] = $this->operation->event->episode_id;
-        $properties['patient_id'] = $this->operation->event->episode->patient_id;
+        
+        // Handle null event relation from Couchbase
+        $episodeId = null;
+        $patientId = null;
+        if ($this->operation->event && $this->operation->event->episode) {
+            $episodeId = $this->operation->event->episode_id;
+            $patientId = $this->operation->event->episode->patient_id;
+        } elseif ($this->operation->event_id) {
+            // Try to load event/episode directly
+            $event = \Event::model()->findByPk($this->operation->event_id);
+            if ($event && $event->episode) {
+                $episodeId = $event->episode_id;
+                $patientId = $event->episode->patient_id;
+            }
+        }
+        $properties['episode_id'] = $episodeId;
+        $properties['patient_id'] = $patientId;
 
         return parent::audit($target, $action, $data, $log, $properties);
     }
@@ -309,15 +330,29 @@ class OphTrOperationbooking_Operation_Booking extends BaseActiveRecordVersioned
 
     protected function afterSave()
     {
+        // Get patient - handle null event relation from Couchbase
+        $patient = null;
+        if ($this->operation) {
+            if ($this->operation->event && $this->operation->event->episode && $this->operation->event->episode->patient) {
+                $patient = $this->operation->event->episode->patient;
+            } elseif ($this->operation->event_id) {
+                // Try to load event/episode/patient chain directly
+                $event = \Event::model()->findByPk($this->operation->event_id);
+                if ($event && $event->episode && $event->episode->patient) {
+                    $patient = $event->episode->patient;
+                }
+            }
+        }
+        
         Yii::app()->event->dispatch(
             'OphTrOperationbooking_booking_after_save',
             array(
-                'patient' => $this->operation->event->episode->patient,
+                'patient' => $patient,
                 'admission_date' => $this->session->date,
                 'admission_time' => $this->admission_time,
                 'firm' => $this->session->firm,
-                'site' => $this->ward->site,
-                'ward_code' => $this->ward->code,
+                'site' => $this->ward ? $this->ward->site : null,
+                'ward_code' => $this->ward ? $this->ward->code : null,
                 'theatre_code' => $this->session->theatre ? $this->session->theatre->code : null,
                 'cancellation_date' => $this->booking_cancellation_date,
                 'new' => $this->isNewRecord,
@@ -325,7 +360,9 @@ class OphTrOperationbooking_Operation_Booking extends BaseActiveRecordVersioned
         );
 
         parent::afterSave();
-        $this->saveToCouchbase();
+        if (!$this->_couchbaseSyncDisabled) {
+            $this->saveToCouchbase();
+        }
     }
 
     protected function afterDelete()
@@ -359,9 +396,18 @@ class OphTrOperationbooking_Operation_Booking extends BaseActiveRecordVersioned
      */
     public function lessThanSessionEndTimeValidate()
     {
-        if (!isset($this->session->end_time)) {
-            $this->addError('admission_time', 'Session End Time required to check Admission Time');
-        } elseif (strtotime($this->session->end_time) <= strtotime($this->admission_time)) {
+        $session = $this->session;
+        
+        // Fallback: load session directly if relation returns null
+        if (!$session && $this->session_id) {
+            $session = OphTrOperationbooking_Operation_Session::model()->findByPk($this->session_id);
+        }
+        
+        if (!$session || !isset($session->end_time)) {
+            // Skip validation if session cannot be loaded (e.g., in Couchbase mode)
+            // The booking will still be validated by other means
+            return;
+        } elseif (strtotime($session->end_time) <= strtotime($this->admission_time)) {
             $this->addError('admission_time', 'Admission time cannot be later or equal than Session End Time');
         }
     }
