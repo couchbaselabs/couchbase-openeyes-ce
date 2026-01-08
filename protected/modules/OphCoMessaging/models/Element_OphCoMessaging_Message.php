@@ -59,6 +59,13 @@ class Element_OphCoMessaging_Message extends \BaseEventTypeElement
     use HasFactory;
 
     protected $auto_update_relations = true;
+    
+    /**
+     * Temporary storage for recipients when element is new (not yet saved).
+     * This prevents lazy loading from overwriting manually set recipients.
+     * @var OphCoMessaging_Message_Recipient[]|null
+     */
+    private $_pending_recipients = null;
 
     /**
      * @return string the associated database table name
@@ -66,6 +73,45 @@ class Element_OphCoMessaging_Message extends \BaseEventTypeElement
     public function tableName()
     {
         return 'et_ophcomessaging_message';
+    }
+    
+    /**
+     * Override __set to capture recipients for new records before they're saved.
+     * This stores them in _pending_recipients to prevent lazy loading issues.
+     */
+    public function __set($name, $value)
+    {
+        if ($name === 'recipients' && $this->isNewRecord) {
+            // Store recipients for validation before save
+            if (is_array($value)) {
+                $this->_pending_recipients = [];
+                foreach ($value as $v) {
+                    if ($v instanceof OphCoMessaging_Message_Recipient) {
+                        $this->_pending_recipients[] = $v;
+                    } elseif (is_array($v)) {
+                        // Create recipient from array
+                        $recipient = new OphCoMessaging_Message_Recipient();
+                        $recipient->mailbox_id = $v['mailbox_id'] ?? null;
+                        $recipient->primary_recipient = $v['primary_recipient'] ?? 0;
+                        $recipient->marked_as_read = $v['marked_as_read'] ?? 0;
+                        $this->_pending_recipients[] = $recipient;
+                    }
+                }
+            }
+        }
+        parent::__set($name, $value);
+    }
+    
+    /**
+     * Override __get to return pending recipients for new records.
+     * This prevents lazy loading from returning empty results.
+     */
+    public function __get($name)
+    {
+        if ($name === 'recipients' && $this->isNewRecord && $this->_pending_recipients !== null) {
+            return $this->_pending_recipients;
+        }
+        return parent::__get($name);
     }
 
     protected $errorExceptions = array(
@@ -353,6 +399,11 @@ class Element_OphCoMessaging_Message extends \BaseEventTypeElement
 
     protected function updateEventSubtype()
     {
+        // Skip if message_type is not set (can happen in Couchbase-only mode during initial save)
+        if (!$this->message_type) {
+            return;
+        }
+        
         $event_subtype_item = $this->getOrInstantiateEventSubtypeItem();
 
         if (!$this->message_type->event_subtype) {

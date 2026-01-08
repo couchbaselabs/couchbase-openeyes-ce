@@ -233,39 +233,87 @@ class MailboxSearch
 
     public static function getAllMailboxesForUser($user_id)
     {
-        // Couchbase-only fallback: if MariaDB is unavailable, skip recursive mailbox query and return empty
+        // Check if MariaDB is available for complex recursive CTE queries
+        $useMariaDb = false;
         try {
             $db = \Yii::app()->db;
-            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
-                return [];
+            if ($db instanceof \OEDbConnection && $db->isConnectionAvailable()) {
+                $useMariaDb = true;
             }
         } catch (\Throwable $e) {
-            return [];
+            $useMariaDb = false;
         }
 
-        $user_mailbox_sql = "WITH RECURSIVE user_teams AS (
-            SELECT team_id FROM team_user_assign tua WHERE tua.user_id = :target_user_id
-                UNION DISTINCT
-            SELECT parent_team_id AS team_id FROM user_teams
-                JOIN team_team_assign tta ON tta.child_team_id = user_teams.team_id
-        )
-        ((SELECT m.id, m.name, m.is_personal FROM mailbox m
-            JOIN mailbox_team mt ON mailbox_id = m.id
-            JOIN user_teams ut ON ut.team_id = mt.team_id
-            WHERE m.active = :active_mailbox)
-        UNION
-        (SELECT m.id, m.name, m.is_personal FROM mailbox m
-            JOIN mailbox_user mu ON mu.mailbox_id = m.id
-            WHERE mu.user_id = :target_user_id)) ORDER BY is_personal DESC, `name` ASC";
+        if ($useMariaDb) {
+            // Use MariaDB for complex recursive CTE
+            $user_mailbox_sql = "WITH RECURSIVE user_teams AS (
+                SELECT team_id FROM team_user_assign tua WHERE tua.user_id = :target_user_id
+                    UNION DISTINCT
+                SELECT parent_team_id AS team_id FROM user_teams
+                    JOIN team_team_assign tta ON tta.child_team_id = user_teams.team_id
+            )
+            ((SELECT m.id, m.name, m.is_personal FROM mailbox m
+                JOIN mailbox_team mt ON mailbox_id = m.id
+                JOIN user_teams ut ON ut.team_id = mt.team_id
+                WHERE m.active = :active_mailbox)
+            UNION
+            (SELECT m.id, m.name, m.is_personal FROM mailbox m
+                JOIN mailbox_user mu ON mu.mailbox_id = m.id
+                WHERE mu.user_id = :target_user_id)) ORDER BY is_personal DESC, `name` ASC";
 
-        $user_mailbox_command = \Yii::app()->cbdb->createCommand($user_mailbox_sql);
-        $user_mailbox_command->params = [':target_user_id' => $user_id, 'active_mailbox' => 1];
+            $user_mailbox_command = \Yii::app()->cbdb->createCommand($user_mailbox_sql);
+            $user_mailbox_command->params = [':target_user_id' => $user_id, 'active_mailbox' => 1];
 
-        return $user_mailbox_command->queryAll();
+            return $user_mailbox_command->queryAll();
+        }
+
+        // Couchbase-only mode: use simplified N1QL query without recursive CTE
+        // Get mailboxes directly assigned to the user via mailbox_user
+        try {
+            $couchbaseRest = \Yii::app()->couchbaseRest;
+            
+            // Query mailboxes assigned to user via mailbox_user
+            $n1ql = "SELECT m.id, m.name, m.is_personal 
+                     FROM `openeyes`.`reference`.`mailbox` m 
+                     JOIN `openeyes`.`reference`.`mailbox_user` mu ON mu.mailbox_id = m.id 
+                     WHERE mu.user_id = \$user_id 
+                       AND (m.active = true OR m.active = '1' OR m.active = 1)
+                     ORDER BY m.is_personal DESC, m.name ASC";
+            
+            $results = $couchbaseRest->query($n1ql, ['user_id' => (string)$user_id]);
+            
+            if (!empty($results)) {
+                return $results;
+            }
+            
+            // If no results with string user_id, try with integer
+            $results = $couchbaseRest->query($n1ql, ['user_id' => (int)$user_id]);
+            
+            return $results ?: [];
+        } catch (\Throwable $e) {
+            \Yii::log("MailboxSearch: Failed to get mailboxes for user: " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+            return [];
+        }
     }
 
     public static function getMailboxFolderCounts($user_id, $mailbox_ids = null)
     {
+        // Check if MariaDB is available for complex SQL queries
+        $useMariaDb = false;
+        try {
+            $db = \Yii::app()->db;
+            if ($db instanceof \OEDbConnection && $db->isConnectionAvailable()) {
+                $useMariaDb = true;
+            }
+        } catch (\Throwable $e) {
+            $useMariaDb = false;
+        }
+
+        // Couchbase-only mode: use simplified N1QL query for folder counts
+        if (!$useMariaDb) {
+            return self::getMailboxFolderCountsCouchbase($user_id, $mailbox_ids);
+        }
+
         $mailbox_id_params = MailboxSearch::getMailboxQueryParams($user_id, $mailbox_ids);
 
         $sql = "SELECT
@@ -526,6 +574,86 @@ class MailboxSearch
         return $counts;
     }
 
+    /**
+     * Couchbase-only implementation for folder counts using simplified N1QL queries
+     */
+    private static function getMailboxFolderCountsCouchbase($user_id, $mailbox_ids = null)
+    {
+        $counts = [
+            self::FOLDER_ALL => 0,
+            self::FOLDER_UNREAD_ALL => 0,
+            self::FOLDER_UNREAD_TO_ME => 0,
+            self::FOLDER_UNREAD_URGENT => 0,
+            self::FOLDER_UNREAD_QUERY => 0,
+            self::FOLDER_UNREAD_REPLIES => 0,
+            self::FOLDER_UNREAD_CC => 0,
+            self::FOLDER_READ_ALL => 0,
+            self::FOLDER_READ_URGENT => 0,
+            self::FOLDER_READ_TO_ME => 0,
+            self::FOLDER_READ_CC => 0,
+            self::FOLDER_SENT_ALL => 0,
+            self::FOLDER_SENT_REPLIES => 0,
+            self::FOLDER_STARTED_THREADS => 0,
+            self::FOLDER_WAITING_FOR_REPLY => 0,
+            self::FOLDER_UNREAD_BY_RECIPIENT => 0
+        ];
+
+        try {
+            $couchbaseRest = \Yii::app()->couchbaseRest;
+            
+            // Get mailbox IDs for the user
+            $mailbox_ids_for_query = $mailbox_ids;
+            if (empty($mailbox_ids_for_query)) {
+                $mailboxes = self::getAllMailboxesForUser($user_id);
+                $mailbox_ids_for_query = array_map(function($m) { return $m['id']; }, $mailboxes);
+            }
+            
+            if (empty($mailbox_ids_for_query)) {
+                return $counts;
+            }
+            
+            // Build mailbox ID list for N1QL IN clause
+            $mailbox_in_clause = implode(',', array_map(function($id) {
+                return '"' . addslashes($id) . '"';
+            }, $mailbox_ids_for_query));
+            
+            // Count all messages where user is a recipient (received)
+            $n1ql_received = "SELECT COUNT(*) as cnt 
+                              FROM `openeyes`.`clinical`.`ophcomessaging_message_recipient` r
+                              WHERE r.mailbox_id IN [$mailbox_in_clause]";
+            $result = $couchbaseRest->query($n1ql_received);
+            $received_count = isset($result[0]['cnt']) ? (int)$result[0]['cnt'] : 0;
+            
+            // Count unread messages where user is a recipient
+            $n1ql_unread = "SELECT COUNT(*) as cnt 
+                            FROM `openeyes`.`clinical`.`ophcomessaging_message_recipient` r
+                            WHERE r.mailbox_id IN [$mailbox_in_clause]
+                              AND (r.marked_as_read = 0 OR r.marked_as_read = false OR r.marked_as_read = '0')";
+            $result = $couchbaseRest->query($n1ql_unread);
+            $unread_count = isset($result[0]['cnt']) ? (int)$result[0]['cnt'] : 0;
+            
+            // Count messages sent by user
+            $n1ql_sent = "SELECT COUNT(*) as cnt 
+                          FROM `openeyes`.`clinical`.`et_ophcomessaging_message` m
+                          WHERE m.sender_mailbox_id IN [$mailbox_in_clause]
+                            AND (m.deleted = 0 OR m.deleted = false)";
+            $result = $couchbaseRest->query($n1ql_sent);
+            $sent_count = isset($result[0]['cnt']) ? (int)$result[0]['cnt'] : 0;
+            
+            // Update counts
+            $counts[self::FOLDER_ALL] = $received_count + $sent_count;
+            $counts[self::FOLDER_UNREAD_ALL] = $unread_count;
+            $counts[self::FOLDER_UNREAD_TO_ME] = $unread_count; // Simplified - all unread assumed to be "to me"
+            $counts[self::FOLDER_SENT_ALL] = $sent_count;
+            $counts[self::FOLDER_STARTED_THREADS] = $sent_count;
+            
+        } catch (\Throwable $e) {
+            \Yii::log("MailboxSearch: Failed to get folder counts: " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+        }
+        
+        return $counts;
+    }
+
     public static function getMailboxQueryParams($user_id, $mailbox_ids = null)
     {
         $user_mailbox_ids = !empty($mailbox_ids) ?
@@ -567,14 +695,20 @@ class MailboxSearch
 
     public function retrieveMailboxContentsUsingSQL($user_id, $mailbox_ids = null)
     {
-        // Couchbase-only fallback: if MariaDB is unavailable or keyspace missing, return empty
+        // Check if MariaDB is available for complex SQL queries
+        $useMariaDb = false;
         try {
             $db = \Yii::app()->db;
-            if ($db instanceof \OEDbConnection && !$db->isConnectionAvailable()) {
-                return [];
+            if ($db instanceof \OEDbConnection && $db->isConnectionAvailable()) {
+                $useMariaDb = true;
             }
         } catch (\Throwable $e) {
-            return [];
+            $useMariaDb = false;
+        }
+
+        // Couchbase-only mode: use simplified N1QL query
+        if (!$useMariaDb) {
+            return $this->retrieveMailboxContentsCouchbase($user_id, $mailbox_ids);
         }
 
         $mailbox_id_params = MailboxSearch::getMailboxQueryParams($user_id, $mailbox_ids);
@@ -804,5 +938,129 @@ class MailboxSearch
         );
 
         return $data_provider;
+    }
+
+    /**
+     * Couchbase-only implementation for retrieving mailbox contents
+     */
+    private function retrieveMailboxContentsCouchbase($user_id, $mailbox_ids = null)
+    {
+        try {
+            $couchbaseRest = \Yii::app()->couchbaseRest;
+            
+            // Get mailbox IDs for the user
+            $mailbox_ids_for_query = $mailbox_ids;
+            if (empty($mailbox_ids_for_query)) {
+                $mailboxes = self::getAllMailboxesForUser($user_id);
+                $mailbox_ids_for_query = array_map(function($m) { return $m['id']; }, $mailboxes);
+            }
+            
+            if (empty($mailbox_ids_for_query)) {
+                return new \CArrayDataProvider([]);
+            }
+            
+            // Build mailbox ID list for N1QL IN clause
+            $mailbox_in_clause = implode(',', array_map(function($id) {
+                return '"' . addslashes($id) . '"';
+            }, $mailbox_ids_for_query));
+            
+            // Build filter conditions based on folder settings
+            $where_conditions = [];
+            
+            // Filter by read status if specified
+            if ($this->message_read_by_user === 0) {
+                $where_conditions[] = "(r.marked_as_read = 0 OR r.marked_as_read = false OR r.marked_as_read = '0')";
+            } elseif ($this->message_read_by_user === 1) {
+                $where_conditions[] = "(r.marked_as_read = 1 OR r.marked_as_read = true OR r.marked_as_read = '1')";
+            }
+            
+            $where_clause = !empty($where_conditions) ? 'AND ' . implode(' AND ', $where_conditions) : '';
+            
+            // Query messages where user is a recipient
+            // Use TO_NUMBER() for type conversion since IDs may be stored as strings
+            $n1ql = "SELECT 
+                        m.id as element_id,
+                        m.event_id as element_event_id,
+                        m.message_text as display_text,
+                        m.message_type_id,
+                        m.sender_mailbox_id,
+                        m.urgent,
+                        m.created_date as send_date,
+                        r.mailbox_id as user_mailbox_id,
+                        r.primary_recipient as user_primary_recipient,
+                        r.marked_as_read as marked_as_read_by_user,
+                        COALESCE(mb.name, 'Unknown') as sender_mailbox_name,
+                        COALESCE(mb.is_personal, 0) as sender_mailbox_personal,
+                        COALESCE(rmb.name, 'Unknown') as recipient_mailbox_name,
+                        ev.episode_id,
+                        COALESCE(ep.patient_id, 1) as patient_id
+                     FROM `openeyes`.`clinical`.`ophcomessaging_message_recipient` r
+                     JOIN `openeyes`.`clinical`.`et_ophcomessaging_message` m ON TO_STRING(m.id) = TO_STRING(r.element_id)
+                     LEFT JOIN `openeyes`.`reference`.`mailbox` mb ON TO_STRING(mb.id) = TO_STRING(m.sender_mailbox_id)
+                     LEFT JOIN `openeyes`.`reference`.`mailbox` rmb ON TO_STRING(rmb.id) = TO_STRING(r.mailbox_id)
+                     LEFT JOIN `openeyes`.`core`.`event` ev ON TO_NUMBER(ev.id) = TO_NUMBER(m.event_id) OR TO_STRING(ev.id) = TO_STRING(m.event_id)
+                     LEFT JOIN `openeyes`.`core`.`episode` ep ON TO_NUMBER(ep.id) = TO_NUMBER(ev.episode_id) OR TO_STRING(ep.id) = TO_STRING(ev.episode_id)
+                     WHERE TO_STRING(r.mailbox_id) IN [$mailbox_in_clause]
+                       AND (m.deleted = 0 OR m.deleted = false)
+                       $where_clause
+                     ORDER BY m.created_date DESC
+                     LIMIT 30";
+            
+            $results = $couchbaseRest->query($n1ql);
+            
+            // Convert results to expected format with all fields expected by the view
+            $data = [];
+            if (!empty($results)) {
+                foreach ($results as $row) {
+                    // Get sender user info if available
+                    $sender_title = '';
+                    $sender_first_name = '';
+                    $sender_last_name = 'Unknown';
+                    
+                    $data[] = [
+                        'element_id' => $row['element_id'] ?? null,
+                        'element_event_id' => $row['element_event_id'] ?? null,
+                        'event_id' => $row['element_event_id'] ?? null,
+                        'display_text' => $row['display_text'] ?? '',
+                        'message_type_id' => $row['message_type_id'] ?? null,
+                        'sender_mailbox_id' => $row['sender_mailbox_id'] ?? null,
+                        'urgent' => $row['urgent'] ?? 0,
+                        'send_date' => $row['send_date'] ?? null,
+                        'user_mailbox_id' => $row['user_mailbox_id'] ?? null,
+                        'user_primary_recipient' => $row['user_primary_recipient'] ?? 1,
+                        'marked_as_read_by_user' => $row['marked_as_read_by_user'] ?? 0,
+                        'sender_mailbox_name' => $row['sender_mailbox_name'] ?? 'Unknown',
+                        'sender_mailbox_personal' => $row['sender_mailbox_personal'] ?? 1,
+                        'recipient_mailbox_name' => $row['recipient_mailbox_name'] ?? 'Unknown',
+                        'patient_id' => $row['patient_id'] ?? 1,
+                        'episode_id' => $row['episode_id'] ?? null,
+                        // Additional fields expected by the view
+                        'sender_title' => $sender_title,
+                        'sender_first_name' => $sender_first_name,
+                        'sender_last_name' => $sender_last_name,
+                        'user_mailbox_personal' => $row['sender_mailbox_personal'] ?? 1, // Same as sender for personal mailbox
+                        'reply_required' => 0,
+                        'latest_comment_id' => null,
+                        'user_original_sender' => 0,
+                        'message_type_name' => 'General',
+                        'total_message_count' => count($results),
+                    ];
+                }
+            }
+            
+            return new \CArrayDataProvider($data, [
+                'pagination' => [
+                    'pageSize' => 30
+                ],
+                'sort' => [
+                    'attributes' => ['send_date', 'sender_mailbox_name'],
+                    'defaultOrder' => ['send_date' => \CSort::SORT_DESC]
+                ]
+            ]);
+            
+        } catch (\Throwable $e) {
+            \Yii::log("MailboxSearch: Failed to retrieve mailbox contents: " . $e->getMessage(), \CLogger::LEVEL_WARNING);
+            return new \CArrayDataProvider([]);
+        }
     }
 }

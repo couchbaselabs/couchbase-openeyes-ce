@@ -42,19 +42,19 @@ $mailbox =
                     <tr>
                         <th>Sender</th>
                         <td>
-                            <span class="priority-text"><?= $element->sender->name; ?></span>
+                            <span class="priority-text"><?= $element->sender ? $element->sender->name : 'Unknown Sender'; ?></span>
                         </td>
                     </tr>
                     <tr>
                         <th>Date sent</th>
                         <td>
-                            <?= Helper::convertDate2NHS($element->event->event_date) ?>
+                            <?= $element->event ? Helper::convertDate2NHS($element->event->event_date) : Helper::convertDate2NHS($element->created_date) ?>
                         </td>
                     </tr>
                     <tr>
                         <th>Recipient</th>
                         <td data-test="message-primary-recipient-mailbox-name">
-                            <?= $element->for_the_attention_of->mailbox->name ?></div>
+                            <?= ($element->for_the_attention_of && $element->for_the_attention_of->mailbox) ? $element->for_the_attention_of->mailbox->name : 'Unknown Recipient' ?></div>
                         </td>
                     </tr>
                     <?php if ($element->cc_enabled) { ?>
@@ -106,14 +106,14 @@ $mailbox =
                         ?>
                     </div>
                 </div>
-                <?php if (empty($element->comments) && $this->canMarkMessageRead($element, $mailbox)) { ?>
+                <?php if ($mailbox && empty($element->comments) && $this->canMarkMessageRead($element, $mailbox)) { ?>
                 <div class="change-msg-status">
                     <a class="button" data-test="mark-as-read-btn" href="<?= Yii::app()->createUrl("{$this->getModule()->name}/Default/markRead?id={$this->event->id}&mailbox_id={$mailbox->id}") ?>">
                         <i class="oe-i save small pad-r"></i>
                         Mark message as read for <?= $mailbox->name ?>
                     </a>
                 </div>
-                <?php } elseif (empty($element->comments) && $this->canMarkMessageUnread($element, $mailbox)) { ?>
+                <?php } elseif ($mailbox && empty($element->comments) && $this->canMarkMessageUnread($element, $mailbox)) { ?>
                 <div class="change-msg-status">
                     <a class="button" data-test="mark-as-unread-btn" href="<?= Yii::app()->createUrl("{$this->getModule()->name}/Default/markUnread?id={$this->event->id}&mailbox_id={$mailbox->id}") ?>">
                         <i class="oe-i save small pad-r"></i>

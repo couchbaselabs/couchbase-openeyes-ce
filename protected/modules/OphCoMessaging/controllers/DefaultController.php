@@ -418,13 +418,16 @@ class DefaultController extends \BaseEventTypeController
         }
         $messageElement = $this->getMessageElement();
 
+        // Handle Couchbase-only mode where message_type may not be loaded
+        $replyRequired = $messageElement->message_type ? $messageElement->message_type->reply_required : false;
+
         $canComment = (
-                (!$messageElement->comments && $this->isIntendedRecipient($user) && !$this->isSender($user) && $messageElement->message_type->reply_required)
+                (!$messageElement->comments && $this->isIntendedRecipient($user) && !$this->isSender($user) && $replyRequired)
                 || (($this->isIntendedRecipient($user) || $this->isSender($user))
                 && $messageElement->comments
-                && !($this->isSender($user) && $messageElement->last_comment->marked_as_read)
-                && $messageElement->last_comment->created_user_id != $user->getId()
-                && $messageElement->message_type->reply_required)
+                && !($this->isSender($user) && $messageElement->last_comment && $messageElement->last_comment->marked_as_read)
+                && $messageElement->last_comment && $messageElement->last_comment->created_user_id != $user->getId()
+                && $replyRequired)
             );
 
         return $canComment;
@@ -603,5 +606,42 @@ class DefaultController extends \BaseEventTypeController
             }
         }
         echo \CJSON::encode($res);
+    }
+
+    /**
+     * Handle recipients data from the form and convert to OphCoMessaging_Message_Recipient objects.
+     * This method is called by BaseEventTypeController::setElementComplexAttributesFromData()
+     *
+     * @param \OEModule\OphCoMessaging\models\Element_OphCoMessaging_Message $element
+     * @param array $data
+     * @param int|null $index
+     */
+    protected function setComplexAttributes_Element_OphCoMessaging_Message($element, $data, $index = null)
+    {
+        $model_name = \CHtml::modelName($element);
+        
+        \OELog::log("OphCoMessaging setComplexAttributes called. Model name: $model_name");
+
+        if (isset($data[$model_name]['recipients']) && is_array($data[$model_name]['recipients'])) {
+            \OELog::log("OphCoMessaging Recipients data found: " . count($data[$model_name]['recipients']));
+            
+            // Build array of arrays format that auto_update_relations expects
+            $recipients_data = [];
+            foreach ($data[$model_name]['recipients'] as $mailbox_id => $recipient_data) {
+                \OELog::log("OphCoMessaging Processing recipient: mailbox_id=$mailbox_id, primary_recipient=" . ($recipient_data['primary_recipient'] ?? 'NOT SET'));
+                $recipients_data[] = [
+                    'mailbox_id' => $mailbox_id,
+                    'primary_recipient' => isset($recipient_data['primary_recipient']) ? (int)$recipient_data['primary_recipient'] : 0,
+                    'marked_as_read' => 0,
+                ];
+            }
+            
+            // Use __set directly which triggers auto_update_relations
+            // This creates the OphCoMessaging_Message_Recipient objects and stores them in $_related
+            $element->recipients = $recipients_data;
+            \OELog::log("OphCoMessaging Set " . count($recipients_data) . " recipients via __set with arrays");
+        } else {
+            \OELog::log("OphCoMessaging No recipients found in POST data for model: $model_name");
+        }
     }
 }
