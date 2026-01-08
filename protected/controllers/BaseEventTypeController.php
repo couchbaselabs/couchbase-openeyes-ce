@@ -2100,7 +2100,10 @@ class BaseEventTypeController extends BaseModuleController
     protected function setElementComplexAttributesFromData($element, $data, $index = null)
     {
         $element_method = 'setComplexAttributes_' . Helper::getNSShortname($element);
+        OELog::log("BaseEventTypeController: Looking for method '$element_method' on " . get_class($this));
+        OELog::log("BaseEventTypeController: Method exists: " . (method_exists($this, $element_method) ? 'YES' : 'NO'));
         if (method_exists($this, $element_method)) {
+            OELog::log("BaseEventTypeController: Calling $element_method");
             $this->$element_method($element, $data, $index);
         }
     }
@@ -2513,13 +2516,20 @@ class BaseEventTypeController extends BaseModuleController
                 true
             )
         ) {
-            $event_type_id = $this->event->attributes["event_type_id"];
-            $event_type = EventType::model()->findByAttributes(array('id' => $event_type_id));
-            $event_name = preg_replace('/\s+/', '_', $event_type->name);
-            $this->renderPartial('//patient/_patient_element_sidebar', array('event_name' => $event_name));
-        } else {
-            parent::renderSidebar($default_view);
+            $event_type = $this->event_type ?? null;
+            if (!$event_type) {
+                $event_type_id = $this->event->attributes["event_type_id"] ?? null;
+                if ($event_type_id) {
+                    $event_type = EventType::model()->findByAttributes(array('id' => $event_type_id));
+                }
+            }
+            if ($event_type) {
+                $event_name = preg_replace('/\s+/', '_', $event_type->name);
+                $this->renderPartial('//patient/_patient_element_sidebar', array('event_name' => $event_name));
+                return;
+            }
         }
+        parent::renderSidebar($default_view);
     }
 
     public function renderIndexSearch()
@@ -2531,9 +2541,16 @@ class BaseEventTypeController extends BaseModuleController
                 true
             )
         ) {
-            $event_type_id = ($this->event->attributes["event_type_id"]);
-            $event_type = EventType::model()->findByAttributes(array('id' => $event_type_id));
-            $event_name = $event_type->name;
+            $event_type = $this->event_type ?? null;
+            if (!$event_type) {
+                $event_type_id = ($this->event->attributes["event_type_id"] ?? null);
+                if ($event_type_id) {
+                    $event_type = EventType::model()->findByAttributes(array('id' => $event_type_id));
+                }
+            }
+            if ($event_type) {
+                $event_name = $event_type->name;
+            }
         }
     }
 
@@ -2546,10 +2563,17 @@ class BaseEventTypeController extends BaseModuleController
                 true
             )
         ) {
-            $event_type_id = $this->event->attributes["event_type_id"];
-            $event_type = EventType::model()->findByAttributes(array('id' => $event_type_id));
-            $event_name = preg_replace('/\s+/', '_', $event_type->name);
-            $this->renderPartial(('//patient/_patient_manage_elements'), array('event_name' => $event_name));
+            $event_type = $this->event_type ?? null;
+            if (!$event_type) {
+                $event_type_id = $this->event->attributes["event_type_id"] ?? null;
+                if ($event_type_id) {
+                    $event_type = EventType::model()->findByAttributes(array('id' => $event_type_id));
+                }
+            }
+            if ($event_type) {
+                $event_name = preg_replace('/\s+/', '_', $event_type->name);
+                $this->renderPartial(('//patient/_patient_manage_elements'), array('event_name' => $event_name));
+            }
         }
     }
 

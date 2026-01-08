@@ -25,9 +25,13 @@ class PatientLevelElementBehaviour extends CActiveRecordBehavior
     {
         $latest_element = null;
         if (!$patient) {
-            $patient = $this->owner->event->getPatient();
+            // During new event creation, event may be null or may not have a patient yet
+            if ($this->owner->event) {
+                $patient = $this->owner->event->getPatient();
+            }
         }
-        if ($this->owner->getModuleApi()) {
+        // Only call getLatestElement if we have a valid patient
+        if ($patient && $this->owner->getModuleApi()) {
             $latest_element = $this->owner->getModuleApi()->getLatestElement(get_class($this->owner), $patient);
         }
 
@@ -52,7 +56,12 @@ class PatientLevelElementBehaviour extends CActiveRecordBehavior
             }
         }
         $tip = $this->owner->getTipElement();
-        return $tip && $tip->id === $this->owner->id;
+        // If we couldn't get the tip element (e.g., patient not available during Couchbase operation),
+        // assume we're at the tip for newly saved records
+        if ($tip === null) {
+            return true;
+        }
+        return $tip->id === $this->owner->id;
     }
 
     /**

@@ -34,9 +34,7 @@ Yii::app()->clientScript->registerScriptFile($widgetPath);
 $assetManager->registerScriptFile('js/EyeSelector.js', 'application.widgets', 90);
 Yii::app()->clientScript->registerScriptFile("{$this->assetPath}/js/Diagnoses.js", CClientScript::POS_HEAD);
 
-$user_firm = Firm::model()->with(array(
-    'serviceSubspecialtyAssignment' => array('subspecialty'),
-))->findByPk(Yii::app()->session['selected_firm_id']);
+$user_firm = Firm::model()->findByPk(Yii::app()->session['selected_firm_id']);
 
 $current_episode = $this->event->episode ?? Episode::getCurrentEpisodeByFirm($this->patient->id, $user_firm);
 

@@ -48,6 +48,12 @@ class Element_OphCiExamination_Diagnoses extends \BaseEventTypeElement
     public $no_ophthalmic_diagnoses = false;
 
     protected $has_other_subspecialties_diagnoses = null;
+    
+    /**
+     * Cache for diagnoses set via setDiagnoses() to persist through validation
+     * @var array|null
+     */
+    private $_cached_diagnoses = null;
 
     protected $errorExceptions = [
             'OEModule_OphCiExamination_models_Element_OphCiExamination_Diagnoses_diagnoses' => 'OEModule_OphCiExamination_models_Element_OphCiExamination_Diagnoses_diagnoses_table'
@@ -203,6 +209,34 @@ class Element_OphCiExamination_Diagnoses extends \BaseEventTypeElement
     }
 
     /**
+     * Get diagnoses - returns cached diagnoses if set, otherwise loads from relation
+     * @param string $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        if ($name === 'diagnoses' && $this->_cached_diagnoses !== null) {
+            return $this->_cached_diagnoses;
+        }
+        return parent::__get($name);
+    }
+
+    /**
+     * Set diagnoses - caches the value to persist through validation
+     * @param string $name
+     * @param mixed $value
+     * @return mixed
+     */
+    public function __set($name, $value)
+    {
+        if ($name === 'diagnoses') {
+            $this->_cached_diagnoses = $value;
+            return;
+        }
+        return parent::__set($name, $value);
+    }
+
+    /**
      * Return cached value $has_other_subspecialties_diagnoses,
      * if $has_other_subspecialties_diagnoses is null, run the checkForOtherSubspecialtiesDiagnoses
      * and assign the result to $has_other_subspecialties_diagnoses
@@ -222,12 +256,13 @@ class Element_OphCiExamination_Diagnoses extends \BaseEventTypeElement
      * Check if the patient has diagnoses in other subspecialties
      *
      * @return bool
-     * @throws Exception if there is no event, episode or patient data present, throw exception
      */
     public function checkForOtherSubspecialtiesDiagnoses()
     {
+        // During new event creation, the event hasn't been saved yet
+        // so return false to allow validation to proceed
         if (!$this->event || !$this->event->episode || !$this->event->episode->patient) {
-            throw new \RuntimeException("No event, episode or patient data found");
+            return false;
         }
 
         $current_episode = $this->event->episode;
@@ -324,22 +359,33 @@ class Element_OphCiExamination_Diagnoses extends \BaseEventTypeElement
         }
 
         if ($this->isAtTip()) {
-            //delete SecondaryDiagnosis entries that are removed in a new examination.
-            foreach ($this->event->episode->patient->ophthalmicDiagnoses as $secondary_diagnosis) {
-                if (array_search($secondary_diagnosis->disorder_id, array_column(array_merge($disorder_to_update, $disorder_to_create), 'disorder_id')) === false) {
-                    $this->event->episode->patient->removeDiagnosis($secondary_diagnosis->id);
+            // Get patient - may need to fetch it if not available through relations
+            $patient = null;
+            if ($this->event && $this->event->episode) {
+                $patient = $this->event->episode->patient;
+                if (!$patient && $this->event->episode->patient_id) {
+                    $patient = \Patient::model()->findByPk($this->event->episode->patient_id);
                 }
             }
+            
+            if ($patient) {
+                //delete SecondaryDiagnosis entries that are removed in a new examination.
+                foreach ($patient->ophthalmicDiagnoses as $secondary_diagnosis) {
+                    if (array_search($secondary_diagnosis->disorder_id, array_column(array_merge($disorder_to_update, $disorder_to_create), 'disorder_id')) === false) {
+                        $patient->removeDiagnosis($secondary_diagnosis->id);
+                    }
+                }
 
-            foreach ($added_diagnoses as $diagnosis) {
-                if ($diagnosis->principal) {
-                    $this->event->episode->setPrincipalDiagnosis($diagnosis->disorder_id, $diagnosis->eye_id, $diagnosis->date);
-                } else {
-                    $this->event->episode->patient->addDiagnosis(
-                        $diagnosis->disorder_id,
-                        $diagnosis->eye_id,
-                        $diagnosis->date,
-                    );
+                foreach ($added_diagnoses as $diagnosis) {
+                    if ($diagnosis->principal) {
+                        $this->event->episode->setPrincipalDiagnosis($diagnosis->disorder_id, $diagnosis->eye_id, $diagnosis->date);
+                    } else {
+                        $patient->addDiagnosis(
+                            $diagnosis->disorder_id,
+                            $diagnosis->eye_id,
+                            $diagnosis->date,
+                        );
+                    }
                 }
             }
         }
@@ -719,11 +765,7 @@ class Element_OphCiExamination_Diagnoses extends \BaseEventTypeElement
                     'principal' => (bool) $diagnosis->principal,
                 ];
                 
-                // Add secondary diagnosis if present
-                if ($diagnosis->secondary_diagnosis_id) {
-                    $diagnosisData['secondary_diagnosis_id'] = $diagnosis->secondary_diagnosis_id;
-                    $diagnosisData['secondary_diagnosis'] = $diagnosis->secondaryDiagnosis ? $diagnosis->secondaryDiagnosis->term : null;
-                }
+
                 
                 $data['diagnoses'][] = $diagnosisData;
             }

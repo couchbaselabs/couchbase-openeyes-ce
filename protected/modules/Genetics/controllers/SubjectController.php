@@ -257,7 +257,11 @@ class SubjectController extends BaseModuleController
             $bugreport .= "POST data:\n";
             $bugreport .= print_r($_POST, true) . "\n";
             $filename = "genetics_bugreport_" . date("YmdHis") . ".log";
-            file_put_contents(Yii::app()->basePath . "/runtime/logs/$filename", $bugreport);
+            $logDir = Yii::app()->basePath . "/runtime/logs";
+            if (!is_dir($logDir)) {
+                @mkdir($logDir, 0755, true);
+            }
+            @file_put_contents($logDir . "/$filename", $bugreport);
             throw $e;
         }
     }

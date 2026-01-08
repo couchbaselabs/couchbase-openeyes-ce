@@ -221,4 +221,48 @@ class OphCiExamination_Diagnosis extends \BaseActiveRecordVersioned
     {
         return \Helper::formatFuzzyDate($this->date);
     }
+
+    /**
+     * Get HTML formatted fuzzy date.
+     * This is a fallback method in case the OeDateFormat behavior is not attached
+     * (e.g., when loaded from Couchbase).
+     * 
+     * @return string HTML formatted date
+     */
+    public function getHTMLformatedDate()
+    {
+        // Try to use the behavior method first
+        if ($this->asa('OeDateFormat') && method_exists($this->asa('OeDateFormat'), 'getHTMLformatedDate')) {
+            return $this->asa('OeDateFormat')->getHTMLformatedDate();
+        }
+        
+        // Fallback implementation
+        $date = $this->date;
+        if (!$date || !strtotime($date)) {
+            return 'Undated';
+        }
+        
+        // Parse the fuzzy date
+        preg_match_all('/\b\d{2}\b/', $date, $matches);
+        $month = sizeof($matches[0]) > 0 ? (integer) $matches[0][0] : 0;
+        $day = sizeof($matches[0]) > 1 ? (integer) $matches[0][1] : 0;
+        
+        preg_match('/\b\d{4}\b/', $date, $matches);
+        $year = isset($matches[0]) ? $matches[0] : '0000';
+        
+        if ($year === '0000') {
+            return 'Undated';
+        }
+        
+        $html = '';
+        if ($day !== 0) {
+            $html .= '<span class="day">' . $day . ' </span>';
+        }
+        if ($month !== 0) {
+            $html .= '<span class="mth">' . date("M", mktime(0, 0, 0, $month, 1)) . ' </span>';
+        }
+        $html .= '<span class="yr">' . $year . '</span>';
+        
+        return $html;
+    }
 }
