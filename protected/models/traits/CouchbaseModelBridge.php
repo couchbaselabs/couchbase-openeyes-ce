@@ -1067,6 +1067,12 @@ trait CouchbaseModelBridge
                         $value = false;
                     }
                 }
+                
+                // Normalize numeric ID fields - ensure proper integer type for N1QL matching
+                $numericFields = ['id', 'user_id', 'institution_authentication_id', 'institution_id', 'site_id', 'contact_id', 'event_id', 'episode_id', 'patient_id'];
+                if (in_array($name, $numericFields, true) && is_numeric($value)) {
+                    $value = (int)$value;
+                }
 
                 $paramName = 'attr_' . $name;
                 if ($value === null) {
@@ -1285,15 +1291,26 @@ trait CouchbaseModelBridge
         $n1qlParams = [];
         
         // Keys that should REMAIN as strings even if they look like numbers
-        // because the data in Couchbase stores them as strings
-        $stringKeys = ['uid', 'userid', 'user_id'];
+        // because the data in Couchbase stores them as strings (legacy fields).
+        // Note: user_id is typically stored as integer, so it's NOT in this list.
+        // These patterns match both the field name itself and prefixed versions (e.g., attr_userid)
+        $stringKeyPatterns = ['uid', 'userid'];
         
         foreach ($params as $key => $value) {
             // Remove : prefix and add $ prefix for N1QL
             $cleanKey = ltrim($key, ':');
             
             // Check if this key should remain as string (userid fields)
-            $keepAsString = in_array(strtolower($cleanKey), $stringKeys);
+            // Match both exact key and keys ending with the pattern (e.g., attr_userid matches userid)
+            $keepAsString = false;
+            $lowerKey = strtolower($cleanKey);
+            foreach ($stringKeyPatterns as $pattern) {
+                if ($lowerKey === $pattern || 
+                    substr($lowerKey, -strlen($pattern)) === $pattern) {
+                    $keepAsString = true;
+                    break;
+                }
+            }
             
             // Cast numeric string values to integers for proper N1QL type matching
             // EXCEPT for userid fields which are stored as strings in Couchbase

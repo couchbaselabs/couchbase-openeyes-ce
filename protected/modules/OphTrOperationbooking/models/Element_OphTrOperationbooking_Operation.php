@@ -227,6 +227,34 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
             return $value;
         }
         
+        // Handle cancellation_user relation - load from cancellation_user_id if relation is null
+        if ($name === 'cancellation_user') {
+            if ($value instanceof \User) {
+                return $value;
+            }
+            if ($value === null && $this->cancellation_user_id) {
+                $user = \User::model()->findByPk($this->cancellation_user_id);
+                if ($user) {
+                    return $user;
+                }
+            }
+            return $value;
+        }
+        
+        // Handle cancellation_reason relation - load from cancellation_reason_id if relation is null
+        if ($name === 'cancellation_reason') {
+            if ($value instanceof \OphTrOperationbooking_Operation_Cancellation_Reason) {
+                return $value;
+            }
+            if ($value === null && $this->cancellation_reason_id) {
+                $reason = \OphTrOperationbooking_Operation_Cancellation_Reason::model()->findByPk($this->cancellation_reason_id);
+                if ($reason) {
+                    return $reason;
+                }
+            }
+            return $value;
+        }
+        
         // Handle procedures that might be returned as arrays from Couchbase embedded data
         if ($name === 'procedures' && is_array($value) && !empty($value)) {
             // Check if the first item is an array (embedded data) rather than a Procedure object
@@ -1414,20 +1442,81 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
             );
         }
 
-        $this->operation_cancellation_date = date('Y-m-d H:i:s');
+        $cancellation_date = date('Y-m-d H:i:s');
+        $user_id = $cancellation_user_id ? $cancellation_user_id : Yii::app()->session['user']->id;
+        $cancelled_status_id = OphTrOperationbooking_Operation_Status::STATUS_CANCELLED;
+
+        // Update attributes in the model for subsequent use
+        $this->operation_cancellation_date = $cancellation_date;
         $this->cancellation_reason_id = $reason_id;
         $this->cancellation_comment = $comment;
-        $this->cancellation_user_id = $cancellation_user_id ? $cancellation_user_id : Yii::app()->session['user']->id;
+        $this->cancellation_user_id = $user_id;
+        $this->status_id = $cancelled_status_id;
 
-        $this->status_id = OphTrOperationbooking_Operation_Status::model()->find('name=?', array('Cancelled'))->id;
-
-        // Skip validation when cancelling - we're only updating cancellation-related fields
-        // and the procedures/consultant relations may not load correctly from Couchbase
-        if (!$this->save(false)) {
-            return array(
-                'result' => false,
-                'errors' => $this->getErrors(),
-            );
+        // Determine write mode - in couchbase_primary mode, we need to use the model save
+        // rather than direct SQL so that CouchbaseModelBridge routes it correctly
+        $writeMode = $this->getWriteMode();
+        \Yii::log("Cancel operation: writeMode={$writeMode}, id={$this->id}, status_id={$this->status_id}", \CLogger::LEVEL_INFO, 'application');
+        
+        if ($writeMode === 'couchbase_primary') {
+            // Use model save which CouchbaseModelBridge will route to Couchbase
+            \Yii::log("Cancel operation: using Couchbase primary mode save for operation {$this->id}", \CLogger::LEVEL_INFO, 'application');
+            $saveResult = $this->save(false);
+            \Yii::log("Cancel operation: save result=" . ($saveResult ? 'true' : 'false') . ", errors=" . json_encode($this->getErrors()), \CLogger::LEVEL_INFO, 'application');
+            if (!$saveResult) {
+                \Yii::log("Cancel operation model save failed: " . print_r($this->getErrors(), true), \CLogger::LEVEL_ERROR, 'application');
+                return array(
+                    'result' => false,
+                    'errors' => $this->getErrors() ?: array(array('Failed to save operation cancellation')),
+                );
+            }
+        } else {
+            // Use direct SQL UPDATE for MariaDB (dual_write or mariadb_only mode)
+            $sql = "UPDATE {$this->tableName()} SET 
+                status_id = :status_id,
+                operation_cancellation_date = :cancel_date,
+                cancellation_reason_id = :reason_id,
+                cancellation_comment = :comment,
+                cancellation_user_id = :cancel_user_id,
+                last_modified_user_id = :mod_user_id,
+                last_modified_date = :mod_date
+                WHERE id = :id";
+            
+            $command = Yii::app()->db->createCommand($sql);
+            $command->bindValue(':status_id', $cancelled_status_id, \PDO::PARAM_INT);
+            $command->bindValue(':cancel_date', $cancellation_date);
+            $command->bindValue(':reason_id', $reason_id, \PDO::PARAM_INT);
+            $command->bindValue(':comment', $comment);
+            $command->bindValue(':cancel_user_id', $user_id, \PDO::PARAM_INT);
+            $command->bindValue(':mod_user_id', Yii::app()->user->id, \PDO::PARAM_INT);
+            $command->bindValue(':mod_date', date('Y-m-d H:i:s'));
+            $command->bindValue(':id', $this->id, \PDO::PARAM_INT);
+            
+            try {
+                $updateResult = $command->execute();
+            } catch (\Exception $e) {
+                \Yii::log("Cancel operation SQL failed: " . $e->getMessage(), \CLogger::LEVEL_ERROR, 'application.operation');
+                return array(
+                    'result' => false,
+                    'errors' => array(array('Database error: ' . $e->getMessage())),
+                );
+            }
+            
+            if ($updateResult === false) {
+                return array(
+                    'result' => false,
+                    'errors' => array(array('Failed to update operation cancellation data')),
+                );
+            }
+            
+            // For dual_write mode, also sync to Couchbase
+            if ($writeMode === 'dual_write' && method_exists($this, 'saveToCouchbase')) {
+                try {
+                    $this->saveToCouchbase();
+                } catch (\Exception $e) {
+                    \Yii::log("Cancel operation Couchbase sync failed (non-fatal): " . $e->getMessage(), \CLogger::LEVEL_WARNING, 'application.operation');
+                }
+            }
         }
 
         OELog::log("Operation cancelled: $this->id");
@@ -2280,11 +2369,19 @@ class Element_OphTrOperationbooking_Operation extends BaseEventTypeElement
             ];
         }
         
-        // Embed status if available
-        if ($this->status) {
+        // Embed status if available - load fresh from status_id to ensure consistency
+        // after updates that change status_id without reloading the relation
+        $status = null;
+        if ($this->status_id) {
+            $status = \OphTrOperationbooking_Operation_Status::model()->findByPk($this->status_id);
+        }
+        if (!$status && $this->status) {
+            $status = $this->status;
+        }
+        if ($status) {
             $data['status'] = [
-                'id' => (int)$this->status->id,
-                'name' => $this->status->name,
+                'id' => (int)$status->id,
+                'name' => $status->name,
             ];
         }
         

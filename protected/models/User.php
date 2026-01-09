@@ -48,6 +48,47 @@ class User extends BaseActiveRecordVersioned
     use HasFactory;
 
     private const PIN_REGEN_LIMIT = 5;
+    
+    /**
+     * Override __get to explicitly handle the 'roles' property
+     * which doesn't have a defined relation but has a getter method.
+     * We use the trait's __get via alias to preserve Couchbase functionality.
+     * @param string $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        if ($name === 'roles') {
+            return $this->getRoles();
+        }
+        // Call the trait's __get implementation directly 
+        // This preserves CouchbaseModelBridge functionality
+        return $this->couchbaseAwareGet($name);
+    }
+    
+    /**
+     * Helper to access the trait's __get logic for Couchbase-aware property access
+     */
+    protected function couchbaseAwareGet($name)
+    {
+        // Check upfront if MariaDB is unavailable and this is a relation
+        if ($this->shouldUseCouchbase() && $this->isMariaDbUnavailable()) {
+            $md = $this->getMetaData();
+            if (isset($md->relations[$name])) {
+                // Check cache first
+                if (isset($this->_couchbaseRelationCache[$name])) {
+                    return $this->_couchbaseRelationCache[$name];
+                }
+                // Load from Couchbase
+                $result = $this->loadRelationFromCouchbase($name);
+                $this->_couchbaseRelationCache[$name] = $result;
+                return $result;
+            }
+        }
+        // For non-relation properties or when MariaDB is available, use grandparent
+        return parent::__get($name);
+    }
+    
     /**
      * Returns the static model of the specified AR class.
      *
@@ -523,7 +564,10 @@ class User extends BaseActiveRecordVersioned
      */
     public function getRoles()
     {
-        return $this->id ? Yii::app()->authManager->getRoles($this->id) : array();
+        Yii::log("User::getRoles() called for user id: " . $this->id, CLogger::LEVEL_INFO, 'application.couchbase.routing');
+        $roles = $this->id ? Yii::app()->authManager->getRoles($this->id) : array();
+        Yii::log("User::getRoles() returning " . count($roles) . " roles", CLogger::LEVEL_INFO, 'application.couchbase.routing');
+        return $roles;
     }
 
     public function hasRole($targetRole): bool {

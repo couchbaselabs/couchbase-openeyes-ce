@@ -775,6 +775,17 @@ class DefaultController extends OphTrOperationbookingEventController
         
         $operation = $this->operation;
 
+        // Ensure operation has properly hydrated event relation for Couchbase mode
+        if ($this->event && (!$operation->event || !$operation->event->id)) {
+            $operation->addRelatedRecord('event', $this->event, false);
+        }
+        if ($operation->event && !$operation->event->eventType && $operation->event->event_type_id) {
+            $eventType = EventType::model()->findByPk($operation->event->event_type_id);
+            if ($eventType) {
+                $operation->event->addRelatedRecord('eventType', $eventType, false);
+            }
+        }
+
         if ($operation->status->name == 'Cancelled') {
             return $this->redirect(array('default/view/' . $this->event->id));
         }
@@ -802,17 +813,14 @@ class DefaultController extends OphTrOperationbookingEventController
             die(json_encode($errors));
         }
 
-        if (!$operation = Element_OphTrOperationbooking_Operation::model()->find('event_id=?', array($id))) {
-            throw new CHttpException(500, 'Operation not found');
-        }
-
-        // Load patient with fallback for Couchbase mode
-        $patient = null;
-        if ($operation->event && $operation->event->episode) {
+        // Use patient from initWithEventId, which has Couchbase fallback logic built-in
+        $patient = $this->patient;
+        
+        // Additional fallback if patient is still null
+        if (!$patient && $operation->event && $operation->event->episode) {
             $patient = $operation->event->episode->patient;
         }
         if (!$patient && $operation->event) {
-            // Fallback: load patient directly via episode_id
             $event = $operation->event;
             if ($event->episode_id) {
                 $episode = Episode::model()->findByPk($event->episode_id);
@@ -820,6 +828,10 @@ class DefaultController extends OphTrOperationbookingEventController
                     $patient = Patient::model()->findByPk($episode->patient_id);
                 }
             }
+        }
+
+        if (!$patient) {
+            throw new CHttpException(500, 'Patient not found for this operation');
         }
 
         $this->patient = $patient;

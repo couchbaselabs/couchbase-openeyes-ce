@@ -52,6 +52,17 @@ class MultiSelectList extends BaseFieldWidget
         }
 
         if (empty($_POST)) {
+            // Debug: log what we're getting from the relation
+            if ($this->element && $this->relation === 'roles') {
+                $relationData = $this->element->{$this->relation};
+                Yii::log("MultiSelectList: relation=roles, element class=" . get_class($this->element) . ", relation data count=" . count($relationData), CLogger::LEVEL_INFO, 'application.widget');
+                if (is_array($relationData) || is_object($relationData)) {
+                    foreach ($relationData as $key => $item) {
+                        Yii::log("MultiSelectList: role item key=$key, type=" . (is_object($item) ? get_class($item) : gettype($item)), CLogger::LEVEL_INFO, 'application.widget');
+                    }
+                }
+            }
+            
             if ($this->element && $this->element->{$this->relation}) {
                 foreach ($this->element->{$this->relation} as $item) {
                     $this->selected_ids[] = $item->{$this->relation_id_field};
