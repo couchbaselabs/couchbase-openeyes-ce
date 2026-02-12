@@ -1,6 +1,0 @@
-{
-"requestID": "c1fcd79e-683a-47ff-80dd-26bf224b808b",
-"errors": [{"code":4000,"msg":"No index available on keyspace `default`:`openeyes`.`core`.`firm` that matches your query. Use CREATE PRIMARY INDEX ON `default`:`openeyes`.`core`.`firm` to create a primary index, or check that your expected index is online."}],
-"status": "fatal",
-"metrics": {"elapsedTime": "2.188333ms","executionTime": "2.085667ms","resultCount": 0,"resultSize": 0,"serviceLoad": 6,"errorCount": 1}
-}

@@ -145,3 +145,8 @@ protected/assets/nxblu
 
 # Local scripts (debugging, fixing, migration)
 /scripts/
+
+# Backup files
+/backup/
+
+/logs/
