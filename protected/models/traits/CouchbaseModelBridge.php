@@ -1226,6 +1226,21 @@ trait CouchbaseModelBridge
             );
         }
         
+        // Escape N1QL reserved words that are commonly used as column names
+        // These must be wrapped in backticks to avoid syntax errors
+        // See: https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/reservedwords.html
+        $reservedWords = ['start', 'end', 'first', 'last', 'value', 'index', 'offset', 'limit', 'order', 'group', 'by'];
+        foreach ($reservedWords as $reserved) {
+            // Match unquoted reserved word as column name (word boundary, not already backtick-quoted)
+            // Handles: start, t.start, table.start but NOT `start` or $start
+            // Use negative lookbehind for backtick and negative lookahead for backtick
+            $condition = preg_replace(
+                '/(?<!`)(?<!\$)\b' . $reserved . '\b(?!`)/',
+                '`' . $reserved . '`',
+                $condition
+            );
+        }
+        
         return $condition;
     }
     
@@ -1240,9 +1255,13 @@ trait CouchbaseModelBridge
         // Convert MySQL RAND() to N1QL RANDOM()
         $order = preg_replace('/\bRAND\s*\(\s*\)/i', 'RANDOM()', $order);
         
-        // Escape 'value' which is a reserved word in N1QL
-        // Handle cases like "value*1 asc" or just "value"
-        $order = preg_replace('/\bvalue\b(?!\s*\`)/', '`value`', $order);
+        // Escape N1QL reserved words that are commonly used as column names in ORDER BY
+        // These must be wrapped in backticks to avoid syntax errors
+        $reservedWords = ['start', 'end', 'first', 'last', 'value', 'index', 'offset', 'limit', 'order', 'group', 'by'];
+        foreach ($reservedWords as $reserved) {
+            // Match unquoted reserved word as column name (not already backtick-quoted)
+            $order = preg_replace('/(?<!`)(?<!\$)\b' . $reserved . '\b(?!`)/', '`' . $reserved . '`', $order);
+        }
         
         return $order;
     }

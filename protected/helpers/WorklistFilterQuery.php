@@ -345,6 +345,7 @@ class WorklistFilterQuery
         $query = $command->text;
 
         return new CSqlDataProvider($query, array(
+            'db' => Yii::app()->cbdb,
             'params' => $params,
             'sort' => array('attributes' => $sortBy),
             'totalItemCount' => $count,

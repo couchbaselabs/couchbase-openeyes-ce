@@ -130,8 +130,20 @@ class CouchbaseRestClient extends CApplicationComponent
         // Add named parameters if provided
         if (!empty($params)) {
             foreach ($params as $key => $value) {
+                // Remove leading colon if present (MySQL style)
+                $cleanKey = ltrim($key, ':');
+                
                 // N1QL named parameters start with $
-                $paramKey = strpos($key, '$') === 0 ? $key : '$' . $key;
+                $paramKey = '$' . $cleanKey;
+                
+                // Convert :param to $param in the query SQL
+                // This handles MySQL-style named parameters
+                $body['statement'] = preg_replace(
+                    '/:\b' . preg_quote($cleanKey, '/') . '\b/',
+                    '$' . $cleanKey,
+                    $body['statement']
+                );
+                
                 // Preserve the original type - strings stay strings, numbers stay numbers
                 // This is important because Couchbase is type-sensitive and many IDs
                 // are stored as strings in the data but may be passed as integers from PHP

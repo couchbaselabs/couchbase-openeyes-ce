@@ -123,6 +123,16 @@ class CouchbaseDbConnection extends CApplicationComponent
     }
     
     /**
+     * Get the command builder for this connection
+     * Required for CDbConnection compatibility (used by CSqlDataProvider)
+     * @return CouchbaseCommandBuilder
+     */
+    public function getCommandBuilder()
+    {
+        return new CouchbaseCommandBuilder($this);
+    }
+    
+    /**
      * Get the Couchbase cluster
      * @return \Couchbase\Cluster
      */
@@ -152,8 +162,14 @@ class CouchbaseDbConnection extends CApplicationComponent
     {
         $this->open();
         
+        // Debug: Log params before conversion
+        Yii::log("CouchbaseDbConnection::query params BEFORE conversion: " . json_encode($params), CLogger::LEVEL_INFO, 'application.couchbase.debug');
+        
         // Convert parameters from MySQL format (:param_name) to Couchbase format ($param_name)
         list($n1ql, $params) = $this->convertParametersFormat($n1ql, $params);
+        
+        // Debug: Log converted query and params
+        Yii::log("CouchbaseDbConnection::query AFTER conversion - SQL: " . substr($n1ql, 0, 200) . " params: " . json_encode($params), CLogger::LEVEL_INFO, 'application.couchbase.debug');
         
         $options = new \Couchbase\QueryOptions();
         if (!empty($params)) {
@@ -331,9 +347,15 @@ class CouchbaseDbCommand
     private $_n1ql;
     
     /**
-     * @var array Query parameters
+     * @var array Query parameters (internal)
      */
     private $_params = [];
+    
+    /**
+     * @var array Public params property for CDbCommand compatibility
+     * This allows code like $command->params = [...] to work
+     */
+    public $params = [];
     
     /**
      * @var string Target collection
@@ -367,6 +389,16 @@ class CouchbaseDbCommand
         if ($sql !== null) {
             $this->setText($sql);
         }
+    }
+    
+    /**
+     * Get the database connection
+     * Required for CDbCommand compatibility (used by CSqlDataProvider)
+     * @return CouchbaseDbConnection
+     */
+    public function getConnection()
+    {
+        return $this->_connection;
     }
     
     /**
@@ -830,6 +862,7 @@ class CouchbaseDbCommand
         // If using query builder and SQL hasn't been built yet, build it now
         if ($this->_useBuilder && empty($this->_sql)) {
             $this->_sql = $this->buildQuery();
+            Yii::log("CouchbaseDbCommand::getText() built query: " . substr($this->_sql ?? 'NULL', 0, 200) . " (from={$this->_from}, select={$this->_select})", CLogger::LEVEL_INFO, 'application.couchbase.debug');
         }
         return $this->_sql;
     }
@@ -846,6 +879,35 @@ class CouchbaseDbCommand
             return $this->getText();
         }
         throw new CException("Undefined property: " . get_class($this) . "::$name");
+    }
+    
+    /**
+     * Magic setter for property access compatibility with Yii's CDbCommand
+     * Allows setting ->text as a property
+     * @param string $name Property name
+     * @param mixed $value Property value
+     */
+    public function __set($name, $value)
+    {
+        switch ($name) {
+            case 'text':
+                $this->setText($value);
+                return;
+            case 'order':
+                $this->order($value);
+                return;
+            case 'select':
+                $this->select($value);
+                return;
+            case 'from':
+                $this->from($value);
+                return;
+            case 'group':
+                $this->group($value);
+                return;
+            default:
+                throw new CException("Setting unknown property: " . get_class($this) . "::$name");
+        }
     }
     
     /**
@@ -880,7 +942,8 @@ class CouchbaseDbCommand
      */
     public function queryAll($params = [])
     {
-        $params = array_merge($this->_params, $this->_whereParams, $this->_havingParams, $params);
+        // Merge all param sources: internal _params, public params property, builder params
+        $params = array_merge($this->_params, $this->params, $this->_whereParams, $this->_havingParams, $params);
         
         // Build SQL from query builder if used
         if ($this->_useBuilder) {
@@ -931,6 +994,9 @@ class CouchbaseDbCommand
             try {
                 // Try N1QL conversion even for complex queries
                 $this->_n1ql = $this->convertToN1QL($this->_sql);
+                
+                // Pass params as-is - the query() method will handle conversion
+                // from MySQL format (:param) to N1QL format ($param)
                 return $this->_connection->query($this->_n1ql, $params);
             } catch (\Exception $e) {
                 // N1QL conversion failed, return empty result to avoid breaking the page
@@ -1042,7 +1108,8 @@ class CouchbaseDbCommand
      */
     public function execute($params = [])
     {
-        $params = array_merge($this->_params, $this->_whereParams, $params);
+        // Merge all param sources: internal _params, public params property, builder params
+        $params = array_merge($this->_params, $this->params, $this->_whereParams, $params);
         
         // Build SQL from query builder if used
         if ($this->_useBuilder) {
@@ -1255,7 +1322,106 @@ class CouchbaseDbCommand
         // Replace MySQL RAND() with N1QL RANDOM()
         $sql = preg_replace('/\bRAND\s*\(\s*\)/i', 'RANDOM()', $sql);
         
-        // Handle backtick quoting (already N1QL compatible)
+        // Note: Named parameter conversion (:param -> $param) is handled by
+        // CouchbaseDbConnection::convertParametersFormat() when query() is called.
+        // Do NOT convert here to avoid double conversion.
+        
+        // Convert MySQL IN clause syntax to N1QL syntax: IN (values) -> IN [values]
+        $sql = $this->convertInClause($sql);
+        
+        // Escape N1QL reserved words used as column names or aliases
+        $sql = $this->escapeReservedWords($sql);
+        
+        return $sql;
+    }
+    
+    /**
+     * Convert MySQL-style named parameters (:param) to N1QL style ($param)
+     * @param string $sql
+     * @return string
+     */
+    private function convertNamedParameters($sql)
+    {
+        // Convert :param_name to $param_name
+        // Match : followed by word characters, but not inside strings
+        return preg_replace('/(?<![:\w]):(\w+)/', '\$$1', $sql);
+    }
+    
+    /**
+     * Escape N1QL reserved words used as column names or aliases
+     * These must be wrapped in backticks to avoid syntax errors
+     * BUT we must NOT escape SQL keywords when used in their normal context
+     * @param string $sql
+     * @return string
+     */
+    private function escapeReservedWords($sql)
+    {
+        // Reserved words that are commonly used as column/alias names
+        // but are also N1QL reserved words that need backtick escaping
+        // Note: We do NOT include SQL keywords like GROUP, BY, ORDER, LIMIT
+        // as they should only be escaped when used as column names, not as keywords
+        $reservedColumnNames = [
+            'start', 'end', 'first', 'last', 'value', 'index', 'key', 'keys', 'when'
+        ];
+        
+        foreach ($reservedColumnNames as $reserved) {
+            // Handle alias.reserved patterns like earlier.first -> earlier.`first`
+            // This is the most reliable pattern for column access
+            $sql = preg_replace(
+                '/(\w+)\.' . $reserved . '\b(?!`)/i',
+                '$1.`' . $reserved . '`',
+                $sql
+            );
+            
+            // Handle AS reserved patterns like MIN(x) AS first -> MIN(x) AS `first`
+            $sql = preg_replace(
+                '/\bAS\s+' . $reserved . '\b(?!`)/i',
+                'AS `' . $reserved . '`',
+                $sql
+            );
+        }
+        
+        return $sql;
+    }
+    
+    /**
+     * Convert MySQL IN clause syntax to N1QL syntax
+     * MySQL: column IN (value1, value2, ...)
+     * N1QL: column IN [value1, value2, ...]
+     * @param string $sql
+     * @return string
+     */
+    private function convertInClause($sql)
+    {
+        // Convert IN (values) to IN [values] for N1QL
+        // Match: IN followed by whitespace and parentheses containing values
+        // But don't match subqueries (which have SELECT inside)
+        $sql = preg_replace_callback(
+            '/\bIN\s*\(\s*([^()]+?)\s*\)/i',
+            function($matches) {
+                $values = $matches[1];
+                // Skip if it looks like a subquery
+                if (stripos($values, 'SELECT') !== false) {
+                    return $matches[0];
+                }
+                return 'IN [' . $values . ']';
+            },
+            $sql
+        );
+        
+        // Also handle NOT IN
+        $sql = preg_replace_callback(
+            '/\bNOT\s+IN\s*\(\s*([^()]+?)\s*\)/i',
+            function($matches) {
+                $values = $matches[1];
+                // Skip if it looks like a subquery
+                if (stripos($values, 'SELECT') !== false) {
+                    return $matches[0];
+                }
+                return 'NOT IN [' . $values . ']';
+            },
+            $sql
+        );
         
         return $sql;
     }
@@ -1438,5 +1604,51 @@ class CouchbaseDbTransaction
     public function getActive()
     {
         return $this->_active;
+    }
+}
+
+/**
+ * Command builder for Couchbase
+ * Provides CDbCommandBuilder compatibility for CSqlDataProvider
+ */
+class CouchbaseCommandBuilder
+{
+    /**
+     * @var CouchbaseDbConnection
+     */
+    private $_connection;
+    
+    public function __construct(CouchbaseDbConnection $connection)
+    {
+        $this->_connection = $connection;
+    }
+    
+    /**
+     * Apply LIMIT and OFFSET to a SQL query
+     * Required by CSqlDataProvider for pagination
+     * @param string $sql The SQL query
+     * @param int $limit Number of rows to return
+     * @param int $offset Starting position
+     * @return string Modified SQL with LIMIT/OFFSET
+     */
+    public function applyLimit($sql, $limit, $offset)
+    {
+        // Handle null SQL gracefully
+        if ($sql === null) {
+            $sql = '';
+        }
+        
+        // Remove any existing LIMIT/OFFSET clauses
+        $sql = preg_replace('/\s+LIMIT\s+\d+(\s+OFFSET\s+\d+)?$/i', '', $sql);
+        
+        // Add new LIMIT/OFFSET
+        if ($limit >= 0) {
+            $sql .= ' LIMIT ' . (int)$limit;
+        }
+        if ($offset > 0) {
+            $sql .= ' OFFSET ' . (int)$offset;
+        }
+        
+        return $sql;
     }
 }

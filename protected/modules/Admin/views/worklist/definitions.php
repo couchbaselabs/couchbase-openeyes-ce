@@ -48,8 +48,8 @@
                         <input type="hidden" name="WorklistDefinition[display_order][]" value="<?= $definition->id ?>">
                     </td>
                     <td data-test="definition-name"><?= $definition->name ?></td>
-                    <td><?= $definition->patient_identifier_type->getTitleWithInstitution() ?></td>
-                    <td><?= $definition->pathway_type->name ?></td>
+                    <td><?= $definition->patient_identifier_type ? $definition->patient_identifier_type->getTitleWithInstitution() : 'N/A' ?></td>
+                    <td><?= $definition->pathway_type ? $definition->pathway_type->name : 'N/A' ?></td>
                     <td><?php if ($this->manager->canUpdateWorklistDefinition($definition)) {?>
                         <a class="button small" href="/Admin/worklist/definitionUpdate/<?=$definition->id?>">Edit</a><?php
                         }?>
