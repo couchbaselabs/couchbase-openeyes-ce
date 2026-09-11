@@ -6,10 +6,13 @@
 # OpenEyes
 
 OpenEyes™ is the leading open source Electronic Patient Record (EPR) for ophthalmology.
+
+This project is a fork of the OpenEyes project led by the Apperta Foundation and now supports couchbase community edition as the databasse working with OpenEyes software. This helps couchbase development ecosystem along side the original mariadb support allowing dual writes with OpenEyes project.
+
+For more information regarding the original project, please see https://github.com/AppertaFoundation/openeyes.
   
 - [View Website](https://openeyes.apperta.org/) 
-- [Report an issue](https://github.com/AppertaFoundation/openeyes/issues/new)
-- [Request feature](https://openeyes.apperta.org/)
+- [Report an issue or request feature ](https://github.com/couchbaselabs/couchbase-openeyes-ce/issues/new)
 
 ## Table of contents
 
@@ -42,7 +45,7 @@ Detailed installation instructions to build each version can be found on the pro
     
 # Issues and support
 
-Issues in the core should be logged through the [github issues system](https://github.com/AppertaFoundation/openeyes/issues/new).  
+Issues in the core should be logged through the [github issues system]https://github.com/couchbaselabs/couchbase-openeyes-ce/issues/new).  
 
 Please be aware that no service level agreement exists for the open source project and no support can be given via github. The team will do their best to fix any critical issues reported, but no guarantees are given. 
 
@@ -51,13 +54,11 @@ Official implementation and support is available from our Accredited Professiona
 # Resources
 ---------
 
-This is the main repository for development of the core OpenEyes framework.  Event type modules are being developed in other repositories both by ourselves and Accredited Contributors.  You may also be interested in our [EyeDraw repository](https://github.com/appertafoundation/EyeDraw); this code is used by OpenEyes but may also be used independently.
+This is the main repository for development of the core OpenEyes framework with [Couchbase](https://www.couchbase.com/)Community edition support. Event type modules are being developed in other repositories both by ourselves and Accredited Contributors.  You may also be interested in our [EyeDraw repository](https://github.com/appertafoundation/EyeDraw); this code is used by OpenEyes but may also be used independently.
 
 The principal source of information on OpenEyes is [the OpenEyes website](http://openeyes.apperta.org)
 
 If you're interested in the OpenEyes project, or for general enquiries, email: <openeyes@apperta.org>
-
-You can find us on twitter at: http://twitter.com/openeyes_oef
 
 # Contributing
 -----------------------------------
