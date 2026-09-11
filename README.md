@@ -47,9 +47,7 @@ Detailed installation instructions to build each version can be found on the pro
 
 Issues in the core should be logged through the [github issues system](https://github.com/couchbaselabs/couchbase-openeyes-ce/issues/new).  
 
-Please be aware that no service level agreement exists for the open source project and no support can be given via github. The team will do their best to fix any critical issues reported, but no guarantees are given. 
-
-Official implementation and support is available from our Accredited Professional Services Partner Network. A list of available partners can be found at the following link [openeyes.apperta.org](openeyes.apperta.org). 
+Please be aware that no service level agreement exists for this open source project. While the team will work to address critical issues reported, no guarantees are given."
     
 # Resources
 ---------
@@ -60,17 +58,8 @@ The principal source of information on OpenEyes is [the OpenEyes website](http:/
 
 If you're interested in the OpenEyes project, or for general enquiries, email: <openeyes@apperta.org>
 
-# Contributing
------------------------------------
-
-If you are thinking of making a contribution to OpenEyes please contact our team at <openeyes@apperta.org>. 
-
-If you need to share repositories with members of the core development team, you can find them listed as _organizational members_ at: <https://github.com/openeyes>
-
-OpenEyes follows the [gitflow](http://nvie.com/posts/a-successful-git-branching-model/) model for git branches. As such, the stable release branch is always on master. For bleeding edge development, use the develop branch.
-
 -----------------------------------
 # Copyright and license    
-- Code and documentation copyright 2019–2024 the [Apperta Foundation](https://apperta.org/) 
+- Original Code and documentation copyright 2019–2024 the [Apperta Foundation](https://apperta.org/); Certain Code in this fork is authored by Couchbase, Inc., copyright 2026 
 - Code released under the [GNU Affero General Public License v3.0](https://github.com/AppertaFoundation/openeyes/blob/master/LICENSE)
 - Docs released under [Creative Commons](https://creativecommons.org/licenses/by/3.0/).  
