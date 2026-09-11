@@ -12,7 +12,7 @@ This project is a fork of the OpenEyes project led by the Apperta Foundation and
 For more information regarding the original project, please see https://github.com/AppertaFoundation/openeyes.
   
 - [View Website](https://openeyes.apperta.org/) 
-- [Report an issue or request feature ](https://github.com/couchbaselabs/couchbase-openeyes-ce/issues/new)
+- [Report an issue or request feature](https://github.com/couchbaselabs/couchbase-openeyes-ce/issues/new)
 
 ## Table of contents
 
@@ -45,7 +45,7 @@ Detailed installation instructions to build each version can be found on the pro
     
 # Issues and support
 
-Issues in the core should be logged through the [github issues system]https://github.com/couchbaselabs/couchbase-openeyes-ce/issues/new).  
+Issues in the core should be logged through the [github issues system](https://github.com/couchbaselabs/couchbase-openeyes-ce/issues/new).  
 
 Please be aware that no service level agreement exists for the open source project and no support can be given via github. The team will do their best to fix any critical issues reported, but no guarantees are given. 
 
